@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}MIMIC{% endblock %} | Automated Crypto Copy Trading Platform</title>
+    <meta name="title" content="{% block meta_title %}MIMIC - Automated Crypto Copy Trading Platform{% endblock %}">
+    <meta name="description" content="{% block meta_description %}MIMIC is the leading automated crypto copy trading platform. Mirror professional traders on Binance, Bybit, OKX & KuCoin. Real-time trade copying, customizable risk management, 24/7 automated profits.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}copy trading, crypto copy trading, automated trading, binance copy trading, bybit copy trading, okx trading, cryptocurrency trading, mirror trading, social trading, bitcoin trading, futures trading, crypto signals, trading bot, automated crypto trading{% endblock %}">
+    <meta name="author" content="MIMIC">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="bingbot" content="index, follow">
+    <meta name="theme-color" content="#00f0ff">
+    <meta name="msapplication-TileColor" content="#050508">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{% block canonical_url %}https://mimic.cash{{ request.path }}{% endblock %}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="https://mimic.cash{{ request.path }}">
+    <meta property="og:title" content="{% block og_title %}MIMIC - Automated Crypto Copy Trading Platform{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Mirror professional crypto traders automatically. Connect your exchange and start copy trading on Binance, Bybit, OKX. Real-time execution, customizable risk.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://mimic.cash/static/og-image.svg{% endblock %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="MIMIC">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://mimic.cash{{ request.path }}">
+    <meta name="twitter:title" content="{% block twitter_title %}MIMIC - Automated Crypto Copy Trading{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Mirror professional crypto traders automatically. Real-time trade copying on Binance, Bybit, OKX & more.{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}https://mimic.cash/static/og-image.svg{% endblock %}">
+    <meta name="twitter:creator" content="@mimiccash">
+    
+    <!-- Structured Data - Organization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "MIMIC",
+        "alternateName": "MIMIC Cash",
+        "url": "https://mimic.cash",
+        "logo": "https://mimic.cash/static/mimic-logo.svg",
+        "description": "Automated crypto copy trading platform for Binance, Bybit, OKX and more",
+        "foundingDate": "2024",
+        "sameAs": [
+            "https://t.me/mimiccash"
+        ],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "availableLanguage": ["English", "Ukrainian", "Russian"]
+        }
+    }
+    </script>
+    
+    <!-- Structured Data - WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "MIMIC",
+        "url": "https://mimic.cash",
+        "description": "Automated crypto copy trading platform",
+        "publisher": {
+            "@type": "Organization",
+            "name": "MIMIC"
+        },
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://mimic.cash/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    
+    <!-- Structured Data - SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "MIMIC Copy Trading",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "150",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "featureList": [
+            "Automated copy trading",
+            "Real-time trade mirroring",
+            "Multi-exchange support",
+            "Customizable risk management",
+            "Telegram notifications",
+            "24/7 trading"
+        ]
+    }
+    </script>
+    
+    {% block structured_data %}{% endblock %}
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='mimic-logo.svg') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='mimic-logo.svg') }}">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Preconnect to External Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    
+    <!-- VoltX Cyberpunk Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <!-- Alternate Languages -->
+    <link rel="alternate" hreflang="en" href="https://mimic.cash{{ request.path }}">
+    <link rel="alternate" hreflang="uk" href="https://mimic.cash{{ request.path }}?lang=uk">
+    <link rel="alternate" hreflang="x-default" href="https://mimic.cash{{ request.path }}">
+    
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    <!-- VoltX Animated Background -->
+    <div class="app-bg"></div>
+    <div class="app-noise"></div>
+    <div class="app-glow app-glow-1"></div>
+    <div class="app-glow app-glow-2"></div>
+    <div class="app-glow app-glow-3"></div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ==================== VOLTX HEADER ==================== -->
+    <header class="app-header">
+        <div class="header-inner">
+            <!-- Logo -->
+            <a href="{{ url_for('index') }}" class="app-logo">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <path d="M6 6L14 16L6 26V6Z" fill="url(#logoGrad1)"/>
+                        <path d="M26 6L18 16L26 26V6Z" fill="url(#logoGrad1)"/>
+                        <rect x="14" y="12" width="4" height="8" rx="0" fill="url(#logoGrad2)"/>
+                        <defs>
+                            <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00f0ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                            <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff2d92"/>
+                                <stop offset="100%" style="stop-color:#ff00ff"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-text">MIMIC</span>
+            </a>
+
+            <!-- Center Nav (Desktop) -->
+            <nav class="header-nav">
+            </nav>
+
+            <!-- Right Actions -->
+            <div class="header-actions">
+                <!-- Live Status -->
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    <span class="live-text" data-i18n="dash.live">LIVE</span>
+                </div>
+
+                <!-- Language -->
+                <button onclick="toggleLanguage()" class="action-btn" aria-label="Language">
+                    <span class="lang-flag">🇺🇸</span>
+                </button>
+
+                {% if current_user.is_authenticated %}
+                <!-- User Menu -->
+                <div class="user-menu" onclick="toggleUserMenu()">
+                    <div class="user-avatar">
+                        {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                        <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
+                        {% else %}
+                        <span>{{ current_user.avatar or '🧑‍💻' }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="user-name">{{ current_user.first_name or current_user.username }}</span>
+                    <i class="fas fa-chevron-down user-arrow"></i>
+                </div>
+
+                <!-- User Dropdown -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar">
+                            {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                            <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
+                            {% else %}
+                            <span>{{ current_user.avatar or '🧑‍💻' }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="dropdown-info">
+                            <span class="dropdown-name">{{ current_user.first_name or current_user.username }}</span>
+                            <span class="dropdown-role {% if current_user.role == 'admin' %}admin{% endif %}">{{ current_user.role|capitalize }}</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <!-- Section Navigation -->
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="overview" onclick="showSection('overview'); closeUserMenu(); return false;">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span data-i18n="section.overview">Overview</span>
+                    </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="trading" onclick="showSection('trading'); closeUserMenu(); return false;">
+                        <i class="fas fa-chart-line"></i>
+                        <span data-i18n="section.trading">Trading</span>
+                    </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="exchange" onclick="showSection('exchange'); closeUserMenu(); return false;">
+                        <i class="fas fa-plug"></i>
+                        <span data-i18n="section.exchange">Exchange</span>
+                    </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="settings" onclick="showSection('settings'); closeUserMenu(); return false;">
+                        <i class="fas fa-cog"></i>
+                        <span data-i18n="section.settings">Settings</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ url_for('messages') }}" class="dropdown-item">
+                        <i class="fas fa-envelope"></i>
+                        <span data-i18n="nav.messages">Messages</span>
+                    </a>
+                    <a href="{{ url_for('change_password') }}" class="dropdown-item">
+                        <i class="fas fa-key"></i>
+                        <span data-i18n="nav.changePassword">Security</span>
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" onclick="if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); closeUserMenu(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
+                        <i class="fas fa-tools"></i>
+                        <span data-i18n="admin.addExchange">Add Exchange</span>
+                    </a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="dropdown-item danger">
+                        <i class="fas fa-power-off"></i>
+                        <span data-i18n="nav.logout">Logout</span>
+                    </a>
+                </div>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="cyber-btn cyber-btn-sm" data-i18n="nav.login">Login</a>
+                {% endif %}
+
+                <!-- Mobile Menu Button -->
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== MOBILE MENU ==================== -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
+    <aside class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="app-logo">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <path d="M6 6L14 16L6 26V6Z" fill="#00f0ff"/>
+                        <path d="M26 6L18 16L26 26V6Z" fill="#00f0ff"/>
+                        <rect x="14" y="12" width="4" height="8" rx="0" fill="#ff2d92"/>
+                    </svg>
+                </div>
+                <span class="logo-text">MIMIC</span>
+            </div>
+            <button onclick="closeMobileMenu()" class="mobile-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="mobile-user">
+            <div class="mobile-user-avatar">
+                {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
+                {% else %}
+                <span>{{ current_user.avatar or '🧑‍💻' }}</span>
+                {% endif %}
+            </div>
+            <div class="mobile-user-info">
+                <span class="mobile-user-name">{{ current_user.first_name or current_user.username }}</span>
+                <span class="mobile-user-role {% if current_user.role == 'admin' %}admin{% endif %}">{{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <nav class="mobile-nav">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-chart-line"></i>
+                <span data-i18n="nav.dashboard">Dashboard</span>
+            </a>
+            <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-envelope"></i>
+                <span data-i18n="nav.messages">Messages</span>
+                {% if unread_count and unread_count > 0 %}
+                <span class="mobile-badge">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+            
+            {% block mobile_sections %}{% endblock %}
+            
+            {% if current_user.role == 'admin' %}
+            <div class="mobile-divider"></div>
+            <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
+                <i class="fas fa-plug"></i>
+                <span data-i18n="admin.addExchange">Add Exchange</span>
+            </a>
+            {% endif %}
+            <div class="mobile-divider"></div>
+            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-key"></i>
+                <span data-i18n="nav.changePassword">Security</span>
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-sign-in-alt"></i>
+                <span data-i18n="nav.login">Login</span>
+            </a>
+            <a href="{{ url_for('register') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-user-plus"></i>
+                <span data-i18n="nav.register">Register</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="mobile-settings">
+            <button onclick="toggleLanguage()" class="mobile-setting-btn">
+                <span class="lang-flag">🇺🇸</span>
+                <span class="lang-code">EN</span>
+            </button>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="mobile-footer">
+            <a href="{{ url_for('logout') }}" class="mobile-logout">
+                <i class="fas fa-power-off"></i>
+                <span data-i18n="nav.logout">Logout</span>
+            </a>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- ==================== FLASH MESSAGES ==================== -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}" onclick="this.remove()">
+            <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% elif category == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button class="flash-close"><i class="fas fa-times"></i></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="app-main" role="main">
+        <div class="app-container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- ==================== VOLTX FOOTER ==================== -->
+    <footer class="app-footer" role="contentinfo">
+        <div class="footer-container">
+            <!-- Main Footer Content -->
+            <div class="footer-grid">
+                <!-- Brand Column -->
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+                            <path d="M6 6L14 16L6 26V6Z" fill="url(#footerGrad1)"/>
+                            <path d="M26 6L18 16L26 26V6Z" fill="url(#footerGrad1)"/>
+                            <rect x="14" y="12" width="4" height="8" fill="url(#footerGrad2)"/>
+                            <defs>
+                                <linearGradient id="footerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#00f0ff"/>
+                                    <stop offset="100%" style="stop-color:#8b5cf6"/>
+                                </linearGradient>
+                                <linearGradient id="footerGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#ff2d92"/>
+                                    <stop offset="100%" style="stop-color:#ff00ff"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span>MIMIC</span>
+                    </div>
+                    <p class="footer-desc" data-i18n="footer.desc">Next-generation automated copy trading platform. Mirror professional traders in real-time.</p>
+                    <div class="footer-social">
+                        <a href="https://t.me/mimiccash" target="_blank" class="social-link" aria-label="Telegram">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Discord">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Links Columns -->
+                <div class="footer-links">
+                    <h4 data-i18n="footer.platform">Platform</h4>
+                    <ul>
+                        <li><a href="{{ url_for('index') }}" data-i18n="footer.home">Home</a></li>
+                        <li><a href="{{ url_for('leaderboard') }}">Leaderboard</a></li>
+                        <li><a href="{{ url_for('login') }}" data-i18n="footer.signIn">Sign In</a></li>
+                        <li><a href="{{ url_for('register') }}" data-i18n="footer.getStarted">Get Started</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4 data-i18n="footer.exchanges">Exchanges</h4>
+                    <ul>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Binance Futures</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Bybit</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> OKX</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> KuCoin</span></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links">
+                    <h4 data-i18n="footer.features">Features</h4>
+                    <ul>
+                        <li data-i18n="footer.copyTrading">Copy Trading</li>
+                        <li data-i18n="footer.realTimeMirroring">Real-time Mirroring</li>
+                        <li data-i18n="footer.riskManagement">Risk Management</li>
+                        <li data-i18n="footer.telegramAlerts">Telegram Alerts</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <div class="footer-stats">
+                    <div class="footer-stat">
+                        <span class="stat-num">24/7</span>
+                        <span class="stat-txt" data-i18n="footer.trading">Trading</span>
+                    </div>
+                    <div class="footer-stat">
+                        <span class="stat-num">&lt;1s</span>
+                        <span class="stat-txt" data-i18n="footer.latency">Latency</span>
+                    </div>
+                    <div class="footer-stat">
+                        <span class="stat-num">100%</span>
+                        <span class="stat-txt" data-i18n="footer.automated">Automated</span>
+                    </div>
+                </div>
+                <div class="footer-legal">
+                    <p>&copy; 2025 MIMIC. <span data-i18n="footer.rights">All rights reserved.</span></p>
+                    <p class="footer-warning" data-i18n="footer.warning">Trading involves risk. Not financial advice.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+        .app-footer {
+            background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+            border-top: 1px solid rgba(0, 240, 255, 0.1);
+            padding: 0;
+            margin-top: 80px;
+            position: relative;
+        }
+        
+        .app-footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-purple), var(--neon-pink), transparent);
+        }
+        
+        .footer-container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 60px 24px 40px;
+        }
+        
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+            padding-bottom: 48px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.08);
+        }
+        
+        @media (max-width: 1024px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 32px;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+        
+        .footer-brand {
+            max-width: 320px;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-cyber);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+        }
+        
+        .footer-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .social-link {
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon-cyan);
+            font-size: 1.1rem;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        
+        .social-link:hover {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--neon-cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+        
+        .footer-links h4 {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .footer-links li {
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        
+        .footer-links a:hover {
+            color: var(--neon-cyan);
+        }
+        
+        .exchange-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+        
+        .footer-stats {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .footer-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .stat-num {
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-txt {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .footer-legal {
+            text-align: right;
+        }
+        
+        @media (max-width: 768px) {
+            .footer-legal {
+                text-align: center;
+            }
+        }
+        
+        .footer-legal p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .footer-warning {
+            font-size: 0.75rem !important;
+            color: var(--neon-pink) !important;
+        }
+    </style>
+
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

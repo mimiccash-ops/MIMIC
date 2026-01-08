@@ -1,0 +1,4 @@
+# This directory is for PostgreSQL initialization scripts
+# Any .sql or .sh files placed here will be executed when the container first starts
+# See: https://hub.docker.com/_/postgres (Initialization scripts section)
+

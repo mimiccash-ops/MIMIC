@@ -1,0 +1,1995 @@
+{% extends "base.html" %}
+{% block title %}Terminal{% endblock %}
+
+{% block mobile_sections %}
+<div class="mobile-divider"></div>
+<a href="#" class="mobile-nav-item mobile-section-link active" data-section="overview" onclick="showSection('overview'); return false;">
+    <i class="fas fa-terminal"></i>
+    <span data-i18n="section.overview">Terminal</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="showSection('trading'); return false;">
+    <i class="fas fa-chart-candlestick"></i>
+    <span data-i18n="section.trading">Analytics</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="showSection('exchange'); return false;">
+    <i class="fas fa-link"></i>
+    <span data-i18n="section.exchange">Connections</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
+    <i class="fas fa-sliders"></i>
+    <span data-i18n="section.settings">Config</span>
+</a>
+{% endblock %}
+
+{% block extra_styles %}
+<!-- HTMX for real-time updates -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<!-- TradingView Lightweight Charts -->
+<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+
+<style>
+    /* ============= CYBERPUNK TERMINAL OVERRIDE ============= */
+    :root {
+        --cyber-black: #0a0a0f;
+        --cyber-dark: #0d0d14;
+        --cyber-surface: #12121a;
+        --cyber-border: #1a1a24;
+        --neon-green: #00ff88;
+        --neon-red: #ff0055;
+        --neon-cyan: #00f0ff;
+        --neon-yellow: #ffee00;
+        --grid-color: rgba(0, 255, 136, 0.03);
+    }
+
+    /* Scanline overlay */
+    .terminal-scanlines {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(0, 0, 0, 0.1) 2px,
+            rgba(0, 0, 0, 0.1) 4px
+        );
+        opacity: 0.4;
+    }
+
+    /* Terminal grid background */
+    .terminal-grid {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: -1;
+        background-image: 
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        animation: gridScroll 60s linear infinite;
+    }
+
+    @keyframes gridScroll {
+        0% { background-position: 0 0; }
+        100% { background-position: 0 400px; }
+    }
+
+    /* Glowing border effect */
+    .glow-border {
+        position: relative;
+    }
+    .glow-border::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(135deg, var(--neon-green), transparent, var(--neon-cyan));
+        border-radius: inherit;
+        z-index: -1;
+        opacity: 0.5;
+    }
+
+    /* ============= HERO BALANCE CARD ============= */
+    .hero-terminal {
+        background: linear-gradient(135deg, rgba(10, 10, 15, 0.98), rgba(18, 18, 26, 0.95));
+        border: 1px solid rgba(0, 255, 136, 0.2);
+        border-radius: 16px;
+        padding: 32px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 
+            0 0 60px rgba(0, 255, 136, 0.1),
+            inset 0 1px 0 rgba(0, 255, 136, 0.1);
+    }
+
+    .hero-terminal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan), var(--neon-green));
+        animation: borderGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes borderGlow {
+        0%, 100% { opacity: 0.5; filter: blur(0); }
+        50% { opacity: 1; filter: blur(1px); }
+    }
+
+    .hero-terminal .cyber-orb {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, transparent 60%);
+        top: -250px;
+        right: -150px;
+        pointer-events: none;
+        animation: orbPulse 8s ease-in-out infinite;
+    }
+
+    @keyframes orbPulse {
+        0%, 100% { transform: scale(1); opacity: 0.3; }
+        50% { transform: scale(1.1); opacity: 0.5; }
+    }
+
+    /* Balance display */
+    .balance-display {
+        font-family: 'Orbitron', monospace;
+        font-size: clamp(2.8rem, 10vw, 5rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        position: relative;
+        display: inline-block;
+    }
+
+    .balance-display .value {
+        background: linear-gradient(135deg, var(--neon-green) 0%, #00ff88 50%, var(--neon-cyan) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: none;
+        filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.5));
+        animation: balancePulse 4s ease-in-out infinite;
+    }
+
+    @keyframes balancePulse {
+        0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 255, 136, 0.5)); }
+        50% { filter: drop-shadow(0 0 40px rgba(0, 255, 136, 0.8)); }
+    }
+
+    /* Profit indicator with animation */
+    .profit-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 100px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .profit-indicator.positive {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--neon-green);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    }
+
+    .profit-indicator.negative {
+        background: rgba(255, 0, 85, 0.1);
+        color: var(--neon-red);
+        border: 1px solid rgba(255, 0, 85, 0.3);
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.2);
+    }
+
+    /* Flash animation for profit changes */
+    @keyframes profitFlash {
+        0% { transform: scale(1); }
+        25% { transform: scale(1.15); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .profit-flash {
+        animation: profitFlash 0.5s ease-out;
+    }
+
+    /* Glow pulse for positive profits */
+    @keyframes glowPulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.2); }
+        50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.5), 0 0 60px rgba(0, 255, 136, 0.3); }
+    }
+
+    .profit-glow {
+        animation: glowPulse 1s ease-out;
+    }
+
+    /* ============= STAT CARDS ============= */
+    .stat-card-cyber {
+        background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95));
+        border: 1px solid rgba(0, 255, 136, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card-cyber:hover {
+        border-color: rgba(0, 255, 136, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 255, 136, 0.1);
+    }
+
+    .stat-card-cyber .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+    }
+
+    .stat-card-cyber .stat-icon.green {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--neon-green);
+        border: 1px solid rgba(0, 255, 136, 0.2);
+    }
+
+    .stat-card-cyber .stat-icon.red {
+        background: rgba(255, 0, 85, 0.1);
+        color: var(--neon-red);
+        border: 1px solid rgba(255, 0, 85, 0.2);
+    }
+
+    .stat-card-cyber .stat-icon.cyan {
+        background: rgba(0, 240, 255, 0.1);
+        color: var(--neon-cyan);
+        border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .stat-card-cyber .stat-icon.yellow {
+        background: rgba(255, 238, 0, 0.1);
+        color: var(--neon-yellow);
+        border: 1px solid rgba(255, 238, 0, 0.2);
+    }
+
+    .stat-card-cyber .stat-label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 4px;
+    }
+
+    .stat-card-cyber .stat-value {
+        font-family: 'Orbitron', monospace;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    /* ============= CHART CONTAINER ============= */
+    .chart-terminal {
+        background: linear-gradient(135deg, rgba(10, 10, 15, 0.98), rgba(18, 18, 26, 0.95));
+        border: 1px solid rgba(0, 255, 136, 0.15);
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .chart-terminal .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .chart-terminal .chart-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--neon-green);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .chart-terminal .period-selector {
+        display: flex;
+        gap: 4px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 4px;
+        border-radius: 8px;
+    }
+
+    .chart-terminal .period-btn {
+        padding: 6px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .chart-terminal .period-btn:hover {
+        color: var(--neon-green);
+    }
+
+    .chart-terminal .period-btn.active {
+        background: rgba(0, 255, 136, 0.15);
+        color: var(--neon-green);
+    }
+
+    .chart-container {
+        height: 300px;
+        padding: 0;
+    }
+
+    /* ============= POSITIONS PANEL ============= */
+    .positions-panel {
+        background: linear-gradient(135deg, rgba(10, 10, 15, 0.98), rgba(18, 18, 26, 0.95));
+        border: 1px solid rgba(0, 255, 136, 0.15);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .positions-panel .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .positions-panel .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .positions-panel .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: rgba(0, 255, 136, 0.1);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        border-radius: 100px;
+        font-size: 0.7rem;
+        color: var(--neon-green);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .positions-panel .live-badge .pulse-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--neon-green);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .positions-list {
+        padding: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Position card */
+    .position-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .position-card:hover {
+        border-color: rgba(0, 255, 136, 0.2);
+        background: rgba(0, 255, 136, 0.02);
+    }
+
+    .position-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .position-card .position-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .position-card .side-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .position-card .side-badge.long {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--neon-green);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .position-card .side-badge.short {
+        background: rgba(255, 0, 85, 0.1);
+        color: var(--neon-red);
+        border: 1px solid rgba(255, 0, 85, 0.3);
+    }
+
+    .position-card .symbol {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .position-card .details {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .position-card .pnl {
+        text-align: right;
+    }
+
+    .position-card .pnl-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    .position-card .pnl-value.positive { color: var(--neon-green); }
+    .position-card .pnl-value.negative { color: var(--neon-red); }
+
+    .position-card .entry-price {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Empty state */
+    .empty-positions {
+        padding: 48px 24px;
+        text-align: center;
+    }
+
+    .empty-positions .icon {
+        font-size: 3rem;
+        opacity: 0.2;
+        margin-bottom: 16px;
+    }
+
+    .empty-positions .text {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.9rem;
+    }
+
+    /* ============= TRADE HISTORY ============= */
+    .history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+        background: rgba(0, 255, 136, 0.02);
+        border-color: rgba(0, 255, 136, 0.1);
+    }
+
+    .history-item .side-tag {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .history-item .side-tag.long {
+        background: rgba(0, 255, 136, 0.15);
+        color: var(--neon-green);
+    }
+
+    .history-item .side-tag.short {
+        background: rgba(255, 0, 85, 0.15);
+        color: var(--neon-red);
+    }
+
+    /* ============= EXCHANGE CARDS ============= */
+    .exchange-card-cyber {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .exchange-card-cyber:hover {
+        border-color: rgba(0, 255, 136, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .exchange-card-cyber .exchange-logo {
+        width: 48px;
+        height: 48px;
+        background: rgba(255, 238, 0, 0.1);
+        border: 1px solid rgba(255, 238, 0, 0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-yellow);
+        font-size: 1.2rem;
+    }
+
+    .exchange-card-cyber .status-pill {
+        padding: 4px 12px;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .exchange-card-cyber .status-pill.pending {
+        background: rgba(255, 238, 0, 0.1);
+        color: var(--neon-yellow);
+        border: 1px solid rgba(255, 238, 0, 0.3);
+    }
+
+    .exchange-card-cyber .status-pill.approved {
+        background: rgba(0, 240, 255, 0.1);
+        color: var(--neon-cyan);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+    }
+
+    .exchange-card-cyber .status-pill.trading {
+        background: rgba(0, 255, 136, 0.1);
+        color: var(--neon-green);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+
+    /* ============= PANIC BUTTON ============= */
+    .panic-button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        background: linear-gradient(135deg, var(--neon-red), #ff0066);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-family: 'Orbitron', monospace;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 30px rgba(255, 0, 85, 0.3);
+    }
+
+    .panic-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 50px rgba(255, 0, 85, 0.5);
+    }
+
+    /* ============= PROGRESS RING ============= */
+    .target-ring {
+        position: relative;
+        width: 90px;
+        height: 90px;
+    }
+
+    .target-ring svg {
+        transform: rotate(-90deg);
+    }
+
+    .target-ring .ring-bg {
+        fill: none;
+        stroke: rgba(0, 255, 136, 0.1);
+        stroke-width: 6;
+    }
+
+    .target-ring .ring-progress {
+        fill: none;
+        stroke: url(#ringGradient);
+        stroke-width: 6;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.8s ease;
+    }
+
+    .target-ring .ring-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Orbitron', monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--neon-green);
+    }
+
+    /* ============= USER AVATAR ============= */
+    .user-avatar-xl {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 240, 255, 0.1));
+        border: 2px solid var(--neon-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.2);
+    }
+
+    .user-avatar-xl img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* ============= MODAL STYLES ============= */
+    .modal-cyber {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 500;
+        padding: 20px;
+    }
+
+    .modal-cyber.active {
+        display: flex;
+    }
+
+    .modal-cyber .modal-content {
+        width: 100%;
+        max-width: 450px;
+        background: linear-gradient(135deg, rgba(18, 18, 26, 0.98), rgba(10, 10, 15, 0.98));
+        border: 1px solid rgba(0, 255, 136, 0.2);
+        border-radius: 16px;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(0, 255, 136, 0.1);
+        animation: modalSlide 0.3s ease;
+        overflow: hidden;
+    }
+
+    @keyframes modalSlide {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-cyber .modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: rgba(0, 0, 0, 0.4);
+        border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+    }
+
+    .modal-cyber .modal-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--neon-green);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-cyber .modal-body {
+        padding: 24px;
+    }
+
+    .modal-cyber .modal-close {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .modal-cyber .modal-close:hover {
+        background: rgba(255, 0, 85, 0.1);
+        border-color: rgba(255, 0, 85, 0.3);
+        color: var(--neon-red);
+    }
+
+    /* ============= INPUTS ============= */
+    .input-cyber {
+        width: 100%;
+        padding: 14px 18px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(0, 255, 136, 0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .input-cyber:focus {
+        outline: none;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+    }
+
+    .input-cyber::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ============= BUTTONS ============= */
+    .btn-cyber {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--neon-green) 0%, #00cc6a 100%);
+        border: none;
+        border-radius: 10px;
+        color: #000;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+
+    .btn-cyber:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.5);
+    }
+
+    .btn-cyber-outline {
+        background: transparent;
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        color: var(--neon-green);
+        box-shadow: none;
+    }
+
+    .btn-cyber-outline:hover {
+        background: rgba(0, 255, 136, 0.1);
+        border-color: var(--neon-green);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    }
+
+    .btn-cyber-sm {
+        padding: 8px 16px;
+        font-size: 0.75rem;
+    }
+
+    /* ============= HTMX LOADING INDICATOR ============= */
+    .htmx-indicator {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .htmx-request .htmx-indicator {
+        opacity: 1;
+    }
+
+    /* ============= SCROLLBAR ============= */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 255, 136, 0.3);
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 255, 136, 0.5);
+    }
+
+    /* ============= SECTION CARDS ============= */
+    .section-card {
+        background: linear-gradient(135deg, rgba(10, 10, 15, 0.98), rgba(18, 18, 26, 0.95));
+        border: 1px solid rgba(0, 255, 136, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .section-card .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.08);
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .section-card .section-body {
+        padding: 20px;
+    }
+
+    /* Quick stats in header */
+    .quick-stats {
+        display: flex;
+        gap: 24px;
+        margin-left: auto;
+    }
+
+    .quick-stat {
+        text-align: center;
+    }
+
+    .quick-stat .label {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .quick-stat .value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Scanlines overlay -->
+<div class="terminal-scanlines"></div>
+<div class="terminal-grid"></div>
+
+<!-- ==================== OVERVIEW SECTION ==================== -->
+<div class="section-content active" data-section="overview">
+    <!-- Hero Terminal Card -->
+    <div class="hero-terminal mb-8">
+        <div class="cyber-orb"></div>
+        <div class="flex flex-col lg:flex-row items-center gap-8" style="position: relative; z-index: 1;">
+            <!-- Avatar -->
+            <div class="user-avatar-xl flex-shrink-0">
+                {% if user_settings.avatar_type == 'image' and user_settings.avatar %}
+                <img src="{{ url_for('static', filename='avatars/' + user_settings.avatar) }}" alt="Avatar">
+                {% else %}
+                <span>{{ user_settings.avatar or '🧑‍💻' }}</span>
+                {% endif %}
+            </div>
+            
+            <!-- Balance Section -->
+            <div class="flex-grow text-center lg:text-left">
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-3">
+                    <h1 class="font-display text-xl font-semibold text-white">{{ username }}</h1>
+                    {% if is_active %}
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/30">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        <span data-i18n="dash.active">ACTIVE</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
+                        <i class="fas fa-clock text-xs"></i>
+                        <span data-i18n="dash.pending">PENDING</span>
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="balance-display mb-4">
+                    <span class="value" id="balance-display">$<span id="balance-value">{{ balance }}</span></span>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+                    <div class="profit-indicator positive" id="profit-indicator">
+                        <i class="fas fa-arrow-trend-up"></i>
+                        <span id="profit-display">+$0.00</span>
+                        <span id="profit-percent">(0.0%)</span>
+                    </div>
+                    <div class="text-xs text-white/40">
+                        <span data-i18n="dash.todaysProfit">Today's P&L</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Target Progress Ring -->
+            <div class="target-ring flex-shrink-0">
+                <svg viewBox="0 0 90 90">
+                    <defs>
+                        <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#00ff88"/>
+                            <stop offset="100%" style="stop-color:#00f0ff"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="ring-bg" cx="45" cy="45" r="38"/>
+                    <circle class="ring-progress" id="progress-ring" cx="45" cy="45" r="38" 
+                            stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+                </svg>
+                <div class="ring-text">
+                    <span id="progress-percent">0%</span>
+                </div>
+            </div>
+            
+            <!-- Panic Button -->
+            <a href="{{ url_for('user_panic') }}" onclick="return confirm('⚠️ EMERGENCY: Close all positions immediately?')" class="panic-button flex-shrink-0">
+                <i class="fas fa-power-off"></i>
+                <span data-i18n="dash.emergencyExit">EXIT ALL</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="stat-card-cyber">
+            <div class="stat-icon cyan"><i class="fas fa-bullseye"></i></div>
+            <div class="stat-label">Target</div>
+            <div class="stat-value">$<span id="target-value">{{ target }}</span></div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon yellow"><i class="fas fa-percentage"></i></div>
+            <div class="stat-label">Risk</div>
+            <div class="stat-value">{% if user_settings.custom_risk > 0 %}{{ user_settings.custom_risk }}%{% else %}AUTO{% endif %}</div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon red"><i class="fas fa-bolt"></i></div>
+            <div class="stat-label">Leverage</div>
+            <div class="stat-value">{% if user_settings.custom_leverage > 0 %}x{{ user_settings.custom_leverage }}{% else %}AUTO{% endif %}</div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon green"><i class="fas fa-exchange-alt"></i></div>
+            <div class="stat-label">Total Trades</div>
+            <div class="stat-value">{{ history|length }}</div>
+        </div>
+    </div>
+
+    <!-- Open Positions Panel with HTMX polling -->
+    <div class="positions-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="fas fa-layer-group text-green-400"></i>
+                <span data-i18n="dash.openPositions">Open Positions</span>
+                <span id="positions-count" class="ml-2 px-2 py-0.5 text-xs font-bold bg-green-500/20 text-green-400 rounded-full">0</span>
+            </div>
+            <div class="live-badge">
+                <span class="pulse-dot"></span>
+                <span>LIVE</span>
+            </div>
+        </div>
+        
+        <!-- HTMX polling container - updates every 2 seconds -->
+        <div id="positions-container" 
+             class="positions-list"
+             hx-get="/api/positions"
+             hx-trigger="load, every 2s"
+             hx-swap="innerHTML">
+            <div class="empty-positions">
+                <div class="icon"><i class="fas fa-satellite-dish"></i></div>
+                <div class="text">Scanning for positions...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== TRADING/ANALYTICS SECTION ==================== -->
+<div class="section-content" data-section="trading">
+    <!-- TradingView Chart -->
+    <div class="chart-terminal mb-8">
+        <div class="chart-header">
+            <div class="chart-title">
+                <i class="fas fa-chart-line"></i>
+                <span data-i18n="dash.balanceChart">EQUITY CURVE</span>
+            </div>
+            <div class="period-selector">
+                <button onclick="setChartPeriod('24h')" class="period-btn active" data-period="24h">24H</button>
+                <button onclick="setChartPeriod('week')" class="period-btn" data-period="week">7D</button>
+                <button onclick="setChartPeriod('month')" class="period-btn" data-period="month">30D</button>
+                <button onclick="setChartPeriod('year')" class="period-btn" data-period="year">1Y</button>
+            </div>
+        </div>
+        <div class="chart-container" id="tv-chart-container"></div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="stat-card-cyber">
+            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+            <div class="stat-label">Period P&L</div>
+            <div class="stat-value text-green-400" id="stats-pnl">+$0</div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
+            <div class="stat-label">Trades</div>
+            <div class="stat-value text-cyan-400" id="stats-trades">0</div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon yellow"><i class="fas fa-trophy"></i></div>
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value text-yellow-400" id="stats-winrate">0%</div>
+        </div>
+        <div class="stat-card-cyber">
+            <div class="stat-icon red"><i class="fas fa-percent"></i></div>
+            <div class="stat-label">Avg ROI</div>
+            <div class="stat-value" id="stats-avgroi">0%</div>
+        </div>
+    </div>
+
+    <!-- Trade History -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-history text-pink-400"></i>
+                <span class="font-display font-semibold" data-i18n="dash.tradeHistory">Trade History</span>
+            </div>
+            <span class="text-xs text-white/40">{{ history|length }} trades</span>
+        </div>
+        <div class="section-body max-h-96 overflow-y-auto" id="history-container">
+            {% for trade in history %}
+            <div class="history-item">
+                <div class="flex items-center gap-3">
+                    <span class="side-tag {{ 'long' if trade.side == 'LONG' else 'short' }}">{{ trade.side }}</span>
+                    <span class="font-display font-semibold text-white">{{ trade.symbol }}</span>
+                </div>
+                <div class="text-right">
+                    <span class="font-mono font-bold {{ 'text-green-400' if trade.pnl >= 0 else 'text-red-400' }}">
+                        {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
+                    </span>
+                    <span class="text-xs text-white/40 ml-2">({{ "%.1f"|format(trade.roi) }}%)</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-positions">
+                <div class="icon"><i class="fas fa-chart-line"></i></div>
+                <div class="text" data-i18n="dash.noHistory">No trade history yet</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ==================== EXCHANGE/CONNECTIONS SECTION ==================== -->
+<div class="section-content" data-section="exchange">
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-link text-yellow-400"></i>
+                <span class="font-display font-semibold" data-i18n="dash.connectedExchanges">Connected Exchanges</span>
+            </div>
+            <button onclick="openAddExchangeModal()" class="btn-cyber btn-cyber-sm">
+                <i class="fas fa-plus"></i>
+                <span>Add</span>
+            </button>
+        </div>
+        <div class="section-body" id="exchanges-container">
+            <div class="empty-positions" id="exchanges-loading">
+                <div class="icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <div class="text">Loading connections...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Telegram Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fab fa-telegram" style="color: #0088cc;"></i>
+                <span class="font-display font-semibold" data-i18n="dash.telegramNotifications">Telegram</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold {{ 'bg-green-500/10 text-green-400' if user_settings.telegram_enabled else 'bg-yellow-500/10 text-yellow-400' }}">
+                {% if user_settings.telegram_enabled %}✓ ON{% else %}○ OFF{% endif %}
+            </span>
+        </div>
+        <div class="section-body">
+            {% if telegram_bot_username and not user_settings.telegram_enabled %}
+            <div class="mb-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                <p class="text-sm text-blue-400 mb-2"><b>Connect in 2 steps:</b></p>
+                <ol class="text-sm text-white/50 space-y-1 pl-4">
+                    <li>1. Open <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" class="text-cyan-400 hover:underline">@{{ telegram_bot_username }}</a></li>
+                    <li>2. Get your ID from <a href="https://t.me/userinfobot" target="_blank" class="text-cyan-400 hover:underline">@userinfobot</a></li>
+                </ol>
+            </div>
+            {% endif %}
+            
+            <form method="POST" action="{{ url_for('update_telegram') }}" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="telegram_chat_id" value="{{ user_settings.telegram_chat_id or '' }}" class="input-cyber" placeholder="Enter Chat ID">
+                <div class="flex items-center gap-4">
+                    <label class="flex-1 flex items-center gap-3 p-3 bg-black/30 border border-white/5 rounded-lg cursor-pointer hover:border-green-500/30 transition-all">
+                        <input type="checkbox" name="telegram_enabled" {{ 'checked' if user_settings.telegram_enabled else '' }} class="w-5 h-5 accent-green-400">
+                        <span class="text-sm text-white/70">Enable notifications</span>
+                    </label>
+                    <button type="submit" class="btn-cyber btn-cyber-sm">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SETTINGS/CONFIG SECTION ==================== -->
+<div class="section-content" data-section="settings">
+    <!-- Trading Parameters (Read-only) -->
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-sliders text-pink-400"></i>
+                <span class="font-display font-semibold">Trading Config</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400">
+                <i class="fas fa-lock text-xs"></i> Admin Set
+            </span>
+        </div>
+        <div class="section-body">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Risk %</div>
+                    <div class="font-mono text-xl font-bold text-cyan-400">{{ global_settings.risk_perc }}%</div>
+                </div>
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Leverage</div>
+                    <div class="font-mono text-xl font-bold text-pink-400">x{{ global_settings.leverage }}</div>
+                </div>
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Max Positions</div>
+                    <div class="font-mono text-xl font-bold text-yellow-400">{{ global_settings.max_positions }}</div>
+                </div>
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Take Profit</div>
+                    <div class="font-mono text-xl font-bold text-green-400">{{ global_settings.tp_perc }}%</div>
+                </div>
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Stop Loss</div>
+                    <div class="font-mono text-xl font-bold text-red-400">{{ global_settings.sl_perc }}%</div>
+                </div>
+                <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Min Balance</div>
+                    <div class="font-mono text-xl font-bold text-white">${{ global_settings.min_balance }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Goal -->
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-bullseye text-cyan-400"></i>
+                <span class="font-display font-semibold">Target Goal</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <form method="POST" action="{{ url_for('update_target') }}" class="flex gap-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="number" name="target_amount" value="{{ target }}" class="input-cyber flex-1" placeholder="Target Amount" step="100" min="100">
+                <button type="submit" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-save"></i>
+                    Set
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Avatar -->
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-user-circle text-pink-400"></i>
+                <span class="font-display font-semibold">Avatar</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <div class="flex items-center gap-6">
+                <div class="user-avatar-xl cursor-pointer" onclick="openAvatarModal()">
+                    {% if user_settings.avatar_type == 'image' and user_settings.avatar %}
+                    <img src="{{ url_for('static', filename='avatars/' + user_settings.avatar) }}" alt="Avatar">
+                    {% else %}
+                    <span>{{ user_settings.avatar or '🧑‍💻' }}</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <button onclick="openAvatarModal()" class="btn-cyber btn-cyber-outline btn-cyber-sm mb-2">
+                        <i class="fas fa-camera"></i>
+                        Change
+                    </button>
+                    <p class="text-xs text-white/40">Emoji or custom image</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Email -->
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-envelope text-purple-400"></i>
+                <span class="font-display font-semibold">Email</span>
+            </div>
+            {% if user_settings.email %}
+            <span class="text-xs text-green-400">✓ Set</span>
+            {% else %}
+            <span class="text-xs text-yellow-400">Not set</span>
+            {% endif %}
+        </div>
+        <div class="section-body">
+            <form method="POST" action="{{ url_for('update_email') }}" class="flex gap-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="email" name="email" value="{{ user_settings.email or '' }}" class="input-cyber flex-1" placeholder="your@email.com">
+                <button type="submit" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-save"></i>
+                    Save
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Security Link -->
+    <a href="{{ url_for('change_password') }}" class="section-card flex items-center gap-4 p-5 hover:border-yellow-500/30 transition-all" style="text-decoration: none;">
+        <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 text-lg">
+            <i class="fas fa-key"></i>
+        </div>
+        <div class="flex-1">
+            <div class="font-display font-semibold text-white">Change Password</div>
+            <div class="text-sm text-white/40">Security settings</div>
+        </div>
+        <i class="fas fa-chevron-right text-white/30"></i>
+    </a>
+    
+    <!-- Referral Program -->
+    <div class="section-card mt-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-gift text-gradient"></i>
+                <span class="font-display font-semibold">Referral Program</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                5% Commission
+            </span>
+        </div>
+        <div class="section-body">
+            <!-- Stats -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="text-center p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Referrals</div>
+                    <div class="font-mono text-xl font-bold text-cyan-400">{{ referral_stats.referral_count }}</div>
+                </div>
+                <div class="text-center p-4 bg-green-500/5 border border-green-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Earned</div>
+                    <div class="font-mono text-xl font-bold text-green-400">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
+                </div>
+                <div class="text-center p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Pending</div>
+                    <div class="font-mono text-xl font-bold text-yellow-400">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
+                </div>
+            </div>
+            
+            <!-- Referral Link -->
+            <div class="mb-4">
+                <label class="text-xs text-white/40 block mb-2">Your Invite Link</label>
+                <div class="flex gap-2">
+                    <input type="text" value="{{ referral_link }}" id="referral-link-input" class="input-cyber text-sm" readonly>
+                    <button onclick="copyReferralLink()" class="btn-cyber btn-cyber-sm" id="copy-referral-btn">
+                        <i class="fas fa-copy"></i>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Referral Code -->
+            <div class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs text-white/40 mb-1">Your Code</div>
+                        <div class="font-mono text-xl font-bold text-gradient">{{ referral_code }}</div>
+                    </div>
+                    <div class="text-xs text-white/30 text-right">
+                        Earn 5% on referral profits!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- Add Exchange Modal -->
+<div id="addExchangeModal" class="modal-cyber" onclick="if(event.target===this)closeAddExchangeModal()">
+    <div class="modal-content">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fas fa-link"></i>
+                Add Exchange
+            </div>
+            <button onclick="closeAddExchangeModal()" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="add-exchange-form" onsubmit="submitAddExchange(event)" class="space-y-4">
+                <select id="exchange-select" name="exchange_name" class="input-cyber" required>
+                    <option value="">Loading...</option>
+                </select>
+                <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Label (optional)">
+                <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Key" required>
+                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Secret" required>
+                <div id="passphrase-field" class="hidden">
+                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Passphrase">
+                </div>
+                <button type="submit" class="btn-cyber w-full" id="submit-exchange-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Request
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Avatar Modal -->
+<div id="avatarModal" class="modal-cyber" onclick="if(event.target===this)closeAvatarModal()">
+    <div class="modal-content">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fas fa-user-circle"></i>
+                Change Avatar
+            </div>
+            <button onclick="closeAvatarModal()" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Choose Emoji</label>
+                    <div id="user-emoji-grid" class="grid grid-cols-5 gap-2">
+                        {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
+                        <button type="button" onclick="selectUserEmoji('{{ emoji }}')" class="p-3 bg-black/30 border border-white/10 rounded-lg text-2xl hover:border-green-500/50 transition-all {{ 'border-green-500/50 bg-green-500/10' if user_settings.avatar == emoji else '' }}" data-emoji="{{ emoji }}">
+                            {{ emoji }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="emoji" id="selected-user-emoji" value="{{ user_settings.avatar or '🧑‍💻' }}">
+                    <input type="hidden" name="avatar_type" id="user-avatar-type" value="emoji">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Or Upload Image</label>
+                    <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input-cyber" onchange="setUserAvatarType('image')">
+                    <p class="text-xs text-white/30 mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
+                </div>
+                
+                <button type="submit" class="btn-cyber w-full">
+                    <i class="fas fa-save"></i>
+                    Save Avatar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // ==================== GLOBALS ====================
+    let socket = null;
+    let tvChart = null;
+    let currentPeriod = '24h';
+    let lastBalance = parseFloat('{{ balance }}'.replace(/,/g, '')) || 0;
+    let todayStartBalance = lastBalance; // Will be updated from API
+
+    // ==================== TRADINGVIEW LIGHTWEIGHT CHARTS ====================
+    function initTVChart() {
+        const container = document.getElementById('tv-chart-container');
+        if (!container || typeof LightweightCharts === 'undefined') {
+            setTimeout(initTVChart, 200);
+            return;
+        }
+
+        tvChart = LightweightCharts.createChart(container, {
+            width: container.clientWidth,
+            height: 300,
+            layout: {
+                background: { type: 'solid', color: 'transparent' },
+                textColor: 'rgba(255, 255, 255, 0.5)',
+            },
+            grid: {
+                vertLines: { color: 'rgba(0, 255, 136, 0.05)' },
+                horzLines: { color: 'rgba(0, 255, 136, 0.05)' },
+            },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+                vertLine: { color: 'rgba(0, 255, 136, 0.3)', width: 1, style: 2 },
+                horzLine: { color: 'rgba(0, 255, 136, 0.3)', width: 1, style: 2 },
+            },
+            rightPriceScale: {
+                borderColor: 'rgba(0, 255, 136, 0.1)',
+                scaleMargins: { top: 0.1, bottom: 0.1 },
+            },
+            timeScale: {
+                borderColor: 'rgba(0, 255, 136, 0.1)',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+            handleScale: { mouseWheel: true, pinch: true },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+        });
+
+        window.tvAreaSeries = tvChart.addAreaSeries({
+            lineColor: '#00ff88',
+            topColor: 'rgba(0, 255, 136, 0.4)',
+            bottomColor: 'rgba(0, 255, 136, 0.02)',
+            lineWidth: 2,
+            priceLineVisible: false,
+            lastValueVisible: true,
+            crosshairMarkerVisible: true,
+            crosshairMarkerRadius: 4,
+            crosshairMarkerBackgroundColor: '#00ff88',
+            crosshairMarkerBorderColor: '#000',
+        });
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            if (tvChart && container) {
+                tvChart.applyOptions({ width: container.clientWidth });
+            }
+        });
+
+        loadChartData();
+    }
+
+    function loadChartData() {
+        fetch(`/api/balance_history?period=${currentPeriod}`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    console.log('No chart data available');
+                    return;
+                }
+
+                const chartData = data.map(d => ({
+                    time: Math.floor(new Date(d.time).getTime() / 1000),
+                    value: parseFloat(d.balance)
+                })).sort((a, b) => a.time - b.time);
+
+                if (window.tvAreaSeries && chartData.length > 0) {
+                    window.tvAreaSeries.setData(chartData);
+                    tvChart.timeScale().fitContent();
+                }
+            })
+            .catch(err => console.error('Chart data error:', err));
+    }
+
+    function setChartPeriod(period) {
+        currentPeriod = period;
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === period);
+        });
+        loadChartData();
+        loadStats();
+    }
+
+    // ==================== STATS ====================
+    function loadStats() {
+        fetch(`/api/user_stats?period=${currentPeriod}`)
+            .then(r => r.json())
+            .then(data => {
+                const pnlEl = document.getElementById('stats-pnl');
+                const tradesEl = document.getElementById('stats-trades');
+                const winrateEl = document.getElementById('stats-winrate');
+                const avgroiEl = document.getElementById('stats-avgroi');
+
+                if (pnlEl) {
+                    pnlEl.textContent = `${data.total_pnl >= 0 ? '+' : ''}$${Math.abs(data.total_pnl).toFixed(0)}`;
+                    pnlEl.className = `stat-value ${data.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                }
+                if (tradesEl) tradesEl.textContent = data.total_trades;
+                if (winrateEl) winrateEl.textContent = `${data.win_rate}%`;
+                if (avgroiEl) {
+                    avgroiEl.textContent = `${data.avg_roi >= 0 ? '+' : ''}${data.avg_roi.toFixed(1)}%`;
+                    avgroiEl.className = `stat-value ${data.avg_roi >= 0 ? 'text-green-400' : 'text-red-400'}`;
+                }
+            })
+            .catch(console.error);
+    }
+
+    // ==================== ANIMATED PROFIT COUNTER ====================
+    function animateValue(element, start, end, duration, prefix = '', suffix = '') {
+        const startTime = performance.now();
+        const diff = end - start;
+
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            const current = start + diff * easeOut;
+
+            element.textContent = prefix + current.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + suffix;
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+        }
+
+        requestAnimationFrame(update);
+    }
+
+    function updateProfitDisplay(newBalance) {
+        const profitIndicator = document.getElementById('profit-indicator');
+        const profitDisplay = document.getElementById('profit-display');
+        const profitPercent = document.getElementById('profit-percent');
+        
+        const profit = newBalance - todayStartBalance;
+        const profitPct = todayStartBalance > 0 ? (profit / todayStartBalance) * 100 : 0;
+
+        // Update classes based on profit
+        profitIndicator.classList.remove('positive', 'negative');
+        profitIndicator.classList.add(profit >= 0 ? 'positive' : 'negative');
+
+        // Update icon
+        profitIndicator.querySelector('i').className = profit >= 0 ? 'fas fa-arrow-trend-up' : 'fas fa-arrow-trend-down';
+
+        // Animate the profit display
+        profitDisplay.textContent = `${profit >= 0 ? '+' : ''}$${Math.abs(profit).toFixed(2)}`;
+        profitPercent.textContent = `(${profit >= 0 ? '+' : ''}${profitPct.toFixed(1)}%)`;
+
+        // Flash animation on change
+        if (profit > 0) {
+            profitIndicator.classList.add('profit-flash', 'profit-glow');
+            setTimeout(() => {
+                profitIndicator.classList.remove('profit-flash', 'profit-glow');
+            }, 1000);
+        }
+    }
+
+    function updateBalance(newBalance) {
+        const balanceEl = document.getElementById('balance-value');
+        const oldBalance = parseFloat(balanceEl.textContent.replace(/[$,]/g, '')) || 0;
+
+        if (Math.abs(oldBalance - newBalance) > 0.01) {
+            animateValue(balanceEl, oldBalance, newBalance, 800);
+            updateProfitDisplay(newBalance);
+            updateProgressRing(newBalance);
+        }
+    }
+
+    function updateProgressRing(balance) {
+        const target = parseFloat(document.getElementById('target-value').textContent) || 1000;
+        const progress = Math.min((balance / target) * 100, 100);
+        
+        document.getElementById('progress-percent').textContent = progress.toFixed(0) + '%';
+        
+        const circle = document.getElementById('progress-ring');
+        const circumference = 2 * Math.PI * 38;
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference - (progress / 100) * circumference;
+    }
+
+    // ==================== SOCKET.IO ====================
+    function initSocket() {
+        if (typeof io === 'undefined') {
+            setTimeout(initSocket, 100);
+            return;
+        }
+
+        socket = io();
+
+        socket.on('connect', () => {
+            console.log('🔌 Connected to trading server');
+            showToast('Connected to live feed', 'success', 2000);
+        });
+
+        socket.on('update_data', (data) => {
+            const newBalance = parseFloat(data.balance.replace(/,/g, '')) || 0;
+            updateBalance(newBalance);
+            
+            // Update positions count
+            const count = data.positions?.length || 0;
+            document.getElementById('positions-count').textContent = count;
+        });
+
+        socket.on('trade_closed', (trade) => {
+            // Add to history
+            const container = document.getElementById('history-container');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.style.animation = 'fadeIn 0.3s ease';
+            item.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="side-tag ${trade.side === 'LONG' ? 'long' : 'short'}">${trade.side}</span>
+                    <span class="font-display font-semibold text-white">${trade.symbol}</span>
+                </div>
+                <div class="text-right">
+                    <span class="font-mono font-bold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$
+                    </span>
+                </div>
+            `;
+            container.insertBefore(item, container.firstChild);
+
+            // Toast notification
+            if (trade.pnl >= 0) {
+                showToast(`+$${trade.pnl.toFixed(2)} (${trade.symbol})`, 'success');
+                celebrateSuccess();
+            } else {
+                showToast(`-$${Math.abs(trade.pnl).toFixed(2)} (${trade.symbol})`, 'warning');
+            }
+        });
+    }
+
+    // ==================== EXCHANGES ====================
+    let supportedExchanges = [];
+
+    function loadExchanges() {
+        const container = document.getElementById('exchanges-container');
+        if (!container) return;
+
+        fetch('/api/exchanges')
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(exchanges => {
+                if (!exchanges || !Array.isArray(exchanges) || exchanges.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-positions">
+                            <div class="icon"><i class="fas fa-link"></i></div>
+                            <div class="text">No exchanges connected</div>
+                            <button onclick="openAddExchangeModal()" class="btn-cyber btn-cyber-sm mt-4">
+                                <i class="fas fa-plus"></i> Connect
+                            </button>
+                        </div>`;
+                    return;
+                }
+                renderExchanges(exchanges);
+                loadExchangeBalances();
+            })
+            .catch(err => {
+                console.error('Error loading exchanges:', err);
+                container.innerHTML = `
+                    <div class="empty-positions">
+                        <div class="icon"><i class="fas fa-exclamation-triangle text-red-400"></i></div>
+                        <div class="text text-red-400">Error loading exchanges</div>
+                        <button onclick="loadExchanges()" class="btn-cyber btn-cyber-sm mt-4">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>`;
+            });
+    }
+
+    function renderExchanges(exchanges) {
+        const container = document.getElementById('exchanges-container');
+        container.innerHTML = exchanges.map(ex => `
+            <div class="exchange-card-cyber mb-3" id="exchange-card-${ex.id}">
+                <div class="exchange-logo"><i class="fas fa-building"></i></div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-display font-semibold text-white">${ex.label || ex.display_name || (ex.exchange_name ? ex.exchange_name.toUpperCase() : 'Unknown')}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-xs text-white/40">${ex.display_name || ex.exchange_name.toUpperCase()}</span>
+                        <span id="balance-${ex.id}" class="font-mono text-sm ${ex.balance !== null && ex.balance !== undefined ? (ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40') : 'text-white/40'}">
+                            ${ex.balance !== null && ex.balance !== undefined ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '...'}
+                        </span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    ${getStatusBadge(ex.status, ex.trading_enabled, ex.is_active)}
+                    ${ex.status === 'APPROVED' && ex.trading_enabled ? `<input type="checkbox" ${ex.is_active ? 'checked' : ''} onchange="toggleExchange(${ex.id}, this.checked)" class="w-5 h-5 accent-green-400 cursor-pointer">` : ''}
+                    <button onclick="deleteExchange(${ex.id})" class="modal-close" style="width: 32px; height: 32px;">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function loadExchangeBalances() {
+        fetch('/api/exchanges/balances')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.exchanges) {
+                    if (data.total_balance > 0) {
+                        updateBalance(data.total_balance);
+                    }
+                    data.exchanges.forEach(ex => {
+                        const balanceEl = document.getElementById(`balance-${ex.id}`);
+                        if (balanceEl) {
+                            if (ex.balance !== null && ex.balance !== undefined) {
+                                balanceEl.className = `font-mono text-sm ${ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40'}`;
+                                balanceEl.textContent = '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            } else if (ex.error) {
+                                balanceEl.innerHTML = `<span class="text-red-400 text-xs">⚠️ Error</span>`;
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error('Error loading balances:', err));
+    }
+
+    function getStatusBadge(status, tradingEnabled, isActive) {
+        if (status === 'PENDING') return `<span class="status-pill pending"><i class="fas fa-clock text-xs"></i> Pending</span>`;
+        if (status === 'APPROVED') {
+            if (tradingEnabled && isActive) return `<span class="status-pill trading"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Trading</span>`;
+            if (tradingEnabled) return `<span class="status-pill approved"><i class="fas fa-pause text-xs"></i> Ready</span>`;
+            return `<span class="status-pill pending"><i class="fas fa-hourglass-half text-xs"></i> Awaiting</span>`;
+        }
+        if (status === 'REJECTED') return `<span class="status-pill" style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid rgba(255, 0, 85, 0.3);"><i class="fas fa-times text-xs"></i> Rejected</span>`;
+        return `<span class="status-pill">${status}</span>`;
+    }
+
+    function loadSupportedExchanges() {
+        const select = document.getElementById('exchange-select');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Loading...</option>';
+
+        fetch('/api/exchanges/available')
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(exchanges => {
+                supportedExchanges = exchanges;
+                select.innerHTML = '<option value="">-- Select Exchange --</option>';
+                
+                const availableExchanges = exchanges.filter(ex => ex.is_enabled && ex.is_verified);
+                if (availableExchanges.length > 0) {
+                    availableExchanges.forEach(ex => {
+                        const opt = document.createElement('option');
+                        opt.value = ex.exchange_name;
+                        opt.dataset.passphrase = ex.requires_passphrase;
+                        opt.textContent = ex.display_name;
+                        select.appendChild(opt);
+                    });
+                } else if (exchanges.length > 0) {
+                    exchanges.forEach(ex => {
+                        const opt = document.createElement('option');
+                        opt.value = ex.exchange_name;
+                        opt.dataset.passphrase = ex.requires_passphrase;
+                        opt.textContent = ex.display_name + (!ex.is_verified ? ' (pending)' : '');
+                        select.appendChild(opt);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No exchanges configured</option>';
+                }
+            })
+            .catch(err => {
+                console.error('Error loading supported exchanges:', err);
+                select.innerHTML = '<option value="">Error loading</option>';
+            });
+    }
+
+    document.getElementById('exchange-select')?.addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        const needsPassphrase = option.dataset.passphrase === 'true';
+        document.getElementById('passphrase-field').classList.toggle('hidden', !needsPassphrase);
+        document.getElementById('exchange-passphrase').required = needsPassphrase;
+    });
+
+    function openAddExchangeModal() {
+        const modal = document.getElementById('addExchangeModal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            loadSupportedExchanges();
+        }
+    }
+
+    function closeAddExchangeModal() {
+        const modal = document.getElementById('addExchangeModal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            document.getElementById('add-exchange-form')?.reset();
+            document.getElementById('passphrase-field')?.classList.add('hidden');
+        }
+    }
+
+    function submitAddExchange(event) {
+        event.preventDefault();
+        const form = document.getElementById('add-exchange-form');
+        if (!form.exchange_name.value) {
+            showToast('Select an exchange first', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('submit-exchange-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+        const requestData = {
+            exchange_name: form.exchange_name.value.trim(),
+            label: form.label ? form.label.value.trim() : '',
+            api_key: form.api_key.value.trim(),
+            api_secret: form.api_secret.value.trim()
+        };
+
+        const passphraseField = document.getElementById('exchange-passphrase');
+        if (passphraseField && !passphraseField.closest('.hidden')) {
+            requestData.passphrase = passphraseField.value.trim();
+        }
+
+        fetch('/api/exchanges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        })
+        .then(r => r.ok ? r.json() : r.json().then(err => Promise.reject(err)))
+        .then(result => {
+            if (result.success) {
+                showToast(result.message || 'Request sent!', 'success');
+                closeAddExchangeModal();
+                loadExchanges();
+            } else {
+                showToast(result.error || 'Error adding exchange', 'error');
+            }
+        })
+        .catch(err => {
+            showToast(err.error || err.message || 'Network error', 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+        });
+    }
+
+    function toggleExchange(id, isActive) {
+        fetch(`/api/exchanges/${id}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: isActive })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) showToast(result.message, 'success');
+            else { showToast(result.error, 'error'); loadExchanges(); }
+        })
+        .catch(() => { showToast('Error', 'error'); loadExchanges(); });
+    }
+
+    function deleteExchange(id) {
+        if (!confirm('Delete this exchange connection?')) return;
+        fetch(`/api/exchanges/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) { showToast('Deleted', 'success'); loadExchanges(); }
+                else showToast(result.error, 'error');
+            })
+            .catch(() => showToast('Error', 'error'));
+    }
+
+    // ==================== AVATAR ====================
+    function openAvatarModal() {
+        const modal = document.getElementById('avatarModal');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeAvatarModal() {
+        const modal = document.getElementById('avatarModal');
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function selectUserEmoji(emoji) {
+        document.getElementById('selected-user-emoji').value = emoji;
+        document.getElementById('user-avatar-type').value = 'emoji';
+        document.querySelectorAll('#user-emoji-grid button').forEach(btn => {
+            btn.classList.remove('border-green-500/50', 'bg-green-500/10');
+            btn.classList.add('border-white/10');
+        });
+        event.target.closest('button').classList.remove('border-white/10');
+        event.target.closest('button').classList.add('border-green-500/50', 'bg-green-500/10');
+    }
+
+    function setUserAvatarType(type) {
+        document.getElementById('user-avatar-type').value = type;
+    }
+
+    // ==================== REFERRAL ====================
+    function copyReferralLink() {
+        const input = document.getElementById('referral-link-input');
+        const btn = document.getElementById('copy-referral-btn');
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(input.value).then(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                showToast('Link copied!', 'success');
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                }, 2000);
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
+                showToast('Link copied!', 'success');
+            });
+        } else {
+            input.select();
+            document.execCommand('copy');
+            showToast('Link copied!', 'success');
+        }
+    }
+
+    // ==================== KEYBOARD SHORTCUTS ====================
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeAddExchangeModal();
+            closeAvatarModal();
+        }
+    });
+
+    // ==================== INIT ====================
+    document.addEventListener('DOMContentLoaded', () => {
+        initSocket();
+        initTVChart();
+        loadStats();
+        loadExchanges();
+        
+        // Initial progress ring update
+        const balanceEl = document.getElementById('balance-value');
+        if (balanceEl) {
+            const balance = parseFloat(balanceEl.textContent.replace(/[$,]/g, '')) || 0;
+            updateProgressRing(balance);
+            updateProfitDisplay(balance);
+        }
+    });
+</script>
+{% endblock %}

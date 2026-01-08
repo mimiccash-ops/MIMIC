@@ -1,0 +1,17 @@
+# Brain Capital - Grafana Dashboard Provisioning
+# Auto-loads dashboards on startup
+
+apiVersion: 1
+
+providers:
+  - name: 'Brain Capital Dashboards'
+    orgId: 1
+    folder: 'Brain Capital'
+    folderUid: brain-capital
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+

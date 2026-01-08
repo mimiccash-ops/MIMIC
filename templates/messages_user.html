@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .messages-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .messages-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+    
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .header-title h1 {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .header-title h1 i {
+        color: var(--neon-cyan);
+    }
+    
+    .header-title p {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    
+    .compose-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 28px;
+        background: var(--gradient-primary);
+        color: #000;
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+    }
+    
+    .compose-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+    }
+    
+    .messages-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .messages-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+    
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    
+    .card-header h3 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--neon-cyan);
+    }
+    
+    .card-header h3 i {
+        font-size: 1.1rem;
+    }
+    
+    .messages-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    
+    .message-item {
+        display: block;
+        padding: 20px;
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.08);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .message-item:hover {
+        border-color: rgba(0, 240, 255, 0.25);
+        transform: translateX(6px);
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.08);
+    }
+    
+    .message-item.unread {
+        border-left: 3px solid var(--neon-cyan);
+        background: rgba(0, 240, 255, 0.03);
+    }
+    
+    .message-item.from-admin {
+        border-left-color: var(--neon-magenta);
+    }
+    
+    .message-avatar {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: var(--radius-lg);
+        font-size: 1.25rem;
+    }
+    
+    .message-avatar.admin {
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    
+    .message-avatar.user {
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    
+    .message-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    
+    .message-subject {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .message-preview {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+    }
+    
+    .message-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .message-meta i {
+        margin-right: 4px;
+    }
+    
+    .message-chevron {
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        background: rgba(0, 240, 255, 0.05);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .empty-icon i {
+        font-size: 2.5rem;
+        color: var(--neon-cyan);
+        opacity: 0.4;
+    }
+    
+    .empty-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .empty-desc {
+        color: var(--text-muted);
+        margin-bottom: 24px;
+    }
+    
+    /* Compose Modal */
+    .compose-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 500;
+        padding: 20px;
+    }
+    
+    .compose-modal.active {
+        display: flex;
+    }
+    
+    .compose-card {
+        width: 100%;
+        max-width: 520px;
+        background: var(--color-surface-2);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        animation: modalIn 0.3s ease;
+        box-shadow: var(--shadow-elevated);
+    }
+    
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: rgba(0, 240, 255, 0.03);
+        border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    }
+    
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--neon-cyan);
+    }
+    
+    .modal-close {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 240, 255, 0.05);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-md);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    
+    .modal-close:hover {
+        color: var(--neon-red);
+        border-color: rgba(255, 0, 60, 0.3);
+        background: rgba(255, 0, 60, 0.1);
+    }
+    
+    .modal-body {
+        padding: 24px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    
+    .form-hint {
+        text-align: right;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+    
+    .modal-actions .cyber-btn {
+        flex: 1;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messages-page">
+    <!-- Header -->
+    <div class="messages-header animate-fade-in">
+        <div class="header-title">
+            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1>
+                    <i class="fas fa-envelope"></i>
+                    <span data-i18n="nav.messages">Messages</span>
+                </h1>
+                <p>// SUPPORT_CHANNEL</p>
+            </div>
+        </div>
+        <button onclick="openComposeModal()" class="compose-btn">
+            <i class="fas fa-pen"></i>
+            <span data-i18n="messages.compose">Compose</span>
+        </button>
+    </div>
+
+    <!-- Messages List Card -->
+    <div class="messages-card animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-inbox"></i>
+                <span data-i18n="messages.myMessages">My Messages</span>
+                <span class="badge badge-primary">{{ messages|length }}</span>
+            </h3>
+        </div>
+
+        {% if messages %}
+        <div class="messages-list">
+            {% for msg in messages %}
+            <a href="{{ url_for('view_message', message_id=msg.id) }}" 
+               class="message-item {{ 'unread' if not msg.is_read and msg.is_from_admin else '' }} {{ 'from-admin' if msg.is_from_admin else '' }}">
+                <div class="flex items-start gap-4">
+                    <div class="message-avatar {{ 'admin' if msg.is_from_admin else 'user' }}">
+                        <i class="fas {{ 'fa-user-shield text-magenta' if msg.is_from_admin else 'fa-paper-plane text-cyan' }}"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-subject">
+                            <span>{{ msg.subject or 'No subject' }}</span>
+                            {% if not msg.is_read and msg.is_from_admin %}
+                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+                            {% endif %}
+                        </div>
+                        <p class="message-preview">{{ msg.content[:100] }}{% if msg.content|length > 100 %}...{% endif %}</p>
+                        <div class="message-meta">
+                            <span><i class="fas fa-clock"></i> {{ msg.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                            {% if msg.replies.count() > 0 %}
+                            <span class="text-cyan"><i class="fas fa-reply"></i> {{ msg.replies.count() }} <span data-i18n="messages.replies">replies</span></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right message-chevron"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <p class="empty-title" data-i18n="messages.noMessages">No messages</p>
+            <p class="empty-desc" data-i18n="messages.writeAdmin">Write to the administrator to get help</p>
+            <button onclick="openComposeModal()" class="compose-btn">
+                <i class="fas fa-pen"></i>
+                <span data-i18n="messages.writeToAdmin">Write to Admin</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Compose Modal -->
+<div id="composeModal" class="compose-modal" onclick="closeComposeModal(event)">
+    <div class="compose-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-envelope"></i>
+                <span data-i18n="messages.newMessage">New Message</span>
+            </div>
+            <button onclick="closeComposeModal()" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('send_message') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-tag text-cyan"></i>
+                        <span data-i18n="messages.subject">Subject</span>
+                    </label>
+                    <input type="text" name="subject" class="cyber-input" data-i18n-placeholder="messages.enterSubject" placeholder="Enter message subject" maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-comment text-magenta"></i>
+                        <span data-i18n="messages.message">Message</span> *
+                    </label>
+                    <textarea name="content" rows="5" class="cyber-input" style="resize: none; min-height: 120px;" data-i18n-placeholder="messages.enterMessage" placeholder="Describe your question or issue..." required maxlength="2000"></textarea>
+                    <p class="form-hint" data-i18n="messages.maxChars">Maximum 2000 characters</p>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" onclick="closeComposeModal()" class="cyber-btn cyber-btn-outline">
+                        <span data-i18n="btn.cancel">Cancel</span>
+                    </button>
+                    <button type="submit" class="cyber-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        <span data-i18n="btn.send">Send</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openComposeModal() {
+        document.getElementById('composeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        if (typeof playSound === 'function') playSound('click');
+    }
+
+    function closeComposeModal(event) {
+        if (!event || event.target === document.getElementById('composeModal')) {
+            document.getElementById('composeModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeComposeModal(); });
+
+    const socket = io();
+    
+    socket.on('new_message', (msg) => {
+        if (msg.is_from_admin) {
+            showToast('📩 New message from administrator', 'info');
+            if (typeof playSound === 'function') playSound('notification');
+            setTimeout(() => location.reload(), 1500);
+        }
+    });
+</script>
+{% endblock %}

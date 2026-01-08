@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+    
+    <!-- Homepage - Highest Priority -->
+    <url>
+        <loc>https://mimic.cash/</loc>
+        <lastmod>2025-01-01</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+        <image:image>
+            <image:loc>https://mimic.cash/static/mimic-logo.svg</image:loc>
+            <image:title>MIMIC Copy Trading Logo</image:title>
+            <image:caption>MIMIC - Automated Crypto Copy Trading Platform</image:caption>
+        </image:image>
+    </url>
+    
+    <!-- Login Page -->
+    <url>
+        <loc>https://mimic.cash/login</loc>
+        <lastmod>2025-01-01</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    
+    <!-- Registration Page -->
+    <url>
+        <loc>https://mimic.cash/register</loc>
+        <lastmod>2025-01-01</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    
+    <!-- Leaderboard Page - Public Landing -->
+    <url>
+        <loc>https://mimic.cash/leaderboard</loc>
+        <lastmod>2025-01-06</lastmod>
+        <changefreq>hourly</changefreq>
+        <priority>0.95</priority>
+    </url>
+    
+    <!-- Forgot Password -->
+    <url>
+        <loc>https://mimic.cash/forgot-password</loc>
+        <lastmod>2025-01-01</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    
+</urlset>
+

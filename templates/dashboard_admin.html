@@ -1,0 +1,1815 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+
+{% block mobile_sections %}
+<div class="mobile-divider"></div>
+<a href="#" class="mobile-nav-item mobile-section-link active" data-section="overview" onclick="showSection('overview'); return false;">
+    <i class="fas fa-crown"></i>
+    <span data-i18n="section.overview">Overview</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="showSection('trading'); return false;">
+    <i class="fas fa-chart-line"></i>
+    <span data-i18n="section.trading">Trading</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="showSection('exchange'); return false;">
+    <i class="fas fa-cogs"></i>
+    <span data-i18n="section.exchange">Exchange</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
+    <i class="fas fa-sliders-h"></i>
+    <span data-i18n="section.settings">Settings</span>
+</a>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .command-terminal { background: linear-gradient(165deg, rgba(12, 12, 24, 0.98), rgba(8, 8, 16, 0.99)); border: 1px solid rgba(0, 245, 255, 0.15); }
+    .terminal-header { background: linear-gradient(90deg, var(--neon-red), var(--neon-yellow), var(--neon-green)); height: 2px; }
+    .log-entry { transition: all 0.15s ease; border-radius: 6px; margin: 3px 0; border-left: 2px solid transparent; }
+    .log-entry:hover { background: rgba(0, 245, 255, 0.04); transform: translateX(3px); border-left-color: var(--neon-cyan); }
+    .log-error { border-left-color: var(--neon-red); background: rgba(255, 0, 68, 0.04); }
+    .log-info { border-left-color: var(--neon-cyan); background: rgba(0, 245, 255, 0.02); }
+    .master-balance { font-size: clamp(1.2rem, 5vw, 1.6rem); font-weight: 700; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 12px rgba(0, 245, 255, 0.25)); letter-spacing: -0.5px; line-height: 1; }
+    .stat-number { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: clamp(0.85rem, 3vw, 1.2rem); letter-spacing: -0.3px; }
+    .node-card { transition: all 0.15s ease; border-left: 2px solid transparent; }
+    .node-card:hover { transform: translateX(3px); background: rgba(0, 245, 255, 0.02); border-left-color: var(--neon-cyan); }
+    .control-btn { position: relative; overflow: hidden; transition: all 0.15s ease; }
+    .control-btn:hover { transform: translateY(-1px); }
+    .period-btn { padding: 3px 8px; font-size: 0.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--text-muted); background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 5px; cursor: pointer; transition: all 0.15s ease; text-transform: uppercase; }
+    .period-btn:hover { color: var(--neon-magenta); border-color: var(--neon-magenta); }
+    .period-btn.active { color: #000; background: linear-gradient(135deg, var(--neon-magenta), var(--neon-cyan)); border-color: transparent; }
+    .stats-mode-btn { padding: 3px 8px; font-size: 0.5rem; color: var(--text-muted); background: transparent; border: none; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }
+    .stats-mode-btn:hover { color: var(--neon-cyan); }
+    .stats-mode-btn.active { color: #000; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)); }
+    #admin-exchange-dropdown-icon.rotate-180, #user-exchange-filter-icon.rotate-180 { transform: rotate(180deg); }
+    .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+    .position-card { transition: all 0.15s ease; }
+    .position-card:hover { transform: translateX(2px); }
+    .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
+    
+    /* Balance cell styles */
+    .balance-cell { min-width: 90px; }
+    .balance-cell .bg-green { background: var(--neon-green); box-shadow: 0 0 4px var(--neon-green); }
+    .balance-cell .bg-yellow { background: var(--neon-yellow); box-shadow: 0 0 4px var(--neon-yellow); }
+    .balance-cell .bg-red { background: var(--neon-red); box-shadow: 0 0 4px var(--neon-red); }
+    
+    /* Modal Overlay Styles */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+    }
+    
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+    }
+    
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .modal-card {
+        width: 100%;
+        max-width: 500px;
+        background: var(--color-surface-2, #15151e);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        animation: modalIn 0.3s ease;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 245, 255, 0.1);
+    }
+    
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    /* Select dropdown styling for modal */
+    .modal-body select,
+    .modal-body select.input {
+        background: var(--color-surface-3, #1a1a25) !important;
+        color: var(--text-primary);
+        border: 2px solid var(--color-border);
+        padding: 14px 44px 14px 18px;
+        font-size: 0.9375rem;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f5ff' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 16px center !important;
+    }
+    
+    .modal-body select:focus {
+        outline: none;
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.15);
+    }
+    
+    .modal-body select option {
+        background: var(--color-surface-2, #15151e);
+        color: var(--text-primary);
+        padding: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-container">
+
+    <!-- ==================== OVERVIEW SECTION ==================== -->
+    <div class="section-content active" data-section="overview">
+        <!-- Hero Card -->
+        <div class="hero-card mb-6">
+            <div class="hero-glow"></div>
+            <div class="flex flex-col md:flex-row items-center gap-6" style="position: relative; z-index: 1;">
+                <!-- Master Icon -->
+                <div class="user-avatar-lg" style="flex-shrink: 0; background: linear-gradient(135deg, rgba(255, 0, 212, 0.2), rgba(0, 212, 255, 0.2)); border-color: var(--neon-magenta);">
+                    <i class="fas fa-crown" style="font-size: 1.75rem; color: var(--neon-magenta);"></i>
+            </div>
+            
+                <!-- Info -->
+                <div class="flex-grow text-center md:text-left">
+                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                        <h1 class="font-display text-xl font-semibold" data-i18n="dash.master">MASTER</h1>
+                        <div class="live-indicator">
+                            <span class="live-dot"></span>
+                            <span class="live-text" data-i18n="dash.live">LIVE</span>
+                    </div>
+                    </div>
+                    <p id="master-balance" class="balance-amount">${{ master_balance }}</p>
+                    <!-- Exchange Balances -->
+                    <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2">
+                        {% if master_exchange_balances %}
+                            {% for ex in master_exchange_balances %}
+                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                                <span class="text-xs font-semibold text-muted">{{ ex.exchange }}</span>
+                                <span class="font-mono text-sm {{ 'text-green' if ex.balance and ex.balance > 0 else 'text-muted' }} font-bold">
+                                    {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted text-xs">Loading exchange balances...</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-4 mb-6">
+            <div class="stat-card">
+                <div class="stat-icon cyan"><i class="fas fa-network-wired"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.nodes">Nodes</div>
+                    <div class="stat-value text-cyan">{{ users|selectattr('is_paused', 'equalto', false)|selectattr('role', 'ne', 'admin')|list|length }}</div>
+                    </div>
+                </div>
+            <div class="stat-card">
+                <div class="stat-icon magenta"><i class="fas fa-exchange-alt"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.trades">Trades</div>
+                    <div class="stat-value text-magenta">{{ closed_trades|length }}</div>
+                    </div>
+                    </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.result">Result</div>
+                    <div class="stat-value text-green" id="overview-result">+$0</div>
+                    </div>
+                    </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow"><i class="fas fa-percentage"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
+                    <div class="stat-value text-yellow" id="overview-winrate">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-stream text-cyan"></i>
+                    <span data-i18n="admin.liveLogs">Live Logs</span>
+                    <span class="live-dot"></span>
+                </h2>
+                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
+                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
+                    <span class="text-cyan">[SYSTEM]</span>
+                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
+    </div>
+                    </div>
+                </div>
+            </div>
+            
+    <!-- ==================== TRADING (Stats + Positions + History) ==================== -->
+    <div class="section-content" data-section="trading">
+        <!-- Stats -->
+        <div class="card mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-chart-line text-magenta"></i>
+                    <span data-i18n="admin.growth">Growth</span>
+                </h2>
+                <div class="period-pills">
+                    <button onclick="setChartPeriod('24h')" class="period-pill active" data-period="24h">24H</button>
+                    <button onclick="setChartPeriod('week')" class="period-pill" data-period="week">Week</button>
+                    <button onclick="setChartPeriod('month')" class="period-pill" data-period="month">Month</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-4 mb-4">
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.result">Result</div>
+                    <div id="stats-result" class="font-mono font-semibold text-lg text-green">+$0</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.trades">Trades</div>
+                    <div id="stats-trades" class="font-mono font-semibold text-lg text-cyan">0</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.winRate">Win Rate</div>
+                    <div id="stats-winrate" class="font-mono font-semibold text-lg text-magenta">0%</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.avgRoi">Avg ROI</div>
+                    <div id="stats-avgroi" class="font-mono font-semibold text-lg text-yellow">0%</div>
+                </div>
+            </div>
+            
+            <div style="height: 200px; position: relative;">
+                <canvas id="masterChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Master Positions -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-3">
+                    <i class="fas fa-layer-group text-cyan"></i>
+                    <span data-i18n="admin.masterPositions">Master Positions</span>
+                    <span id="master-positions-count" class="badge badge-primary">{{ master_positions|length }}</span>
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span class="live-dot"></span>
+                    <span class="text-sm text-muted" data-i18n="dash.live">Live</span>
+                </div>
+            </div>
+            <div id="master-positions-container" class="flex flex-col gap-3">
+                {% if master_positions %}
+                    {% for pos in master_positions %}
+                    <div class="position-item">
+                        <div class="flex items-center gap-3">
+                            <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
+                                <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
+                            </div>
+                            <div>
+                                <div class="font-display font-semibold">{{ pos.symbol }}</div>
+                                <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
+                                {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fas fa-inbox"></i>
+                        <p data-i18n="dash.noOpenPositions">No open positions</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Trade History -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-history text-magenta"></i>
+                    <span data-i18n="admin.closedTrades">Closed Trades</span>
+                </h2>
+                <span class="text-sm text-muted">{{ closed_trades|length }} <span data-i18n="dash.trades">trades</span></span>
+            </div>
+        
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="admin.tableTime">Time</th>
+                            <th data-i18n="admin.tableNode">Node</th>
+                            <th data-i18n="admin.tableSymbol">Symbol</th>
+                            <th style="text-align: center;" data-i18n="admin.tableSide">Side</th>
+                            <th style="text-align: right;" data-i18n="admin.tablePnl">PnL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-body">
+                        {% for trade in closed_trades %}
+                        <tr class="trade-row border-b border-[var(--border-color)] border-opacity-30">
+                            <td class="py-2 px-2 text-muted">{{ trade.time }}</td>
+                            <td class="py-2 px-2 font-bold text-bright">{{ trade.node }}</td>
+                            <td class="py-2 px-2 font-mono text-bright">{{ trade.symbol }}</td>
+                            <td class="py-2 px-1 text-center">
+                                <span class="badge {{ 'badge-success' if trade.side == 'LONG' else 'badge-danger' }}">{{ trade.side }}</span>
+                            </td>
+                            <td class="py-2 px-2 text-right font-mono font-bold {{ 'text-green' if trade.pnl >= 0 else 'text-red' }}">
+                                {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== EXCHANGE ==================== -->
+    <div class="section-content" data-section="exchange">
+        <!-- Connect New Exchange -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-plug text-magenta"></i>
+                    <span data-i18n="admin.exchangeConfig">Exchange Configuration</span>
+                </h2>
+                <button onclick="openAdminExchangeModal()" class="cyber-btn cyber-btn-sm">
+                    <i class="fas fa-plus"></i>
+                    <span data-i18n="btn.add">Add</span>
+                </button>
+                </div>
+            <p class="text-sm text-muted mb-4" data-i18n="admin.connectExchangeHint">Connect exchanges with your admin API keys first. Then users can add their own keys.</p>
+            <div id="all-exchanges-container" class="grid grid-4">
+                <div class="empty-state col-span-full">
+                    <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                    <p data-i18n="common.loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verified Exchange Config -->
+        <div class="card mb-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-3">
+                    <i class="fas fa-cogs text-cyan"></i>
+                    <span data-i18n="admin.exchangeConfig">Verified Exchanges</span>
+                    <span id="verified-exchanges-count" class="badge badge-success">-</span>
+                </h2>
+                <button onclick="loadExchangeConfigs()" class="cyber-btn cyber-btn-outline cyber-btn-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div id="exchange-configs-container" class="grid grid-4">
+                <div class="empty-state col-span-full">
+                    <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                    <p data-i18n="common.loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Exchanges -->
+        <div class="card mb-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-3">
+                    <i class="fas fa-users-cog text-green"></i>
+                    <span data-i18n="admin.userExchanges">User Exchanges</span>
+                    <span id="active-trading-count" class="badge badge-success">-</span>
+                </h2>
+                <button onclick="loadAllUserExchanges()" class="cyber-btn cyber-btn-outline cyber-btn-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                </div>
+            <div id="user-exchanges-container" class="flex flex-col gap-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="empty-state">
+                    <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                    <p data-i18n="common.loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+                
+        <!-- Pending Exchanges -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-3">
+                    <i class="fas fa-user-check text-yellow"></i>
+                    <span data-i18n="admin.pendingExchanges">Pending Exchanges</span>
+                    <span id="pending-exchanges-count" class="badge badge-warning">-</span>
+                </h2>
+                <button onclick="loadPendingExchanges()" class="cyber-btn cyber-btn-outline cyber-btn-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div id="pending-exchanges-container" class="flex flex-col gap-3" style="max-height: 300px; overflow-y: auto;">
+                <div class="empty-state">
+                    <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                    <p data-i18n="common.loading">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Nodes (Users) -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-network-wired text-purple"></i>
+                    <span data-i18n="admin.networkNodes">Network Nodes</span>
+                </h2>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm text-muted">{{ users|length }} <span data-i18n="section.users">users</span></span>
+                    <button onclick="refreshAllBalances()" class="cyber-btn cyber-btn-outline cyber-btn-icon" title="Refresh Balances" id="refresh-balances-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        
+            <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="admin.tableUser">User</th>
+                            <th style="text-align: center;">Email</th>
+                            <th style="text-align: center;" data-i18n="admin.tableStatus">Status</th>
+                            <th style="text-align: center;" data-i18n="admin.tableBalance">Balance</th>
+                            <th style="text-align: center;">Registered</th>
+                            <th style="text-align: right;" data-i18n="admin.tableActions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nodes-body">
+                        {% for user in users %}
+                        {% if user.role != 'admin' %}
+                        <tr class="node-card border-b border-[var(--border-color)] border-opacity-30 cursor-pointer hover:bg-[rgba(0,245,255,0.04)]" data-user-id="{{ user.id }}" onclick="openUserDetailsModal({{ user.id }})">
+                            <td class="py-2 px-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 bg-gradient-to-br from-[rgba(0,245,255,0.15)] to-[rgba(255,0,255,0.15)] border border-[rgba(0,245,255,0.25)] rounded-lg flex items-center justify-center overflow-hidden">
+                                        {% if user.avatar_type == 'image' and user.avatar %}
+                                        <img src="{{ url_for('static', filename='avatars/' + user.avatar) }}" alt="Avatar" class="w-full h-full object-cover">
+                                        {% else %}
+                                        <span class="text-sm">{{ user.avatar or '🧑‍💻' }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="font-bold text-bright text-xs truncate">{{ user.first_name or user.username }}</p>
+                                        <p class="text-xxs text-muted truncate">@{{ user.username }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center py-2 px-1 text-xs">
+                                {% if user.email %}
+                                <span class="text-cyan truncate" style="max-width: 100px; display: inline-block;" title="{{ user.email }}">{{ user.email[:15] }}{% if user.email|length > 15 %}...{% endif %}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center py-2 px-1">
+                                {% if user.is_paused %}
+                                <span class="badge badge-warning"><i class="fas fa-pause"></i></span>
+                                {% elif user.is_active %}
+                                <span class="badge badge-success"><span class="status-dot online" style="width: 4px; height: 4px;"></span></span>
+                                {% else %}
+                                <span class="badge badge-danger"><i class="fas fa-times"></i></span>
+                                {% endif %}
+                            </td>
+                            <td class="py-2 px-1 balance-cell">
+                                {% if user_exchange_details and user_exchange_details.get(user.id) %}
+                                <div class="flex flex-col gap-1">
+                                    {% for ex in user_exchange_details.get(user.id, []) %}
+                                    <div class="flex items-center gap-1 text-xs">
+                                        <span class="w-2 h-2 rounded-full {{ 'bg-green' if ex.trading_enabled else 'bg-yellow' }}" title="{{ 'Trading enabled' if ex.trading_enabled else 'Trading disabled' }}"></span>
+                                        <span class="text-muted truncate" style="max-width: 60px;" title="{{ ex.label }}">{{ ex.exchange_name[:3]|upper }}</span>
+                                        {% if ex.balance is not none %}
+                                        <span class="text-green font-bold font-mono">${{ "{:,.0f}".format(ex.balance) }}</span>
+                                        {% elif ex.error %}
+                                        <span class="text-red text-xs" title="{{ ex.error }}">⚠️</span>
+                                        {% elif ex.status == 'PENDING' %}
+                                        <span class="text-yellow text-xs">⏳</span>
+                                        {% else %}
+                                        <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                    {% if user_exchange_details.get(user.id)|length > 1 %}
+                                    <div class="border-t border-[var(--color-border)] pt-1 mt-1">
+                                        <span class="text-cyan font-bold font-mono text-xs">Σ ${{ "{:,.0f}".format(user_balances.get(user.id, 0) or 0) }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% elif user_balances.get(user.id) is not none %}
+                                <span class="text-green font-bold font-mono">${{ "{:,.0f}".format(user_balances[user.id]) }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center py-2 px-1 text-xs text-muted">
+                                {% if user.created_at %}
+                                {{ user.created_at.strftime('%d.%m.%Y') }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            <td class="text-right py-2 px-2" onclick="event.stopPropagation();">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button onclick="openUserDetailsModal({{ user.id }})" class="action-btn cyber-btn-icon" title="View Details">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                    {% if user.is_paused %}
+                                    <form method="POST" action="{{ url_for('approve_user', user_id=user.id) }}" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="action-btn cyber-btn-success cyber-btn-icon" title="Activate">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('disconnect_user', user_id=user.id) }}" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="action-btn cyber-btn-gradient-yellow cyber-btn-icon" title="Pause">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SETTINGS (Controls + Settings) ==================== -->
+    <div class="section-content" data-section="settings">
+        <!-- Control Terminal -->
+        <div class="command-terminal rounded-xl overflow-hidden mb-6">
+            <div class="terminal-header"></div>
+            <div class="p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-cyber text-xs tracking-widest text-bright">CONTROL TERMINAL</span>
+                    <span class="badge badge-primary">LIVE</span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <form method="POST" action="{{ url_for('actions', action_type='resume') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-green py-4 flex-col gap-2">
+                            <i class="fas fa-play text-xl"></i>
+                            <span class="text-xs font-display font-semibold">START</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('actions', action_type='pause') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-yellow py-4 flex-col gap-2">
+                            <i class="fas fa-pause text-xl"></i>
+                            <span class="text-xs font-display font-semibold">PAUSE</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('actions', action_type='reload') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-blue py-4 flex-col gap-2">
+                            <i class="fas fa-sync text-xl"></i>
+                            <span class="text-xs font-display font-semibold">RELOAD</span>
+                        </button>
+                    </form>
+                    <button onclick="confirmPanic()" class="cyber-btn cyber-btn-danger py-4 flex-col gap-2">
+                        <i class="fas fa-radiation text-xl"></i>
+                        <span class="text-xs font-display font-semibold">PANIC</span>
+                    </button>
+                </div>
+                
+                {% if engine_paused %}
+                <div class="mt-3 p-2 bg-[rgba(255,240,0,0.08)] border border-[rgba(255,240,0,0.25)] rounded-xl flex items-center gap-2 animate-pulse">
+                    <i class="fas fa-pause-circle text-lg text-yellow"></i>
+                    <span class="text-yellow font-cyber text-xs tracking-wider">TRADING PAUSED</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Global Settings -->
+        <div class="card mb-6">
+            <h2 class="font-display font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-sliders-h text-magenta"></i>
+                <span data-i18n="admin.globalSettings">Global Settings</span>
+            </h2>
+            <form method="POST" action="{{ url_for('admin_update_global_settings') }}" class="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-percentage text-cyan"></i> Risk%
+                    </label>
+                    <input type="number" name="global_risk" value="{{ global_settings.risk_perc }}" step="0.01" class="input" min="0.01" max="100">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-bolt text-magenta"></i> Lever
+                    </label>
+                    <input type="number" name="global_leverage" value="{{ global_settings.leverage }}" class="input" min="1" max="125">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-arrow-up text-green"></i> TP%
+                    </label>
+                    <input type="number" name="global_tp" value="{{ global_settings.tp_perc }}" step="0.1" min="0.1" max="100" class="input" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-arrow-down text-red"></i> SL%
+                    </label>
+                    <input type="number" name="global_sl" value="{{ global_settings.sl_perc }}" step="0.1" min="0.1" max="100" class="input" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-layer-group text-yellow"></i> Max
+                    </label>
+                    <input type="number" name="global_max_pos" value="{{ global_settings.max_positions }}" class="input" min="1" max="50">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-wallet text-purple"></i> Min$
+                    </label>
+                    <input type="number" name="global_min_balance" value="{{ global_settings.min_balance }}" step="0.01" class="input" min="0" max="100000" title="Minimum balance required to trade. Users with less balance cannot trade.">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="cyber-btn w-full">
+                        <i class="fas fa-save"></i>
+                        <span data-i18n="btn.save">Save</span>
+                    </button>
+                </div>
+            </form>
+            <p class="text-xxs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
+        </div>
+        
+        <!-- Admin Profile -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-user-shield text-yellow"></i>
+                    <span data-i18n="admin.adminSettings">Admin Settings</span>
+                </h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="user-avatar-lg position-relative" style="background: linear-gradient(135deg, rgba(255, 208, 0, 0.2), rgba(255, 0, 212, 0.2)); border-color: var(--neon-yellow); cursor: pointer;" onclick="openAdminAvatarModal()">
+                    {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                    <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                    <span>{{ current_user.avatar or '👑' }}</span>
+                    {% endif %}
+                    <div class="avatar-edit" style="position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; background: var(--gradient-primary); border: 2px solid var(--color-surface); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-camera" style="font-size: 0.5rem; color: #000;"></i>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button onclick="openAdminAvatarModal()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Change Avatar</span>
+                    </button>
+                    <a href="{{ url_for('change_password') }}" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-key"></i>
+                        <span data-i18n="dash.changePassword">Change Password</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div id="userDetailsModal" class="modal-overlay" onclick="if(event.target===this)closeUserDetailsModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 85vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-user text-cyan"></i>
+                <span>User Details</span>
+            </div>
+            <button onclick="closeUserDetailsModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="userDetailsContent">
+            <div class="empty-state">
+                <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Avatar Modal -->
+<div id="adminAvatarModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAvatarModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 400px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-user-circle text-gradient"></i>
+                <span>Change Avatar</span>
+            </div>
+            <button onclick="closeAdminAvatarModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="admin-avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
+                <!-- Emoji Selection -->
+                <div class="mb-4">
+                    <label class="text-sm text-muted mb-2 block">Choose Emoji</label>
+                    <div id="emoji-grid" class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                        {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
+                        <button type="button" onclick="selectAdminEmoji('{{ emoji }}')" class="emoji-btn p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xl hover:border-[var(--neon-cyan)] transition-all" data-emoji="{{ emoji }}">
+                            {{ emoji }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="emoji" id="selected-admin-emoji" value="{{ current_user.avatar or '👑' }}">
+                    <input type="hidden" name="avatar_type" id="admin-avatar-type" value="emoji">
+                </div>
+                
+                <!-- Or Upload Image -->
+                <div class="mb-4">
+                    <label class="text-sm text-muted mb-2 block">Or Upload Image</label>
+                    <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input" onchange="setAdminAvatarType('image')">
+                    <p class="text-xxs text-muted mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
+                </div>
+                
+                <button type="submit" class="cyber-btn w-full">
+                    <i class="fas fa-save"></i>
+                    <span>Save Avatar</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let socket = null;
+    let masterChart = null;
+    let currentPeriod = '24h';
+    let currentStatsMode = 'pnl';
+
+    // Wait for Socket.io to load
+    function initSocket() {
+        if (typeof io === 'undefined') {
+            setTimeout(initSocket, 100);
+            return;
+        }
+        socket = io();
+        socket.on('connect', () => { console.log('Admin connected'); showToast('Connected', 'success', 2000); });
+        socket.on('master_data', (data) => {
+            document.getElementById('master-balance').textContent = '$' + data.balance;
+            if (data.positions) renderMasterPositions(data.positions);
+            if (data.exchange_balances) renderExchangeBalances(data.exchange_balances);
+        });
+        
+        socket.on('new_log', (entry) => {
+            const container = document.getElementById('log-container');
+            const div = document.createElement('div');
+            div.className = `p-1.5 bg-[var(--bg-element)] rounded log-entry ${entry.is_error ? 'log-error' : 'log-info'}`;
+            div.innerHTML = `<span class="text-muted">[${entry.time}]</span><span class="text-cyan ml-1">${entry.symbol}</span><span class="ml-1 text-bright">${entry.message}</span>`;
+            container.insertBefore(div, container.firstChild);
+            if (container.children.length > 30) container.removeChild(container.lastChild);
+        });
+
+        socket.on('trade_closed', (trade) => {
+            const tbody = document.getElementById('trades-body');
+            const tr = document.createElement('tr');
+            tr.className = 'trade-row border-b border-[var(--border-color)] border-opacity-30';
+            tr.innerHTML = `<td class="py-2 px-2 text-muted">${trade.time}</td><td class="py-2 px-2 font-bold text-bright">${trade.node}</td><td class="py-2 px-2 font-mono">${trade.symbol}</td><td class="py-2 px-1 text-center"><span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span></td><td class="py-2 px-2 text-right font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</td>`;
+            tbody.insertBefore(tr, tbody.firstChild);
+            if (trade.pnl >= 0) { showToast(`+${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'success'); if (typeof celebrateSuccess === 'function') celebrateSuccess(); }
+            else showToast(`${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'warning');
+        });
+        
+        socket.on('new_message', (msg) => { if (!msg.is_from_admin) { showToast(`📩 New message from ${msg.sender_name}`, 'info'); loadUnreadCount(); } });
+    }
+    initSocket();
+    
+    function renderMasterPositions(positions) {
+        const container = document.getElementById('master-positions-container');
+        const countEl = document.getElementById('master-positions-count');
+        if (countEl) countEl.textContent = positions?.length || 0;
+        if (!positions || positions.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">No positions</p></div>`;
+            return;
+        }
+        container.innerHTML = positions.map(pos => `
+            <div class="position-card p-2 bg-[var(--bg-element)] rounded-lg" style="border-left: 2px solid ${pos.side === 'LONG' ? 'var(--neon-green)' : 'var(--neon-red)'};">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="badge text-xxs ${pos.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${pos.side}</span>
+                        <span class="font-mono font-bold text-xs text-bright">${pos.symbol}</span>
+                        <span class="text-xxs text-cyan">${pos.exchange || 'Binance'}</span>
+                    </div>
+                    <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function renderExchangeBalances(balances) {
+        const container = document.getElementById('exchange-balances-container');
+        if (!container) return;
+        
+        if (!balances || balances.length === 0) {
+            container.innerHTML = '<span class="text-muted text-xs">No exchanges connected</span>';
+            return;
+        }
+        
+        container.innerHTML = balances.map(ex => `
+            <div class="flex items-center justify-between p-2 rounded" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <span class="text-xs font-semibold">${ex.exchange}</span>
+                <span class="font-mono text-sm ${ex.balance > 0 ? 'text-green' : 'text-muted'} font-bold">
+                    ${ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...')}
+                </span>
+            </div>
+        `).join('');
+    }
+
+
+    function confirmPanic() {
+        if (confirm('⚠️ Close ALL positions on ALL accounts?\n\nThis is IRREVERSIBLE!')) {
+            showToast('🚨 Executing panic exit...', 'error');
+            fetch('/api/admin/panic', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(r => r.json())
+                .then(data => { if (data.success) { showToast(`Closed: Master=${data.master_closed}, Slaves=${data.slaves_closed}`, 'success'); setTimeout(() => location.reload(), 2000); } else showToast('Error: ' + (data.error || 'Unknown'), 'error'); })
+                .catch(() => showToast('Network error!', 'error'));
+        }
+    }
+    function clearLogs() { document.getElementById('log-container').innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1">Logs cleared</span></div>`; }
+    function setChartPeriod(period) { currentPeriod = period; document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period)); loadMasterChart(); loadMasterStats(); }
+    function loadMasterStats() {
+        fetch(`/api/master_stats?period=${currentPeriod}`).then(r => r.json()).then(data => {
+                    const pnl = data.total_pnl;
+            document.getElementById('stats-result').textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}`;
+            document.getElementById('stats-result').className = `text-xs font-bold font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`;
+            document.getElementById('stats-trades').textContent = data.total_trades;
+            document.getElementById('stats-winrate').textContent = `${data.win_rate}%`;
+            document.getElementById('stats-avgroi').textContent = `${data.avg_roi >= 0 ? '+' : ''}${data.avg_roi.toFixed(0)}%`;
+        }).catch(console.error);
+    }
+    function loadMasterChart() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(loadMasterChart, 200);
+            return;
+        }
+        fetch(`/api/balance_history?user_id=master&period=${currentPeriod}`).then(r => r.json()).then(data => {
+                const ctx = document.getElementById('masterChart');
+                if (masterChart) masterChart.destroy();
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 130);
+            gradient.addColorStop(0, 'rgba(255, 0, 255, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
+            masterChart = new Chart(ctx, { type: 'line', data: { labels: data.map(d => d.time), datasets: [{ data: data.map(d => d.balance), borderColor: '#ff00ff', backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#555', font: { size: 8 } } } }, animation: { duration: 500 } } });
+        }).catch(console.error);
+    }
+    function loadUnreadCount() { fetch('/api/messages/unread').then(r => r.json()).then(data => { const stat = document.getElementById('unread-messages-stat'); if (stat) stat.querySelector('p').textContent = data.unread; }).catch(console.error); }
+
+    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); });
+    
+    // Exchange Config - ALL exchanges (for connecting)
+    let allExchangeConfigs = [];
+    let isLoadingExchangeConfigs = false;
+    let lastLoadTime = 0;
+    
+    function loadAllExchangeConfigs() {
+        // Prevent rapid successive calls (debounce)
+        const now = Date.now();
+        if (isLoadingExchangeConfigs || (now - lastLoadTime < 500)) {
+            return;
+        }
+        isLoadingExchangeConfigs = true;
+        lastLoadTime = now;
+        
+        const container = document.getElementById('all-exchanges-container');
+        const select = document.getElementById('admin-exchange-select');
+        const modal = document.getElementById('adminExchangeModal');
+        const isModalOpen = modal && modal.style.display === 'flex';
+        
+        // Preserve selected value if modal is open
+        const selectedValue = select && isModalOpen ? select.value : null;
+        
+        fetch('/api/admin/exchange-configs').then(r => r.json()).then(configs => {
+            allExchangeConfigs = configs;
+            
+            // Update select in modal only if modal is not open or if we need to refresh options
+            if (select && (!isModalOpen || !selectedValue)) {
+                select.innerHTML = '<option value="">-- Select Exchange --</option>' + configs.map(c => 
+                    `<option value="${c.exchange_name}" data-verified="${c.is_verified}" data-passphrase="${c.requires_passphrase}">${c.display_name} ${c.is_verified ? '✓' : ''}</option>`
+                ).join('');
+                
+                // Restore selected value if modal was open
+                if (isModalOpen && selectedValue) {
+                    select.value = selectedValue;
+                    // Trigger change handler to show fields if needed
+                    if (selectedValue) {
+                        handleAdminExchangeChange(select);
+                    }
+                }
+            }
+            
+            // Show all exchanges with their status
+            if (!configs || configs.length === 0) { 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs">No exchanges configured</p></div>`; 
+                return; 
+            }
+            
+            container.innerHTML = configs.map(c => {
+                const statusClass = c.is_verified ? (c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.08)] border-[rgba(0,245,255,0.25)]') : 'bg-[rgba(255,200,0,0.04)] border-[rgba(255,200,0,0.15)]';
+                const iconClass = c.is_verified ? (c.is_enabled ? 'text-green' : 'text-cyan') : 'text-yellow';
+                const statusText = c.is_verified ? (c.is_enabled ? 'Active' : 'Verified') : 'Not Connected';
+                const statusBadge = c.is_verified ? 
+                    `<span class="badge badge-success" style="font-size: 0.35rem;">✓</span>` : 
+                    `<button onclick="selectExchangeForConnect('${c.exchange_name}')" class="cyber-btn cyber-btn-xs" style="font-size: 0.35rem; padding: 2px 4px;"><i class="fas fa-plug"></i></button>`;
+                
+                return `<div class="p-2 rounded-lg border ${statusClass} transition-all hover:scale-[1.02]">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 bg-[var(--bg-element)] rounded-lg flex items-center justify-center">
+                            <i class="fas fa-building ${iconClass}" style="font-size: 0.6rem;"></i>
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <p class="font-bold text-xxs text-bright truncate">${c.display_name}</p>
+                            <p class="text-xxs text-muted">${statusText}</p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                </div>`;
+            }).join('');
+        }).catch(() => {
+            container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs">Error loading</p></div>`;
+        }).finally(() => {
+            isLoadingExchangeConfigs = false;
+        });
+    }
+    
+    function selectExchangeForConnect(exchangeName) {
+        openAdminExchangeModal();
+        setTimeout(() => {
+            const select = document.getElementById('admin-exchange-select');
+            if (select) {
+                select.value = exchangeName;
+                handleAdminExchangeChange(select);
+            }
+        }, 100);
+    }
+    
+    // Exchange Config - Verified only (for enabling/disabling)
+    let exchangeConfigs = [];
+    function loadExchangeConfigs() {
+        const container = document.getElementById('exchange-configs-container');
+        fetch('/api/admin/exchange-configs').then(r => r.json()).then(configs => {
+                exchangeConfigs = configs;
+                const verified = configs.filter(c => c.is_verified).length;
+            document.getElementById('verified-exchanges-count').textContent = `${verified}`;
+            
+            const verifiedConfigs = configs.filter(c => c.is_verified);
+            if (verifiedConfigs.length === 0) { 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><i class="fas fa-check-circle text-lg mb-1 opacity-30"></i><p class="text-xxs">No verified exchanges yet. Connect above first!</p></div>`; 
+                    return;
+                }
+                
+            container.innerHTML = verifiedConfigs.map(c => `<div class="p-2 rounded-lg border ${c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.04)] border-[rgba(0,245,255,0.15)]'} transition-all">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 ${c.is_enabled ? 'bg-[rgba(0,255,136,0.15)]' : 'bg-[rgba(0,245,255,0.15)]'} rounded-lg flex items-center justify-center">
+                        <i class="fas fa-building ${c.is_enabled ? 'text-green' : 'text-cyan'}" style="font-size: 0.6rem;"></i>
+                                    </div>
+                                    <div class="flex-grow min-w-0">
+                        <p class="font-bold text-xxs text-bright truncate">${c.display_name}</p>
+                        <p class="text-xxs text-muted">${c.is_enabled ? 'Enabled for users' : 'Disabled'}</p>
+                                    </div>
+                    <div class="flex items-center gap-1">
+                        <label class="cursor-pointer" title="Enable for users">
+                            <input type="checkbox" class="cyber-checkbox" ${c.is_enabled ? 'checked' : ''} onchange="toggleExchangeConfig('${c.exchange_name}', this.checked)">
+                                    </label>
+                        <button onclick="disconnectExchange('${c.exchange_name}')" class="w-5 h-5 rounded flex items-center justify-center text-red hover:bg-[rgba(255,0,68,0.08)]" title="Disconnect">
+                            <i class="fas fa-unlink" style="font-size: 0.5rem;"></i>
+                        </button>
+                                </div>
+                            </div>
+            </div>`).join('');
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs">Error loading</p></div>`);
+    }
+    
+    function toggleExchangeConfig(name, isEnabled) { 
+        fetch(`/api/admin/exchange-configs/${name}/toggle`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_enabled: isEnabled })
+        }).then(r => r.json()).then(result => { 
+            if (result.success) showToast(result.message, 'success'); 
+            else showToast(result.error || 'Error', 'error'); 
+                loadExchangeConfigs();
+            loadAllExchangeConfigs();
+        }).catch(() => { showToast('Network error', 'error'); loadExchangeConfigs(); }); 
+    }
+    
+    function disconnectExchange(name) {
+        if (!confirm(`Disconnect ${name.toUpperCase()}?\n\nThis will also disable it for all users.`)) return;
+        fetch(`/api/admin/exchange-configs/${name}/disconnect`, { 
+            method: 'POST' 
+        }).then(r => r.json()).then(result => { 
+            if (result.success) showToast(result.message || 'Disconnected!', 'success'); 
+            else showToast(result.error || 'Error', 'error'); 
+            loadExchangeConfigs();
+            loadAllExchangeConfigs();
+        }).catch(() => showToast('Network error', 'error')); 
+    }
+    
+    // Admin Exchange Modal
+    function openAdminExchangeModal() {
+        let modal = document.getElementById('adminExchangeModal');
+        
+        if (!modal) {
+            // Create modal HTML
+            const modalHtml = `
+                <div id="adminExchangeModal" class="modal-overlay" style="display: flex; align-items: center; justify-content: center;" onclick="if(event.target===this)closeAdminExchangeModal()">
+                    <div class="modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <div class="modal-title">
+                                <i class="fas fa-plug text-gradient"></i>
+                                <span>Add Exchange</span>
+                            </div>
+                            <button class="modal-close" onclick="closeAdminExchangeModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-sm text-muted mb-4">Connect with YOUR admin API keys. Once verified, users can add their own keys to this exchange.</p>
+                            
+                            <form id="admin-exchange-form" onsubmit="submitAdminExchange(event)" class="flex flex-col gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-sm text-muted">Exchange</label>
+                                    <select id="admin-exchange-select" name="exchange_name" class="cyber-select" required onchange="handleAdminExchangeChange(this)">
+                                        <option value="">Loading exchanges...</option>
+                                    </select>
+                                </div>
+                                
+                                <div id="admin-exchange-status" class="hidden p-3 rounded-lg border text-sm"></div>
+                                
+                                <div id="admin-exchange-fields" class="flex flex-col gap-4 hidden">
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm text-muted">Admin API Key</label>
+                                        <input type="text" id="admin-api-key" name="api_key" class="input font-mono" placeholder="Your admin API Key" required minlength="10">
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-sm text-muted">Admin API Secret</label>
+                                        <input type="password" id="admin-api-secret" name="api_secret" class="input font-mono" placeholder="Your admin API Secret" required minlength="10">
+                                    </div>
+                                    <div id="admin-passphrase-field" class="flex flex-col gap-2 hidden">
+                                        <label class="text-sm text-muted">Passphrase</label>
+                                        <input type="password" id="admin-passphrase" name="passphrase" class="input font-mono" placeholder="Passphrase (required for this exchange)">
+                                    </div>
+                                    
+                                    <button type="submit" class="cyber-btn w-full" id="admin-exchange-submit-btn">
+                                        <i class="fas fa-plug"></i>
+                                        <span>Verify & Connect</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            modal = document.getElementById('adminExchangeModal');
+        } else {
+            modal.style.display = 'flex';
+        }
+        
+        // Reset form
+        const form = document.getElementById('admin-exchange-form');
+        const fields = document.getElementById('admin-exchange-fields');
+        const status = document.getElementById('admin-exchange-status');
+        const select = document.getElementById('admin-exchange-select');
+        
+        if (form) form.reset();
+        if (fields) fields.classList.add('hidden');
+        if (status) status.classList.add('hidden');
+        
+        // Load exchanges into select
+        fetch('/api/admin/exchange-configs')
+            .then(r => {
+                if (!r.ok) throw new Error('API error: ' + r.status);
+                return r.json();
+            })
+            .then(configs => {
+                console.log('Admin exchange configs loaded:', configs);
+                if (select) {
+                    // Clear existing options
+                    select.innerHTML = '';
+                    
+                    if (!configs || configs.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'No exchanges available';
+                        select.appendChild(opt);
+                        showToast('No exchanges configured. Please check database.', 'warning');
+                        return;
+                    }
+                    
+                    // Add default option
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = '-- Select Exchange --';
+                    select.appendChild(defaultOpt);
+                    
+                    // Add exchange options
+                    configs.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.exchange_name;
+                        opt.dataset.verified = c.is_verified;
+                        opt.dataset.passphrase = c.requires_passphrase;
+                        opt.textContent = c.display_name + (c.is_verified ? ' ✓' : '');
+                        select.appendChild(opt);
+                    });
+                    
+                    console.log('Select populated with', configs.length, 'exchanges');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading exchanges:', err);
+                if (select) {
+                    select.innerHTML = '<option value="">Error loading exchanges</option>';
+                }
+                showToast('Error loading exchanges: ' + err.message, 'error');
+            });
+        
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeAdminExchangeModal() {
+        const modal = document.getElementById('adminExchangeModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function handleAdminExchangeChange(select) {
+        const exchangeName = select.value;
+        const fieldsContainer = document.getElementById('admin-exchange-fields');
+        const statusContainer = document.getElementById('admin-exchange-status');
+        const passphraseField = document.getElementById('admin-passphrase-field');
+        const passphraseInput = document.getElementById('admin-passphrase');
+        
+        if (!exchangeName) {
+            fieldsContainer.classList.add('hidden');
+            statusContainer.classList.add('hidden');
+            return;
+        }
+        
+        const option = select.options[select.selectedIndex];
+        const isVerified = option.dataset.verified === 'true';
+        const needsPassphrase = option.dataset.passphrase === 'true';
+        
+        if (isVerified) {
+            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green"></i><span class="text-green">Already verified!</span></div><p class="text-muted mt-1">You can re-verify with new API keys if needed.</p>`;
+            statusContainer.className = 'p-2 rounded-lg border border-[rgba(0,255,136,0.25)] bg-[rgba(0,255,136,0.05)] text-xxs';
+            statusContainer.classList.remove('hidden');
+        } else {
+            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-info-circle text-yellow"></i><span class="text-yellow">Not connected yet</span></div><p class="text-muted mt-1">Enter your admin API keys to verify this exchange.</p>`;
+            statusContainer.className = 'p-2 rounded-lg border border-[rgba(255,200,0,0.25)] bg-[rgba(255,200,0,0.05)] text-xxs';
+            statusContainer.classList.remove('hidden');
+        }
+        
+        if (needsPassphrase) {
+            passphraseField.classList.remove('hidden');
+            passphraseInput.required = true;
+        } else {
+            passphraseField.classList.add('hidden');
+            passphraseInput.required = false;
+        }
+        
+        fieldsContainer.classList.remove('hidden');
+    }
+    
+    function submitAdminExchange(event) {
+        event.preventDefault();
+        const form = document.getElementById('admin-exchange-form');
+        const btn = document.getElementById('admin-exchange-submit-btn');
+        const exchangeSelect = document.getElementById('admin-exchange-select');
+        const apiKeyInput = document.getElementById('admin-api-key');
+        const apiSecretInput = document.getElementById('admin-api-secret');
+        const passphraseField = document.getElementById('admin-passphrase-field');
+        const passphraseInput = document.getElementById('admin-passphrase');
+        
+        // Get form values properly
+        const exchangeName = exchangeSelect ? exchangeSelect.value.trim() : '';
+        const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+        const apiSecret = apiSecretInput ? apiSecretInput.value.trim() : '';
+        
+        // Check if passphrase field is visible (required)
+        const isPassphraseVisible = passphraseField && !passphraseField.classList.contains('hidden');
+        const passphrase = isPassphraseVisible && passphraseInput ? passphraseInput.value.trim() : null;
+        
+        if (!exchangeName) {
+            showToast('Please select an exchange', 'error');
+            return;
+        }
+        
+        if (!apiKey || apiKey.length < 10) {
+            showToast('Please enter a valid API Key (minimum 10 characters)', 'error');
+            return;
+        }
+        
+        if (!apiSecret || apiSecret.length < 10) {
+            showToast('Please enter a valid API Secret (minimum 10 characters)', 'error');
+            return;
+        }
+        
+        // Validate passphrase if field is visible
+        if (isPassphraseVisible && (!passphrase || passphrase.length === 0)) {
+            showToast('Passphrase is required for this exchange', 'error');
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        
+        const requestBody = {
+            api_key: apiKey,
+            api_secret: apiSecret
+        };
+        
+        // Add passphrase only if field is visible (even if empty, backend will validate)
+        if (isPassphraseVisible) {
+            requestBody.passphrase = passphrase || '';
+        }
+        
+        // URL encode the exchange name to handle any special characters
+        const encodedExchangeName = encodeURIComponent(exchangeName);
+        
+        fetch(`/api/admin/exchange-configs/${encodedExchangeName}/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        })
+        .then(r => {
+            if (!r.ok) {
+                return r.json().then(err => Promise.reject(err));
+            }
+            return r.json();
+        })
+        .then(result => {
+            if (result.success) {
+                showToast(result.message || 'Exchange verified!', 'success');
+                closeAdminExchangeModal();
+                // Delay reload to ensure modal is closed first
+                setTimeout(() => {
+                    loadExchangeConfigs();
+                    loadAllExchangeConfigs();
+                }, 500);
+            } else {
+                showToast(result.error || 'Verification failed', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error submitting exchange:', error);
+            const errorMsg = error.error || error.message || 'Network error. Please try again.';
+            showToast(errorMsg, 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plug"></i> <span>Verify & Connect</span>';
+        });
+    }
+    
+    document.addEventListener('keydown', e => { 
+        if (e.key === 'Escape') { 
+            closeAdminExchangeModal(); 
+        } 
+    });
+
+    // User Exchanges
+    let allUserExchanges = [];
+    function loadAllUserExchanges() {
+        const container = document.getElementById('user-exchanges-container');
+        const countEl = document.getElementById('active-trading-count');
+        fetch('/api/admin/exchanges/all').then(r => r.json()).then(exchanges => {
+            allUserExchanges = exchanges;
+            const tradingCount = exchanges.filter(ex => ex.trading_enabled && ex.status === 'APPROVED').length;
+            countEl.textContent = tradingCount;
+            if (!exchanges || exchanges.length === 0) { 
+                container.innerHTML = `<div class="text-center py-4 text-muted"><p class="text-xxs">No user exchanges</p></div>`; 
+                return; 
+            }
+            container.innerHTML = exchanges.map(ex => `
+                <div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[var(--border-color)]" id="admin-ex-${ex.id}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-6 h-6 bg-[rgba(0,255,136,0.12)] border border-[rgba(0,255,136,0.25)] rounded-lg flex items-center justify-center">
+                                <i class="fas fa-user text-xxs text-green"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-xxs text-bright truncate">${ex.username}</p>
+                                <p class="text-xxs text-muted truncate">${ex.display_name}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="admin-ex-bal-${ex.id}" class="font-mono text-xs text-muted">...</span>
+                            <span class="text-xxs ${ex.trading_enabled ? 'text-green' : 'text-yellow'}">${ex.trading_enabled ? '🟢' : '🟡'}</span>
+                            <input type="checkbox" class="cyber-checkbox" ${ex.trading_enabled ? 'checked' : ''} onchange="toggleUserExchangeTrading(${ex.id}, this.checked)">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            // Load balances for all users
+            loadAllUserBalances();
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error loading</p></div>`);
+    }
+    
+    function loadAllUserBalances() {
+        fetch('/api/admin/users/balances').then(r => r.json()).then(data => {
+            if (data.success && data.users) {
+                // Create a map of exchange balances
+                const balanceMap = {};
+                data.users.forEach(user => {
+                    if (user.exchanges) {
+                        user.exchanges.forEach(ex => {
+                            balanceMap[ex.id] = ex;
+                        });
+                    }
+                });
+                // Update UI
+                allUserExchanges.forEach(ex => {
+                    const balanceEl = document.getElementById(`admin-ex-bal-${ex.id}`);
+                    if (balanceEl && balanceMap[ex.id]) {
+                        const b = balanceMap[ex.id];
+                        if (b.balance !== null && b.balance !== undefined) {
+                            balanceEl.className = 'font-mono text-xs font-bold text-green';
+                            balanceEl.textContent = '$' + b.balance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                        } else if (b.error) {
+                            balanceEl.className = 'text-xxs text-red';
+                            balanceEl.textContent = '⚠️';
+                            balanceEl.title = b.error;
+                        } else {
+                            balanceEl.textContent = '—';
+                        }
+                    }
+                });
+            }
+        }).catch(err => console.error('Error loading balances:', err));
+    }
+    function toggleUserExchangeTrading(id, enabled) { fetch(`/api/admin/exchanges/${id}/trading`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trading_enabled: enabled }) }).then(r => r.json()).then(result => { if (result.success) showToast(result.message, 'success'); else showToast(result.error, 'error'); loadAllUserExchanges(); }).catch(() => { showToast('Error', 'error'); loadAllUserExchanges(); }); }
+
+    // Pending Exchanges
+    function loadPendingExchanges() {
+        const container = document.getElementById('pending-exchanges-container');
+        const countEl = document.getElementById('pending-exchanges-count');
+        fetch('/api/admin/exchanges/pending').then(r => r.json()).then(exchanges => {
+                countEl.textContent = exchanges.length;
+            if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs">No pending</p></div>`; return; }
+            container.innerHTML = exchanges.map(ex => `<div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[rgba(255,200,0,0.25)]"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class="min-w-0"><p class="font-bold text-xxs text-bright truncate">${ex.username}</p><p class="text-xxs text-muted truncate">${ex.display_name}</p></div></div><div class="flex items-center gap-1"><button onclick="approveExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-success"><i class="fas fa-check"></i></button><button onclick="rejectExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-danger"><i class="fas fa-times"></i></button></div></div></div>`).join('');
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error</p></div>`);
+    }
+    function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast('Approved!', 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast('Error', 'error')); }
+    function rejectExchange(id) { if (!confirm('Reject this exchange?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast('Rejected', 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Error', 'error')); }
+
+    document.addEventListener('keydown', e => { 
+        if (e.key === 'Escape') { 
+            closeAdminExchangeModal(); 
+            closeUserDetailsModal();
+            closeAdminAvatarModal();
+        } 
+    });
+
+    // User Details Modal Functions
+    function openUserDetailsModal(userId) {
+        const modal = document.getElementById('userDetailsModal');
+        const content = document.getElementById('userDetailsContent');
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        content.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin: 0 auto 16px;"></div><p>Loading...</p></div>`;
+        
+        fetch(`/api/admin/user/${userId}/details`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const u = data.user;
+                    const avatarHtml = u.avatar_type === 'image' && u.avatar 
+                        ? `<img src="/static/avatars/${u.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+                        : `<span style="font-size: 2rem;">${u.avatar || '🧑‍💻'}</span>`;
+                    
+                    // Format balance growth
+                    const growthColor = u.balance_growth_30d >= 0 ? 'text-green' : 'text-red';
+                    const growthSign = u.balance_growth_30d >= 0 ? '+' : '';
+                    
+                    content.innerHTML = `
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="user-avatar-lg" style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 212, 0.2)); border: 3px solid var(--neon-cyan); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; cursor: pointer;" onclick="openUserAvatarUpload(${u.id})">
+                                ${avatarHtml}
+                                <div style="position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-camera" style="font-size: 0.45rem; color: #000;"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-display font-semibold text-lg">${u.first_name || ''} ${u.last_name || ''}</h3>
+                                <p class="text-sm text-muted">@${u.username}</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="badge ${u.is_paused ? 'badge-warning' : (u.is_active ? 'badge-success' : 'badge-danger')}" style="font-size: 0.45rem;">
+                                        ${u.is_paused ? '⏸️ Paused' : (u.is_active ? '🟢 Active' : '🔴 Inactive')}
+                                    </span>
+                                    ${u.telegram_enabled ? '<span class="badge badge-primary" style="font-size: 0.45rem;"><i class="fab fa-telegram"></i> TG</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Current Balance Card -->
+                        <div class="p-3 mb-4 rounded-lg border" style="background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 0, 212, 0.1)); border-color: rgba(0, 212, 255, 0.3);">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xxs text-muted">Current Balance</div>
+                                    <div class="text-xl font-mono font-bold text-cyan">$${u.current_balance?.toLocaleString() || '0'}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xxs text-muted">30d Growth</div>
+                                    <div class="text-sm font-bold ${growthColor}">${growthSign}${u.balance_growth_30d || 0}%</div>
+                                </div>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-[rgba(0,212,255,0.2)]">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-muted">Target:</span>
+                                    <span class="text-cyan font-mono">$${u.target_balance?.toLocaleString() || '1,000'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Info -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-envelope text-purple"></i> Email</div>
+                                <div class="text-sm font-mono truncate" title="${u.email || ''}">${u.email || '—'}</div>
+                            </div>
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-phone text-cyan"></i> Phone</div>
+                                <div class="text-sm font-mono">${u.phone || '—'}</div>
+                            </div>
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-calendar text-green"></i> Registered</div>
+                                <div class="text-sm">${u.created_at || '—'}</div>
+                            </div>
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-clock text-yellow"></i> Days Active</div>
+                                <div class="text-sm font-bold">${u.days_registered || 0} days</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trading Settings -->
+                        <div class="grid grid-cols-3 gap-3 mb-4">
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
+                                <div class="text-xxs text-muted mb-1">Risk</div>
+                                <div class="text-sm font-bold">${u.custom_risk > 0 ? u.custom_risk + '%' : 'AUTO'}</div>
+                            </div>
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
+                                <div class="text-xxs text-muted mb-1">Leverage</div>
+                                <div class="text-sm font-bold">${u.custom_leverage > 0 ? 'x' + u.custom_leverage : 'AUTO'}</div>
+                            </div>
+                            <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
+                                <div class="text-xxs text-muted mb-1">Max Pos</div>
+                                <div class="text-sm font-bold">${u.max_positions}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trading Stats -->
+                        <div class="grid grid-cols-4 gap-2 mb-4">
+                            <div class="p-2 bg-[rgba(0,245,255,0.08)] border border-[rgba(0,245,255,0.2)] rounded-lg text-center">
+                                <div class="text-lg font-bold text-cyan">${u.total_trades}</div>
+                                <div class="text-xxs text-muted">Trades</div>
+                            </div>
+                            <div class="p-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.2)] rounded-lg text-center">
+                                <div class="text-lg font-bold text-green">${u.winning_trades}</div>
+                                <div class="text-xxs text-muted">Wins</div>
+                            </div>
+                            <div class="p-2 bg-[rgba(255,51,102,0.08)] border border-[rgba(255,51,102,0.2)] rounded-lg text-center">
+                                <div class="text-lg font-bold text-red">${u.losing_trades || 0}</div>
+                                <div class="text-xxs text-muted">Losses</div>
+                            </div>
+                            <div class="p-2 bg-[rgba(255,0,212,0.08)] border border-[rgba(255,0,212,0.2)] rounded-lg text-center">
+                                <div class="text-lg font-bold text-magenta">${u.win_rate}%</div>
+                                <div class="text-xxs text-muted">Win Rate</div>
+                            </div>
+                        </div>
+                        
+                        <!-- PnL & ROI -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="p-3 bg-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.08)' : 'rgba(255,51,102,0.08)'}] border border-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,102,0.2)'}] rounded-lg text-center">
+                                <div class="text-xl font-bold font-mono ${u.total_pnl >= 0 ? 'text-green' : 'text-red'}">${u.total_pnl >= 0 ? '+' : ''}$${u.total_pnl?.toLocaleString() || '0'}</div>
+                                <div class="text-xxs text-muted">Total PnL</div>
+                            </div>
+                            <div class="p-3 bg-[rgba(255,208,0,0.08)] border border-[rgba(255,208,0,0.2)] rounded-lg text-center">
+                                <div class="text-xl font-bold font-mono text-yellow">${u.avg_roi >= 0 ? '+' : ''}${u.avg_roi || 0}%</div>
+                                <div class="text-xxs text-muted">Avg ROI</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Last Trade -->
+                        ${u.last_trade ? `
+                        <div class="p-3 mb-4 bg-[var(--color-surface-2)] rounded-lg">
+                            <div class="text-xxs text-muted mb-2"><i class="fas fa-history"></i> Last Trade</div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="badge ${u.last_trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}" style="font-size: 0.45rem;">${u.last_trade.side}</span>
+                                    <span class="font-mono font-semibold">${u.last_trade.symbol}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-mono font-bold ${u.last_trade.pnl >= 0 ? 'text-green' : 'text-red'}">${u.last_trade.pnl >= 0 ? '+' : ''}$${u.last_trade.pnl}</span>
+                                    <span class="text-xxs text-muted ml-2">${u.last_trade.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${u.exchanges && u.exchanges.length > 0 ? `
+                        <div class="mb-4">
+                            <div class="text-xs text-muted mb-2"><i class="fas fa-plug"></i> Connected Exchanges (${u.exchanges.length})</div>
+                            <div class="flex flex-col gap-2">
+                                ${u.exchanges.map(ex => `
+                                    <div class="p-2 bg-[var(--color-surface-2)] rounded-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-building text-yellow"></i>
+                                                <div>
+                                                    <span class="text-sm font-semibold">${ex.label || ex.display_name || ex.exchange_name}</span>
+                                                    <div class="text-xxs text-muted">${ex.display_name || ex.exchange_name.toUpperCase()}</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="badge ${ex.status === 'APPROVED' ? (ex.trading_enabled ? 'badge-success' : 'badge-primary') : 'badge-warning'}" style="font-size: 0.5rem;">
+                                                    ${ex.trading_enabled ? '🟢 Trading' : ex.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2 pt-2 border-t border-[var(--color-border)] flex items-center justify-between">
+                                            <span class="text-xxs text-muted">Balance:</span>
+                                            ${ex.balance !== null && ex.balance !== undefined 
+                                                ? `<span class="font-mono font-bold ${ex.balance > 0 ? 'text-green' : 'text-muted'}">$${ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` 
+                                                : (ex.balance_error 
+                                                    ? `<span class="text-red text-xs" title="${ex.balance_error}">⚠️ ${ex.balance_error.substring(0, 20)}</span>` 
+                                                    : (ex.status === 'PENDING' 
+                                                        ? '<span class="text-yellow text-xs">⏳ Pending approval</span>' 
+                                                        : '<span class="text-muted">—</span>'))}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : '<div class="p-3 mb-4 bg-[rgba(255,200,0,0.08)] border border-[rgba(255,200,0,0.2)] rounded-lg text-center text-yellow text-sm"><i class="fas fa-exclamation-triangle"></i> No exchanges connected</div>'}
+                        
+                        <!-- Telegram Status -->
+                        <div class="p-2 mb-4 bg-[var(--color-surface-2)] rounded-lg flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fab fa-telegram" style="color: ${u.telegram_enabled ? '#0088cc' : 'var(--text-muted)'}; font-size: 1.25rem;"></i>
+                                <div>
+                                    <div class="text-sm">Telegram Notifications</div>
+                                    <div class="text-xxs text-muted">${u.telegram_chat_id ? 'ID: ' + u.telegram_chat_id : 'Not configured'}</div>
+                                </div>
+                            </div>
+                            <span class="badge ${u.telegram_enabled ? 'badge-success' : 'badge-warning'}" style="font-size: 0.5rem;">
+                                ${u.telegram_enabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-[var(--color-border)] flex flex-col gap-2">
+                            <input type="file" id="userAvatarUpload-${u.id}" accept="image/png,image/jpeg,image/gif,image/webp" style="display: none;" onchange="uploadUserAvatar(${u.id}, this)">
+                            <button onclick="document.getElementById('userAvatarUpload-${u.id}').click()" class="cyber-btn cyber-btn-outline cyber-btn-sm w-full">
+                                <i class="fas fa-camera"></i>
+                                <span>Upload User Avatar</span>
+                            </button>
+                            <button onclick="confirmDeleteUser(${u.id}, '${u.username}')" class="cyber-btn cyber-btn-danger cyber-btn-sm w-full">
+                                <i class="fas fa-trash"></i>
+                                <span>Delete User</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `<div class="text-center text-red py-4">Error: ${data.error}</div>`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                content.innerHTML = `<div class="text-center text-red py-4">Failed to load user details</div>`;
+            });
+    }
+    
+    function closeUserDetailsModal() {
+        const modal = document.getElementById('userDetailsModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function openUserAvatarUpload(userId) {
+        document.getElementById(`userAvatarUpload-${userId}`).click();
+    }
+    
+    function uploadUserAvatar(userId, input) {
+        if (!input.files || !input.files[0]) return;
+        
+        const formData = new FormData();
+        formData.append('avatar_file', input.files[0]);
+        formData.append('avatar_type', 'image');
+        
+        showToast('Uploading avatar...', 'info');
+        
+        fetch(`/admin/update_user_avatar/${userId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showToast('Avatar updated!', 'success');
+                // Refresh modal
+                openUserDetailsModal(userId);
+                // Refresh page after delay
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(result.error || 'Error', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('Failed to upload', 'error');
+        });
+    }
+    
+    // Admin Avatar Modal Functions
+    function openAdminAvatarModal() {
+        const modal = document.getElementById('adminAvatarModal');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeAdminAvatarModal() {
+        const modal = document.getElementById('adminAvatarModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function selectAdminEmoji(emoji) {
+        document.getElementById('selected-admin-emoji').value = emoji;
+        document.getElementById('admin-avatar-type').value = 'emoji';
+        
+        // Update visual selection
+        document.querySelectorAll('#emoji-grid .emoji-btn').forEach(btn => {
+            btn.classList.remove('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+            btn.classList.add('border-[var(--color-border)]');
+        });
+        event.target.closest('.emoji-btn').classList.remove('border-[var(--color-border)]');
+        event.target.closest('.emoji-btn').classList.add('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+    }
+    
+    function setAdminAvatarType(type) {
+        document.getElementById('admin-avatar-type').value = type;
+    }
+
+    // Refresh all user balances
+    function refreshAllBalances() {
+        const btn = document.getElementById('refresh-balances-btn');
+        const icon = btn.querySelector('i');
+        
+        btn.disabled = true;
+        icon.classList.add('fa-spin');
+        
+        fetch('/api/admin/users/balances')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.users) {
+                    // Update balance cells in the table
+                    data.users.forEach(user => {
+                        const row = document.querySelector(`tr[data-user-id="${user.user_id}"]`);
+                        if (!row) return;
+                        
+                        const balanceCell = row.querySelector('.balance-cell');
+                        if (!balanceCell) return;
+                        
+                        if (user.exchanges && user.exchanges.length > 0) {
+                            let html = '<div class="flex flex-col gap-1">';
+                            user.exchanges.forEach(ex => {
+                                const statusClass = ex.trading_enabled ? 'bg-green' : 'bg-yellow';
+                                const statusTitle = ex.trading_enabled ? 'Trading enabled' : 'Trading disabled';
+                                let balanceHtml = '';
+                                
+                                if (ex.balance !== null) {
+                                    balanceHtml = `<span class="text-green font-bold font-mono">$${Math.round(ex.balance).toLocaleString()}</span>`;
+                                } else if (ex.error) {
+                                    balanceHtml = `<span class="text-red text-xs" title="${ex.error}">⚠️</span>`;
+                                } else if (ex.status === 'PENDING') {
+                                    balanceHtml = '<span class="text-yellow text-xs">⏳</span>';
+                                } else {
+                                    balanceHtml = '<span class="text-muted">—</span>';
+                                }
+                                
+                                html += `<div class="flex items-center gap-1 text-xs">
+                                    <span class="w-2 h-2 rounded-full ${statusClass}" title="${statusTitle}"></span>
+                                    <span class="text-muted truncate" style="max-width: 60px;" title="${ex.label}">${ex.exchange_name.substring(0, 3).toUpperCase()}</span>
+                                    ${balanceHtml}
+                                </div>`;
+                            });
+                            
+                            if (user.exchanges.length > 1) {
+                                html += `<div class="border-t border-[var(--color-border)] pt-1 mt-1">
+                                    <span class="text-cyan font-bold font-mono text-xs">Σ $${Math.round(user.total_balance).toLocaleString()}</span>
+                                </div>`;
+                            }
+                            html += '</div>';
+                            balanceCell.innerHTML = html;
+                        } else if (user.total_balance > 0) {
+                            balanceCell.innerHTML = `<span class="text-green font-bold font-mono">$${Math.round(user.total_balance).toLocaleString()}</span>`;
+                        } else {
+                            balanceCell.innerHTML = '<span class="text-muted">—</span>';
+                        }
+                    });
+                    
+                    showToast('Balances refreshed!', 'success');
+                } else {
+                    showToast('Failed to refresh balances', 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Error refreshing balances:', err);
+                showToast('Network error', 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                icon.classList.remove('fa-spin');
+            });
+    }
+    
+    // Delete User Functions
+    function confirmDeleteUser(userId, username) {
+        if (!confirm(`⚠️ Are you sure you want to delete user "${username}"?\n\nThis will permanently delete:\n- All their trades history\n- All their balance history\n- All their exchange connections\n- All their messages\n\nThis action CANNOT be undone!`)) {
+            return;
+        }
+        
+        // Double confirmation for safety
+        const confirmText = prompt(`Type "${username}" to confirm deletion:`);
+        if (confirmText !== username) {
+            showToast('Deletion cancelled - username did not match', 'warning');
+            return;
+        }
+        
+        deleteUser(userId, username);
+    }
+    
+    function deleteUser(userId, username) {
+        showToast('Deleting user...', 'info');
+        
+        fetch(`/api/admin/user/${userId}/delete`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message || `User ${username} deleted`, 'success');
+                closeUserDetailsModal();
+                // Remove user row from table
+                const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+                if (row) {
+                    row.style.animation = 'fadeOut 0.3s ease';
+                    setTimeout(() => row.remove(), 300);
+                }
+            } else {
+                showToast(result.error || 'Failed to delete user', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Error deleting user:', err);
+            showToast('Network error while deleting user', 'error');
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{
+    "name": "MIMIC Copy Trading",
+    "short_name": "MIMIC",
+    "description": "Automated crypto copy trading platform - Mirror professional traders on Binance, Bybit, OKX",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0f",
+    "theme_color": "#00f5ff",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/static/mimic-logo.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["finance", "trading", "crypto"],
+    "lang": "en",
+    "dir": "ltr",
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/dashboard",
+            "description": "View your trading dashboard"
+        },
+        {
+            "name": "Login",
+            "url": "/login",
+            "description": "Sign in to your account"
+        }
+    ]
+}
+

@@ -1,0 +1,1091 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+{% block meta_title %}Create Free Account - MIMIC Crypto Copy Trading{% endblock %}
+{% block meta_description %}Join MIMIC and start automated crypto copy trading. Register free, connect your Binance, Bybit or OKX account, and mirror professional traders. Easy setup in 3 steps.{% endblock %}
+{% block meta_keywords %}register copy trading, create trading account, join crypto copy trading, sign up binance copy trading, start automated trading{% endblock %}
+{% block og_title %}Create Free Account - Start Copy Trading Today{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* ============= VOLTX REGISTER CONTAINER ============= */
+    .register-container {
+        padding: 40px 24px 80px;
+    }
+    
+    .register-card {
+        max-width: 640px;
+        margin: 0 auto;
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-2xl);
+        padding: 48px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-elevated);
+    }
+    
+    .register-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+    
+    .register-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle at top right, rgba(0, 240, 255, 0.06), transparent 70%);
+        pointer-events: none;
+    }
+    
+    /* Header */
+    .register-header {
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .register-logo {
+        width: 84px;
+        height: 84px;
+        margin: 0 auto 24px;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(139, 92, 246, 0.1));
+        border: 2px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+    }
+    
+    .register-logo::before {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        background: conic-gradient(from 0deg, var(--neon-cyan), transparent, var(--neon-purple), transparent, var(--neon-pink), transparent, var(--neon-cyan));
+        border-radius: inherit;
+        animation: spinGlow 12s linear infinite;
+        opacity: 0.35;
+        z-index: -1;
+    }
+    
+    @keyframes spinGlow {
+        to { transform: rotate(360deg); }
+    }
+    
+    .register-title {
+        font-family: var(--font-cyber);
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+    }
+    
+    .register-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+    }
+    
+    /* Progress Steps */
+    .register-steps {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 40px;
+        position: relative;
+    }
+    
+    .register-steps::before {
+        content: '';
+        position: absolute;
+        top: 25px;
+        left: 18%;
+        right: 18%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+        opacity: 0.2;
+        z-index: 0;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.4;
+        transition: all 0.4s ease;
+        position: relative;
+        z-index: 1;
+        padding: 0 20px;
+    }
+    
+    .step.active {
+        opacity: 1;
+    }
+    
+    .step.completed {
+        opacity: 1;
+    }
+    
+    .step-number {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-lg);
+        border: 2px solid rgba(0, 240, 255, 0.3);
+        background: rgba(10, 10, 18, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-cyber);
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-muted);
+        transition: all 0.4s ease;
+    }
+    
+    .step.active .step-number {
+        border-color: var(--neon-cyan);
+        background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+        color: #000;
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+    }
+    
+    .step.completed .step-number {
+        border-color: var(--neon-green);
+        background: var(--neon-green);
+        color: #000;
+        box-shadow: 0 0 25px rgba(57, 255, 20, 0.4);
+    }
+    
+    .step-label {
+        font-size: 0.7rem;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: inherit;
+    }
+    
+    /* Form Sections */
+    .form-section {
+        margin-bottom: 24px;
+    }
+    
+    .form-section label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+    }
+    
+    .form-section label i {
+        font-size: 0.7rem;
+    }
+    
+    .form-section:focus-within label {
+        color: var(--neon-cyan);
+    }
+    
+    /* API Section */
+    .api-section {
+        position: relative;
+        padding: 28px;
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-xl);
+        background: rgba(0, 240, 255, 0.02);
+        margin-top: 32px;
+        transition: all 0.4s ease;
+    }
+    
+    .api-section:hover {
+        border-color: rgba(0, 240, 255, 0.25);
+        box-shadow: 0 0 30px rgba(0, 240, 255, 0.05);
+    }
+    
+    .api-badge {
+        position: absolute;
+        top: -14px;
+        left: 20px;
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(15, 15, 24, 0.98));
+        padding: 8px 18px;
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-md);
+        font-size: 0.7rem;
+        font-family: var(--font-mono);
+        font-weight: 700;
+        color: var(--neon-cyan);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    
+    /* Security Tips */
+    .security-tips {
+        margin-top: 24px;
+        padding: 20px 24px;
+        background: rgba(255, 45, 146, 0.04);
+        border: 1px solid rgba(255, 45, 146, 0.15);
+        border-radius: var(--radius-lg);
+    }
+    
+    .security-tips-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--neon-pink);
+        margin-bottom: 16px;
+    }
+    
+    .security-tips li {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        padding: 8px 0;
+    }
+    
+    .security-tips li:last-child {
+        margin-bottom: 0;
+    }
+    
+    .security-tips li i {
+        width: 20px;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+    
+    /* Password Strength */
+    .password-strength {
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(0, 240, 255, 0.1);
+        margin-top: 12px;
+        overflow: hidden;
+    }
+    
+    .password-strength-bar {
+        height: 100%;
+        transition: all 0.4s ease;
+        border-radius: 3px;
+    }
+    
+    .strength-weak { 
+        width: 33%; 
+        background: linear-gradient(90deg, var(--neon-red), #ff4466); 
+        box-shadow: 0 0 10px rgba(255, 0, 68, 0.5);
+    }
+    .strength-medium { 
+        width: 66%; 
+        background: linear-gradient(90deg, var(--neon-yellow), var(--neon-orange)); 
+        box-shadow: 0 0 10px rgba(255, 240, 0, 0.5);
+    }
+    .strength-strong { 
+        width: 100%; 
+        background: linear-gradient(90deg, var(--neon-green), #00cc88); 
+        box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+    
+    /* Exchange Dropdown */
+    .exchange-dropdown-container {
+        position: relative;
+    }
+    
+    .exchange-dropdown-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .exchange-dropdown-btn:hover {
+        border-color: rgba(0, 240, 255, 0.3);
+    }
+    
+    .exchange-dropdown-btn.selected {
+        border-color: var(--neon-green);
+        background: rgba(57, 255, 20, 0.05);
+    }
+    
+    .exchange-dropdown-list {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background: var(--color-surface-2);
+        border: 1px solid rgba(0, 240, 255, 0.2);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-elevated);
+        z-index: 100;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    
+    .exchange-option {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.05);
+    }
+    
+    .exchange-option:last-child {
+        border-bottom: none;
+    }
+    
+    .exchange-option:hover {
+        background: rgba(0, 240, 255, 0.08);
+    }
+    
+    .exchange-option.selected {
+        background: rgba(57, 255, 20, 0.1);
+        border-left: 3px solid var(--neon-green);
+    }
+    
+    .exchange-option-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, rgba(255, 208, 0, 0.15), rgba(255, 150, 0, 0.1));
+        border: 1px solid rgba(255, 208, 0, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: var(--neon-yellow);
+    }
+    
+    .exchange-radio {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(0, 240, 255, 0.3);
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    
+    .exchange-radio:checked {
+        border-color: var(--neon-green);
+        background: var(--neon-green);
+        box-shadow: inset 0 0 0 4px var(--color-surface-2);
+    }
+    
+    .exchange-chevron {
+        transition: transform 0.3s ease;
+        color: var(--text-muted);
+    }
+    
+    .exchange-chevron.rotate {
+        transform: rotate(180deg);
+    }
+    
+    /* No Exchange Box */
+    .no-exchange-box {
+        margin-top: 20px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.04), rgba(139, 92, 246, 0.03));
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-lg);
+    }
+    
+    .exchange-register-btn {
+        background: linear-gradient(135deg, #F0B90B, #F8D12F);
+        color: #000;
+        font-family: var(--font-display);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 12px 24px;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(240, 185, 11, 0.3);
+    }
+    
+    .exchange-register-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 30px rgba(240, 185, 11, 0.5);
+    }
+    
+    /* Info Box */
+    .info-box {
+        margin-top: 20px;
+        padding: 18px 22px;
+        background: rgba(0, 240, 255, 0.05);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-lg);
+    }
+    
+    .info-box-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--neon-cyan);
+        margin-bottom: 12px;
+    }
+    
+    .info-box ol {
+        padding-left: 20px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+    }
+    
+    /* Terms Checkbox */
+    .terms-section {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+        margin-top: 28px;
+        background: rgba(0, 240, 255, 0.03);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-lg);
+    }
+    
+    .terms-section input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--neon-cyan);
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+    
+    .terms-section label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        cursor: pointer;
+    }
+    
+    /* Submit Button */
+    .submit-btn {
+        width: 100%;
+        padding: 20px 28px;
+        background: linear-gradient(135deg, var(--neon-green), #00cc88);
+        border: none;
+        border-radius: var(--radius-lg);
+        color: #000;
+        font-family: var(--font-cyber);
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 28px;
+        transition: all 0.4s ease;
+        box-shadow: 0 0 30px rgba(57, 255, 20, 0.35);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .submit-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.6s;
+    }
+    
+    .submit-btn:hover::before {
+        left: 100%;
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 50px rgba(57, 255, 20, 0.5), 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Login Link */
+    .login-section {
+        margin-top: 32px;
+        padding-top: 28px;
+        border-top: 1px solid rgba(0, 240, 255, 0.1);
+        text-align: center;
+    }
+    
+    .login-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .login-link:hover {
+        color: var(--neon-cyan);
+    }
+    
+    .login-link strong {
+        color: var(--neon-cyan);
+    }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+        .register-card {
+            padding: 32px 20px;
+        }
+        
+        .register-steps::before {
+            left: 12%;
+            right: 12%;
+        }
+        
+        .step {
+            padding: 0 12px;
+        }
+        
+        .step-number {
+            width: 42px;
+            height: 42px;
+            font-size: 0.9rem;
+        }
+        
+        .api-section {
+            padding: 24px 18px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card animate-entry">
+        <div class="relative z-10">
+            {% if ref_code %}
+            <!-- Referral Banner -->
+            <div style="padding: 14px 18px; background: linear-gradient(135deg, rgba(57, 255, 20, 0.08), rgba(0, 240, 255, 0.05)); border: 1px solid rgba(57, 255, 20, 0.25); border-radius: var(--radius-lg); margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: rgba(57, 255, 20, 0.15); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-gift text-green"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-green text-sm" data-i18n="auth.referralInvite">You've been invited!</p>
+                    <p class="text-xs text-muted">Referral code: <span class="font-mono text-cyan">{{ ref_code }}</span></p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Header -->
+            <div class="register-header">
+                <div class="register-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" width="36" height="36">
+                        <path d="M8 8L18 20L8 32V8Z" fill="url(#regGrad1)"/>
+                        <path d="M32 8L22 20L32 32V8Z" fill="url(#regGrad1)"/>
+                        <rect x="18" y="16" width="4" height="8" rx="1" fill="url(#regGrad2)"/>
+                        <defs>
+                            <linearGradient id="regGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#00f0ff"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                            <linearGradient id="regGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff2d92"/>
+                                <stop offset="100%" style="stop-color:#ff00ff"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="register-title" data-i18n="auth.getStarted">Get Started</h1>
+                <p class="register-subtitle" data-i18n="auth.startMimicking">Start mimicking the best traders</p>
+            </div>
+
+            <!-- Steps -->
+            <div class="register-steps">
+                <div class="step active" id="step1">
+                    <div class="step-number">1</div>
+                    <span class="step-label" data-i18n="auth.stepProfile">Profile</span>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-number">2</div>
+                    <span class="step-label" data-i18n="auth.stepSecurity">Security</span>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-number">3</div>
+                    <span class="step-label" data-i18n="auth.stepApi">API</span>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                <!-- CSRF Protection Token -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <!-- Referral Code (if any) -->
+                <input type="hidden" name="ref_code" value="{{ ref_code or '' }}">
+                
+                <!-- Personal Info -->
+                <div class="grid grid-2 gap-4">
+                    <div class="form-section">
+                        <label>
+                            <i class="fas fa-user text-green"></i> <span data-i18n="auth.firstName">First Name</span> *
+                        </label>
+                        <input type="text" name="first_name" class="cyber-input" data-i18n-placeholder="auth.firstNamePlaceholder" placeholder="John" required oninput="updateSteps()">
+                    </div>
+                    <div class="form-section">
+                        <label data-i18n="auth.lastName">Last Name</label>
+                        <input type="text" name="last_name" class="cyber-input" data-i18n-placeholder="auth.lastNamePlaceholder" placeholder="Smith">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        <i class="fas fa-phone text-green"></i> <span data-i18n="auth.phone">Phone (Username)</span> *
+                    </label>
+                    <input type="tel" name="phone" class="cyber-input" data-i18n-placeholder="auth.phonePlaceholder" placeholder="+1 XXX XXX XXXX" required oninput="updateSteps()">
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        <i class="fas fa-envelope text-cyan"></i> <span data-i18n="auth.email">Email (for recovery)</span>
+                    </label>
+                    <input type="email" name="email" class="cyber-input" data-i18n-placeholder="auth.emailPlaceholder" placeholder="your@email.com" oninput="updateSteps()">
+                    <p class="text-xs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> <span data-i18n="auth.emailRecommended">Recommended for account recovery</span></p>
+                </div>
+
+                <div class="form-section">
+                    <label>
+                        <i class="fas fa-lock text-purple"></i> <span data-i18n="auth.password">Password</span> *
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="password" id="password" class="cyber-input" style="padding-right: 50px;" data-i18n-placeholder="auth.minChars" placeholder="Minimum 6 characters" required minlength="6" oninput="checkPasswordStrength(); updateSteps()">
+                        <button type="button" onclick="togglePassword('password', 'eyeIcon')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div id="strengthBar" class="password-strength-bar" style="width: 0;"></div>
+                    </div>
+                    <p id="strengthText" class="text-xs mt-2 font-semibold"></p>
+                </div>
+
+                <!-- Exchange API Keys -->
+                <div class="api-section">
+                    <div class="api-badge">
+                        <i class="fas fa-exchange-alt"></i> <span data-i18n="auth.exchangeApi">Exchange API</span>
+                    </div>
+                    
+                    <!-- Exchange Selection -->
+                    <div class="form-section mt-4 mb-5">
+                        <label>
+                            <i class="fas fa-building text-yellow"></i> <span data-i18n="auth.selectExchange">Select Exchange</span> *
+                        </label>
+                        
+                        <div class="exchange-dropdown-container" id="exchangeDropdownContainer">
+                            <button type="button" class="exchange-dropdown-btn" id="exchangeDropdownBtn" onclick="toggleExchangeDropdown()">
+                                <div class="flex items-center gap-3">
+                                    <div id="selectedExchangeIcon" class="exchange-option-icon" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-building text-muted"></i>
+                                    </div>
+                                    <div style="text-align: left;">
+                                        <p id="selectedExchangeName" class="text-sm text-muted" data-i18n="auth.chooseExchange">-- Choose your exchange --</p>
+                                        <p id="selectedExchangeHint" class="text-xs text-muted opacity-70 hidden"></p>
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-down exchange-chevron" id="exchangeChevron"></i>
+                            </button>
+                            
+                            <div class="exchange-dropdown-list hidden" id="exchangeDropdownList">
+                                <div id="exchangeOptions" class="p-2">
+                                    <div style="text-align: center; padding: 24px;">
+                                        <div class="loading-spinner mx-auto mb-2" style="width: 24px; height: 24px;"></div>
+                                        <p class="text-xs text-muted" data-i18n="dash.loading">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="exchange_name" id="exchangeNameInput" required>
+                    </div>
+                    
+                    <!-- No Exchange Account Option -->
+                    <div class="no-exchange-box" id="noExchangeBox">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div style="width: 44px; height: 44px; background: rgba(255, 208, 0, 0.1); border: 1px solid rgba(255, 208, 0, 0.25); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-wallet text-yellow"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-bright" data-i18n="auth.noExchange">Don't have an exchange account?</p>
+                                    <p class="text-xs text-muted" id="exchangeRegisterHint" data-i18n="auth.createPartner">Register on your preferred exchange first</p>
+                                </div>
+                            </div>
+                            <a href="https://accounts.binance.com/register?ref=MIMICCOPY" target="_blank" rel="noopener noreferrer" id="exchangeRegisterLink" class="exchange-register-btn">
+                                <i class="fas fa-external-link-alt"></i>
+                                <span data-i18n="auth.registerExchange">Register</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 mt-5">
+                        <div class="form-section mb-4">
+                            <label>
+                                <i class="fas fa-key text-green"></i> <span data-i18n="auth.apiKey">API Key</span> *
+                            </label>
+                            <input type="text" name="api_key" id="apiKeyInput" class="cyber-input font-mono" data-i18n-placeholder="auth.apiKeyPlaceholder" placeholder="Your Exchange API Key" required oninput="updateSteps()">
+                        </div>
+                        <div class="form-section mb-4">
+                            <label>
+                                <i class="fas fa-user-secret text-green"></i> <span data-i18n="auth.apiSecret">API Secret</span> *
+                            </label>
+                            <input type="password" name="api_secret" id="apiSecret" class="cyber-input font-mono" data-i18n-placeholder="auth.apiSecretPlaceholder" placeholder="Secret Key" required oninput="updateSteps()">
+                        </div>
+                        
+                        <!-- Passphrase field (for OKX/KuCoin) -->
+                        <div class="form-section hidden mb-0" id="passphraseField">
+                            <label>
+                                <i class="fas fa-shield-alt text-yellow"></i> <span data-i18n="auth.passphrase">Passphrase</span> *
+                            </label>
+                            <input type="password" name="passphrase" id="passphraseInput" class="cyber-input font-mono" data-i18n-placeholder="auth.passphrasePlaceholder" placeholder="API Passphrase (required for this exchange)">
+                            <p class="text-xs text-yellow mt-2"><i class="fas fa-info-circle"></i> <span data-i18n="auth.passphraseRequired">This exchange requires a passphrase</span></p>
+                        </div>
+                    </div>
+
+                    <div class="security-tips">
+                        <p class="security-tips-title">
+                            <i class="fas fa-exclamation-triangle"></i> <span data-i18n="auth.securityTips">Important Security Tips:</span>
+                        </p>
+                        <ul style="list-style: none; padding: 0; margin: 0;">
+                            <li><i class="fas fa-check text-green"></i> <span data-i18n="auth.enableFutures">Enable <strong>Futures Trading</strong> permissions</span></li>
+                            <li><i class="fas fa-times text-red"></i> <span data-i18n="auth.disableWithdrawals">Disable <strong>Withdrawals</strong></span></li>
+                            <li><i class="fas fa-shield-alt text-cyan"></i> <span data-i18n="auth.enableIpWhitelist">Enable <strong>IP Whitelist</strong> for security</span></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Approval Notice -->
+                    <div class="info-box">
+                        <p class="info-box-title">
+                            <i class="fas fa-info-circle"></i> <span data-i18n="auth.howItWorks">How it works:</span>
+                        </p>
+                        <ol>
+                            <li data-i18n="auth.step1">Your API keys will be verified</li>
+                            <li data-i18n="auth.step2">Your request will be sent to the administrator</li>
+                            <li data-i18n="auth.step3"><span class="text-green font-semibold">Admin will decide</span> whether to start trading</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Terms -->
+                <div class="terms-section">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms" data-i18n="auth.agreeTerms">
+                        I agree to the terms of service and understand the risks associated with cryptocurrency futures trading
+                    </label>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <span data-i18n="btn.startMimicking">Start Mimicking</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="login-section">
+                <a href="{{ url_for('login') }}" class="login-link">
+                    <span data-i18n="auth.haveAccount">Already have an account?</span>
+                    <strong data-i18n="auth.signIn">Sign In</strong>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Exchange data
+let availableExchanges = [];
+let selectedExchange = null;
+let exchangeDropdownOpen = false;
+
+// Load available exchanges on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadAvailableExchanges();
+});
+
+function loadAvailableExchanges() {
+    fetch('/api/exchanges/available')
+        .then(r => r.json())
+        .then(exchanges => {
+            availableExchanges = exchanges.filter(ex => ex.is_enabled && ex.is_verified);
+            console.log('Available exchanges (enabled & verified):', availableExchanges.length);
+            renderExchangeOptions();
+        })
+        .catch(err => {
+            console.error('Error loading exchanges:', err);
+            document.getElementById('exchangeOptions').innerHTML = `
+                <div style="text-align: center; padding: 16px;">
+                    <i class="fas fa-exclamation-triangle text-red" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
+                    <p class="text-xs text-red">Error loading exchanges</p>
+                </div>
+            `;
+        });
+}
+
+function renderExchangeOptions() {
+    const container = document.getElementById('exchangeOptions');
+    const currentLang = localStorage.getItem('lang') || 'en';
+    
+    if (!availableExchanges || availableExchanges.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 24px;">
+                <i class="fas fa-exclamation-circle text-yellow" style="font-size: 2rem; margin-bottom: 12px;"></i>
+                <p class="text-sm font-bold mb-1">${currentLang === 'ua' ? 'Немає доступних бірж' : 'No exchanges available'}</p>
+                <p class="text-xs text-muted">${currentLang === 'ua' ? 'Зв\'яжіться з адміністратором' : 'Contact administrator'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = availableExchanges.map(ex => `
+        <div class="exchange-option ${selectedExchange?.exchange_name === ex.exchange_name ? 'selected' : ''}" 
+             onclick="selectExchange('${ex.exchange_name}', '${ex.display_name}', ${ex.requires_passphrase})">
+            <input type="radio" 
+                   name="exchange-radio" 
+                   class="exchange-radio"
+                   ${selectedExchange?.exchange_name === ex.exchange_name ? 'checked' : ''}>
+            <div class="exchange-option-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div style="flex-grow: 1;">
+                <p class="font-bold text-sm text-bright">${ex.display_name}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span style="font-size: 0.65rem; padding: 2px 8px; background: rgba(57, 255, 20, 0.1); color: var(--neon-green); border-radius: 100px;">
+                        ✓ ${currentLang === 'ua' ? 'Доступна' : 'Available'}
+                    </span>
+                    ${ex.requires_passphrase ? `
+                        <span style="font-size: 0.65rem; padding: 2px 8px; background: rgba(255, 208, 0, 0.1); color: var(--neon-yellow); border-radius: 100px;">
+                            <i class="fas fa-key" style="font-size: 0.5rem;"></i> Passphrase
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+            ${selectedExchange?.exchange_name === ex.exchange_name ? `
+                <i class="fas fa-check-circle text-green"></i>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+function toggleExchangeDropdown() {
+    const dropdown = document.getElementById('exchangeDropdownList');
+    const chevron = document.getElementById('exchangeChevron');
+    exchangeDropdownOpen = !exchangeDropdownOpen;
+    
+    if (exchangeDropdownOpen) {
+        dropdown.classList.remove('hidden');
+        chevron.classList.add('rotate');
+    } else {
+        dropdown.classList.add('hidden');
+        chevron.classList.remove('rotate');
+    }
+    
+    if (typeof playSound === 'function') playSound('click');
+}
+
+function selectExchange(exchangeName, displayName, requiresPassphrase) {
+    selectedExchange = { exchange_name: exchangeName, display_name: displayName, requires_passphrase: requiresPassphrase };
+    
+    document.getElementById('exchangeNameInput').value = exchangeName;
+    
+    const btn = document.getElementById('exchangeDropdownBtn');
+    btn.classList.add('selected');
+    
+    document.getElementById('selectedExchangeName').textContent = displayName;
+    document.getElementById('selectedExchangeName').classList.remove('text-muted');
+    document.getElementById('selectedExchangeName').classList.add('text-bright', 'font-bold');
+    
+    const hint = document.getElementById('selectedExchangeHint');
+    hint.textContent = requiresPassphrase ? 'Requires passphrase' : 'Ready to connect';
+    hint.classList.remove('hidden');
+    hint.style.color = requiresPassphrase ? 'var(--neon-yellow)' : 'var(--neon-green)';
+    
+    const iconContainer = document.getElementById('selectedExchangeIcon');
+    iconContainer.style.background = 'linear-gradient(135deg, rgba(57, 255, 20, 0.15), rgba(0, 240, 255, 0.1))';
+    iconContainer.style.borderColor = 'var(--neon-green)';
+    iconContainer.innerHTML = '<i class="fas fa-check text-green"></i>';
+    
+    const passphraseField = document.getElementById('passphraseField');
+    const passphraseInput = document.getElementById('passphraseInput');
+    
+    if (requiresPassphrase) {
+        passphraseField.classList.remove('hidden');
+        passphraseInput.required = true;
+    } else {
+        passphraseField.classList.add('hidden');
+        passphraseInput.required = false;
+        passphraseInput.value = '';
+    }
+    
+    updateExchangeRegisterLink(exchangeName);
+    renderExchangeOptions();
+    toggleExchangeDropdown();
+    updateSteps();
+}
+
+function updateExchangeRegisterLink(exchangeName) {
+    const link = document.getElementById('exchangeRegisterLink');
+    const hint = document.getElementById('exchangeRegisterHint');
+    const currentLang = localStorage.getItem('lang') || 'en';
+    
+    const exchangeLinks = {
+        'binance': 'https://accounts.binance.com/register?ref=MIMICCOPY',
+        'bybit': 'https://www.bybit.com/invite?ref=MIMIC',
+        'okx': 'https://www.okx.com/join/MIMIC',
+        'kucoin': 'https://www.kucoin.com/r/MIMIC',
+        'bitget': 'https://www.bitget.com/referral/register?clacCode=MIMIC'
+    };
+    
+    const exchangeDisplay = selectedExchange?.display_name || 'Exchange';
+    
+    link.href = exchangeLinks[exchangeName] || '#';
+    link.innerHTML = `<i class="fas fa-external-link-alt"></i> <span>${currentLang === 'ua' ? 'Реєстрація на ' + exchangeDisplay : 'Register on ' + exchangeDisplay}</span>`;
+    hint.textContent = currentLang === 'ua' ? `Немає акаунту на ${exchangeDisplay}?` : `Don't have a ${exchangeDisplay} account?`;
+}
+
+document.addEventListener('click', function(e) {
+    const container = document.getElementById('exchangeDropdownContainer');
+    if (container && exchangeDropdownOpen && !container.contains(e.target)) {
+        toggleExchangeDropdown();
+    }
+});
+
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+    if (typeof playSound === 'function') playSound('click');
+}
+
+function checkPasswordStrength() {
+    const password = document.getElementById('password').value;
+    const bar = document.getElementById('strengthBar');
+    const text = document.getElementById('strengthText');
+    
+    let strength = 0;
+    if (password.length >= 6) strength++;
+    if (password.length >= 10) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    
+    const currentLang = localStorage.getItem('lang') || 'en';
+    const t = (key) => {
+        const translations = {
+            en: {
+                'auth.weakPassword': 'Weak password',
+                'auth.mediumPassword': 'Medium password',
+                'auth.strongPassword': 'Strong password'
+            },
+            ua: {
+                'auth.weakPassword': 'Слабкий пароль',
+                'auth.mediumPassword': 'Нормальний пароль',
+                'auth.strongPassword': 'Надійний пароль! 💪'
+            }
+        };
+        return translations[currentLang]?.[key] || translations['en'][key] || key;
+    };
+    
+    if (password.length === 0) {
+        bar.style.width = '0';
+        bar.className = 'password-strength-bar';
+        text.textContent = '';
+    } else if (strength <= 2) {
+        bar.className = 'password-strength-bar strength-weak';
+        text.textContent = t('auth.weakPassword');
+        text.style.color = 'var(--neon-red)';
+    } else if (strength <= 4) {
+        bar.className = 'password-strength-bar strength-medium';
+        text.textContent = t('auth.mediumPassword');
+        text.style.color = 'var(--neon-yellow)';
+    } else {
+        bar.className = 'password-strength-bar strength-strong';
+        text.textContent = t('auth.strongPassword');
+        text.style.color = 'var(--neon-green)';
+    }
+}
+
+function updateSteps() {
+    const form = document.getElementById('registerForm');
+    const firstName = form.querySelector('[name="first_name"]').value;
+    const phone = form.querySelector('[name="phone"]').value;
+    const password = form.querySelector('[name="password"]').value;
+    const exchangeName = document.getElementById('exchangeNameInput').value;
+    const apiKey = form.querySelector('[name="api_key"]').value;
+    const apiSecret = form.querySelector('[name="api_secret"]').value;
+    
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    
+    if (firstName && phone) {
+        step1.classList.add('completed');
+        step2.classList.add('active');
+    } else {
+        step1.classList.remove('completed');
+        step2.classList.remove('active');
+    }
+    
+    if (password.length >= 6) {
+        step2.classList.add('completed');
+        step3.classList.add('active');
+    } else {
+        step2.classList.remove('completed');
+        step3.classList.remove('active');
+    }
+    
+    if (exchangeName && apiKey && apiSecret) {
+        step3.classList.add('completed');
+    } else {
+        step3.classList.remove('completed');
+    }
+}
+</script>
+{% endblock %}

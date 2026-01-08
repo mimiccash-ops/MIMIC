@@ -1,0 +1,55 @@
+# Environment and secrets (NEVER commit these!)
+.env
+*.env
+secrets/
+master.key
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# SQLite database (has user data)
+*.db
+*.db.backup
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files with secrets
+config.ini
+admin_settings.ini
+
+# Keep example files
+!*.example
+!docker.env.example
+!production.env.example
+!config.ini.example
+!nginx.conf.example
+
+# Uploaded user content
+static/avatars/*
+!static/avatars/.gitkeep
+
+# Music files (too large)
+static/music/*.mp3
+static/music/*.wav
+static/music/*.ogg

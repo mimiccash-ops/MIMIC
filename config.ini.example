@@ -1,0 +1,77 @@
+# ===========================================
+# BRAIN CAPITAL - Config Template
+# ===========================================
+# Copy this file to config.ini and fill in your values
+# NEVER commit config.ini to git!
+#
+# SECURITY BEST PRACTICES:
+# 1. Store ALL sensitive values in environment variables
+# 2. Use Docker Secrets for production deployments
+# 3. Never hardcode API keys, tokens, or passwords
+# 4. Use strong, unique passphrases (32+ characters)
+
+[MasterAccount]
+# Your Binance Futures API credentials
+# RECOMMENDED: Set via BINANCE_MASTER_API_KEY and BINANCE_MASTER_API_SECRET env vars
+api_key = ${BINANCE_MASTER_API_KEY}
+api_secret = ${BINANCE_MASTER_API_SECRET}
+
+[Webhook]
+# Secret passphrase for TradingView webhooks
+# RECOMMENDED: Set via WEBHOOK_PASSPHRASE env var
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+passphrase = ${WEBHOOK_PASSPHRASE}
+
+[Settings]
+# Use Binance Testnet (True) or Real account (False)
+testnet = False
+# Maximum simultaneous open positions
+max_open_positions = 10
+
+[Telegram]
+# Telegram Bot for notifications (get from @BotFather)
+# RECOMMENDED: Set via TELEGRAM_BOT_TOKEN env var
+bot_token = ${TELEGRAM_BOT_TOKEN}
+# Your Telegram Chat ID (get from @userinfobot)
+chat_id = ${TELEGRAM_CHAT_ID}
+# Enable/disable notifications
+enabled = True
+
+[Email]
+# SMTP Settings for password recovery via email
+# Gmail example: smtp.gmail.com (use App Password, not regular password)
+smtp_server = smtp.gmail.com
+smtp_port = 587
+smtp_username = ${SMTP_USERNAME}
+smtp_password = ${SMTP_PASSWORD}
+from_email = ${SMTP_FROM_EMAIL}
+from_name = Brain Capital
+# Enable/disable email functionality
+enabled = False
+
+[Production]
+# Your production domain (with https://)
+domain = https://yourdomain.com
+
+# SSL certificate paths (leave empty if using nginx as reverse proxy)
+ssl_cert = 
+ssl_key = 
+
+[Proxy]
+# Enable proxy rotation for high-volume trading (1000+ users)
+enabled = False
+# Comma-separated list of proxy URLs
+proxies = 
+users_per_proxy = 50
+proxy_cooldown_seconds = 60
+max_proxy_retries = 3
+
+[PanicOTP]
+# TOTP Secret for Telegram panic kill switch (2FA)
+# Generate with: python -c "import pyotp; print(pyotp.random_base32())"
+# Add this secret to your authenticator app (Google Authenticator, Authy, etc.)
+# SECURITY: Store actual secret in PANIC_OTP_SECRET env var
+secret = ${PANIC_OTP_SECRET}
+# Comma-separated list of Telegram user IDs authorized to use panic commands
+# Get your ID from @userinfobot
+authorized_users = ${PANIC_AUTHORIZED_USERS}

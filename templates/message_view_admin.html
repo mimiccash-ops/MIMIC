@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% block title %}{{ message.subject or 'Message' }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .message-view-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .view-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    
+    .view-header h1 {
+        font-family: var(--font-display);
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .view-header .meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    
+    /* User Info Card */
+    .user-info-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 20px;
+        padding: 24px;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.04), rgba(139, 92, 246, 0.04));
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-left: 3px solid var(--neon-cyan);
+        border-radius: var(--radius-lg);
+        margin-bottom: 28px;
+    }
+    
+    .user-avatar-lg {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(0, 240, 255, 0.25);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .user-avatar-lg img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .user-avatar-lg span {
+        font-size: 1.75rem;
+    }
+    
+    .user-details h2 {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+    }
+    
+    .user-details .info-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    
+    .user-details .info-row i {
+        width: 14px;
+        text-align: center;
+    }
+    
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    
+    .status-dot.online {
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulse 2s ease infinite;
+    }
+    
+    .status-dot.paused {
+        background: var(--neon-yellow);
+    }
+    
+    /* Message Cards */
+    .message-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .message-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+    
+    .message-bubble {
+        padding: 20px;
+        background: rgba(10, 10, 18, 0.6);
+        border-radius: var(--radius-lg);
+        border-left: 3px solid var(--neon-cyan);
+    }
+    
+    .message-bubble.from-admin {
+        border-left-color: var(--neon-magenta);
+        background: rgba(139, 92, 246, 0.03);
+    }
+    
+    .bubble-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .bubble-avatar {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .bubble-avatar.admin {
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    
+    .bubble-avatar.user {
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+    
+    .bubble-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .bubble-info .name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .bubble-info .time {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-left: 8px;
+    }
+    
+    .bubble-content {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+    }
+    
+    /* Replies Section */
+    .replies-section {
+        margin-top: 32px;
+    }
+    
+    .replies-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+    
+    .replies-title i {
+        color: var(--neon-magenta);
+    }
+    
+    .replies-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .reply-card {
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.08);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        border-left: 3px solid var(--neon-cyan);
+    }
+    
+    .reply-card.from-admin {
+        border-left-color: var(--neon-magenta);
+    }
+    
+    /* Reply Form */
+    .reply-form-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: var(--radius-xl);
+        padding: 24px;
+        margin-top: 24px;
+    }
+    
+    .reply-form-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--neon-magenta);
+        margin-bottom: 16px;
+    }
+    
+    .form-hint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .form-hint i {
+        color: var(--neon-cyan);
+    }
+    
+    .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-top: 16px;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="message-view-page">
+    <!-- Header -->
+    <div class="view-header animate-fade-in">
+        <a href="{{ url_for('messages') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="flex-grow">
+            <h1>{{ message.subject or 'No subject' }}</h1>
+            <div class="meta">
+                <i class="fas fa-clock"></i>
+                <span>{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+            </div>
+        </div>
+        {% if not message.is_read %}
+        <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+        {% endif %}
+    </div>
+
+    <!-- User Info Card -->
+    <div class="user-info-card animate-fade-in" style="animation-delay: 0.05s;">
+        <div class="user-avatar-lg">
+            {% if message.sender.avatar_type == 'image' and message.sender.avatar %}
+            <img src="{{ url_for('static', filename='avatars/' + message.sender.avatar) }}" alt="Avatar">
+            {% else %}
+            <span>{{ message.sender.avatar or '🧑‍💻' }}</span>
+            {% endif %}
+        </div>
+        <div class="user-details flex-grow">
+            <h2>
+                {{ message.sender.first_name or '' }} {{ message.sender.last_name or '' }}
+                {% if not message.sender.first_name and not message.sender.last_name %}{{ message.sender.username }}{% endif %}
+            </h2>
+            <div class="info-row">
+                <span><i class="fas fa-at"></i> {{ message.sender.username }}</span>
+                <span class="status-indicator">
+                    <span class="status-dot {{ 'online' if not message.sender.is_paused else 'paused' }}"></span>
+                    {{ 'Active' if not message.sender.is_paused else 'Paused' }}
+                </span>
+            </div>
+        </div>
+        <a href="{{ url_for('dashboard') }}#user-{{ message.sender.id }}" class="cyber-btn cyber-btn-sm cyber-btn-outline">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </div>
+
+    <!-- Original Message -->
+    <div class="message-card animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="message-bubble">
+            <div class="bubble-header">
+                <div class="bubble-avatar user">
+                    {% if message.sender.avatar_type == 'image' and message.sender.avatar %}
+                    <img src="{{ url_for('static', filename='avatars/' + message.sender.avatar) }}" alt="Avatar">
+                    {% else %}
+                    <span style="font-size: 1.1rem;">{{ message.sender.avatar or '🧑‍💻' }}</span>
+                    {% endif %}
+                </div>
+                <div class="bubble-info">
+                    <span class="name">{{ message.sender.first_name or message.sender.username }}</span>
+                    <span class="time">{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                </div>
+            </div>
+            <p class="bubble-content">{{ message.content }}</p>
+        </div>
+    </div>
+
+    <!-- Replies -->
+    {% if replies %}
+    <div class="replies-section animate-fade-in" style="animation-delay: 0.2s;">
+        <h3 class="replies-title">
+            <i class="fas fa-comments"></i>
+            <span>Conversation ({{ replies|length }} replies)</span>
+        </h3>
+        
+        <div class="replies-list">
+            {% for reply in replies %}
+            <div class="reply-card {{ 'from-admin' if reply.is_from_admin else '' }}">
+                <div class="bubble-header">
+                    <div class="bubble-avatar {{ 'admin' if reply.is_from_admin else 'user' }}">
+                        {% if reply.is_from_admin %}
+                            {% if reply.sender.avatar_type == 'image' and reply.sender.avatar %}
+                            <img src="{{ url_for('static', filename='avatars/' + reply.sender.avatar) }}" alt="Avatar">
+                            {% else %}
+                            <span style="font-size: 1.1rem;">{{ reply.sender.avatar or '👑' }}</span>
+                            {% endif %}
+                        {% else %}
+                            {% if reply.sender.avatar_type == 'image' and reply.sender.avatar %}
+                            <img src="{{ url_for('static', filename='avatars/' + reply.sender.avatar) }}" alt="Avatar">
+                            {% else %}
+                            <span style="font-size: 1.1rem;">{{ reply.sender.avatar or '🧑‍💻' }}</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="bubble-info">
+                        <span class="name">
+                            {% if reply.is_from_admin %}You (Admin){% else %}{{ reply.sender.first_name or reply.sender.username }}{% endif %}
+                        </span>
+                        <span class="time">{{ reply.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                    </div>
+                </div>
+                <p class="bubble-content">{{ reply.content }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reply Form -->
+    <div class="reply-form-card animate-fade-in" style="animation-delay: 0.3s;">
+        <h3 class="reply-form-title">
+            <i class="fas fa-reply"></i>
+            <span>Reply to User</span>
+        </h3>
+        
+        <form method="POST" action="{{ url_for('reply_message', message_id=message.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Enter your reply to {{ message.sender.first_name or message.sender.username }}..." required maxlength="2000"></textarea>
+            <div class="form-actions">
+                <p class="form-hint">
+                    <i class="fas fa-info-circle"></i>
+                    <span>User will receive the message instantly</span>
+                </p>
+                <button type="submit" class="cyber-btn" style="background: linear-gradient(135deg, var(--neon-magenta), #ff2d92);">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons animate-fade-in" style="animation-delay: 0.4s;">
+        <a href="{{ url_for('messages') }}" class="cyber-btn cyber-btn-outline">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to List</span>
+        </a>
+        {% if message.sender.is_paused %}
+        <form method="POST" action="{{ url_for('approve_user', user_id=message.sender.id) }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="cyber-btn" style="background: linear-gradient(135deg, var(--neon-green), #00cc88);">
+                <i class="fas fa-check"></i>
+                <span>Activate User</span>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const socket = io();
+    
+    socket.on('new_message', (msg) => {
+        if (msg.parent_id === {{ message.id }} && !msg.is_from_admin) {
+            showToast('📩 New reply from user', 'info');
+            if (typeof playSound === 'function') playSound('notification');
+            setTimeout(() => location.reload(), 1500);
+        }
+    });
+</script>
+{% endblock %}

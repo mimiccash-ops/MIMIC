@@ -1,0 +1,72 @@
+# Brain Capital - Docker Ignore File
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local development
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Documentation
+*.md
+!README.md
+
+# Logs
+*.log
+logs/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets and configs (handled separately)
+.env*
+*.env.example
+config.ini
+
+# Static assets that shouldn't change in container
+static/avatars/*
+static/music/*
+

@@ -1,0 +1,55 @@
+# Brain Capital - Prometheus Alerting Rules
+
+groups:
+  - name: brain_capital_alerts
+    rules:
+      # High error rate alert
+      - alert: HighTradeErrorRate
+        expr: rate(failed_orders_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High trade error rate detected"
+          description: "Trade failure rate is above 10% for the last 5 minutes"
+
+      # High latency alert
+      - alert: HighTradeLatency
+        expr: histogram_quantile(0.95, rate(trade_execution_latency_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High trade execution latency"
+          description: "95th percentile trade latency is above 5 seconds"
+
+      # Too many active positions alert
+      - alert: HighPositionCount
+        expr: active_positions_count > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active positions"
+          description: "Active position count is above 50"
+
+      # Application down alert
+      - alert: BrainCapitalDown
+        expr: up{job="brain_capital_web"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Brain Capital web application is down"
+          description: "The web application has been unreachable for over 1 minute"
+
+      # Worker down alert
+      - alert: BrainCapitalWorkerDown
+        expr: up{job="brain_capital_worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Brain Capital worker is down"
+          description: "The ARQ worker has been unreachable for over 2 minutes"
+

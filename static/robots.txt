@@ -1,0 +1,43 @@
+# MIMIC Copy Trading - robots.txt
+# https://mimic.cash
+
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+
+# Disallow admin and private areas
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+Disallow: /webhook
+Disallow: /messages
+Disallow: /change-password
+Disallow: /reset-password
+Disallow: /static/avatars/
+
+# Allow search engines to crawl static assets
+Allow: /static/css/
+Allow: /static/js/
+Allow: /static/mimic-logo.svg
+
+# Sitemap location
+Sitemap: https://mimic.cash/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+
+# Bing specific  
+User-agent: Bingbot
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/
+

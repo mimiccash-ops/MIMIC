@@ -1,0 +1,678 @@
+{% extends "base.html" %}
+{% block title %}Message Center{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .messages-page {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .messages-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+    
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .header-title h1 {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .header-title h1 i {
+        color: var(--neon-magenta);
+    }
+    
+    .header-title p {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    
+    .compose-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, var(--neon-magenta), #ff2d92);
+        color: #fff;
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 25px rgba(255, 45, 146, 0.3);
+    }
+    
+    .compose-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 40px rgba(255, 45, 146, 0.5);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .stat-item {
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-left: 3px solid var(--neon-cyan);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        text-align: center;
+    }
+    
+    .stat-item .value {
+        font-family: var(--font-mono);
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    
+    .stat-item .label {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    
+    /* Messages Card */
+    .messages-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .messages-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--neon-magenta), var(--neon-cyan));
+    }
+    
+    .card-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .card-header h3 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--neon-magenta);
+    }
+    
+    /* Filter Pills */
+    .filter-pills {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .filter-pill {
+        padding: 8px 16px;
+        background: transparent;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 100px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    
+    .filter-pill:hover {
+        border-color: var(--neon-magenta);
+        color: var(--neon-magenta);
+    }
+    
+    .filter-pill.active {
+        background: rgba(139, 92, 246, 0.15);
+        border-color: var(--neon-magenta);
+        color: var(--neon-magenta);
+    }
+    
+    /* Messages List */
+    .messages-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    
+    .message-item {
+        display: block;
+        padding: 20px;
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.08);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .message-item:hover {
+        border-color: rgba(139, 92, 246, 0.25);
+        transform: translateX(6px);
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.08);
+    }
+    
+    .message-item.unread {
+        border-left: 3px solid var(--neon-cyan);
+        background: rgba(0, 240, 255, 0.02);
+    }
+    
+    .message-avatar {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(0, 240, 255, 0.25);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .message-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .message-avatar span {
+        font-size: 1.5rem;
+    }
+    
+    .message-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    
+    .message-sender {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .message-sender .name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .message-sender .username {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .message-subject {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--neon-cyan);
+        margin-bottom: 6px;
+    }
+    
+    .message-preview {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.5;
+    }
+    
+    .message-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .message-meta i {
+        margin-right: 4px;
+    }
+    
+    .message-chevron {
+        color: var(--text-muted);
+        margin-left: 12px;
+        flex-shrink: 0;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .empty-icon i {
+        font-size: 2.5rem;
+        color: var(--neon-magenta);
+        opacity: 0.4;
+    }
+    
+    .empty-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    
+    .empty-desc {
+        color: var(--text-muted);
+    }
+    
+    /* Compose Modal */
+    .compose-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 500;
+        padding: 20px;
+    }
+    
+    .compose-modal.active {
+        display: flex;
+    }
+    
+    .compose-card {
+        width: 100%;
+        max-width: 520px;
+        background: var(--color-surface-2);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        animation: modalIn 0.3s ease;
+        box-shadow: var(--shadow-elevated);
+    }
+    
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: rgba(139, 92, 246, 0.03);
+        border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    }
+    
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--neon-magenta);
+    }
+    
+    .modal-close {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid rgba(139, 92, 246, 0.1);
+        border-radius: var(--radius-md);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    
+    .modal-close:hover {
+        color: var(--neon-red);
+        border-color: rgba(255, 0, 60, 0.3);
+        background: rgba(255, 0, 60, 0.1);
+    }
+    
+    .modal-body {
+        padding: 24px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+    
+    .modal-actions .cyber-btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .modal-body select {
+        background: rgba(10, 10, 18, 0.8);
+        color: var(--text-primary);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: var(--radius-md);
+        padding: 14px 44px 14px 18px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b5cf6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 16px center;
+        width: 100%;
+        transition: all 0.25s ease;
+    }
+    
+    .modal-body select:focus {
+        outline: none;
+        border-color: var(--neon-magenta);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messages-page">
+    <!-- Header -->
+    <div class="messages-header animate-fade-in">
+        <div class="header-title">
+            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1>
+                    <i class="fas fa-inbox"></i>
+                    <span data-i18n="messages.messageCenter">Message Center</span>
+                </h1>
+                <p>// ADMIN_SUPPORT_HUB</p>
+            </div>
+        </div>
+        <button onclick="openComposeModal()" class="compose-btn">
+            <i class="fas fa-pen"></i>
+            <span data-i18n="messages.writeToUser">Write to User</span>
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="stat-item">
+            <div class="value text-cyan">{{ messages|length }}</div>
+            <div class="label" data-i18n="messages.total">Total</div>
+        </div>
+        <div class="stat-item" style="border-left-color: var(--neon-yellow);">
+            <div class="value text-yellow">{{ unread_count }}</div>
+            <div class="label" data-i18n="messages.new">New</div>
+        </div>
+        <div class="stat-item" style="border-left-color: var(--neon-green);">
+            <div class="value text-green">{{ messages|length - unread_count }}</div>
+            <div class="label" data-i18n="messages.handled">Handled</div>
+        </div>
+        <div class="stat-item" style="border-left-color: var(--neon-magenta);">
+            <div class="value text-magenta">{{ total_replies }}</div>
+            <div class="label" data-i18n="messages.repliesCount">Replies</div>
+        </div>
+    </div>
+
+    <!-- Messages List -->
+    <div class="messages-card animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-users"></i>
+                <span data-i18n="messages.userRequests">User Requests</span>
+            </h3>
+            <div class="filter-pills">
+                <button onclick="filterMessages('all')" class="filter-pill active" data-filter="all" data-i18n="messages.all">All</button>
+                <button onclick="filterMessages('unread')" class="filter-pill" data-filter="unread" data-i18n="messages.unread">Unread</button>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div id="messagesList" class="messages-list">
+            {% for msg in messages %}
+            <a href="{{ url_for('view_message', message_id=msg.id) }}" 
+               class="message-item {{ 'unread' if not msg.is_read else '' }}"
+               data-read="{{ msg.is_read }}">
+                <div class="flex items-start gap-4">
+                    <div class="message-avatar">
+                        {% if msg.sender.avatar_type == 'image' and msg.sender.avatar %}
+                        <img src="{{ url_for('static', filename='avatars/' + msg.sender.avatar) }}" alt="Avatar">
+                        {% else %}
+                        <span>{{ msg.sender.avatar or '🧑‍💻' }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-sender">
+                            <span class="name">
+                                {{ msg.sender.first_name or '' }} {{ msg.sender.last_name or '' }}
+                                {% if not msg.sender.first_name and not msg.sender.last_name %}{{ msg.sender.username }}{% endif %}
+                            </span>
+                            <span class="username">@{{ msg.sender.username }}</span>
+                            {% if not msg.is_read %}
+                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+                            {% endif %}
+                        </div>
+                        <p class="message-subject">{{ msg.subject or 'No subject' }}</p>
+                        <p class="message-preview">{{ msg.content[:150] }}{% if msg.content|length > 150 %}...{% endif %}</p>
+                        <div class="message-meta">
+                            <span><i class="fas fa-clock"></i> {{ msg.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                            {% if msg.replies.count() > 0 %}
+                            <span class="text-green"><i class="fas fa-reply"></i> {{ msg.replies.count() }} <span data-i18n="messages.replies">replies</span></span>
+                            {% else %}
+                            <span class="text-yellow"><i class="fas fa-hourglass-half"></i> <span data-i18n="messages.awaitingReply">Awaiting reply</span></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right message-chevron"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <p class="empty-title" data-i18n="messages.noRequests">No requests</p>
+            <p class="empty-desc" data-i18n="messages.userMessagesAppear">User messages will appear here</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Compose Modal -->
+<div id="composeModal" class="compose-modal" onclick="closeComposeModal(event)">
+    <div class="compose-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-envelope"></i>
+                <span data-i18n="messages.writeToUser">Write to User</span>
+            </div>
+            <button onclick="closeComposeModal()" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('send_message') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-user text-magenta"></i>
+                        <span data-i18n="messages.recipient">Recipient</span> *
+                    </label>
+                    <select name="recipient_id" id="recipient-select" required>
+                        <option value="" data-i18n="messages.selectUser">Select user...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-tag text-cyan"></i>
+                        <span data-i18n="messages.subject">Subject</span>
+                    </label>
+                    <input type="text" name="subject" class="cyber-input" data-i18n-placeholder="messages.enterSubject" placeholder="Enter message subject" maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-comment text-green"></i>
+                        <span data-i18n="messages.message">Message</span> *
+                    </label>
+                    <textarea name="content" rows="5" class="cyber-input" style="resize: none; min-height: 120px;" data-i18n-placeholder="messages.enterMessageText" placeholder="Enter message text..." required maxlength="2000"></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" onclick="closeComposeModal()" class="cyber-btn cyber-btn-outline">
+                        <span data-i18n="btn.cancel">Cancel</span>
+                    </button>
+                    <button type="submit" class="cyber-btn" style="background: linear-gradient(135deg, var(--neon-magenta), #ff2d92);">
+                        <i class="fas fa-paper-plane"></i>
+                        <span data-i18n="btn.send">Send</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openComposeModal() {
+        document.getElementById('composeModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        if (typeof playSound === 'function') playSound('click');
+        loadUsersForSelect();
+    }
+    
+    function loadUsersForSelect() {
+        const select = document.getElementById('recipient-select');
+        if (select.options.length <= 1) {
+            fetch('/api/users/list')
+                .then(r => r.json())
+                .then(users => {
+                    users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.name} (${user.username})`;
+                        select.appendChild(option);
+                    });
+                });
+        }
+    }
+
+    function closeComposeModal(event) {
+        if (!event || event.target === document.getElementById('composeModal')) {
+            document.getElementById('composeModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function filterMessages(filter) {
+        const items = document.querySelectorAll('.message-item');
+        items.forEach(item => {
+            if (filter === 'all') {
+                item.style.display = 'flex';
+            } else if (filter === 'unread') {
+                item.style.display = item.dataset.read === 'False' ? 'flex' : 'none';
+            }
+        });
+        
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === filter) btn.classList.add('active');
+        });
+        
+        if (typeof playSound === 'function') playSound('click');
+    }
+    
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeComposeModal(); });
+
+    const socket = io();
+    
+    socket.on('new_message', (msg) => {
+        if (!msg.is_from_admin) {
+            showToast(`📩 New message from ${msg.sender_name}`, 'info');
+            if (typeof playSound === 'function') playSound('notification');
+            setTimeout(() => location.reload(), 1500);
+        }
+    });
+</script>
+{% endblock %}

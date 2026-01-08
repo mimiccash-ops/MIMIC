@@ -1,0 +1,56 @@
+# Brain Capital - Promtail Configuration
+# Ships logs to Loki
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: brain_capital
+
+scrape_configs:
+  # Application logs from mounted volume
+  - job_name: brain_capital_app
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: brain_capital
+          env: production
+          __path__: /app/logs/*.log
+
+  # JSON formatted logs (from python-json-logger)
+  - job_name: brain_capital_json
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: brain_capital_json
+          env: production
+          __path__: /app/logs/*.json
+
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            logger: name
+            message: message
+            timestamp: timestamp
+            user_id: user_id
+            symbol: symbol
+            action: action
+            exchange: exchange
+      - labels:
+          level:
+          logger:
+          user_id:
+          symbol:
+          exchange:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+

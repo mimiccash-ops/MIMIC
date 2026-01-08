@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <!-- MIMIC Logo - Two mirrored shapes -->
+  <!-- Left chevron pointing right -->
+  <path d="M8 8L18 20L8 32V8Z" fill="#00f5ff"/>
+  <!-- Right chevron pointing left (mirrored) -->
+  <path d="M32 8L22 20L32 32V8Z" fill="#00f5ff"/>
+  <!-- Center connecting element -->
+  <rect x="18" y="16" width="4" height="8" rx="1" fill="#ff00ff" opacity="0.8"/>
+</svg>
+

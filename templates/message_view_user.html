@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}{{ message.subject or 'Message' }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .message-view-page {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+    
+    .view-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+    
+    .view-header h1 {
+        font-family: var(--font-display);
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .view-header .meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    
+    .message-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    
+    .message-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+    
+    .message-bubble {
+        padding: 20px;
+        background: rgba(10, 10, 18, 0.6);
+        border-radius: var(--radius-lg);
+        border-left: 3px solid var(--neon-cyan);
+    }
+    
+    .message-bubble.from-admin {
+        border-left-color: var(--neon-magenta);
+        background: rgba(139, 92, 246, 0.03);
+    }
+    
+    .bubble-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .bubble-avatar {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-lg);
+        font-size: 1.1rem;
+    }
+    
+    .bubble-avatar.admin {
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    
+    .bubble-avatar.user {
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.25);
+    }
+    
+    .bubble-info .name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .bubble-info .time {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-left: 8px;
+    }
+    
+    .bubble-content {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+    }
+    
+    /* Replies Section */
+    .replies-section {
+        margin-top: 32px;
+    }
+    
+    .replies-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+    
+    .replies-title i {
+        color: var(--neon-cyan);
+    }
+    
+    .replies-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .reply-card {
+        background: rgba(10, 10, 18, 0.8);
+        border: 1px solid rgba(0, 240, 255, 0.08);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        border-left: 3px solid var(--neon-cyan);
+    }
+    
+    .reply-card.from-admin {
+        border-left-color: var(--neon-magenta);
+    }
+    
+    /* Reply Form */
+    .reply-form-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.98));
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-xl);
+        padding: 24px;
+        margin-top: 24px;
+    }
+    
+    .reply-form-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--neon-cyan);
+        margin-bottom: 16px;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="message-view-page">
+    <!-- Header -->
+    <div class="view-header animate-fade-in">
+        <a href="{{ url_for('messages') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="flex-grow">
+            <h1>{{ message.subject or 'No subject' }}</h1>
+            <div class="meta">
+                <i class="fas fa-clock"></i>
+                <span>{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Original Message -->
+    <div class="message-card animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="message-bubble {{ 'from-admin' if message.is_from_admin else '' }}">
+            <div class="bubble-header">
+                <div class="bubble-avatar {{ 'admin' if message.is_from_admin else 'user' }}">
+                    <i class="fas {{ 'fa-user-shield text-magenta' if message.is_from_admin else 'fa-user text-cyan' }}"></i>
+                </div>
+                <div class="bubble-info">
+                    <span class="name">
+                        {% if message.is_from_admin %}Administrator{% else %}You{% endif %}
+                    </span>
+                    <span class="time">{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                </div>
+            </div>
+            <p class="bubble-content">{{ message.content }}</p>
+        </div>
+    </div>
+
+    <!-- Replies -->
+    {% if replies %}
+    <div class="replies-section animate-fade-in" style="animation-delay: 0.2s;">
+        <h3 class="replies-title">
+            <i class="fas fa-reply"></i>
+            <span>Replies ({{ replies|length }})</span>
+        </h3>
+        
+        <div class="replies-list">
+            {% for reply in replies %}
+            <div class="reply-card {{ 'from-admin' if reply.is_from_admin else '' }}">
+                <div class="bubble-header">
+                    <div class="bubble-avatar {{ 'admin' if reply.is_from_admin else 'user' }}">
+                        <i class="fas {{ 'fa-user-shield text-magenta' if reply.is_from_admin else 'fa-user text-cyan' }}"></i>
+                    </div>
+                    <div class="bubble-info">
+                        <span class="name">
+                            {% if reply.is_from_admin %}Administrator{% else %}You{% endif %}
+                        </span>
+                        <span class="time">{{ reply.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
+                    </div>
+                </div>
+                <p class="bubble-content">{{ reply.content }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reply Form -->
+    <div class="reply-form-card animate-fade-in" style="animation-delay: 0.3s;">
+        <h3 class="reply-form-title">
+            <i class="fas fa-reply"></i>
+            <span>Write Reply</span>
+        </h3>
+        
+        <form method="POST" action="{{ url_for('reply_message', message_id=message.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Enter your reply..." required maxlength="2000"></textarea>
+            <div class="form-actions">
+                <button type="submit" class="cyber-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const socket = io();
+    
+    socket.on('new_message', (msg) => {
+        if (msg.parent_id === {{ message.id }} && msg.is_from_admin) {
+            showToast('📩 New reply from administrator', 'info');
+            if (typeof playSound === 'function') playSound('notification');
+            setTimeout(() => location.reload(), 1500);
+        }
+    });
+</script>
+{% endblock %}
