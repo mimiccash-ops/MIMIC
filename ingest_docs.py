@@ -179,7 +179,7 @@ def ingest_document(
         existing = DocumentChunk.query.filter_by(source_file=filename).first()
         
         if existing and not force:
-            existing_hash = existing.metadata.get('file_hash') if existing.metadata else None
+            existing_hash = existing.chunk_metadata.get('file_hash') if existing.chunk_metadata else None
             if existing_hash == file_hash:
                 logger.info(f"ℹ️ {filename} unchanged, skipping (use --force to re-ingest)")
                 return 0
@@ -216,7 +216,7 @@ def ingest_document(
                 chunk_index=i,
                 content=chunk_text,
                 embedding=json.dumps(embedding),
-                metadata={
+                chunk_metadata={
                     'file_hash': file_hash,
                     'chunk_size': len(chunk_text),
                     'embedding_model': embedding_model,

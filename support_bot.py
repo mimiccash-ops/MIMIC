@@ -159,7 +159,7 @@ Where X.XX is a number between 0.00 and 1.00 indicating how confident you are in
                         'source_file': chunk.source_file,
                         'chunk_index': chunk.chunk_index,
                         'content': chunk.content,
-                        'metadata': chunk.metadata
+                        'metadata': chunk.chunk_metadata
                     })
                     
                     # Parse embedding from JSON string
