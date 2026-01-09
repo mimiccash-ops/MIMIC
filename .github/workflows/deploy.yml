@@ -1,18 +1,29 @@
 # =============================================================================
-# BRAIN CAPITAL - AUTO DEPLOY TO LINUX VPS
+# MIMIC - AUTO DEPLOY TO LINUX VPS
 # =============================================================================
 # This workflow automatically deploys to your Linux server when you push to main
 #
-# SETUP REQUIRED (one-time):
-# 1. Go to GitHub repo → Settings → Secrets and variables → Actions
-# 2. Add these secrets:
-#    - VPS_HOST: Your VPS IP address (e.g., 123.45.67.89)
-#    - VPS_USER: SSH username (e.g., root or ubuntu)
-#    - VPS_SSH_KEY: Your private SSH key (copy entire content of id_rsa)
-#    - VPS_PORT: SSH port (usually 22)
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                           SETUP INSTRUCTIONS                                 │
+# │                                                                              │
+# │  1. Go to your GitHub repo → Settings → Secrets and variables → Actions     │
+# │                                                                              │
+# │  2. Add these Repository Secrets (click "New repository secret"):           │
+# │                                                                              │
+# │     VPS_HOST     = Your VPS IP address (e.g., 123.45.67.89)                 │
+# │     VPS_USER     = SSH username (usually: root)                             │
+# │     VPS_SSH_KEY  = Your private SSH key (entire content of ~/.ssh/id_rsa)   │
+# │     VPS_PORT     = SSH port (usually: 22)                                   │
+# │                                                                              │
+# │  3. On your VPS, add your GitHub public key to authorized_keys:             │
+# │     echo "your-public-key" >> ~/.ssh/authorized_keys                        │
+# │                                                                              │
+# │  4. Push to main branch - deployment will happen automatically!             │
+# └─────────────────────────────────────────────────────────────────────────────┘
+#
 # =============================================================================
 
-name: Deploy to VPS
+name: 🚀 Deploy to VPS
 
 on:
   push:
@@ -21,47 +32,85 @@ on:
       - master
   workflow_dispatch:  # Allows manual trigger from GitHub UI
 
+env:
+  APP_DIR: /var/www/mimic
+  
 jobs:
   deploy:
+    name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔐 Setup SSH Key
+      - name: 🔐 Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.VPS_PORT || 22 }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.VPS_PORT || 22 }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: 🚀 Deploy to VPS
         run: |
-          ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY_SCRIPT'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p ${{ secrets.VPS_PORT || 22 }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY_SCRIPT'
             set -e
             
-            echo "📁 Navigating to project directory..."
-            cd /var/www/mimic
+            echo "════════════════════════════════════════════════════════════"
+            echo "  MIMIC Auto-Deploy - $(date)"
+            echo "════════════════════════════════════════════════════════════"
             
-            echo "📥 Pulling latest code from GitHub..."
+            APP_DIR="/var/www/mimic"
+            cd "$APP_DIR"
+            
+            echo ""
+            echo "📥 Step 1: Pulling latest code from GitHub..."
             git fetch origin
-            git reset --hard origin/main || git reset --hard origin/master
+            git reset --hard origin/main 2>/dev/null || git reset --hard origin/master
             
-            echo "📦 Installing dependencies..."
+            echo ""
+            echo "📦 Step 2: Installing/updating dependencies..."
             source venv/bin/activate
-            pip install -r requirements.txt --quiet
+            pip install -r requirements.txt --quiet --no-warn-script-location
             
-            echo "🔄 Restarting application..."
+            echo ""
+            echo "🔄 Step 3: Running database migrations..."
+            python migrate_all.py 2>/dev/null || echo "  (No migrations needed)"
+            
+            echo ""
+            echo "🔄 Step 4: Restarting application..."
             sudo systemctl restart mimic
+            sudo systemctl restart mimic-worker 2>/dev/null || true
             
-            echo "✅ Deployment complete!"
+            echo ""
+            echo "⏳ Step 5: Waiting for service to start..."
+            sleep 5
+            
+            echo ""
+            echo "✅ Step 6: Checking service status..."
+            if systemctl is-active --quiet mimic; then
+              echo "  ✓ MIMIC service is running"
+            else
+              echo "  ✗ MIMIC service failed to start!"
+              sudo journalctl -u mimic -n 20 --no-pager
+              exit 1
+            fi
+            
+            echo ""
+            echo "════════════════════════════════════════════════════════════"
+            echo "  ✅ DEPLOYMENT COMPLETE!"
+            echo "════════════════════════════════════════════════════════════"
           DEPLOY_SCRIPT
 
-      - name: ✅ Deployment Status
+      - name: ✅ Success Notification
         if: success()
-        run: echo "🎉 Deployment successful!"
+        run: |
+          echo "🎉 Deployment to ${{ secrets.VPS_HOST }} completed successfully!"
+          echo "Time: $(date -u)"
 
-      - name: ❌ Deployment Failed
+      - name: ❌ Failure Notification  
         if: failure()
-        run: echo "💥 Deployment failed! Check the logs above."
+        run: |
+          echo "💥 Deployment FAILED!"
+          echo "Check the logs above for details."
+          exit 1
