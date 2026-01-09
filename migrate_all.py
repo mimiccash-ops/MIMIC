@@ -894,6 +894,34 @@ def migrate_database():
         else:
             logger.info("  ✓ Table 'user_consents' exists")
         
+        # ==================== SYSTEM_SETTINGS TABLE ====================
+        logger.info("\n📋 Checking 'system_settings' table (Service Configuration)...")
+        
+        if not table_exists(cursor, 'system_settings'):
+            logger.info("  Creating 'system_settings' table...")
+            cursor.execute("""
+                CREATE TABLE system_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category VARCHAR(50) NOT NULL,
+                    key VARCHAR(100) NOT NULL,
+                    value TEXT,
+                    value_encrypted TEXT,
+                    is_sensitive BOOLEAN DEFAULT 0,
+                    is_enabled BOOLEAN DEFAULT 1,
+                    description VARCHAR(500),
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    UNIQUE(category, key)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_system_settings_category ON system_settings(category)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(key)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_system_settings_category_key ON system_settings(category, key)")
+            logger.info("  ✅ Created 'system_settings' table")
+            changes_made += 1
+        else:
+            logger.info("  ✓ Table 'system_settings' exists")
+        
         # ==================== INITIALIZE USER LEVELS ====================
         logger.info("\n📋 Initializing user levels for existing users...")
         
@@ -1053,6 +1081,11 @@ def create_indexes():
         "CREATE INDEX IF NOT EXISTS idx_user_consents_tos_version ON user_consents(tos_version)",
         "CREATE INDEX IF NOT EXISTS idx_user_consents_accepted_at ON user_consents(accepted_at)",
         "CREATE INDEX IF NOT EXISTS idx_consent_user_version ON user_consents(user_id, tos_version)",
+        
+        # System settings indexes (Admin Service Configuration)
+        "CREATE INDEX IF NOT EXISTS idx_system_settings_category ON system_settings(category)",
+        "CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(key)",
+        "CREATE INDEX IF NOT EXISTS idx_system_settings_category_key ON system_settings(category, key)",
     ]
     
     try:
@@ -1090,6 +1123,7 @@ if __name__ == "__main__":
     print("  • Compliance/TOS consent tracking (user_consents)")
     print("  • Public API keys (api_keys)")
     print("  • RAG Support Bot (document_chunks, support_conversations, etc.)")
+    print("  • System Settings (admin-configurable services: Telegram, Plisio, etc.)")
     print("  • All required tables (messages, payments, etc.)")
     print()
     

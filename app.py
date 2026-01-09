@@ -7041,6 +7041,547 @@ def admin_get_user_exchanges(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ==================== SYSTEM SETTINGS API ROUTES ====================
+# Admin endpoints for managing service configurations (Telegram, Plisio, Email, etc.)
+
+@app.route('/api/admin/system-settings', methods=['GET'])
+@login_required
+def admin_get_system_settings():
+    """Get all system settings grouped by category (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting, SERVICE_CATEGORIES
+        
+        # Ensure defaults are initialized
+        if SystemSetting.query.count() == 0:
+            SystemSetting.initialize_defaults()
+        
+        settings = SystemSetting.get_all_grouped()
+        
+        # Add category metadata
+        categories_with_meta = {}
+        for category, meta in SERVICE_CATEGORIES.items():
+            categories_with_meta[category] = {
+                'meta': meta,
+                'settings': settings.get(category, [])
+            }
+        
+        # Add any settings in categories not in SERVICE_CATEGORIES
+        for category in settings:
+            if category not in categories_with_meta:
+                categories_with_meta[category] = {
+                    'meta': {
+                        'name': category.title(),
+                        'icon': 'fas fa-cog',
+                        'color': '#6c757d',
+                        'description': f'{category.title()} settings'
+                    },
+                    'settings': settings[category]
+                }
+        
+        return jsonify({
+            'success': True,
+            'categories': categories_with_meta
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting system settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/<category>', methods=['GET'])
+@login_required
+def admin_get_category_settings(category):
+    """Get settings for a specific category (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting, SERVICE_CATEGORIES
+        
+        settings = SystemSetting.query.filter_by(category=category).all()
+        meta = SERVICE_CATEGORIES.get(category, {
+            'name': category.title(),
+            'icon': 'fas fa-cog',
+            'color': '#6c757d',
+            'description': f'{category.title()} settings'
+        })
+        
+        # Check if service is enabled
+        enabled_setting = next((s for s in settings if s.key == 'enabled'), None)
+        is_enabled = enabled_setting and enabled_setting.get_value().lower() in ('true', '1', 'yes')
+        
+        return jsonify({
+            'success': True,
+            'category': category,
+            'meta': meta,
+            'is_enabled': is_enabled,
+            'settings': [s.to_dict() for s in settings]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting category settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/<category>/<key>', methods=['PUT'])
+@login_required
+def admin_update_setting(category, key):
+    """Update a specific setting (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        value = data.get('value', '')
+        
+        # Find or create the setting
+        setting = SystemSetting.query.filter_by(category=category, key=key).first()
+        
+        if setting:
+            setting.set_value(value)
+            setting.updated_by_id = current_user.id
+            db.session.commit()
+            logger.info(f"✏️ Admin {current_user.username} updated setting {category}.{key}")
+        else:
+            # Create new setting
+            is_sensitive = data.get('is_sensitive', False)
+            description = data.get('description', '')
+            setting = SystemSetting.set_setting(
+                category=category,
+                key=key,
+                value=value,
+                is_sensitive=is_sensitive,
+                description=description,
+                updated_by_id=current_user.id
+            )
+            logger.info(f"✏️ Admin {current_user.username} created setting {category}.{key}")
+        
+        return jsonify({
+            'success': True,
+            'setting': setting.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating setting: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/<category>/bulk', methods=['PUT'])
+@login_required
+def admin_update_category_settings(category):
+    """Update multiple settings for a category at once (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting, SERVICE_CATEGORIES
+        
+        data = request.get_json()
+        if not data or 'settings' not in data:
+            return jsonify({'success': False, 'error': 'No settings provided'}), 400
+        
+        settings_data = data['settings']
+        updated = []
+        
+        for key, value in settings_data.items():
+            # Skip empty values for sensitive fields unless explicitly clearing
+            setting = SystemSetting.query.filter_by(category=category, key=key).first()
+            
+            if setting:
+                # Don't overwrite sensitive values with empty strings unless marked for clear
+                if setting.is_sensitive and value == '' and not data.get('clear_sensitive'):
+                    continue
+                    
+                setting.set_value(str(value))
+                setting.updated_by_id = current_user.id
+                updated.append(key)
+            else:
+                # Check if this is a known sensitive field
+                is_sensitive = key in ('api_key', 'api_secret', 'secret', 'password', 
+                                      'bot_token', 'webhook_secret', 'access_token',
+                                      'access_secret', 'vapid_private_key', 'otp_secret')
+                SystemSetting.set_setting(
+                    category=category,
+                    key=key,
+                    value=str(value),
+                    is_sensitive=is_sensitive,
+                    updated_by_id=current_user.id
+                )
+                updated.append(key)
+        
+        db.session.commit()
+        logger.info(f"✏️ Admin {current_user.username} bulk updated {category}: {updated}")
+        
+        # Get updated settings
+        settings = SystemSetting.query.filter_by(category=category).all()
+        
+        return jsonify({
+            'success': True,
+            'updated': updated,
+            'settings': [s.to_dict() for s in settings]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error bulk updating settings: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/<category>/toggle', methods=['POST'])
+@login_required
+def admin_toggle_service(category):
+    """Toggle a service category on/off (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting
+        
+        data = request.get_json()
+        enabled = data.get('enabled', False) if data else False
+        
+        # Find or create the enabled setting
+        setting = SystemSetting.query.filter_by(category=category, key='enabled').first()
+        
+        if setting:
+            setting.set_value('true' if enabled else 'false')
+            setting.is_enabled = enabled
+            setting.updated_by_id = current_user.id
+        else:
+            setting = SystemSetting(
+                category=category,
+                key='enabled',
+                is_enabled=enabled,
+                is_sensitive=False,
+                description=f'Enable/disable {category} service'
+            )
+            setting.set_value('true' if enabled else 'false')
+            setting.updated_by_id = current_user.id
+            db.session.add(setting)
+        
+        db.session.commit()
+        
+        status = "enabled" if enabled else "disabled"
+        logger.info(f"🔄 Admin {current_user.username} {status} service: {category}")
+        
+        return jsonify({
+            'success': True,
+            'category': category,
+            'enabled': enabled
+        })
+        
+    except Exception as e:
+        logger.error(f"Error toggling service: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/<category>/test', methods=['POST'])
+@login_required
+def admin_test_service(category):
+    """Test a service connection/configuration (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting
+        
+        settings = SystemSetting.get_category_settings(category)
+        
+        if category == 'telegram':
+            # Test Telegram bot connection
+            bot_token = settings.get('bot_token', '')
+            if not bot_token:
+                return jsonify({'success': False, 'error': 'Telegram bot token not configured'}), 400
+            
+            import httpx
+            try:
+                response = httpx.get(f'https://api.telegram.org/bot{bot_token}/getMe', timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('ok'):
+                        bot_info = data.get('result', {})
+                        return jsonify({
+                            'success': True,
+                            'message': f"✅ Connected to @{bot_info.get('username', 'Unknown')}",
+                            'details': {
+                                'username': bot_info.get('username'),
+                                'name': bot_info.get('first_name'),
+                                'can_read_messages': bot_info.get('can_read_all_group_messages', False)
+                            }
+                        })
+                return jsonify({'success': False, 'error': 'Invalid bot token or API error'}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
+        
+        elif category == 'email':
+            # Test SMTP connection
+            smtp_server = settings.get('smtp_server', '')
+            smtp_port = int(settings.get('smtp_port', 587))
+            smtp_username = settings.get('smtp_username', '')
+            smtp_password = settings.get('smtp_password', '')
+            
+            if not all([smtp_server, smtp_username, smtp_password]):
+                return jsonify({'success': False, 'error': 'SMTP configuration incomplete'}), 400
+            
+            import smtplib
+            try:
+                with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
+                    server.starttls()
+                    server.login(smtp_username, smtp_password)
+                    return jsonify({
+                        'success': True,
+                        'message': f"✅ Connected to {smtp_server}",
+                        'details': {'server': smtp_server, 'port': smtp_port}
+                    })
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'SMTP connection failed: {str(e)}'}), 400
+        
+        elif category == 'payment':
+            # Test Plisio API connection
+            api_key = settings.get('api_key', '')
+            if not api_key:
+                return jsonify({'success': False, 'error': 'Plisio API key not configured'}), 400
+            
+            import httpx
+            try:
+                response = httpx.get(
+                    f'https://plisio.net/api/v1/currencies?api_key={api_key}',
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('status') == 'success':
+                        return jsonify({
+                            'success': True,
+                            'message': '✅ Connected to Plisio API',
+                            'details': {'currencies_available': len(data.get('data', {}))}
+                        })
+                return jsonify({'success': False, 'error': 'Invalid API key or API error'}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
+        
+        elif category == 'openai':
+            # Test OpenAI API connection
+            api_key = settings.get('api_key', '')
+            if not api_key:
+                return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 400
+            
+            import httpx
+            try:
+                response = httpx.get(
+                    'https://api.openai.com/v1/models',
+                    headers={'Authorization': f'Bearer {api_key}'},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    return jsonify({
+                        'success': True,
+                        'message': '✅ Connected to OpenAI API',
+                        'details': {'models_available': True}
+                    })
+                elif response.status_code == 401:
+                    return jsonify({'success': False, 'error': 'Invalid OpenAI API key'}), 400
+                return jsonify({'success': False, 'error': f'API error: {response.status_code}'}), 400
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
+        
+        elif category == 'binance':
+            # Test Binance API connection
+            api_key = settings.get('api_key', '')
+            api_secret = settings.get('api_secret', '')
+            testnet = settings.get('testnet', 'false').lower() == 'true'
+            
+            if not all([api_key, api_secret]):
+                return jsonify({'success': False, 'error': 'Binance API credentials not configured'}), 400
+            
+            try:
+                from binance.um_futures import UMFutures
+                
+                base_url = 'https://testnet.binancefuture.com' if testnet else 'https://fapi.binance.com'
+                client = UMFutures(key=api_key, secret=api_secret, base_url=base_url)
+                account = client.account()
+                
+                return jsonify({
+                    'success': True,
+                    'message': f"✅ Connected to Binance {'Testnet' if testnet else 'Live'}",
+                    'details': {
+                        'testnet': testnet,
+                        'balance': float(account.get('totalWalletBalance', 0)),
+                        'unrealized_pnl': float(account.get('totalUnrealizedProfit', 0))
+                    }
+                })
+            except Exception as e:
+                return jsonify({'success': False, 'error': f'Binance connection failed: {str(e)}'}), 400
+        
+        elif category == 'twitter':
+            # Test Twitter API - just validate credentials format
+            api_key = settings.get('api_key', '')
+            api_secret = settings.get('api_secret', '')
+            access_token = settings.get('access_token', '')
+            access_secret = settings.get('access_secret', '')
+            
+            if not all([api_key, api_secret, access_token, access_secret]):
+                return jsonify({'success': False, 'error': 'Twitter credentials incomplete'}), 400
+            
+            # Basic format validation
+            if len(api_key) < 10 or len(api_secret) < 10:
+                return jsonify({'success': False, 'error': 'Invalid Twitter API key format'}), 400
+            
+            return jsonify({
+                'success': True,
+                'message': '✅ Twitter credentials configured',
+                'details': {'note': 'Full validation requires posting test tweet'}
+            })
+        
+        else:
+            return jsonify({
+                'success': True,
+                'message': f'No test available for {category}',
+                'details': {}
+            })
+        
+    except Exception as e:
+        logger.error(f"Error testing service {category}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/initialize', methods=['POST'])
+@login_required
+def admin_initialize_settings():
+    """Initialize default settings if not present (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting
+        
+        before_count = SystemSetting.query.count()
+        SystemSetting.initialize_defaults()
+        after_count = SystemSetting.query.count()
+        
+        new_settings = after_count - before_count
+        
+        logger.info(f"✏️ Admin {current_user.username} initialized system settings (+{new_settings})")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Initialized {new_settings} new settings',
+            'total': after_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error initializing settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/export', methods=['GET'])
+@login_required
+def admin_export_settings():
+    """Export all settings (excluding sensitive values) for backup (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting, SERVICE_CATEGORIES
+        from datetime import datetime
+        
+        settings = SystemSetting.query.all()
+        
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'export_by': current_user.username,
+            'settings': []
+        }
+        
+        for s in settings:
+            setting_data = {
+                'category': s.category,
+                'key': s.key,
+                'is_sensitive': s.is_sensitive,
+                'description': s.description,
+            }
+            # Only include non-sensitive values
+            if not s.is_sensitive:
+                setting_data['value'] = s.get_value()
+            export_data['settings'].append(setting_data)
+        
+        return jsonify({
+            'success': True,
+            'data': export_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error exporting settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings/service-status', methods=['GET'])
+@login_required
+def admin_get_service_status():
+    """Get quick status overview of all services (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        from models import SystemSetting, SERVICE_CATEGORIES
+        
+        services = []
+        
+        for category, meta in SERVICE_CATEGORIES.items():
+            settings = SystemSetting.get_category_settings(category)
+            
+            # Check if enabled
+            enabled_value = settings.get('enabled', 'false')
+            is_enabled = enabled_value.lower() in ('true', '1', 'yes')
+            
+            # Check if configured (has required fields)
+            required_fields = {
+                'telegram': ['bot_token'],
+                'email': ['smtp_server', 'smtp_username', 'smtp_password'],
+                'payment': ['api_key'],
+                'twitter': ['api_key', 'api_secret', 'access_token', 'access_secret'],
+                'openai': ['api_key'],
+                'webpush': ['vapid_public_key', 'vapid_private_key'],
+                'binance': ['api_key', 'api_secret'],
+                'webhook': ['passphrase'],
+            }
+            
+            is_configured = True
+            for field in required_fields.get(category, []):
+                if not settings.get(field):
+                    is_configured = False
+                    break
+            
+            services.append({
+                'category': category,
+                'name': meta['name'],
+                'icon': meta['icon'],
+                'color': meta['color'],
+                'is_enabled': is_enabled,
+                'is_configured': is_configured,
+                'status': 'active' if (is_enabled and is_configured) else ('configured' if is_configured else 'unconfigured')
+            })
+        
+        return jsonify({
+            'success': True,
+            'services': services
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting service status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ==================== PAYMENT API ROUTES ====================
 # Subscription system with Plisio crypto payment integration
 

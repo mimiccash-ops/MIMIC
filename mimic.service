@@ -45,10 +45,18 @@ Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=-/var/www/mimic/.env
 
 # Main application process - Gunicorn with eventlet for WebSockets
+# 
+# BIND ADDRESS OPTIONS:
+#   127.0.0.1:5000 - Localhost only (RECOMMENDED with nginx reverse proxy)
+#   0.0.0.0:5000   - All interfaces (use if no reverse proxy, or Docker)
+#
+# For nginx reverse proxy setup (recommended), use 127.0.0.1
+# For direct access or Docker, change to 0.0.0.0
+#
 ExecStart=/var/www/mimic/venv/bin/gunicorn \
     --worker-class eventlet \
     --workers 1 \
-    --bind 127.0.0.1:5000 \
+    --bind 0.0.0.0:5000 \
     --timeout 120 \
     --keep-alive 5 \
     --max-requests 10000 \

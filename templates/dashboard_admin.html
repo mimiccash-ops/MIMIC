@@ -47,6 +47,11 @@
     .position-card:hover { transform: translateX(2px); }
     .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
     
+    /* Toggle Switch */
+    .toggle-bg { position: relative; cursor: pointer; }
+    .toggle-dot { transition: all 0.2s ease; }
+    .translate-x-6 { transform: translateX(1.5rem); }
+    
     /* Balance cell styles */
     .balance-cell { min-width: 90px; }
     .balance-cell .bg-green { background: var(--neon-green); box-shadow: 0 0 4px var(--neon-green); }
@@ -885,6 +890,35 @@
             </div>
         </div>
         
+        <!-- ==================== SERVICE CONFIGURATION ==================== -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-plug text-cyan"></i>
+                    <span>Service Configuration</span>
+                </h2>
+                <button onclick="refreshServiceStatus()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync" id="service-refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+            
+            <!-- Service Status Overview -->
+            <div id="services-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="flex items-center justify-center py-6">
+                    <i class="fas fa-spinner fa-spin text-2xl text-muted"></i>
+                </div>
+            </div>
+            
+            <!-- Configure Button -->
+            <div class="text-center pt-4 border-t border-[var(--color-border)]">
+                <button onclick="openServiceConfigModal()" class="cyber-btn cyber-btn-gradient-blue">
+                    <i class="fas fa-cogs"></i>
+                    <span>Configure All Services</span>
+                </button>
+            </div>
+        </div>
+        
         <!-- Admin Profile -->
         <div class="card">
             <div class="flex items-center justify-between mb-4">
@@ -984,6 +1018,46 @@
     </div>
 </div>
 
+<!-- Service Configuration Modal -->
+<div id="serviceConfigModal" class="modal-overlay" onclick="if(event.target===this)closeServiceConfigModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
+            <div class="modal-title">
+                <i class="fas fa-cogs text-cyan"></i>
+                <span>Service Configuration</span>
+            </div>
+            <button onclick="closeServiceConfigModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="serviceConfigContent">
+            <div class="flex items-center justify-center py-12">
+                <i class="fas fa-spinner fa-spin text-3xl text-muted"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single Service Edit Modal -->
+<div id="serviceEditModal" class="modal-overlay" onclick="if(event.target===this)closeServiceEditModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto;">
+        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
+            <div class="modal-title">
+                <i id="service-edit-icon" class="fas fa-cog text-cyan"></i>
+                <span id="service-edit-title">Configure Service</span>
+            </div>
+            <button onclick="closeServiceEditModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="serviceEditContent">
+            <div class="flex items-center justify-center py-12">
+                <i class="fas fa-spinner fa-spin text-3xl text-muted"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -992,6 +1066,7 @@
     let masterChart = null;
     let currentPeriod = '24h';
     let currentStatsMode = 'pnl';
+    let currentEditingCategory = null;
 
     // Wait for Socket.io to load
     function initSocket() {
@@ -2512,6 +2587,465 @@
             console.error('Error deleting strategy:', err);
             showToast('Network error', 'error');
         }
+    }
+    
+    // ==================== SERVICE CONFIGURATION ====================
+    
+    let servicesData = null;
+    
+    async function refreshServiceStatus() {
+        const icon = document.getElementById('service-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        try {
+            const response = await fetch('/api/admin/system-settings/service-status');
+            const result = await response.json();
+            
+            if (result.success) {
+                renderServicesGrid(result.services);
+            } else {
+                showToast('Failed to load services', 'error');
+            }
+        } catch (err) {
+            console.error('Error loading services:', err);
+            showToast('Network error', 'error');
+        } finally {
+            if (icon) icon.classList.remove('fa-spin');
+        }
+    }
+    
+    function renderServicesGrid(services) {
+        const container = document.getElementById('services-grid');
+        if (!services || services.length === 0) {
+            container.innerHTML = `
+                <div class="col-span-full text-center py-6 text-muted">
+                    <i class="fas fa-plug text-3xl opacity-30 mb-2"></i>
+                    <p class="text-sm">No services configured</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = services.map(service => {
+            const statusColors = {
+                active: 'var(--neon-green)',
+                configured: 'var(--neon-yellow)',
+                unconfigured: 'var(--text-muted)'
+            };
+            const statusColor = statusColors[service.status] || statusColors.unconfigured;
+            const statusLabel = service.status === 'active' ? 'Active' : 
+                              service.status === 'configured' ? 'Ready' : 'Not Set';
+            
+            return `
+                <div class="p-3 bg-[var(--color-surface-2)] border rounded-lg cursor-pointer transition-all duration-200 hover:border-[var(--neon-cyan)] hover:scale-[1.02]"
+                     style="border-color: ${service.is_enabled ? service.color + '40' : 'var(--color-border)'};"
+                     onclick="openServiceEdit('${service.category}')">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center" 
+                             style="width: 36px; height: 36px; background: ${service.color}15; border: 1px solid ${service.color}30; border-radius: var(--radius-sm);">
+                            <i class="${service.icon}" style="color: ${service.color};"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-sm text-bright truncate">${service.name}</div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full" style="background: ${statusColor};"></span>
+                                <span class="text-xxs" style="color: ${statusColor};">${statusLabel}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function openServiceConfigModal() {
+        document.getElementById('serviceConfigModal').style.display = 'flex';
+        loadAllServicesConfig();
+    }
+    
+    function closeServiceConfigModal() {
+        document.getElementById('serviceConfigModal').style.display = 'none';
+    }
+    
+    async function loadAllServicesConfig() {
+        const content = document.getElementById('serviceConfigContent');
+        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
+        
+        try {
+            const response = await fetch('/api/admin/system-settings');
+            const result = await response.json();
+            
+            if (!result.success) {
+                content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> ${result.error || 'Failed to load'}</div>`;
+                return;
+            }
+            
+            servicesData = result.categories;
+            renderAllServicesConfig(result.categories);
+        } catch (err) {
+            console.error('Error loading services config:', err);
+            content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> Network error</div>`;
+        }
+    }
+    
+    function renderAllServicesConfig(categories) {
+        const content = document.getElementById('serviceConfigContent');
+        
+        const serviceOrder = ['telegram', 'email', 'payment', 'binance', 'webhook', 'twitter', 'openai', 'webpush', 'compliance', 'proxy', 'panic', 'general'];
+        const sortedCategories = serviceOrder
+            .filter(cat => categories[cat])
+            .map(cat => ({ key: cat, ...categories[cat] }));
+        
+        content.innerHTML = `
+            <div class="space-y-4">
+                ${sortedCategories.map(cat => {
+                    const meta = cat.meta || {};
+                    const settings = cat.settings || [];
+                    const enabledSetting = settings.find(s => s.key === 'enabled');
+                    const isEnabled = enabledSetting && enabledSetting.value && enabledSetting.value.toLowerCase() === 'true';
+                    
+                    // Check if configured
+                    const requiredFields = {
+                        telegram: ['bot_token'],
+                        email: ['smtp_server', 'smtp_username', 'smtp_password'],
+                        payment: ['api_key'],
+                        twitter: ['api_key', 'api_secret'],
+                        openai: ['api_key'],
+                        binance: ['api_key', 'api_secret'],
+                        webhook: ['passphrase'],
+                    };
+                    const required = requiredFields[cat.key] || [];
+                    const isConfigured = required.every(field => {
+                        const setting = settings.find(s => s.key === field);
+                        return setting && setting.has_value;
+                    });
+                    
+                    const statusColor = isEnabled && isConfigured ? 'var(--neon-green)' : 
+                                       isConfigured ? 'var(--neon-yellow)' : 'var(--text-muted)';
+                    const statusText = isEnabled && isConfigured ? 'Active' : 
+                                      isConfigured ? 'Configured (off)' : 'Not Configured';
+                    
+                    return `
+                        <div class="p-4 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center justify-center" 
+                                         style="width: 40px; height: 40px; background: ${meta.color || '#666'}15; border: 1px solid ${meta.color || '#666'}30; border-radius: var(--radius-sm);">
+                                        <i class="${meta.icon || 'fas fa-cog'}" style="color: ${meta.color || '#666'};"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-bright">${meta.name || cat.key}</div>
+                                        <div class="text-xs text-muted">${meta.description || ''}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-1">
+                                        <span class="w-2 h-2 rounded-full" style="background: ${statusColor};"></span>
+                                        <span class="text-xs" style="color: ${statusColor};">${statusText}</span>
+                                    </div>
+                                    <button onclick="openServiceEdit('${cat.key}')" class="cyber-btn cyber-btn-sm cyber-btn-outline">
+                                        <i class="fas fa-edit"></i>
+                                        Configure
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            ${meta.docs_url ? `
+                            <div class="text-xs text-muted mt-2">
+                                <a href="${meta.docs_url}" target="_blank" class="text-cyan hover:underline">
+                                    <i class="fas fa-external-link-alt"></i> Documentation
+                                </a>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+    
+    function openServiceEdit(category) {
+        currentEditingCategory = category;
+        document.getElementById('serviceEditModal').style.display = 'flex';
+        loadServiceSettings(category);
+    }
+    
+    function closeServiceEditModal() {
+        document.getElementById('serviceEditModal').style.display = 'none';
+        currentEditingCategory = null;
+    }
+    
+    async function loadServiceSettings(category) {
+        const content = document.getElementById('serviceEditContent');
+        const titleEl = document.getElementById('service-edit-title');
+        const iconEl = document.getElementById('service-edit-icon');
+        
+        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
+        
+        try {
+            const response = await fetch(`/api/admin/system-settings/${category}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> ${result.error || 'Failed to load'}</div>`;
+                return;
+            }
+            
+            const meta = result.meta || {};
+            titleEl.textContent = `Configure ${meta.name || category}`;
+            iconEl.className = meta.icon || 'fas fa-cog';
+            iconEl.style.color = meta.color || 'var(--neon-cyan)';
+            
+            renderServiceEditForm(category, result.settings, result.is_enabled, meta);
+        } catch (err) {
+            console.error('Error loading service settings:', err);
+            content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> Network error</div>`;
+        }
+    }
+    
+    function renderServiceEditForm(category, settings, isEnabled, meta) {
+        const content = document.getElementById('serviceEditContent');
+        
+        // Group settings: enabled toggle, then other settings
+        const enabledSetting = settings.find(s => s.key === 'enabled');
+        const otherSettings = settings.filter(s => s.key !== 'enabled');
+        
+        content.innerHTML = `
+            <form id="service-edit-form" onsubmit="saveServiceSettings(event, '${category}')" class="space-y-4">
+                <!-- Enable/Disable Toggle -->
+                ${enabledSetting ? `
+                <div class="p-4 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg mb-4">
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div>
+                            <div class="font-semibold text-bright">Enable ${meta.name || category}</div>
+                            <div class="text-xs text-muted">${enabledSetting.description || 'Toggle this service on/off'}</div>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" id="setting-enabled" class="sr-only" ${isEnabled ? 'checked' : ''}>
+                            <div class="toggle-bg w-12 h-6 bg-[var(--color-surface-3)] rounded-full peer-focus:ring-2 ring-[var(--neon-cyan)] transition-all cursor-pointer" onclick="this.previousElementSibling.click();">
+                                <div class="toggle-dot absolute top-1 left-1 w-4 h-4 bg-[var(--text-muted)] rounded-full transition-all ${isEnabled ? 'translate-x-6 bg-[var(--neon-green)]' : ''}"></div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                ` : ''}
+                
+                <!-- Settings Fields -->
+                <div class="space-y-3">
+                    ${otherSettings.map(setting => renderSettingField(setting)).join('')}
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                    <button type="button" onclick="testService('${category}')" class="cyber-btn cyber-btn-outline flex-1" id="test-service-btn">
+                        <i class="fas fa-plug"></i>
+                        <span>Test Connection</span>
+                    </button>
+                    <button type="submit" class="cyber-btn flex-1" id="save-service-btn">
+                        <i class="fas fa-save"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+                
+                <!-- Test Result -->
+                <div id="test-result" class="hidden p-3 rounded-lg text-sm"></div>
+            </form>
+            
+            <style>
+                .toggle-bg:has(+ .toggle-dot) { cursor: pointer; }
+                #setting-enabled:checked + .toggle-bg .toggle-dot { transform: translateX(1.5rem); background: var(--neon-green); }
+            </style>
+        `;
+        
+        // Add toggle functionality
+        const toggleInput = document.getElementById('setting-enabled');
+        if (toggleInput) {
+            toggleInput.addEventListener('change', function() {
+                const dot = this.parentElement.querySelector('.toggle-dot');
+                if (this.checked) {
+                    dot.classList.add('translate-x-6');
+                    dot.style.background = 'var(--neon-green)';
+                } else {
+                    dot.classList.remove('translate-x-6');
+                    dot.style.background = 'var(--text-muted)';
+                }
+            });
+        }
+    }
+    
+    function renderSettingField(setting) {
+        const inputId = `setting-${setting.key}`;
+        const value = setting.value || '';
+        const placeholder = setting.is_sensitive ? '••••••••' : '';
+        const inputType = setting.is_sensitive ? 'password' : 
+                         (setting.key.includes('port') || setting.key.includes('threshold') || 
+                          setting.key.includes('size') || setting.key.includes('overlap')) ? 'number' : 'text';
+        
+        return `
+            <div class="space-y-1">
+                <label for="${inputId}" class="text-xs text-muted flex items-center gap-2">
+                    ${setting.description || setting.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    ${setting.is_sensitive ? '<i class="fas fa-lock text-yellow" title="Sensitive - stored encrypted"></i>' : ''}
+                </label>
+                <div class="relative">
+                    <input type="${inputType}" 
+                           id="${inputId}" 
+                           name="${setting.key}"
+                           value="${setting.value_masked ? '' : escapeHtml(value)}"
+                           placeholder="${setting.value_masked ? '••••••••  (leave empty to keep current)' : placeholder}"
+                           class="input w-full ${setting.is_sensitive ? 'pr-10' : ''}"
+                           ${inputType === 'number' ? 'step="0.01"' : ''}>
+                    ${setting.is_sensitive ? `
+                    <button type="button" onclick="togglePasswordVisibility('${inputId}')" 
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-cyan transition-colors">
+                        <i class="fas fa-eye" id="${inputId}-eye"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    
+    function togglePasswordVisibility(inputId) {
+        const input = document.getElementById(inputId);
+        const eye = document.getElementById(inputId + '-eye');
+        if (input.type === 'password') {
+            input.type = 'text';
+            eye.classList.remove('fa-eye');
+            eye.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            eye.classList.remove('fa-eye-slash');
+            eye.classList.add('fa-eye');
+        }
+    }
+    
+    async function saveServiceSettings(event, category) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const btn = document.getElementById('save-service-btn');
+        const originalHtml = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        // Collect form data
+        const settings = {};
+        const inputs = form.querySelectorAll('input[name], select[name], textarea[name]');
+        inputs.forEach(input => {
+            // Skip empty password fields (keep existing value)
+            if (input.type === 'password' && !input.value) return;
+            settings[input.name] = input.value;
+        });
+        
+        // Handle enabled toggle
+        const enabledCheckbox = document.getElementById('setting-enabled');
+        if (enabledCheckbox) {
+            settings['enabled'] = enabledCheckbox.checked ? 'true' : 'false';
+        }
+        
+        try {
+            const response = await fetch(`/api/admin/system-settings/${category}/bulk`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(`${category} settings saved!`, 'success');
+                refreshServiceStatus(); // Update the grid
+                
+                // Update the main modal if open
+                if (servicesData) {
+                    loadAllServicesConfig();
+                }
+            } else {
+                showToast(result.error || 'Failed to save settings', 'error');
+            }
+        } catch (err) {
+            console.error('Error saving settings:', err);
+            showToast('Network error', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    async function testService(category) {
+        const btn = document.getElementById('test-service-btn');
+        const resultDiv = document.getElementById('test-result');
+        const originalHtml = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        resultDiv.className = 'hidden';
+        
+        try {
+            const response = await fetch(`/api/admin/system-settings/${category}/test`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const result = await response.json();
+            
+            resultDiv.classList.remove('hidden');
+            
+            if (result.success) {
+                resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(0,255,100,0.1)] border border-[rgba(0,255,100,0.3)] text-green';
+                resultDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i>
+                        <span>${result.message}</span>
+                    </div>
+                    ${result.details ? `<div class="text-xs text-muted mt-1">${JSON.stringify(result.details)}</div>` : ''}
+                `;
+            } else {
+                resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(255,68,68,0.1)] border border-[rgba(255,68,68,0.3)] text-red';
+                resultDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>${result.error || 'Test failed'}</span>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            console.error('Error testing service:', err);
+            resultDiv.classList.remove('hidden');
+            resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(255,68,68,0.1)] border border-[rgba(255,68,68,0.3)] text-red';
+            resultDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Network error`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    // Load service status on page load when in settings section
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load service status if on settings section
+        setTimeout(() => {
+            if (document.querySelector('[data-section="settings"].active')) {
+                refreshServiceStatus();
+            }
+        }, 500);
+    });
+    
+    // Also refresh when switching to settings section
+    const originalShowSection = window.showSection;
+    if (originalShowSection) {
+        window.showSection = function(section) {
+            originalShowSection(section);
+            if (section === 'settings') {
+                refreshServiceStatus();
+            }
+        };
     }
 </script>
 {% endblock %}

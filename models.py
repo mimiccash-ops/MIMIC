@@ -3464,3 +3464,397 @@ class PayoutRequest(db.Model):
         return PayoutRequest.query.filter_by(user_id=user_id)\
             .order_by(PayoutRequest.created_at.desc())\
             .limit(limit).all()
+
+
+# ==================== SYSTEM SETTINGS MODEL ====================
+
+class SystemSetting(db.Model):
+    """
+    Database-stored system configuration settings.
+    
+    Allows admin to configure external services (Plisio, Telegram, Email, etc.)
+    through the web interface without editing config files.
+    
+    Categories:
+    - telegram: Telegram bot settings
+    - email: SMTP email settings
+    - payment: Plisio payment gateway
+    - twitter: Twitter/X API for auto-posting
+    - openai: OpenAI/Support bot settings
+    - webpush: VAPID keys for web push notifications
+    - binance: Binance master account settings
+    - compliance: Geo-blocking and TOS settings
+    - general: General application settings
+    """
+    __tablename__ = 'system_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50), nullable=False, index=True)  # e.g., 'telegram', 'email', 'payment'
+    key = db.Column(db.String(100), nullable=False, index=True)  # e.g., 'bot_token', 'api_key'
+    value = db.Column(db.Text, nullable=True)  # Plain text value (for non-sensitive)
+    value_encrypted = db.Column(db.Text, nullable=True)  # Encrypted value (for sensitive data)
+    is_sensitive = db.Column(db.Boolean, default=False)  # Mark if value should be encrypted
+    is_enabled = db.Column(db.Boolean, default=True)  # Quick toggle for the service
+    description = db.Column(db.String(500), nullable=True)  # Human-readable description
+    
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
+                          onupdate=lambda: datetime.now(timezone.utc))
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    
+    # Unique constraint on category + key
+    __table_args__ = (
+        db.UniqueConstraint('category', 'key', name='uq_system_setting_category_key'),
+        db.Index('idx_system_setting_category', 'category'),
+    )
+    
+    # Relationships
+    updated_by = db.relationship('User', foreign_keys=[updated_by_id])
+    
+    def set_value(self, value: str, is_sensitive: bool = None):
+        """
+        Set the value, encrypting if marked as sensitive.
+        
+        Args:
+            value: The value to store
+            is_sensitive: Override sensitivity flag (None = use existing)
+        """
+        if is_sensitive is not None:
+            self.is_sensitive = is_sensitive
+        
+        if self.is_sensitive and cipher_suite and value:
+            self.value_encrypted = cipher_suite.encrypt(value.encode()).decode()
+            self.value = None  # Clear plain text
+        else:
+            self.value = value
+            self.value_encrypted = None
+    
+    def get_value(self) -> str:
+        """
+        Get the decrypted value.
+        
+        Returns:
+            The setting value (decrypted if encrypted)
+        """
+        if self.value_encrypted and cipher_suite:
+            try:
+                return cipher_suite.decrypt(self.value_encrypted.encode()).decode()
+            except Exception:
+                return ''
+        return self.value or ''
+    
+    def to_dict(self, include_value: bool = True, mask_sensitive: bool = True) -> dict:
+        """
+        Convert to dictionary.
+        
+        Args:
+            include_value: Include the actual value
+            mask_sensitive: Mask sensitive values (show only last 4 chars)
+        """
+        result = {
+            'id': self.id,
+            'category': self.category,
+            'key': self.key,
+            'is_sensitive': self.is_sensitive,
+            'is_enabled': self.is_enabled,
+            'description': self.description,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'updated_by': self.updated_by.username if self.updated_by else None,
+            'has_value': bool(self.value or self.value_encrypted),
+        }
+        
+        if include_value:
+            val = self.get_value()
+            if mask_sensitive and self.is_sensitive and val:
+                # Show only last 4 characters for sensitive values
+                result['value'] = '****' + val[-4:] if len(val) > 4 else '****'
+                result['value_masked'] = True
+            else:
+                result['value'] = val
+                result['value_masked'] = False
+        
+        return result
+    
+    @classmethod
+    def get_setting(cls, category: str, key: str, default: str = '') -> str:
+        """
+        Get a setting value by category and key.
+        
+        Args:
+            category: Setting category (e.g., 'telegram')
+            key: Setting key (e.g., 'bot_token')
+            default: Default value if not found
+            
+        Returns:
+            The setting value or default
+        """
+        setting = cls.query.filter_by(category=category, key=key).first()
+        if setting:
+            return setting.get_value()
+        return default
+    
+    @classmethod
+    def set_setting(cls, category: str, key: str, value: str, 
+                   is_sensitive: bool = False, description: str = None,
+                   updated_by_id: int = None) -> 'SystemSetting':
+        """
+        Set a setting value, creating if not exists.
+        
+        Args:
+            category: Setting category
+            key: Setting key
+            value: Value to store
+            is_sensitive: Whether value should be encrypted
+            description: Human-readable description
+            updated_by_id: User ID who updated this setting
+            
+        Returns:
+            The SystemSetting instance
+        """
+        setting = cls.query.filter_by(category=category, key=key).first()
+        
+        if not setting:
+            setting = cls(
+                category=category,
+                key=key,
+                is_sensitive=is_sensitive,
+                description=description
+            )
+            db.session.add(setting)
+        
+        setting.set_value(value, is_sensitive)
+        if description:
+            setting.description = description
+        if updated_by_id:
+            setting.updated_by_id = updated_by_id
+        
+        db.session.commit()
+        return setting
+    
+    @classmethod
+    def get_category_settings(cls, category: str) -> dict:
+        """
+        Get all settings for a category as a dictionary.
+        
+        Args:
+            category: Setting category
+            
+        Returns:
+            Dict of key -> value for the category
+        """
+        settings = cls.query.filter_by(category=category).all()
+        return {s.key: s.get_value() for s in settings}
+    
+    @classmethod
+    def is_service_enabled(cls, category: str) -> bool:
+        """
+        Check if a service category is enabled.
+        
+        Args:
+            category: Service category name
+            
+        Returns:
+            True if service is enabled
+        """
+        # Check for 'enabled' key in the category
+        setting = cls.query.filter_by(category=category, key='enabled').first()
+        if setting:
+            return setting.is_enabled and setting.get_value().lower() in ('true', '1', 'yes')
+        return False
+    
+    @classmethod
+    def get_all_grouped(cls) -> dict:
+        """
+        Get all settings grouped by category.
+        
+        Returns:
+            Dict of category -> list of setting dicts
+        """
+        settings = cls.query.order_by(cls.category, cls.key).all()
+        grouped = {}
+        for s in settings:
+            if s.category not in grouped:
+                grouped[s.category] = []
+            grouped[s.category].append(s.to_dict())
+        return grouped
+    
+    @classmethod
+    def initialize_defaults(cls):
+        """
+        Initialize default settings structure (called on first run).
+        Creates placeholder entries for all configurable services.
+        """
+        defaults = [
+            # Telegram Settings
+            ('telegram', 'enabled', 'false', False, 'Enable Telegram bot notifications'),
+            ('telegram', 'bot_token', '', True, 'Telegram Bot Token (from @BotFather)'),
+            ('telegram', 'chat_id', '', False, 'Admin Telegram Chat ID'),
+            
+            # Email/SMTP Settings
+            ('email', 'enabled', 'false', False, 'Enable email notifications'),
+            ('email', 'smtp_server', 'smtp.gmail.com', False, 'SMTP server address'),
+            ('email', 'smtp_port', '587', False, 'SMTP server port'),
+            ('email', 'smtp_username', '', False, 'SMTP username/email'),
+            ('email', 'smtp_password', '', True, 'SMTP password or app password'),
+            ('email', 'from_email', '', False, 'Sender email address'),
+            ('email', 'from_name', 'Brain Capital', False, 'Sender display name'),
+            
+            # Plisio Payment Gateway
+            ('payment', 'enabled', 'false', False, 'Enable crypto payments via Plisio'),
+            ('payment', 'api_key', '', True, 'Plisio API Key'),
+            ('payment', 'webhook_secret', '', True, 'Plisio Webhook Secret'),
+            
+            # Twitter/X Auto-posting
+            ('twitter', 'enabled', 'false', False, 'Enable Twitter auto-posting'),
+            ('twitter', 'api_key', '', True, 'Twitter API Key'),
+            ('twitter', 'api_secret', '', True, 'Twitter API Secret'),
+            ('twitter', 'access_token', '', True, 'Twitter Access Token'),
+            ('twitter', 'access_secret', '', True, 'Twitter Access Secret'),
+            ('twitter', 'min_roi_threshold', '50.0', False, 'Minimum ROI % to trigger tweet'),
+            ('twitter', 'site_url', 'https://mimic.cash', False, 'Site URL for tweet links'),
+            
+            # OpenAI/Support Bot
+            ('openai', 'enabled', 'false', False, 'Enable AI Support Bot'),
+            ('openai', 'api_key', '', True, 'OpenAI API Key'),
+            ('openai', 'embedding_model', 'text-embedding-3-small', False, 'OpenAI embedding model'),
+            ('openai', 'chat_model', 'gpt-4o-mini', False, 'OpenAI chat model'),
+            ('openai', 'confidence_threshold', '0.7', False, 'RAG confidence threshold'),
+            ('openai', 'chunk_size', '500', False, 'Document chunk size'),
+            ('openai', 'chunk_overlap', '50', False, 'Document chunk overlap'),
+            
+            # Web Push Notifications
+            ('webpush', 'enabled', 'false', False, 'Enable Web Push notifications'),
+            ('webpush', 'vapid_public_key', '', False, 'VAPID Public Key'),
+            ('webpush', 'vapid_private_key', '', True, 'VAPID Private Key'),
+            ('webpush', 'vapid_claim_email', 'mailto:admin@mimic.cash', False, 'VAPID contact email'),
+            
+            # Binance Master Account
+            ('binance', 'enabled', 'true', False, 'Enable Binance master trading'),
+            ('binance', 'api_key', '', True, 'Binance Master API Key'),
+            ('binance', 'api_secret', '', True, 'Binance Master API Secret'),
+            ('binance', 'testnet', 'false', False, 'Use Binance Testnet'),
+            
+            # Webhook Settings
+            ('webhook', 'passphrase', '', True, 'TradingView Webhook Passphrase'),
+            
+            # Compliance Settings
+            ('compliance', 'tos_version', '1.0', False, 'Terms of Service version'),
+            ('compliance', 'blocked_countries', 'US,KP,IR', False, 'Blocked country codes (comma-separated)'),
+            ('compliance', 'tos_consent_enabled', 'true', False, 'Require TOS consent'),
+            ('compliance', 'geo_blocking_enabled', 'false', False, 'Enable geo-blocking'),
+            
+            # General Settings
+            ('general', 'max_open_positions', '10', False, 'Maximum open positions globally'),
+            ('general', 'site_url', 'https://mimic.cash', False, 'Public site URL'),
+            ('general', 'production_domain', '', False, 'Production domain with https://'),
+            
+            # Proxy Settings
+            ('proxy', 'enabled', 'false', False, 'Enable proxy rotation'),
+            ('proxy', 'proxies', '', False, 'Comma-separated proxy URLs'),
+            ('proxy', 'users_per_proxy', '50', False, 'Users per proxy'),
+            ('proxy', 'proxy_cooldown_seconds', '60', False, 'Proxy cooldown in seconds'),
+            ('proxy', 'max_proxy_retries', '3', False, 'Maximum proxy retries'),
+            
+            # Panic OTP Settings
+            ('panic', 'enabled', 'false', False, 'Enable Telegram panic kill switch'),
+            ('panic', 'otp_secret', '', True, 'TOTP secret for panic commands'),
+            ('panic', 'authorized_users', '', False, 'Comma-separated authorized Telegram user IDs'),
+        ]
+        
+        for category, key, default_value, is_sensitive, description in defaults:
+            existing = cls.query.filter_by(category=category, key=key).first()
+            if not existing:
+                setting = cls(
+                    category=category,
+                    key=key,
+                    is_sensitive=is_sensitive,
+                    description=description
+                )
+                setting.set_value(default_value, is_sensitive)
+                db.session.add(setting)
+        
+        db.session.commit()
+
+
+# Service categories metadata for UI
+SERVICE_CATEGORIES = {
+    'telegram': {
+        'name': 'Telegram Bot',
+        'icon': 'fab fa-telegram',
+        'color': '#0088cc',
+        'description': 'Telegram notifications and panic kill switch',
+        'docs_url': 'https://core.telegram.org/bots#creating-a-new-bot',
+    },
+    'email': {
+        'name': 'Email/SMTP',
+        'icon': 'fas fa-envelope',
+        'color': '#ea4335',
+        'description': 'Email notifications for password recovery and alerts',
+        'docs_url': 'https://support.google.com/accounts/answer/185833',
+    },
+    'payment': {
+        'name': 'Plisio Payments',
+        'icon': 'fas fa-credit-card',
+        'color': '#00d4aa',
+        'description': 'Crypto payment gateway for subscriptions',
+        'docs_url': 'https://plisio.net/documentation',
+    },
+    'twitter': {
+        'name': 'Twitter/X',
+        'icon': 'fab fa-twitter',
+        'color': '#1da1f2',
+        'description': 'Auto-post successful trades to Twitter',
+        'docs_url': 'https://developer.twitter.com/en/docs',
+    },
+    'openai': {
+        'name': 'OpenAI (Support Bot)',
+        'icon': 'fas fa-robot',
+        'color': '#10a37f',
+        'description': 'AI-powered support chatbot with RAG',
+        'docs_url': 'https://platform.openai.com/docs',
+    },
+    'webpush': {
+        'name': 'Web Push',
+        'icon': 'fas fa-bell',
+        'color': '#ff9800',
+        'description': 'Browser push notifications (PWA)',
+        'docs_url': 'https://web.dev/push-notifications-overview/',
+    },
+    'binance': {
+        'name': 'Binance Master',
+        'icon': 'fas fa-coins',
+        'color': '#f0b90b',
+        'description': 'Master trading account for copy trading',
+        'docs_url': 'https://www.binance.com/en/support/faq/api',
+    },
+    'webhook': {
+        'name': 'TradingView Webhook',
+        'icon': 'fas fa-bolt',
+        'color': '#2962ff',
+        'description': 'Receive trading signals from TradingView',
+        'docs_url': 'https://www.tradingview.com/support/solutions/43000529348',
+    },
+    'compliance': {
+        'name': 'Compliance',
+        'icon': 'fas fa-shield-alt',
+        'color': '#6c757d',
+        'description': 'Geo-blocking and Terms of Service settings',
+    },
+    'proxy': {
+        'name': 'Proxy Settings',
+        'icon': 'fas fa-network-wired',
+        'color': '#9c27b0',
+        'description': 'Proxy rotation for high-volume trading',
+    },
+    'panic': {
+        'name': 'Panic Controls',
+        'icon': 'fas fa-exclamation-triangle',
+        'color': '#dc3545',
+        'description': 'Emergency kill switch via Telegram OTP',
+    },
+    'general': {
+        'name': 'General Settings',
+        'icon': 'fas fa-cog',
+        'color': '#6c757d',
+        'description': 'General application settings',
+    },
+}
