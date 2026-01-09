@@ -257,8 +257,8 @@ Description=MIMIC Brain Capital Trading Platform
 After=network.target postgresql.service redis.service
 
 [Service]
-User=root
-Group=www-data
+User=mimic
+Group=mimic
 WorkingDirectory=/var/www/mimic
 Environment="PATH=/var/www/mimic/venv/bin"
 EnvironmentFile=/var/www/mimic/.env
@@ -518,7 +518,8 @@ Description=MIMIC ARQ Worker
 After=network.target redis.service
 
 [Service]
-User=root
+User=mimic
+Group=mimic
 WorkingDirectory=/var/www/mimic
 Environment="PATH=/var/www/mimic/venv/bin"
 EnvironmentFile=/var/www/mimic/.env
@@ -615,7 +616,7 @@ sudo nano /etc/logrotate.d/mimic
     compress
     delaycompress
     notifempty
-    create 0640 root www-data
+    create 0640 mimic mimic
     sharedscripts
     postrotate
         systemctl reload mimic > /dev/null 2>&1 || true
@@ -709,8 +710,8 @@ psql -U mimic_user -d mimic_db -h localhost
 ### Permission Errors
 
 ```bash
-# Fix ownership
-sudo chown -R root:www-data /var/www/mimic
+# Fix ownership (use mimic user created in Part 1)
+sudo chown -R mimic:mimic /var/www/mimic
 sudo chmod -R 755 /var/www/mimic
 sudo chmod 600 /var/www/mimic/.env
 sudo chmod 600 /var/www/mimic/config.ini

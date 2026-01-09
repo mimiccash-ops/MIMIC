@@ -16,7 +16,7 @@ REM CONFIGURATION - Edit these values for your VPS
 REM ============================================================================
 
 set VPS_USER=root
-set VPS_HOST=38.180.147.102
+set VPS_HOST=YOUR_VPS_IP
 set VPS_PORT=22
 set REMOTE_PATH=/var/www/mimic
 set SERVICE_NAME=mimic

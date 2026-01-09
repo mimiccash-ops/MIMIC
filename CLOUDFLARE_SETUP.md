@@ -42,7 +42,6 @@ ns2.cloudflare.com
 | Type | Name | Content | Proxy | TTL |
 |------|------|---------|-------|-----|
 | A | mimic.cash | YOUR_SERVER_IP | ✅ Proxied | Auto |
-| A | www | YOUR_SERVER_IP | ✅ Proxied | Auto |
 | A | api | YOUR_SERVER_IP | ✅ Proxied | Auto |
 | CNAME | www | mimic.cash | ✅ Proxied | Auto |
 | TXT | @ | v=spf1 include:_spf.google.com ~all | DNS only | Auto |
@@ -156,7 +155,7 @@ Enable **Cloudflare Managed Ruleset**:
 ```
 Name: Block Bad Bots
 Expression:
-(cf.client.bot) and not (cf.verified_bot_category in {"search_engine" "monitoring"})
+(cf.client.bot) and not (cf.verified_bot_category in {"search_engine", "monitoring"})
 Action: Block
 ```
 
@@ -415,11 +414,19 @@ Once Cloudflare is set up, restrict server access to Cloudflare IPs only:
 
 ```bash
 # UFW (Ubuntu)
-sudo ufw default deny incoming
-sudo ufw allow from 103.21.244.0/22 to any port 443
-sudo ufw allow from 103.22.200.0/22 to any port 443
-# ... add all Cloudflare IP ranges
+# IMPORTANT: Allow SSH first to avoid lockout!
 sudo ufw allow ssh
+
+sudo ufw default deny incoming
+
+# Allow all Cloudflare IP ranges (download current list)
+for ip in $(curl -s https://www.cloudflare.com/ips-v4); do
+  sudo ufw allow from $ip to any port 443
+done
+for ip in $(curl -s https://www.cloudflare.com/ips-v6); do
+  sudo ufw allow from $ip to any port 443
+done
+
 sudo ufw enable
 
 # Or use iptables script
