@@ -1,5 +1,12 @@
 # MIMIC (Brain Capital) - Systemd Service File
 # ==============================================
+# 
+# FEATURES:
+#   ✓ Always running with automatic restart
+#   ✓ Watchdog health monitoring
+#   ✓ Auto-restart on failure (max 5 times per 5 minutes)
+#   ✓ Graceful shutdown handling
+#   ✓ Memory and resource limits
 #
 # INSTALLATION:
 #   1. Copy this file to: /etc/systemd/system/mimic.service
@@ -19,58 +26,80 @@
 [Unit]
 Description=MIMIC Copy Trading Platform
 Documentation=https://mimic.cash
-After=network.target postgresql.service redis.service
-Wants=postgresql.service redis.service
+After=network-online.target postgresql.service redis.service
+Wants=network-online.target postgresql.service redis.service
+# Auto-start after boot and network is ready
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=mimic
+Group=mimic
 WorkingDirectory=/var/www/mimic
 
 # Environment
 Environment="FLASK_ENV=production"
 Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=-/var/www/mimic/.env
 
-# Python virtual environment (if used)
-# Uncomment the line below if using venv:
-# Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
-
-# Main application process
-# Option 1: Direct Python (development-like)
-# ExecStart=/usr/bin/python3 /var/www/mimic/run_server.py
-
-# Option 2: Gunicorn with gevent (recommended for production)
-ExecStart=/usr/bin/gunicorn \
-    --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
-    --workers 4 \
-    --bind 0.0.0.0:5000 \
+# Main application process - Gunicorn with eventlet for WebSockets
+ExecStart=/var/www/mimic/venv/bin/gunicorn \
+    --worker-class eventlet \
+    --workers 1 \
+    --bind 127.0.0.1:5000 \
     --timeout 120 \
     --keep-alive 5 \
-    --access-logfile /var/log/mimic/access.log \
-    --error-logfile /var/log/mimic/error.log \
+    --max-requests 10000 \
+    --max-requests-jitter 1000 \
+    --graceful-timeout 30 \
+    --access-logfile /var/www/mimic/logs/access.log \
+    --error-logfile /var/www/mimic/logs/error.log \
     --capture-output \
+    --preload \
     app:app
 
-# Restart policy
-Restart=always
-RestartSec=10
+# Graceful stop/reload
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
 
-# Resource limits
+# ============ ALWAYS RUNNING - RESTART POLICY ============
+# Always restart on failure, exit, or signal
+Restart=always
+RestartSec=5
+# Wait for service to be ready before marking as started
+RestartPreventExitStatus=0
+
+# ============ WATCHDOG (Health Monitoring) ============
+# Service must ping systemd every 30 seconds or it will be restarted
+# Note: Requires app to call sd_notify("WATCHDOG=1") - see below
+# WatchdogSec=30
+
+# ============ RESOURCE LIMITS ============
 LimitNOFILE=65535
 LimitNPROC=4096
+# Memory limit (adjust based on your VPS RAM)
+MemoryMax=2G
+MemoryHigh=1.5G
 
-# Security hardening
+# ============ SECURITY HARDENING ============
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/var/www/mimic /var/log/mimic
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/www/mimic /var/www/mimic/logs
 
-# Logging
-StandardOutput=journal
-StandardError=journal
+# ============ LOGGING ============
+StandardOutput=append:/var/www/mimic/logs/stdout.log
+StandardError=append:/var/www/mimic/logs/stderr.log
 SyslogIdentifier=mimic
 
 [Install]

@@ -1165,6 +1165,180 @@
         </div>
     </div>
 
+    <!-- Referral Program Panel -->
+    <div id="referral-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(251, 146, 60, 0.2);">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <!-- Referral Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
+                     style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3);">
+                    <i class="fas fa-user-plus text-2xl" style="color: #fb923c;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Referral Program</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              style="background: rgba(251, 146, 60, 0.1); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);">
+                            <i class="fas fa-gift text-xs"></i>
+                            <span>Earn 5%</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="font-display text-lg font-bold text-white">
+                            <span id="referral-count">{{ referral_stats.referral_count }}</span> <span class="text-sm text-white/50">Referrals</span>
+                        </div>
+                        <div class="text-white/40">|</div>
+                        <div class="font-display text-lg font-bold" style="color: #22c55e;">
+                            $<span id="referral-earned">{{ "%.2f"|format(referral_stats.total_commission) }}</span> <span class="text-sm text-white/50">Earned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Referral Link -->
+            <div class="flex-1 max-w-lg">
+                <label class="text-xs text-white/50 mb-1 block">Your Referral Link</label>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 px-3 py-2 rounded-lg text-sm font-mono truncate"
+                         style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">
+                        <span id="referral-link">{{ referral_link }}</span>
+                    </div>
+                    <button onclick="copyReferralLink()" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                            style="background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);"
+                            onmouseover="this.style.background='rgba(251, 146, 60, 0.3)'"
+                            onmouseout="this.style.background='rgba(251, 146, 60, 0.2)'">
+                        <i class="fas fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+                <div class="text-xs text-white/40 mt-1">
+                    Share this link and earn 5% commission from your referrals' trading profits!
+                </div>
+            </div>
+            
+            <!-- Pending Payout -->
+            <div class="text-center lg:text-right">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
+                     style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fas fa-wallet text-green-400"></i>
+                    <div>
+                        <div class="text-xs text-green-300 font-medium">Pending Payout</div>
+                        <div class="text-lg text-green-400 font-bold">$<span id="referral-pending">{{ "%.2f"|format(referral_stats.pending_commission) }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Status Panel -->
+    <div id="subscription-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(59, 130, 246, 0.2);">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <!-- Subscription Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
+                     id="subscription-icon"
+                     style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i class="fas fa-crown text-2xl" style="color: #3b82f6;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Subscription</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              id="subscription-badge"
+                              style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
+                            <span id="subscription-plan">{{ user_settings.subscription_plan|default('Free')|capitalize }}</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                        {% if user_settings.subscription_expires_at %}
+                        <div class="text-sm text-white/70">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Expires: <span id="subscription-expires">{{ user_settings.subscription_expires_at.strftime('%d %b %Y') }}</span>
+                        </div>
+                        {% else %}
+                        <div class="text-sm text-white/50">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Upgrade to unlock premium features
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="flex flex-wrap gap-2">
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                    <i class="fas fa-check"></i> Copy Trading
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      id="feature-api"
+                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-lock"></i> API Access
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      id="feature-chat"
+                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-lock"></i> Live Chat
+                </span>
+            </div>
+            
+            <!-- Upgrade Button -->
+            <div>
+                {% if user_settings.subscription_plan == 'free' or not user_settings.subscription_plan %}
+                <button onclick="showUpgradeModal()" class="px-6 py-2 rounded-lg text-sm font-semibold transition-all"
+                        style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 30px rgba(59, 130, 246, 0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <i class="fas fa-rocket mr-1"></i> Upgrade
+                </button>
+                {% else %}
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
+                     style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <i class="fas fa-star text-purple-400"></i>
+                    <span class="text-sm text-purple-400 font-semibold">Premium Active</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links: Tournament & Leaderboard -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <!-- Tournament Card -->
+        <a href="{{ url_for('tournament_page') }}" class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02]" 
+           style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(234, 179, 8, 0.2);">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                     style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3);">
+                    <i class="fas fa-medal text-xl" style="color: #eab308;"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-sm font-semibold text-white">Trading Tournament</div>
+                    <div class="text-xs text-white/50">Compete for prizes & glory</div>
+                </div>
+                <i class="fas fa-chevron-right text-white/30"></i>
+            </div>
+        </a>
+        
+        <!-- Leaderboard Card -->
+        <a href="{{ url_for('leaderboard') }}" class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02]" 
+           style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(168, 85, 247, 0.2);">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                     style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3);">
+                    <i class="fas fa-trophy text-xl" style="color: #a855f7;"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-sm font-semibold text-white">Leaderboard</div>
+                    <div class="text-xs text-white/50">See top traders & stats</div>
+                </div>
+                <i class="fas fa-chevron-right text-white/30"></i>
+            </div>
+        </a>
+    </div>
+
     <!-- Open Positions Panel with HTMX polling -->
     <div class="positions-panel">
         <div class="panel-header">
@@ -2151,27 +2325,62 @@
 
     // ==================== REFERRAL ====================
     function copyReferralLink() {
-        const input = document.getElementById('referral-link-input');
-        const btn = document.getElementById('copy-referral-btn');
+        const linkEl = document.getElementById('referral-link');
+        const link = linkEl ? linkEl.textContent : '{{ referral_link }}';
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(input.value).then(() => {
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                showToast('Link copied!', 'success');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-                }, 2000);
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('Referral link copied to clipboard!', 'success');
             }).catch(() => {
-                input.select();
+                // Fallback
+                const temp = document.createElement('input');
+                temp.value = link;
+                document.body.appendChild(temp);
+                temp.select();
                 document.execCommand('copy');
-                showToast('Link copied!', 'success');
+                document.body.removeChild(temp);
+                showToast('Referral link copied!', 'success');
             });
         } else {
-            input.select();
+            // Fallback for older browsers
+            const temp = document.createElement('input');
+            temp.value = link;
+            document.body.appendChild(temp);
+            temp.select();
             document.execCommand('copy');
-            showToast('Link copied!', 'success');
+            document.body.removeChild(temp);
+            showToast('Referral link copied!', 'success');
         }
     }
+    
+    // ==================== SUBSCRIPTION ====================
+    function showUpgradeModal() {
+        // Show upgrade modal or redirect to subscription page
+        showToast('Subscription upgrade coming soon! Contact admin for premium access.', 'info');
+    }
+    
+    // Update subscription UI based on plan
+    function updateSubscriptionUI() {
+        const plan = '{{ user_settings.subscription_plan|default("free") }}';
+        const featureApi = document.getElementById('feature-api');
+        const featureChat = document.getElementById('feature-chat');
+        
+        if (plan !== 'free') {
+            if (featureApi) {
+                featureApi.style.background = 'rgba(34, 197, 94, 0.1)';
+                featureApi.style.color = '#22c55e';
+                featureApi.innerHTML = '<i class="fas fa-check"></i> API Access';
+            }
+            if (featureChat) {
+                featureChat.style.background = 'rgba(34, 197, 94, 0.1)';
+                featureChat.style.color = '#22c55e';
+                featureChat.innerHTML = '<i class="fas fa-check"></i> Live Chat';
+            }
+        }
+    }
+    
+    // Initialize subscription UI
+    updateSubscriptionUI();
 
     // ==================== KEYBOARD SHORTCUTS ====================
     document.addEventListener('keydown', e => {

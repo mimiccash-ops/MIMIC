@@ -3678,6 +3678,84 @@ def admin_recalculate_xp():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ==================== ADMIN PLATFORM STATS ====================
+
+@app.route('/api/admin/referral-stats', methods=['GET'])
+@login_required
+def admin_referral_stats():
+    """Get admin referral and payout statistics"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import ReferralCommission, PayoutRequest
+        from sqlalchemy import func
+        
+        # Total referrals (users who have referred_by_id set)
+        total_referrals = User.query.filter(User.referred_by_id.isnot(None)).count()
+        
+        # Total commissions earned
+        total_commissions = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0)).scalar()
+        
+        # Pending payouts (unpaid commissions)
+        pending_payouts = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0))\
+            .filter(ReferralCommission.is_paid == False).scalar()
+        
+        # Pending payout requests
+        pending_requests = PayoutRequest.query.filter_by(status='pending').count() if PayoutRequest else 0
+        
+        return jsonify({
+            'success': True,
+            'total_referrals': total_referrals,
+            'total_commissions': float(total_commissions or 0),
+            'pending_payouts': float(pending_payouts or 0),
+            'pending_requests': pending_requests
+        })
+    except Exception as e:
+        logger.error(f"Error getting admin referral stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/subscription-stats', methods=['GET'])
+@login_required
+def admin_subscription_stats():
+    """Get admin subscription statistics"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from datetime import datetime, timezone
+        
+        # Count premium users (non-free, non-expired subscriptions)
+        now = datetime.now(timezone.utc)
+        
+        premium_count = User.query.filter(
+            User.subscription_plan != 'free',
+            User.subscription_plan.isnot(None),
+            db.or_(
+                User.subscription_expires_at.is_(None),  # Lifetime subscriptions
+                User.subscription_expires_at > now  # Active subscriptions
+            )
+        ).count()
+        
+        # Count by plan
+        plan_counts = db.session.query(User.subscription_plan, db.func.count(User.id))\
+            .filter(User.role == 'user')\
+            .group_by(User.subscription_plan).all()
+        
+        plans = {plan: count for plan, count in plan_counts if plan}
+        
+        return jsonify({
+            'success': True,
+            'premium_count': premium_count,
+            'plans': plans,
+            'total_users': User.query.filter(User.role == 'user').count()
+        })
+    except Exception as e:
+        logger.error(f"Error getting admin subscription stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ==================== AI SENTIMENT FILTER ====================
 
 @app.route('/api/sentiment', methods=['GET'])

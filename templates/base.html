@@ -262,6 +262,21 @@
                         <span data-i18n="section.settings">Settings</span>
                     </a>
                     <div class="dropdown-divider"></div>
+                    <!-- Community & Features -->
+                    <a href="{{ url_for('leaderboard') }}" class="dropdown-item">
+                        <i class="fas fa-trophy"></i>
+                        <span>Leaderboard</span>
+                    </a>
+                    <a href="{{ url_for('tournament_page') }}" class="dropdown-item">
+                        <i class="fas fa-medal"></i>
+                        <span>Tournaments</span>
+                    </a>
+                    <a href="{{ url_for('governance_page') }}" class="dropdown-item">
+                        <i class="fas fa-vote-yea"></i>
+                        <span data-i18n="nav.governance">Governance</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <!-- Account -->
                     <a href="{{ url_for('messages') }}" class="dropdown-item">
                         <i class="fas fa-envelope"></i>
                         <span data-i18n="nav.messages">Messages</span>
@@ -270,16 +285,17 @@
                         <i class="fas fa-code"></i>
                         <span data-i18n="nav.apiKeys">API Keys</span>
                     </a>
-                    <a href="{{ url_for('governance_page') }}" class="dropdown-item">
-                        <i class="fas fa-vote-yea"></i>
-                        <span data-i18n="nav.governance">Governance</span>
-                    </a>
                     <a href="{{ url_for('change_password') }}" class="dropdown-item">
                         <i class="fas fa-key"></i>
                         <span data-i18n="nav.changePassword">Security</span>
                     </a>
                     {% if current_user.role == 'admin' %}
                     <div class="dropdown-divider"></div>
+                    <!-- Admin Tools -->
+                    <a href="{{ url_for('admin_payouts') }}" class="dropdown-item">
+                        <i class="fas fa-wallet"></i>
+                        <span>Payouts</span>
+                    </a>
                     <a href="#" class="dropdown-item" onclick="if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); closeUserMenu(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
                         <i class="fas fa-tools"></i>
                         <span data-i18n="admin.addExchange">Add Exchange</span>
@@ -346,6 +362,24 @@
                 <i class="fas fa-chart-line"></i>
                 <span data-i18n="nav.dashboard">Dashboard</span>
             </a>
+            
+            <div class="mobile-divider"></div>
+            <div class="mobile-nav-label">Community</div>
+            <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-trophy"></i>
+                <span>Leaderboard</span>
+            </a>
+            <a href="{{ url_for('tournament_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-medal"></i>
+                <span>Tournaments</span>
+            </a>
+            <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-vote-yea"></i>
+                <span data-i18n="nav.governance">Governance</span>
+            </a>
+            
+            <div class="mobile-divider"></div>
+            <div class="mobile-nav-label">Account</div>
             <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-envelope"></i>
                 <span data-i18n="nav.messages">Messages</span>
@@ -357,25 +391,25 @@
                 <i class="fas fa-code"></i>
                 <span data-i18n="nav.apiKeys">API Keys</span>
             </a>
-            <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-vote-yea"></i>
-                <span data-i18n="nav.governance">Governance</span>
+            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-key"></i>
+                <span data-i18n="nav.changePassword">Security</span>
             </a>
             
             {% block mobile_sections %}{% endblock %}
             
             {% if current_user.role == 'admin' %}
             <div class="mobile-divider"></div>
+            <div class="mobile-nav-label">Admin</div>
+            <a href="{{ url_for('admin_payouts') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-wallet"></i>
+                <span>Payouts</span>
+            </a>
             <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
                 <i class="fas fa-plug"></i>
                 <span data-i18n="admin.addExchange">Add Exchange</span>
             </a>
             {% endif %}
-            <div class="mobile-divider"></div>
-            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-key"></i>
-                <span data-i18n="nav.changePassword">Security</span>
-            </a>
             {% else %}
             <a href="{{ url_for('login') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-sign-in-alt"></i>

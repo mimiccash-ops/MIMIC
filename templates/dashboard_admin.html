@@ -235,6 +235,113 @@
             </div>
         </div>
 
+        <!-- Admin Quick Links -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Tournament Management -->
+            <a href="{{ url_for('tournament_page') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+               style="border-color: rgba(234, 179, 8, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-medal" style="color: #eab308;"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-sm">Tournaments</div>
+                        <div class="text-xs text-muted">Create & manage</div>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Leaderboard -->
+            <a href="{{ url_for('leaderboard') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+               style="border-color: rgba(168, 85, 247, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-trophy" style="color: #a855f7;"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-sm">Leaderboard</div>
+                        <div class="text-xs text-muted">Top traders</div>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Governance -->
+            <a href="{{ url_for('governance_page') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+               style="border-color: rgba(59, 130, 246, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-vote-yea" style="color: #3b82f6;"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-sm">Governance</div>
+                        <div class="text-xs text-muted">Proposals & votes</div>
+                    </div>
+                </div>
+            </a>
+            
+            <!-- Payouts -->
+            <a href="{{ url_for('admin_payouts') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+               style="border-color: rgba(34, 197, 94, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-wallet" style="color: #22c55e;"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-sm">Payouts</div>
+                        <div class="text-xs text-muted">Referral payouts</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Platform Stats Row -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card p-4" style="border-color: rgba(251, 146, 60, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(251, 146, 60, 0.1); border-radius: var(--radius-sm);">
+                        <i class="fas fa-user-plus text-sm" style="color: #fb923c;"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Total Referrals</div>
+                        <div class="font-mono font-bold text-lg" id="admin-total-referrals">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(139, 92, 246, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(139, 92, 246, 0.1); border-radius: var(--radius-sm);">
+                        <i class="fas fa-crown text-sm" style="color: #8b5cf6;"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Premium Users</div>
+                        <div class="font-mono font-bold text-lg" id="admin-premium-users">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(6, 182, 212, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(6, 182, 212, 0.1); border-radius: var(--radius-sm);">
+                        <i class="fas fa-dollar-sign text-sm" style="color: #06b6d4;"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Pending Payouts</div>
+                        <div class="font-mono font-bold text-lg" id="admin-pending-payouts">$--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(236, 72, 153, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(236, 72, 153, 0.1); border-radius: var(--radius-sm);">
+                        <i class="fas fa-fire text-sm" style="color: #ec4899;"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Active Tournament</div>
+                        <div class="font-semibold text-sm" id="admin-active-tournament">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Logs -->
         <div class="card">
             <div class="flex items-center justify-between mb-4">
@@ -1163,7 +1270,7 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); loadAdminStrategies(); loadChatUsers(); refreshChatBans(); loadAdminSafetyPool(); });
+    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); loadAdminStrategies(); loadChatUsers(); refreshChatBans(); loadAdminSafetyPool(); loadAdminPlatformStats(); });
     
     // Safety Pool / Insurance Fund
     function loadAdminSafetyPool() {
@@ -1181,6 +1288,56 @@
     }
     // Refresh Safety Pool every 5 minutes
     setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
+    
+    // Admin Platform Stats
+    function loadAdminPlatformStats() {
+        // Load referral stats
+        fetch('/api/admin/referral-stats')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const totalRefEl = document.getElementById('admin-total-referrals');
+                    const pendingEl = document.getElementById('admin-pending-payouts');
+                    if (totalRefEl) totalRefEl.textContent = data.total_referrals || 0;
+                    if (pendingEl) pendingEl.textContent = '$' + (data.pending_payouts || 0).toFixed(2);
+                }
+            })
+            .catch(() => {});
+        
+        // Load premium users count
+        fetch('/api/admin/subscription-stats')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const premiumEl = document.getElementById('admin-premium-users');
+                    if (premiumEl) premiumEl.textContent = data.premium_count || 0;
+                }
+            })
+            .catch(() => {
+                const premiumEl = document.getElementById('admin-premium-users');
+                if (premiumEl) premiumEl.textContent = '0';
+            });
+        
+        // Load active tournament
+        fetch('/api/tournament/active')
+            .then(r => r.json())
+            .then(data => {
+                const tournamentEl = document.getElementById('admin-active-tournament');
+                if (tournamentEl) {
+                    if (data.success && data.tournament) {
+                        tournamentEl.textContent = data.tournament.name;
+                        tournamentEl.style.color = '#eab308';
+                    } else {
+                        tournamentEl.textContent = 'None active';
+                        tournamentEl.style.color = 'rgba(255,255,255,0.5)';
+                    }
+                }
+            })
+            .catch(() => {
+                const tournamentEl = document.getElementById('admin-active-tournament');
+                if (tournamentEl) tournamentEl.textContent = 'None';
+            });
+    }
     
     // Exchange Config - ALL exchanges (for connecting)
     let allExchangeConfigs = [];
