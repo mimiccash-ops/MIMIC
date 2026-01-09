@@ -56,7 +56,7 @@ Windows (develop) → GitHub (push) → Linux VPS (auto-deploy)
 
 ```bash
 # From your local machine
-ssh root@YOUR_VPS_IP
+ssh root@38.180.147.102
 ```
 
 ### 1.2 Update System & Install Dependencies
@@ -129,7 +129,7 @@ cd /var/www/mimic
 
 ```bash
 # Option A: Clone from public repository
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git .
+git clone https://github.com/mimiccash-ops/MIMIC.git .
 
 # Option B: Clone from private repository (need SSH key)
 git clone git@github.com:YOUR_USERNAME/YOUR_REPO.git .
