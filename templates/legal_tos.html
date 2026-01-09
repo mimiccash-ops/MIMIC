@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Terms of Service{% endblock %}
+{% block meta_title %}Terms of Service - MIMIC{% endblock %}
+{% block meta_description %}Read MIMIC's Terms of Service for using the copy trading platform.{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .legal-page {
+        min-height: calc(100vh - var(--header-height) - 100px);
+        padding: 60px 24px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .legal-header {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+    
+    .legal-header h1 {
+        font-family: var(--font-cyber);
+        font-size: 2rem;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .version-tag {
+        display: inline-block;
+        padding: 4px 12px;
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-sm);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--neon-cyan);
+    }
+    
+    .legal-content {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: 48px;
+    }
+    
+    .legal-content h2 {
+        font-family: var(--font-cyber);
+        font-size: 1.25rem;
+        color: var(--neon-cyan);
+        margin: 32px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+    
+    .legal-content h3 {
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin: 20px 0 10px;
+    }
+    
+    .legal-content p, .legal-content li {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+        margin-bottom: 14px;
+    }
+    
+    .legal-content ul {
+        padding-left: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .legal-content .highlight {
+        color: #ff4757;
+        font-weight: 600;
+    }
+    
+    .last-updated {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(0, 240, 255, 0.1);
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+        .legal-content {
+            padding: 24px;
+        }
+        .legal-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page animate-slide-up">
+    <div class="legal-header">
+        <h1>Terms of Service</h1>
+        <span class="version-tag">Version {{ tos_version }}</span>
+    </div>
+    
+    <div class="legal-content">
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using MIMIC ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to all terms, you may not use the Platform.</p>
+        
+        <h2>2. Eligibility</h2>
+        <p>By using this Platform, you confirm that:</p>
+        <ul>
+            <li>You are at least 18 years old (or the legal age in your jurisdiction)</li>
+            <li>You are <strong>NOT</strong> a resident or citizen of a restricted jurisdiction (USA, North Korea, Iran, or other sanctioned countries)</li>
+            <li>You have the legal capacity to enter into binding agreements</li>
+            <li>You are not prohibited from using cryptocurrency services under applicable laws</li>
+        </ul>
+        
+        <h2>3. Platform Services</h2>
+        <p>MIMIC provides automated copy trading services for cryptocurrency futures. The Platform:</p>
+        <ul>
+            <li>Receives trading signals from TradingView webhooks</li>
+            <li>Executes trades on connected exchange accounts via user-provided API keys</li>
+            <li>Provides real-time monitoring and notifications</li>
+        </ul>
+        
+        <h2>4. API Keys & Security</h2>
+        <h3>4.1 User Responsibilities</h3>
+        <ul>
+            <li>You are responsible for the security of your exchange API keys</li>
+            <li>Never share your API secret with anyone</li>
+            <li>Use API keys with trading permissions only (no withdrawal permissions)</li>
+            <li>Regularly rotate your API keys for security</li>
+        </ul>
+        
+        <h3>4.2 Platform Security</h3>
+        <ul>
+            <li>API keys are encrypted using Fernet symmetric encryption</li>
+            <li>We implement industry-standard security measures</li>
+            <li>We do not store or have access to your exchange account passwords</li>
+        </ul>
+        
+        <h2>5. Prohibited Activities</h2>
+        <p>You agree NOT to:</p>
+        <ul>
+            <li>Use the Platform for money laundering or illegal activities</li>
+            <li>Attempt to manipulate markets or engage in wash trading</li>
+            <li>Use VPNs or other means to circumvent geographical restrictions</li>
+            <li>Share your account credentials with others</li>
+            <li>Reverse engineer or attempt to compromise Platform security</li>
+            <li>Create multiple accounts to abuse Platform features</li>
+            <li>Interfere with the Platform's normal operation</li>
+        </ul>
+        
+        <h2>6. Intellectual Property</h2>
+        <p>All content, code, designs, and trademarks on the Platform are owned by MIMIC or its licensors. You may not copy, modify, distribute, or create derivative works without express permission.</p>
+        
+        <h2>7. Account Termination</h2>
+        <p>We reserve the right to suspend or terminate your account at any time for:</p>
+        <ul>
+            <li>Violation of these Terms of Service</li>
+            <li>Suspected fraudulent or illegal activity</li>
+            <li>Non-payment of subscription fees</li>
+            <li>Any other reason at our sole discretion</li>
+        </ul>
+        
+        <h2>8. Limitation of Liability</h2>
+        <p>To the maximum extent permitted by law:</p>
+        <ul>
+            <li>The Platform is provided "AS IS" without warranties of any kind</li>
+            <li>We are not liable for any trading losses, system failures, or third-party issues</li>
+            <li>We are not responsible for exchange downtime or API failures</li>
+            <li>Our total liability is limited to the fees you have paid in the last 12 months</li>
+        </ul>
+        
+        <h2>9. Indemnification</h2>
+        <p>You agree to indemnify and hold harmless MIMIC, its operators, employees, and affiliates from any claims, damages, or expenses arising from your use of the Platform or violation of these terms.</p>
+        
+        <h2>10. Modifications</h2>
+        <p>We may modify these Terms at any time. Continued use after modifications constitutes acceptance of the new terms. We will notify users of material changes via email or Platform notification.</p>
+        
+        <h2>11. Governing Law</h2>
+        <p>These Terms are governed by international commercial law. Any disputes shall be resolved through arbitration.</p>
+        
+        <h2>12. Contact</h2>
+        <p>For questions about these Terms, please contact us through the Platform's support system.</p>
+        
+        <div class="last-updated">
+            Last updated: January 2026
+        </div>
+    </div>
+</div>
+{% endblock %}

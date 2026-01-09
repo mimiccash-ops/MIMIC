@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% block title %}Accept Terms of Service{% endblock %}
+{% block meta_title %}Terms of Service & Risk Disclaimer - MIMIC{% endblock %}
+{% block meta_description %}Review and accept MIMIC's Terms of Service and Risk Disclaimer to access the platform.{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* ============= LEGAL ACCEPTANCE CONTAINER ============= */
+    .legal-container {
+        min-height: calc(100vh - var(--header-height) - 100px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 24px;
+        position: relative;
+    }
+    
+    .legal-container::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: 
+            radial-gradient(ellipse at 30% 30%, rgba(255, 71, 87, 0.06) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 70%, rgba(0, 240, 255, 0.05) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    
+    .legal-card {
+        width: 100%;
+        max-width: 800px;
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(255, 71, 87, 0.2);
+        border-radius: var(--radius-2xl);
+        padding: 48px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-elevated);
+    }
+    
+    .legal-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #ff4757, #ff6b81, #ff4757);
+    }
+    
+    .legal-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+    
+    .legal-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        background: rgba(255, 71, 87, 0.1);
+        border: 2px solid rgba(255, 71, 87, 0.3);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+    }
+    
+    .legal-title {
+        font-family: var(--font-cyber);
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .legal-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    /* Warning Banner */
+    .warning-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+        background: rgba(255, 71, 87, 0.08);
+        border: 1px solid rgba(255, 71, 87, 0.25);
+        border-radius: var(--radius-lg);
+        margin-bottom: 28px;
+    }
+    
+    .warning-banner .warning-icon {
+        font-size: 1.5rem;
+        color: #ff4757;
+        flex-shrink: 0;
+    }
+    
+    .warning-banner .warning-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+    
+    .warning-banner .warning-text strong {
+        color: #ff4757;
+    }
+    
+    /* Document Sections */
+    .legal-document {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-lg);
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 24px;
+        margin-bottom: 28px;
+    }
+    
+    .legal-document::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .legal-document::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+    }
+    
+    .legal-document::-webkit-scrollbar-thumb {
+        background: rgba(0, 240, 255, 0.3);
+        border-radius: 4px;
+    }
+    
+    .legal-document h2 {
+        font-family: var(--font-cyber);
+        font-size: 1.25rem;
+        color: var(--neon-cyan);
+        margin: 24px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    
+    .legal-document h2:first-child {
+        margin-top: 0;
+    }
+    
+    .legal-document h3 {
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin: 16px 0 8px;
+    }
+    
+    .legal-document p, .legal-document li {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 12px;
+    }
+    
+    .legal-document ul {
+        padding-left: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .legal-document .highlight {
+        color: #ff4757;
+        font-weight: 600;
+    }
+    
+    /* Consent Checkboxes */
+    .consent-section {
+        margin-bottom: 28px;
+    }
+    
+    .consent-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-lg);
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .consent-item:hover {
+        border-color: rgba(0, 240, 255, 0.3);
+        background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .consent-item.checked {
+        border-color: rgba(57, 255, 20, 0.4);
+        background: rgba(57, 255, 20, 0.05);
+    }
+    
+    .consent-item input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+        accent-color: var(--neon-green);
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    
+    .consent-item label {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        cursor: pointer;
+    }
+    
+    .consent-item label strong {
+        color: var(--text-primary);
+    }
+    
+    /* Submit Button */
+    .submit-btn {
+        width: 100%;
+        padding: 18px 28px;
+        background: linear-gradient(135deg, #ff4757, #ff6b81);
+        border: none;
+        border-radius: var(--radius-lg);
+        color: #fff;
+        font-family: var(--font-cyber);
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: all 0.4s ease;
+        box-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    
+    .submit-btn:not(:disabled):hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0 50px rgba(255, 71, 87, 0.5), 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .submit-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s;
+    }
+    
+    .submit-btn:not(:disabled):hover::before {
+        left: 100%;
+    }
+    
+    /* Version Tag */
+    .version-tag {
+        display: inline-block;
+        padding: 4px 12px;
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-sm);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--neon-cyan);
+        margin-left: 12px;
+    }
+    
+    /* Footer info */
+    .legal-footer {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(0, 240, 255, 0.1);
+        text-align: center;
+    }
+    
+    .legal-footer p {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+    }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+        .legal-card {
+            padding: 32px 20px;
+        }
+        
+        .legal-title {
+            font-size: 1.4rem;
+        }
+        
+        .legal-document {
+            max-height: 300px;
+            padding: 16px;
+        }
+        
+        .warning-banner {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-container">
+    <div class="legal-card animate-slide-up">
+        <!-- Header -->
+        <div class="legal-header">
+            <div class="legal-icon">⚖️</div>
+            <h1 class="legal-title">
+                Terms of Service & Risk Disclaimer
+                <span class="version-tag">v{{ tos_version }}</span>
+            </h1>
+            <p class="legal-subtitle">
+                Please review and accept our terms before continuing to use MIMIC
+            </p>
+        </div>
+        
+        <!-- Warning Banner -->
+        <div class="warning-banner">
+            <span class="warning-icon">⚠️</span>
+            <div class="warning-text">
+                <strong>HIGH-RISK WARNING:</strong> Cryptocurrency trading involves substantial risk of loss. 
+                Copy trading does not guarantee profits. Past performance is not indicative of future results. 
+                You may lose some or all of your invested capital. Only trade with money you can afford to lose.
+            </div>
+        </div>
+        
+        <!-- Legal Document Content -->
+        <div class="legal-document">
+            <h2>1. Risk Disclaimer</h2>
+            <p>By using MIMIC ("the Platform"), you acknowledge and accept the following risks:</p>
+            <ul>
+                <li><span class="highlight">Market Risk:</span> Cryptocurrency markets are highly volatile. Prices can fluctuate dramatically within short periods.</li>
+                <li><span class="highlight">Copy Trading Risk:</span> Copying traders' positions does not guarantee similar results. Market conditions, timing, and other factors may cause different outcomes.</li>
+                <li><span class="highlight">Leverage Risk:</span> Trading with leverage amplifies both potential profits AND losses. You may lose more than your initial investment.</li>
+                <li><span class="highlight">Technical Risk:</span> System failures, network issues, or platform downtime may prevent execution of trades or cause unexpected losses.</li>
+                <li><span class="highlight">Regulatory Risk:</span> Cryptocurrency regulations vary by jurisdiction and may change, potentially affecting your ability to trade.</li>
+            </ul>
+            
+            <h2>2. No Financial Advice</h2>
+            <p>The Platform and its operators:</p>
+            <ul>
+                <li>Do <strong>NOT</strong> provide financial, investment, legal, or tax advice</li>
+                <li>Do <strong>NOT</strong> recommend any specific trades, investments, or strategies</li>
+                <li>Do <strong>NOT</strong> guarantee any particular trading outcomes or returns</li>
+            </ul>
+            <p>All trading decisions are made by you, the user. You are solely responsible for your trading activities and their outcomes.</p>
+            
+            <h2>3. Terms of Service</h2>
+            <h3>3.1 Eligibility</h3>
+            <p>By using this Platform, you confirm that:</p>
+            <ul>
+                <li>You are at least 18 years old (or the legal age in your jurisdiction)</li>
+                <li>You are <strong>NOT</strong> a resident or citizen of a restricted jurisdiction (USA, North Korea, Iran, or other sanctioned countries)</li>
+                <li>You have the legal capacity to enter into binding agreements</li>
+                <li>You are not prohibited from using cryptocurrency services under applicable laws</li>
+            </ul>
+            
+            <h3>3.2 API Keys & Security</h3>
+            <ul>
+                <li>You are responsible for the security of your exchange API keys</li>
+                <li>Never share your API secret with anyone</li>
+                <li>Use API keys with trading permissions only (no withdrawal permissions)</li>
+                <li>The Platform encrypts your API keys, but you remain responsible for key security</li>
+            </ul>
+            
+            <h3>3.3 Prohibited Activities</h3>
+            <p>You agree NOT to:</p>
+            <ul>
+                <li>Use the Platform for money laundering or illegal activities</li>
+                <li>Attempt to manipulate markets or engage in wash trading</li>
+                <li>Use VPNs or other means to circumvent geographical restrictions</li>
+                <li>Share your account credentials with others</li>
+                <li>Reverse engineer or attempt to compromise Platform security</li>
+            </ul>
+            
+            <h3>3.4 Limitation of Liability</h3>
+            <p>To the maximum extent permitted by law:</p>
+            <ul>
+                <li>The Platform is provided "AS IS" without warranties of any kind</li>
+                <li>We are not liable for any trading losses, system failures, or third-party issues</li>
+                <li>Our total liability is limited to the fees you have paid in the last 12 months</li>
+            </ul>
+            
+            <h2>4. Privacy & Data</h2>
+            <p>By using the Platform, you consent to our collection and processing of:</p>
+            <ul>
+                <li>Account information (username, email, phone)</li>
+                <li>Trading data and history</li>
+                <li>IP address and device information for security purposes</li>
+            </ul>
+            <p>We do not sell your personal data to third parties.</p>
+            
+            <h2>5. Acknowledgment</h2>
+            <p>By accepting these terms, you confirm that you have:</p>
+            <ul>
+                <li>Read and understood all risks associated with cryptocurrency trading</li>
+                <li>Sufficient knowledge and experience to evaluate the risks</li>
+                <li>Financial resources to bear potential losses</li>
+                <li>Sought independent professional advice if needed</li>
+            </ul>
+        </div>
+        
+        <!-- Consent Form -->
+        <form method="POST" action="{{ url_for('legal_accept') }}" id="consentForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="tos_version" value="{{ tos_version }}">
+            
+            <div class="consent-section">
+                <div class="consent-item" onclick="toggleCheckbox('consent1')">
+                    <input type="checkbox" id="consent1" name="consent_risks" required>
+                    <label for="consent1">
+                        <strong>I understand and accept all risks</strong> associated with cryptocurrency trading, 
+                        including the potential loss of my entire invested capital.
+                    </label>
+                </div>
+                
+                <div class="consent-item" onclick="toggleCheckbox('consent2')">
+                    <input type="checkbox" id="consent2" name="consent_tos" required>
+                    <label for="consent2">
+                        <strong>I have read, understood, and agree</strong> to the Terms of Service, 
+                        including eligibility requirements and prohibited activities.
+                    </label>
+                </div>
+                
+                <div class="consent-item" onclick="toggleCheckbox('consent3')">
+                    <input type="checkbox" id="consent3" name="consent_jurisdiction" required>
+                    <label for="consent3">
+                        <strong>I confirm I am NOT a resident or citizen</strong> of USA, North Korea, Iran, 
+                        or any other jurisdiction where cryptocurrency trading is prohibited.
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                <span>Accept & Continue</span>
+                <i class="fas fa-check-circle"></i>
+            </button>
+        </form>
+        
+        <!-- Footer -->
+        <div class="legal-footer">
+            <p>By clicking "Accept & Continue", you agree to be bound by these terms.</p>
+            <p>This consent will be recorded with your IP address and timestamp for compliance purposes.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCheckbox(id) {
+    const checkbox = document.getElementById(id);
+    checkbox.checked = !checkbox.checked;
+    updateConsentState();
+}
+
+function updateConsentState() {
+    const consent1 = document.getElementById('consent1').checked;
+    const consent2 = document.getElementById('consent2').checked;
+    const consent3 = document.getElementById('consent3').checked;
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Update visual state
+    document.querySelectorAll('.consent-item').forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+            item.classList.add('checked');
+        } else {
+            item.classList.remove('checked');
+        }
+    });
+    
+    // Enable/disable submit button
+    submitBtn.disabled = !(consent1 && consent2 && consent3);
+}
+
+// Add change listeners
+document.querySelectorAll('.consent-item input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', updateConsentState);
+});
+
+// Prevent double-clicks on consent items
+document.querySelectorAll('.consent-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        if (e.target.tagName === 'INPUT') {
+            e.stopPropagation();
+            updateConsentState();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -13,27 +13,27 @@
 [MasterAccount]
 # Your Binance Futures API credentials
 # RECOMMENDED: Set via BINANCE_MASTER_API_KEY and BINANCE_MASTER_API_SECRET env vars
-api_key = ${BINANCE_MASTER_API_KEY}
-api_secret = ${BINANCE_MASTER_API_SECRET}
+api_key = ${952g8yPO5RI7DR46BpgOMvjvmXkct2pHBABctz1TVQz8UGvsbn0w3R8J9Md2R4Ub}
+api_secret = ${6R9fcOCdknnnpMXZfUeBzEvSwvDNKnZaFtD0YHeRN2UthAIEjeOY5FH2Z75m7WaG}
 
 [Webhook]
 # Secret passphrase for TradingView webhooks
 # RECOMMENDED: Set via WEBHOOK_PASSPHRASE env var
 # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-passphrase = ${WEBHOOK_PASSPHRASE}
+passphrase = ${mimiccashadmin}
 
 [Settings]
 # Use Binance Testnet (True) or Real account (False)
 testnet = False
 # Maximum simultaneous open positions
-max_open_positions = 10
+max_open_positions = 1
 
 [Telegram]
 # Telegram Bot for notifications (get from @BotFather)
 # RECOMMENDED: Set via TELEGRAM_BOT_TOKEN env var
-bot_token = ${TELEGRAM_BOT_TOKEN}
+bot_token = ${8062805313:AAEF0TEzU3hQhDdOPyEx_9YHwZmu967tcF4}
 # Your Telegram Chat ID (get from @userinfobot)
-chat_id = ${TELEGRAM_CHAT_ID}
+chat_id = ${8254483196}
 # Enable/disable notifications
 enabled = True
 
@@ -47,19 +47,18 @@ smtp_password = ${SMTP_PASSWORD}
 from_email = ${SMTP_FROM_EMAIL}
 from_name = Brain Capital
 # Enable/disable email functionality
-enabled = False
+enabled = True
 
 [Production]
-# Your production domain (with https://)
-domain = https://yourdomain.com
-
+# Your production domain (with https://mimiccash.com)
+domain = https://mimiccash.com
 # SSL certificate paths (leave empty if using nginx as reverse proxy)
 ssl_cert = 
 ssl_key = 
 
 [Proxy]
 # Enable proxy rotation for high-volume trading (1000+ users)
-enabled = False
+enabled = True
 # Comma-separated list of proxy URLs
 proxies = 
 users_per_proxy = 50
@@ -75,3 +74,59 @@ secret = ${PANIC_OTP_SECRET}
 # Comma-separated list of Telegram user IDs authorized to use panic commands
 # Get your ID from @userinfobot
 authorized_users = ${PANIC_AUTHORIZED_USERS}
+
+[WebPush]
+# Web Push Notifications (PWA) - VAPID Keys
+# Generate keys with: python generate_vapid_keys.py
+# SECURITY: Store actual keys in VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY env vars
+vapid_public_key = ${VAPID_PUBLIC_KEY}
+vapid_private_key = ${VAPID_PRIVATE_KEY}
+# Email for VAPID identification (mailto: format)
+vapid_claim_email = mailto:admin@mimiccash.com
+
+[Twitter]
+# Twitter/X API for auto-posting successful trades
+# Create a developer account at: https://developer.twitter.com
+# Create an App with Read and Write permissions
+# SECURITY: Store credentials in environment variables
+api_key = ${TWITTER_API_KEY}
+api_secret = ${TWITTER_API_SECRET}
+access_token = ${TWITTER_ACCESS_TOKEN}
+access_secret = ${TWITTER_ACCESS_SECRET}
+# Minimum ROI percentage to trigger a tweet (default: 50%)
+min_roi_threshold = 50.0
+# Your site URL for tweet links
+site_url = https://mimic.cash
+
+[Compliance]
+# Terms of Service version - increment this when TOS changes to force re-consent
+tos_version = 1.0
+# Blocked country codes (ISO 3166-1 alpha-2, comma-separated)
+# US = United States, KP = North Korea, IR = Iran
+blocked_countries = US,KP,IR
+# Path to MaxMind GeoLite2-Country.mmdb database
+# Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+geoip_db_path = 
+# Enable TOS consent requirement (True/False)
+tos_consent_enabled = True
+
+[Payment]
+# Plisio Crypto Payment Gateway
+# Sign up at: https://plisio.net
+# SECURITY: Store credentials in environment variables
+api_key = ${PLISIO_API_KEY}
+webhook_secret = ${PLISIO_WEBHOOK_SECRET}
+# Enable/disable payment functionality
+enabled = True
+
+[SupportBot]
+# OpenAI API key for RAG support bot
+# Sign up at: https://platform.openai.com
+openai_api_key = ${OPENAI_API_KEY}
+# OpenAI model settings
+embedding_model = text-embedding-3-small
+chat_model = gpt-4o-mini
+# RAG settings
+confidence_threshold = 0.7
+chunk_size = 500
+chunk_overlap = 50

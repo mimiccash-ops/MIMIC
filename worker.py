@@ -223,6 +223,20 @@ async def startup(ctx: dict):
         # Start trailing stop-loss monitor
         await engine.start_trailing_sl_monitor()
         logger.info("🎯 Trailing stop-loss monitor started")
+        
+        # Initialize AI Sentiment Manager
+        try:
+            from sentiment import SentimentManager, set_sentiment_manager
+            sentiment_manager = SentimentManager(redis_client)
+            set_sentiment_manager(sentiment_manager)
+            engine.set_sentiment_manager(sentiment_manager)
+            
+            # Fetch initial sentiment on startup
+            initial_sentiment = await sentiment_manager.update_sentiment()
+            logger.info(f"🧠 AI Sentiment Filter initialized: Fear & Greed Index = {initial_sentiment.get('value')}")
+        except Exception as sentiment_e:
+            logger.warning(f"⚠️ AI Sentiment Filter not available: {sentiment_e}")
+            
     except Exception as e:
         logger.warning(f"⚠️ Smart Features not available: {e}")
     
@@ -307,6 +321,19 @@ from tasks import (
     # Risk Guardrails tasks
     reset_daily_balances_task,
     check_risk_guardrails_status_task,
+    # AI Sentiment Filter tasks
+    update_market_sentiment_task,
+    get_sentiment_status_task,
+    # Gamification tasks
+    calculate_user_xp_task,
+    check_achievements_task,
+    get_gamification_status_task,
+    # Tournament tasks
+    update_tournament_status_task,
+    calculate_tournament_roi_task,
+    finalize_tournament_task,
+    create_weekly_tournament_task,
+    get_tournament_status_task,
 )
 
 
@@ -329,6 +356,19 @@ class WorkerSettings:
         # Risk Guardrails tasks
         reset_daily_balances_task,
         check_risk_guardrails_status_task,
+        # AI Sentiment Filter tasks
+        update_market_sentiment_task,
+        get_sentiment_status_task,
+        # Gamification tasks
+        calculate_user_xp_task,
+        check_achievements_task,
+        get_gamification_status_task,
+        # Tournament tasks
+        update_tournament_status_task,
+        calculate_tournament_roi_task,
+        finalize_tournament_task,
+        create_weekly_tournament_task,
+        get_tournament_status_task,
     ]
     
     # Cron jobs - scheduled tasks
@@ -339,6 +379,19 @@ class WorkerSettings:
         cron(execute_dca_check_task, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
         # Reset daily balances at 00:00 UTC (midnight) - Risk Guardrails
         cron(reset_daily_balances_task, hour=0, minute=0),
+        # Update market sentiment every hour (AI Sentiment Filter)
+        cron(update_market_sentiment_task, minute=0),
+        # Calculate user XP daily at 01:00 UTC (Gamification)
+        cron(calculate_user_xp_task, hour=1, minute=0),
+        # Tournament tasks
+        # Update tournament status every minute (start/end tournaments)
+        cron(update_tournament_status_task, minute={0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59}),
+        # Calculate tournament ROI every 5 minutes
+        cron(calculate_tournament_roi_task, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+        # Finalize completed tournaments every 5 minutes
+        cron(finalize_tournament_task, minute={1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56}),
+        # Create weekly tournament every Sunday at 23:00 UTC
+        cron(create_weekly_tournament_task, weekday=6, hour=23, minute=0),
     ]
     
     # Lifecycle hooks

@@ -241,6 +241,8 @@ class TelegramBotHandler:
         self.application.add_handler(CommandHandler("start", self._cmd_start))
         self.application.add_handler(CommandHandler("help", self._cmd_help))
         self.application.add_handler(CommandHandler("status", self._cmd_status))
+        self.application.add_handler(CommandHandler("support", self._cmd_support))  # AI Support Bot
+        self.application.add_handler(CommandHandler("ask", self._cmd_support))  # Alias for support
         self.application.add_handler(CommandHandler("panic_close_all", self._cmd_panic_close_all))
         self.application.add_handler(CommandHandler("panic", self._cmd_panic_close_all))  # Alias
         self.application.add_handler(CommandHandler("otp_setup", self._cmd_otp_setup))
@@ -271,6 +273,7 @@ class TelegramBotHandler:
 Доступні команди:
 /help - Показати довідку
 /status - Статус системи
+/support &lt;питання&gt; - 🤖 AI Support Bot
 {"/panic_close_all <OTP> - ⚠️ ЕКСТРЕНЕ закриття всіх позицій" if is_authorized else ""}
 
 <i>Для авторизації зверніться до адміністратора.</i>
@@ -291,6 +294,12 @@ class TelegramBotHandler:
 /start - Початок роботи
 /help - Ця довідка
 /status - Перевірити статус системи
+/support &lt;питання&gt; - Запитати AI Support Bot
+
+<b>Приклади запитань для /support:</b>
+• /support Як підключити Binance?
+• /support Що таке DCA?
+• /support Як працює реферальна система?
 
 """
         
@@ -333,6 +342,93 @@ class TelegramBotHandler:
 {"🚨 <i>Panic-команди доступні</i>" if is_authorized else ""}
 """
         await update.message.reply_text(status_msg.strip(), parse_mode='HTML')
+    
+    async def _cmd_support(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Handle /support command - AI Support Bot
+        
+        Uses RAG to answer user questions based on documentation.
+        """
+        user = update.effective_user
+        args = context.args
+        
+        if not args:
+            await update.message.reply_text(
+                "🤖 <b>AI Support Bot</b>\n\n"
+                "Задайте мені питання про платформу MIMIC!\n\n"
+                "<b>Використання:</b>\n"
+                "<code>/support Ваше питання тут</code>\n\n"
+                "<b>Приклади:</b>\n"
+                "• /support Як підключити Binance?\n"
+                "• /support Що таке trailing stop-loss?\n"
+                "• /support Як працює реферальна система?\n"
+                "• /support Які біржі підтримуються?",
+                parse_mode='HTML'
+            )
+            return
+        
+        question = ' '.join(args)
+        
+        # Indicate typing
+        await update.message.chat.send_action('typing')
+        
+        # Get response from support bot
+        try:
+            from support_bot import chat_with_support
+            
+            response = chat_with_support(
+                message=question,
+                session_id=f"tg_{user.id}",
+                user_id=None,  # Could link to MIMIC user if telegram_chat_id matches
+                channel='telegram',
+                telegram_chat_id=str(user.id)
+            )
+            
+            answer = response.get('answer', 'Вибачте, не вдалося отримати відповідь.')
+            confidence = response.get('confidence', 0)
+            needs_review = response.get('needs_human_review', False)
+            
+            # Build response message
+            reply_msg = f"🤖 <b>AI Support Bot</b>\n\n"
+            reply_msg += f"<b>Питання:</b> {question[:100]}{'...' if len(question) > 100 else ''}\n\n"
+            reply_msg += f"<b>Відповідь:</b>\n{answer}\n\n"
+            
+            # Add confidence indicator
+            if confidence >= 0.8:
+                confidence_icon = "🟢"
+                confidence_text = "Висока впевненість"
+            elif confidence >= 0.6:
+                confidence_icon = "🟡"
+                confidence_text = "Середня впевненість"
+            else:
+                confidence_icon = "🔴"
+                confidence_text = "Низька впевненість"
+            
+            reply_msg += f"{confidence_icon} <i>{confidence_text} ({confidence:.0%})</i>\n"
+            
+            if needs_review:
+                reply_msg += "\n⚠️ <i>Це питання передано на перевірку адміністратору.</i>"
+            
+            await update.message.reply_text(reply_msg, parse_mode='HTML')
+            
+            logger.info(f"[TG] Support question from {user.username}: {question[:50]}... (confidence: {confidence:.2f})")
+            
+        except ImportError as e:
+            logger.error(f"Support bot import error: {e}")
+            await update.message.reply_text(
+                "❌ <b>AI Support Bot недоступний</b>\n\n"
+                "Модуль підтримки не налаштовано.\n"
+                "Зверніться до адміністратора.",
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            logger.error(f"Support bot error: {e}")
+            await update.message.reply_text(
+                "❌ <b>Помилка</b>\n\n"
+                "Не вдалося обробити ваше питання.\n"
+                "Спробуйте пізніше або зверніться до адміністратора.",
+                parse_mode='HTML'
+            )
     
     async def _cmd_panic_close_all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """

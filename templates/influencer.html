@@ -1,0 +1,633 @@
+{% extends "base.html" %}
+
+{% block title %}Influencer Dashboard{% endblock %}
+{% block meta_description %}MIMIC Partner Dashboard - Track your referral performance, earnings, and download promotional materials.{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-dark py-8">
+    <div class="container mx-auto px-4 max-w-7xl">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-display font-bold text-gradient mb-2">
+                    <i class="fas fa-rocket mr-2"></i>Influencer Dashboard
+                </h1>
+                <p class="text-white/60">Track your referral performance and earnings</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{{ url_for('dashboard') }}" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Referral Code Card -->
+        <div class="section-card mb-8">
+            <div class="section-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="text-xs text-white/40 block mb-2">Your Referral Code</label>
+                        <div class="flex items-center gap-3">
+                            <div class="text-4xl font-mono font-bold text-gradient">{{ referral_code }}</div>
+                            <button onclick="copyCode()" class="btn-cyber btn-cyber-sm" id="copy-code-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-white/40 block mb-2">Your Invite Link</label>
+                        <div class="flex gap-2">
+                            <input type="text" value="{{ referral_link }}" id="referral-link" class="input-cyber text-sm flex-1" readonly>
+                            <button onclick="copyLink()" class="btn-cyber btn-cyber-sm" id="copy-link-btn">
+                                <i class="fas fa-copy"></i>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <!-- Clicks -->
+            <div class="stat-card">
+                <div class="stat-icon bg-blue-500/10 text-blue-400">
+                    <i class="fas fa-mouse-pointer"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value text-blue-400" id="stat-clicks">{{ click_stats.total_clicks }}</div>
+                    <div class="stat-label">Total Clicks</div>
+                    <div class="stat-sub text-white/40">{{ click_stats.unique_visitors }} unique</div>
+                </div>
+            </div>
+            
+            <!-- Registrations -->
+            <div class="stat-card">
+                <div class="stat-icon bg-purple-500/10 text-purple-400">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value text-purple-400" id="stat-registrations">{{ referral_stats.referral_count }}</div>
+                    <div class="stat-label">Registrations</div>
+                    <div class="stat-sub text-white/40">{{ click_stats.click_to_registration_rate }}% conv.</div>
+                </div>
+            </div>
+            
+            <!-- Deposits -->
+            <div class="stat-card">
+                <div class="stat-icon bg-yellow-500/10 text-yellow-400">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value text-yellow-400" id="stat-deposits">{{ click_stats.deposits }}</div>
+                    <div class="stat-label">Deposits</div>
+                    <div class="stat-sub text-white/40">${{ "%.2f"|format(click_stats.total_deposit_amount) }}</div>
+                </div>
+            </div>
+            
+            <!-- Commission -->
+            <div class="stat-card">
+                <div class="stat-icon bg-green-500/10 text-green-400">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value text-green-400" id="stat-commission">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
+                    <div class="stat-label">Total Earned</div>
+                    <div class="stat-sub text-white/40">${{ "%.2f"|format(referral_stats.pending_commission) }} pending</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earnings Chart & Payout Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Earnings Chart -->
+            <div class="lg:col-span-2 section-card">
+                <div class="section-header">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-line text-gradient"></i>
+                        <span class="font-display font-semibold">Referral Earnings Over Time</span>
+                    </div>
+                    <select id="chart-period" class="input-cyber text-xs w-auto" onchange="loadEarningsChart()">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+                <div class="section-body">
+                    <div id="earnings-chart" style="height: 300px;">
+                        <div class="flex items-center justify-center h-full text-white/40">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Loading chart...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payout Request -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-money-bill-wave text-gradient"></i>
+                        <span class="font-display font-semibold">Request Payout</span>
+                    </div>
+                </div>
+                <div class="section-body">
+                    <!-- Balance Summary -->
+                    <div class="bg-gradient-to-r from-green-500/10 to-cyan-500/10 border border-green-500/20 rounded-lg p-4 mb-4">
+                        <div class="text-xs text-white/40 mb-1">Available Balance</div>
+                        <div class="text-3xl font-mono font-bold text-green-400" id="available-balance">
+                            ${{ "%.2f"|format(referral_stats.pending_commission) }}
+                        </div>
+                        <div class="text-xs text-white/40 mt-1">
+                            Minimum payout: $50.00
+                        </div>
+                    </div>
+                    
+                    {% if pending_payout %}
+                    <!-- Pending Payout Notice -->
+                    <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+                        <div class="flex items-center gap-2 text-yellow-400 mb-2">
+                            <i class="fas fa-clock"></i>
+                            <span class="font-semibold">Pending Request</span>
+                        </div>
+                        <div class="text-sm text-white/60">
+                            You have a pending payout request for <strong>${{ "%.2f"|format(pending_payout.amount) }}</strong>
+                            <br><span class="text-xs">Submitted: {{ pending_payout.created_at.strftime('%d %b %Y') }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Payout Form -->
+                    <form id="payout-form" onsubmit="submitPayoutRequest(event)">
+                        <div class="mb-4">
+                            <label class="text-xs text-white/40 block mb-2">Amount (USD)</label>
+                            <input type="number" 
+                                   name="amount" 
+                                   id="payout-amount"
+                                   class="input-cyber" 
+                                   placeholder="Enter amount" 
+                                   min="50" 
+                                   max="{{ referral_stats.pending_commission }}"
+                                   step="0.01"
+                                   required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-xs text-white/40 block mb-2">Payment Method</label>
+                            <select name="payment_method" id="payout-method" class="input-cyber" required>
+                                <option value="">Select method...</option>
+                                <option value="usdt_trc20">USDT (TRC20)</option>
+                                <option value="usdt_erc20">USDT (ERC20)</option>
+                                <option value="usdt_bep20">USDT (BEP20)</option>
+                                <option value="btc">Bitcoin</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-xs text-white/40 block mb-2">Wallet Address / Bank Details</label>
+                            <input type="text" 
+                                   name="payment_address" 
+                                   id="payout-address"
+                                   class="input-cyber" 
+                                   placeholder="Enter wallet address or bank details"
+                                   required>
+                        </div>
+                        <button type="submit" 
+                                class="btn-cyber w-full"
+                                id="payout-submit-btn"
+                                {% if referral_stats.pending_commission < 50 %}disabled{% endif %}>
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Request Payout
+                        </button>
+                        {% if referral_stats.pending_commission < 50 %}
+                        <p class="text-xs text-red-400 mt-2 text-center">
+                            Minimum balance of $50 required for payout
+                        </p>
+                        {% endif %}
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Marketing Assets Section -->
+        <div class="section-card mb-8">
+            <div class="section-header">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-palette text-gradient"></i>
+                    <span class="font-display font-semibold">Marketing Assets</span>
+                </div>
+                <span class="text-xs text-white/40">Download banners with your referral code</span>
+            </div>
+            <div class="section-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for type, config in banner_types.items() %}
+                    <div class="bg-dark-lighter border border-white/10 rounded-lg overflow-hidden hover:border-cyan-500/30 transition-all">
+                        <div class="aspect-video bg-gradient-to-br from-cyan-500/10 to-purple-500/10 flex items-center justify-center p-4">
+                            <div class="text-center">
+                                <i class="fas fa-image text-4xl text-cyan-400/50 mb-2"></i>
+                                <div class="text-xs text-white/40">{{ config.size }}</div>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-semibold text-white mb-1 capitalize">{{ type }}</h4>
+                            <p class="text-xs text-white/40 mb-3">{{ config.description }}</p>
+                            <div class="flex gap-2">
+                                <button onclick="previewBanner('{{ type }}')" class="btn-cyber btn-cyber-sm flex-1">
+                                    <i class="fas fa-eye mr-1"></i> Preview
+                                </button>
+                                <a href="{{ url_for('get_banner', banner_type=type) }}" 
+                                   download="mimic-banner-{{ type }}.png" 
+                                   class="btn-cyber btn-cyber-sm btn-cyber-green flex-1">
+                                    <i class="fas fa-download mr-1"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Referrals & Commissions -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Recent Referrals -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-users text-gradient"></i>
+                        <span class="font-display font-semibold">Recent Referrals</span>
+                    </div>
+                    <span class="badge-cyber">{{ referral_stats.referral_count }} total</span>
+                </div>
+                <div class="section-body max-h-80 overflow-y-auto">
+                    {% if referrals %}
+                    <div class="space-y-3">
+                        {% for ref in referrals %}
+                        <div class="flex items-center justify-between p-3 bg-dark-lighter rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 flex items-center justify-center">
+                                    <i class="fas fa-user text-cyan-400"></i>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-white">{{ ref.username }}</div>
+                                    <div class="text-xs text-white/40">Joined {{ ref.joined }}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                {% if ref.is_active %}
+                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                                    <i class="fas fa-circle text-[8px]"></i> Active
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-white/5 text-white/40">
+                                    <i class="fas fa-circle text-[8px]"></i> Inactive
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-white/40">
+                        <i class="fas fa-users text-3xl mb-3 opacity-50"></i>
+                        <p>No referrals yet</p>
+                        <p class="text-xs mt-1">Share your link to start earning!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Commissions -->
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-coins text-gradient"></i>
+                        <span class="font-display font-semibold">Recent Commissions</span>
+                    </div>
+                </div>
+                <div class="section-body max-h-80 overflow-y-auto">
+                    {% if recent_commissions %}
+                    <div class="space-y-3">
+                        {% for comm in recent_commissions %}
+                        <div class="flex items-center justify-between p-3 bg-dark-lighter rounded-lg">
+                            <div>
+                                <div class="font-semibold text-white">{{ comm.referred_username }}</div>
+                                <div class="text-xs text-white/40">{{ comm.created_at }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-green-400">+${{ comm.amount }}</div>
+                                <div class="text-xs text-white/40">{{ comm.rate }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-white/40">
+                        <i class="fas fa-coins text-3xl mb-3 opacity-50"></i>
+                        <p>No commissions yet</p>
+                        <p class="text-xs mt-1">You'll earn when your referrals profit!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout History -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-history text-gradient"></i>
+                    <span class="font-display font-semibold">Payout History</span>
+                </div>
+            </div>
+            <div class="section-body">
+                {% if payout_history %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-xs text-white/40 border-b border-white/10">
+                                <th class="pb-3 font-medium">Date</th>
+                                <th class="pb-3 font-medium">Amount</th>
+                                <th class="pb-3 font-medium">Method</th>
+                                <th class="pb-3 font-medium">Status</th>
+                                <th class="pb-3 font-medium">Transaction ID</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            {% for payout in payout_history %}
+                            <tr class="hover:bg-white/5">
+                                <td class="py-3 text-sm text-white/80">{{ payout.created_at[:10] }}</td>
+                                <td class="py-3 font-mono font-semibold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
+                                <td class="py-3 text-sm text-white/60">{{ payout.payment_method_label }}</td>
+                                <td class="py-3">
+                                    {% if payout.status == 'paid' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                                        <i class="fas fa-check"></i> Paid
+                                    </span>
+                                    {% elif payout.status == 'approved' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400">
+                                        <i class="fas fa-thumbs-up"></i> Approved
+                                    </span>
+                                    {% elif payout.status == 'pending' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                    {% elif payout.status == 'rejected' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400">
+                                        <i class="fas fa-times"></i> Rejected
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-sm font-mono text-white/40">
+                                    {{ payout.txn_id[:20] + '...' if payout.txn_id and payout.txn_id|length > 20 else (payout.txn_id or '-') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-white/40">
+                    <i class="fas fa-receipt text-3xl mb-3 opacity-50"></i>
+                    <p>No payout history</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Banner Preview Modal -->
+<div id="bannerPreviewModal" class="modal-cyber" onclick="if(event.target===this)closeBannerPreview()">
+    <div class="modal-content max-w-4xl">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fas fa-image"></i>
+                Banner Preview
+            </div>
+            <button onclick="closeBannerPreview()" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body text-center">
+            <img id="banner-preview-img" src="" alt="Banner Preview" class="max-w-full h-auto mx-auto rounded-lg border border-white/20">
+            <div class="mt-4">
+                <a id="banner-download-link" href="" download="" class="btn-cyber btn-cyber-green">
+                    <i class="fas fa-download mr-2"></i> Download Banner
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Stat Cards */
+.stat-card {
+    @apply bg-dark-lighter border border-white/10 rounded-xl p-4 flex items-start gap-3 hover:border-cyan-500/20 transition-all;
+}
+.stat-icon {
+    @apply w-12 h-12 rounded-lg flex items-center justify-center text-xl flex-shrink-0;
+}
+.stat-value {
+    @apply text-2xl font-mono font-bold;
+}
+.stat-label {
+    @apply text-sm text-white/60;
+}
+.stat-sub {
+    @apply text-xs mt-1;
+}
+
+/* Badge */
+.badge-cyber {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400;
+}
+
+/* Button variants */
+.btn-cyber-green {
+    @apply !bg-green-500/10 !border-green-500/30 !text-green-400 hover:!bg-green-500/20;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ==================== CHART ====================
+let earningsChart = null;
+
+function loadEarningsChart() {
+    const days = document.getElementById('chart-period').value;
+    
+    fetch(`{{ url_for('get_earnings_chart') }}?days=${days}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to load chart data');
+                return;
+            }
+            
+            const ctx = document.getElementById('earnings-chart');
+            ctx.innerHTML = '<canvas id="earnings-canvas"></canvas>';
+            
+            const canvas = document.getElementById('earnings-canvas');
+            
+            if (earningsChart) {
+                earningsChart.destroy();
+            }
+            
+            earningsChart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Daily Commission ($)',
+                        data: data.daily_commission,
+                        borderColor: '#00f0ff',
+                        backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#00f0ff',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }, {
+                        label: 'Cumulative ($)',
+                        data: data.cumulative,
+                        borderColor: '#00ff88',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff' }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 15, 24, 0.9)',
+                            titleColor: '#00f0ff',
+                            bodyColor: '#fff',
+                            borderColor: '#00f0ff',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { 
+                                color: 'rgba(255,255,255,0.5)',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Chart error:', err);
+            document.getElementById('earnings-chart').innerHTML = 
+                '<div class="flex items-center justify-center h-full text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Failed to load chart</div>';
+        });
+}
+
+// ==================== COPY FUNCTIONS ====================
+function copyCode() {
+    navigator.clipboard.writeText('{{ referral_code }}');
+    const btn = document.getElementById('copy-code-btn');
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => btn.innerHTML = '<i class="fas fa-copy"></i>', 2000);
+}
+
+function copyLink() {
+    const input = document.getElementById('referral-link');
+    navigator.clipboard.writeText(input.value);
+    const btn = document.getElementById('copy-link-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    setTimeout(() => btn.innerHTML = originalText, 2000);
+}
+
+// ==================== PAYOUT REQUEST ====================
+function submitPayoutRequest(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitBtn = document.getElementById('payout-submit-btn');
+    const originalBtnText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+    
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("request_payout") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            amount: parseFloat(formData.get('amount')),
+            payment_method: formData.get('payment_method'),
+            payment_address: formData.get('payment_address'),
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Show success and reload page
+            alert('Payout request submitted successfully! Our team will review it shortly.');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to submit payout request'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    })
+    .catch(err => {
+        console.error('Payout error:', err);
+        alert('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+}
+
+// ==================== BANNER PREVIEW ====================
+function previewBanner(type) {
+    const modal = document.getElementById('bannerPreviewModal');
+    const img = document.getElementById('banner-preview-img');
+    const downloadLink = document.getElementById('banner-download-link');
+    
+    const url = `{{ url_for('get_banner', banner_type='PLACEHOLDER') }}`.replace('PLACEHOLDER', type);
+    img.src = url;
+    downloadLink.href = url;
+    downloadLink.download = `mimic-banner-${type}.png`;
+    
+    modal.classList.add('active');
+}
+
+function closeBannerPreview() {
+    document.getElementById('bannerPreviewModal').classList.remove('active');
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', function() {
+    loadEarningsChart();
+});
+</script>
+{% endblock %}

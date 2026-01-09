@@ -16,6 +16,7 @@ from models import db
 from routers import router_user, router_admin
 from payment_router import router_payment
 from schemas import ErrorResponse
+from public_api import public_api
 
 
 # ==================== SECURITY MIDDLEWARE ====================
@@ -176,6 +177,10 @@ app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
 app.include_router(router_user)
 app.include_router(router_admin)
 app.include_router(router_payment)
+
+# Mount Public API under /api/v1 prefix
+# For production, this can also be served separately on api.mimic.cash
+app.mount("/api/public", public_api)
 
 
 # ==================== ROOT & HEALTH CHECK ====================

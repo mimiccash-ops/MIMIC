@@ -1,0 +1,609 @@
+# =============================================================================
+# MIMIC/BRAIN CAPITAL - PRODUCTION NGINX CONFIGURATION
+# =============================================================================
+# Optimized for HIGH CONCURRENCY (10,000+ concurrent connections)
+# Includes: Rate Limiting, Gzip, Security Headers, WebSocket, Cloudflare
+#
+# Installation:
+#   sudo cp nginx.conf.production /etc/nginx/nginx.conf
+#   sudo nginx -t && sudo systemctl reload nginx
+# =============================================================================
+
+# Run as www-data user
+user www-data;
+
+# Auto-detect CPU cores for optimal worker processes
+worker_processes auto;
+
+# Increase worker connections limit
+worker_rlimit_nofile 65535;
+
+# Error log
+error_log /var/log/nginx/error.log warn;
+pid /run/nginx.pid;
+
+events {
+    # Max connections per worker (should be <= worker_rlimit_nofile)
+    worker_connections 4096;
+    
+    # Use epoll on Linux for better performance
+    use epoll;
+    
+    # Accept multiple connections at once
+    multi_accept on;
+}
+
+http {
+    # ==========================================================================
+    # BASIC SETTINGS
+    # ==========================================================================
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Logging format with timing and Cloudflare real IP
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for" '
+                    'rt=$request_time uct="$upstream_connect_time" '
+                    'uht="$upstream_header_time" urt="$upstream_response_time"';
+
+    log_format cloudflare '$http_cf_connecting_ip - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" CF-Ray:$http_cf_ray';
+
+    access_log /var/log/nginx/access.log cloudflare;
+
+    # ==========================================================================
+    # PERFORMANCE OPTIMIZATIONS
+    # ==========================================================================
+    
+    # Enable sendfile for static files
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    
+    # Keepalive settings for persistent connections
+    keepalive_timeout 65;
+    keepalive_requests 1000;
+    
+    # Buffer sizes
+    client_body_buffer_size 16K;
+    client_header_buffer_size 1k;
+    client_max_body_size 16M;
+    large_client_header_buffers 4 32k;
+    
+    # Timeouts
+    client_body_timeout 30s;
+    client_header_timeout 30s;
+    send_timeout 30s;
+    
+    # Hash table sizes
+    types_hash_max_size 2048;
+    server_names_hash_bucket_size 64;
+
+    # ==========================================================================
+    # GZIP COMPRESSION
+    # ==========================================================================
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_min_length 256;
+    gzip_types
+        application/atom+xml
+        application/geo+json
+        application/javascript
+        application/x-javascript
+        application/json
+        application/ld+json
+        application/manifest+json
+        application/rdf+xml
+        application/rss+xml
+        application/xhtml+xml
+        application/xml
+        font/eot
+        font/otf
+        font/ttf
+        image/svg+xml
+        text/css
+        text/javascript
+        text/plain
+        text/xml;
+
+    # ==========================================================================
+    # RATE LIMITING ZONES
+    # ==========================================================================
+    
+    # General API rate limiting: 10 requests/second per IP
+    limit_req_zone $binary_remote_addr zone=api_general:10m rate=10r/s;
+    
+    # Strict rate limiting for login: 5 requests/minute per IP (prevent brute force)
+    limit_req_zone $binary_remote_addr zone=api_login:10m rate=5r/m;
+    
+    # Strict rate limiting for register: 3 requests/minute per IP (prevent spam)
+    limit_req_zone $binary_remote_addr zone=api_register:10m rate=3r/m;
+    
+    # WebSocket connections: 30 per IP
+    limit_conn_zone $binary_remote_addr zone=ws_conn:10m;
+    
+    # Rate limit by Cloudflare real IP (if behind Cloudflare)
+    map $http_cf_connecting_ip $rate_limit_key {
+        default $binary_remote_addr;
+        "~."    $http_cf_connecting_ip;
+    }
+    limit_req_zone $rate_limit_key zone=cf_api_general:10m rate=10r/s;
+    limit_req_zone $rate_limit_key zone=cf_api_login:10m rate=5r/m;
+    limit_req_zone $rate_limit_key zone=cf_api_register:10m rate=3r/m;
+
+    # Rate limit error responses
+    limit_req_status 429;
+    limit_conn_status 429;
+
+    # ==========================================================================
+    # CLOUDFLARE REAL IP RESTORATION
+    # ==========================================================================
+    # Trust Cloudflare IP ranges (update periodically from https://www.cloudflare.com/ips/)
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 104.16.0.0/13;
+    set_real_ip_from 104.24.0.0/14;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 131.0.72.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 172.64.0.0/13;
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    # IPv6
+    set_real_ip_from 2400:cb00::/32;
+    set_real_ip_from 2606:4700::/32;
+    set_real_ip_from 2803:f800::/32;
+    set_real_ip_from 2405:b500::/32;
+    set_real_ip_from 2405:8100::/32;
+    set_real_ip_from 2a06:98c0::/29;
+    set_real_ip_from 2c0f:f248::/32;
+    
+    real_ip_header CF-Connecting-IP;
+
+    # ==========================================================================
+    # SECURITY HEADERS (Global)
+    # ==========================================================================
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ==========================================================================
+    # UPSTREAM - Flask/Gunicorn Backend (Main App)
+    # ==========================================================================
+    upstream mimic_backend {
+        server 127.0.0.1:8000;
+        
+        # Connection pooling for better performance
+        keepalive 32;
+        keepalive_requests 1000;
+        keepalive_timeout 60s;
+    }
+
+    # ==========================================================================
+    # UPSTREAM - FastAPI Public API Backend
+    # ==========================================================================
+    upstream mimic_api {
+        server 127.0.0.1:8001;
+        
+        keepalive 16;
+        keepalive_requests 500;
+        keepalive_timeout 60s;
+    }
+
+    # ==========================================================================
+    # RATE LIMITING FOR PUBLIC API
+    # ==========================================================================
+    # Public API: 60 requests/minute per IP (1 req/s)
+    limit_req_zone $rate_limit_key zone=public_api:10m rate=1r/s;
+
+    # ==========================================================================
+    # HTTP -> HTTPS REDIRECT
+    # ==========================================================================
+    server {
+        listen 80;
+        listen [::]:80;
+        server_name mimic.cash www.mimic.cash api.mimic.cash;
+        
+        # Allow Cloudflare health checks
+        location /health {
+            access_log off;
+            return 200 "OK";
+            add_header Content-Type text/plain;
+        }
+        
+        # ACME challenge for Let's Encrypt
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+        
+        # Redirect all other HTTP to HTTPS
+        location / {
+            return 301 https://$server_name$request_uri;
+        }
+    }
+
+    # ==========================================================================
+    # MAIN HTTPS SERVER
+    # ==========================================================================
+    server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name mimic.cash www.mimic.cash;
+
+        # ------------------------------------------------------------------
+        # SSL CONFIGURATION
+        # ------------------------------------------------------------------
+        ssl_certificate /etc/letsencrypt/live/mimic.cash/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/mimic.cash/privkey.pem;
+        ssl_trusted_certificate /etc/letsencrypt/live/mimic.cash/chain.pem;
+        
+        # Modern SSL settings (TLS 1.2+ only)
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers off;
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+        
+        # SSL session settings
+        ssl_session_timeout 1d;
+        ssl_session_cache shared:SSL:50m;
+        ssl_session_tickets off;
+        
+        # OCSP Stapling
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        resolver 1.1.1.1 8.8.8.8 valid=300s;
+        resolver_timeout 5s;
+
+        # HSTS (31536000 seconds = 1 year)
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+        # ------------------------------------------------------------------
+        # LOGGING
+        # ------------------------------------------------------------------
+        access_log /var/log/nginx/mimic_access.log cloudflare buffer=16k;
+        error_log /var/log/nginx/mimic_error.log warn;
+
+        # ------------------------------------------------------------------
+        # RATE LIMITED ENDPOINTS - LOGIN
+        # ------------------------------------------------------------------
+        location = /api/login {
+            # Strict rate limiting: 5 requests/minute, burst of 3
+            limit_req zone=cf_api_login burst=3 nodelay;
+            limit_req zone=api_login burst=3 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            # Custom error page for rate limiting
+            error_page 429 = @rate_limited;
+        }
+
+        location = /login {
+            # Rate limit form-based login too
+            limit_req zone=cf_api_login burst=3 nodelay;
+            limit_req zone=api_login burst=3 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            error_page 429 = @rate_limited;
+        }
+
+        # ------------------------------------------------------------------
+        # RATE LIMITED ENDPOINTS - REGISTER
+        # ------------------------------------------------------------------
+        location = /api/register {
+            # Very strict rate limiting: 3 requests/minute, burst of 2
+            limit_req zone=cf_api_register burst=2 nodelay;
+            limit_req zone=api_register burst=2 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            error_page 429 = @rate_limited;
+        }
+
+        location = /register {
+            limit_req zone=cf_api_register burst=2 nodelay;
+            limit_req zone=api_register burst=2 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            error_page 429 = @rate_limited;
+        }
+
+        # ------------------------------------------------------------------
+        # RATE LIMITED ENDPOINTS - PASSWORD RESET
+        # ------------------------------------------------------------------
+        location ~ ^/(api/)?(forgot[-_]password|reset[-_]password) {
+            limit_req zone=cf_api_login burst=2 nodelay;
+            limit_req zone=api_login burst=2 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            error_page 429 = @rate_limited;
+        }
+
+        # ------------------------------------------------------------------
+        # API ENDPOINTS (General Rate Limiting)
+        # ------------------------------------------------------------------
+        location /api/ {
+            limit_req zone=cf_api_general burst=20 nodelay;
+            limit_req zone=api_general burst=20 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            # Timeouts for API
+            proxy_connect_timeout 30s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 30s;
+        }
+
+        # ------------------------------------------------------------------
+        # WEBSOCKET - Socket.IO
+        # ------------------------------------------------------------------
+        location /socket.io/ {
+            # Connection limit per IP
+            limit_conn ws_conn 30;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            
+            # WebSocket upgrade headers
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Long timeouts for WebSocket
+            proxy_read_timeout 86400s;
+            proxy_send_timeout 86400s;
+            proxy_connect_timeout 60s;
+            
+            # Disable buffering for real-time
+            proxy_buffering off;
+        }
+
+        # ------------------------------------------------------------------
+        # STATIC FILES (Served by Nginx)
+        # ------------------------------------------------------------------
+        location /static/ {
+            alias /var/www/mimic/static/;
+            
+            # Browser caching
+            expires 30d;
+            add_header Cache-Control "public, no-transform, immutable";
+            
+            # Gzip for static files
+            gzip_static on;
+            
+            # Security headers
+            add_header X-Content-Type-Options "nosniff" always;
+            
+            # Disable logging for static files
+            access_log off;
+        }
+
+        # PWA Service Worker (no cache)
+        location = /static/service-worker.js {
+            alias /var/www/mimic/static/service-worker.js;
+            expires -1;
+            add_header Cache-Control "no-store, no-cache, must-revalidate";
+        }
+
+        # PWA Manifest
+        location = /static/manifest.json {
+            alias /var/www/mimic/static/manifest.json;
+            expires 1d;
+            add_header Cache-Control "public";
+        }
+
+        # ------------------------------------------------------------------
+        # FAVICON
+        # ------------------------------------------------------------------
+        location = /favicon.ico {
+            alias /var/www/mimic/static/icons/favicon.ico;
+            expires 30d;
+            access_log off;
+        }
+
+        # ------------------------------------------------------------------
+        # ROBOTS.TXT
+        # ------------------------------------------------------------------
+        location = /robots.txt {
+            alias /var/www/mimic/static/robots.txt;
+            expires 1d;
+            access_log off;
+        }
+
+        # ------------------------------------------------------------------
+        # HEALTH CHECK ENDPOINT
+        # ------------------------------------------------------------------
+        location = /health {
+            access_log off;
+            return 200 "OK";
+            add_header Content-Type text/plain;
+        }
+
+        # ------------------------------------------------------------------
+        # RATE LIMITED ERROR HANDLER
+        # ------------------------------------------------------------------
+        location @rate_limited {
+            default_type application/json;
+            return 429 '{"error": "Too many requests. Please try again later.", "retry_after": 60}';
+        }
+
+        # ------------------------------------------------------------------
+        # MAIN APPLICATION
+        # ------------------------------------------------------------------
+        location / {
+            limit_req zone=cf_api_general burst=30 nodelay;
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header Connection "";
+            
+            proxy_connect_timeout 30s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 30s;
+            
+            # Buffering for non-WebSocket requests
+            proxy_buffering on;
+            proxy_buffer_size 4k;
+            proxy_buffers 8 4k;
+        }
+
+        # ------------------------------------------------------------------
+        # DENY ACCESS TO SENSITIVE FILES
+        # ------------------------------------------------------------------
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+        
+        location ~ \.(ini|env|log|sql|bak)$ {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+    }
+
+    # ==========================================================================
+    # PUBLIC API SERVER (api.mimic.cash)
+    # ==========================================================================
+    server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name api.mimic.cash;
+
+        # SSL Configuration (same as main site)
+        ssl_certificate /etc/letsencrypt/live/mimic.cash/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/mimic.cash/privkey.pem;
+        ssl_trusted_certificate /etc/letsencrypt/live/mimic.cash/chain.pem;
+        
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_prefer_server_ciphers off;
+        ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+        ssl_session_timeout 1d;
+        ssl_session_cache shared:SSL:50m;
+        ssl_session_tickets off;
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        resolver 1.1.1.1 8.8.8.8 valid=300s;
+        resolver_timeout 5s;
+
+        # HSTS
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+        # API-specific CORS headers
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, X-API-Key, X-Timestamp, X-Signature" always;
+        add_header Access-Control-Expose-Headers "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset" always;
+
+        # Logging
+        access_log /var/log/nginx/api_access.log cloudflare buffer=16k;
+        error_log /var/log/nginx/api_error.log warn;
+
+        # Handle preflight OPTIONS requests
+        location / {
+            if ($request_method = 'OPTIONS') {
+                add_header Access-Control-Allow-Origin "*";
+                add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+                add_header Access-Control-Allow-Headers "Content-Type, X-API-Key, X-Timestamp, X-Signature";
+                add_header Access-Control-Max-Age 86400;
+                add_header Content-Length 0;
+                return 204;
+            }
+
+            # Rate limiting: 60 requests/minute (1/s with burst of 60)
+            limit_req zone=public_api burst=60 nodelay;
+
+            proxy_pass http://mimic_api;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+
+            proxy_connect_timeout 30s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 30s;
+
+            error_page 429 = @api_rate_limited;
+        }
+
+        # Health check
+        location = /health {
+            access_log off;
+            proxy_pass http://mimic_api;
+            proxy_http_version 1.1;
+        }
+
+        # Rate limited error handler
+        location @api_rate_limited {
+            default_type application/json;
+            return 429 '{"success": false, "error": "Rate limit exceeded", "code": "RATE_LIMIT_EXCEEDED", "retry_after": 60}';
+        }
+
+        # Deny sensitive files
+        location ~ /\. {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+    }
+}

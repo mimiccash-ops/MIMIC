@@ -1,0 +1,77 @@
+# MIMIC (Brain Capital) - Systemd Service File
+# ==============================================
+#
+# INSTALLATION:
+#   1. Copy this file to: /etc/systemd/system/mimic.service
+#   2. Edit paths if needed (default: /var/www/mimic)
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable mimic
+#   5. Run: sudo systemctl start mimic
+#
+# COMMANDS:
+#   sudo systemctl start mimic      # Start service
+#   sudo systemctl stop mimic       # Stop service
+#   sudo systemctl restart mimic    # Restart service
+#   sudo systemctl status mimic     # Check status
+#   journalctl -u mimic -f          # View logs (follow)
+#
+
+[Unit]
+Description=MIMIC Copy Trading Platform
+Documentation=https://mimic.cash
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/mimic
+
+# Environment
+Environment="FLASK_ENV=production"
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=-/var/www/mimic/.env
+
+# Python virtual environment (if used)
+# Uncomment the line below if using venv:
+# Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Main application process
+# Option 1: Direct Python (development-like)
+# ExecStart=/usr/bin/python3 /var/www/mimic/run_server.py
+
+# Option 2: Gunicorn with gevent (recommended for production)
+ExecStart=/usr/bin/gunicorn \
+    --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
+    --workers 4 \
+    --bind 0.0.0.0:5000 \
+    --timeout 120 \
+    --keep-alive 5 \
+    --access-logfile /var/log/mimic/access.log \
+    --error-logfile /var/log/mimic/error.log \
+    --capture-output \
+    app:app
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/www/mimic /var/log/mimic
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mimic
+
+[Install]
+WantedBy=multi-user.target

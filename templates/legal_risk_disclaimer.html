@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Risk Disclaimer{% endblock %}
+{% block meta_title %}Risk Disclaimer - MIMIC{% endblock %}
+{% block meta_description %}Important risk disclosure for MIMIC copy trading platform users.{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .legal-page {
+        min-height: calc(100vh - var(--header-height) - 100px);
+        padding: 60px 24px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .legal-header {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+    
+    .legal-header h1 {
+        font-family: var(--font-cyber);
+        font-size: 2rem;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .warning-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 24px;
+        background: rgba(255, 71, 87, 0.1);
+        border: 2px solid rgba(255, 71, 87, 0.4);
+        border-radius: var(--radius-lg);
+        margin-bottom: 32px;
+    }
+    
+    .warning-banner .warning-icon {
+        font-size: 2rem;
+        color: #ff4757;
+        flex-shrink: 0;
+    }
+    
+    .warning-banner .warning-text {
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        line-height: 1.6;
+    }
+    
+    .legal-content {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(255, 71, 87, 0.15);
+        border-radius: var(--radius-xl);
+        padding: 48px;
+    }
+    
+    .legal-content h2 {
+        font-family: var(--font-cyber);
+        font-size: 1.25rem;
+        color: #ff4757;
+        margin: 32px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 71, 87, 0.3);
+    }
+    
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+    
+    .legal-content p, .legal-content li {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+        margin-bottom: 14px;
+    }
+    
+    .legal-content ul {
+        padding-left: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .legal-content .highlight {
+        color: #ff4757;
+        font-weight: 600;
+    }
+    
+    .risk-box {
+        padding: 20px;
+        background: rgba(255, 71, 87, 0.06);
+        border-left: 4px solid #ff4757;
+        margin: 20px 0;
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    }
+    
+    .risk-box p {
+        margin: 0;
+        color: var(--text-primary);
+    }
+    
+    .last-updated {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 71, 87, 0.15);
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+        .legal-content {
+            padding: 24px;
+        }
+        .legal-header h1 {
+            font-size: 1.5rem;
+        }
+        .warning-banner {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page animate-slide-up">
+    <div class="legal-header">
+        <h1>Risk Disclaimer</h1>
+    </div>
+    
+    <div class="warning-banner">
+        <span class="warning-icon">⚠️</span>
+        <div class="warning-text">
+            CRYPTOCURRENCY TRADING INVOLVES SUBSTANTIAL RISK OF LOSS AND IS NOT SUITABLE FOR ALL INVESTORS. 
+            YOU MAY LOSE SOME OR ALL OF YOUR INVESTED CAPITAL. ONLY TRADE WITH MONEY YOU CAN AFFORD TO LOSE.
+        </div>
+    </div>
+    
+    <div class="legal-content">
+        <h2>1. General Risk Warning</h2>
+        <p>Cryptocurrency and derivatives trading carries a high level of risk. Before deciding to trade, you should carefully consider your investment objectives, level of experience, and risk appetite. The possibility exists that you could sustain a loss of some or all of your initial investment.</p>
+        
+        <div class="risk-box">
+            <p><strong>Do not invest money that you cannot afford to lose.</strong> Cryptocurrency trading may not be suitable for all investors.</p>
+        </div>
+        
+        <h2>2. Market Risks</h2>
+        <ul>
+            <li><span class="highlight">Volatility Risk:</span> Cryptocurrency markets are highly volatile. Prices can change rapidly within minutes or seconds, leading to significant gains or losses.</li>
+            <li><span class="highlight">Liquidity Risk:</span> Some markets may have low liquidity, making it difficult to enter or exit positions at desired prices.</li>
+            <li><span class="highlight">Market Manipulation:</span> Cryptocurrency markets may be susceptible to price manipulation, pump-and-dump schemes, and other fraudulent activities.</li>
+            <li><span class="highlight">Gap Risk:</span> Prices may "gap" significantly between trading sessions, causing stop-loss orders to execute at prices far from the set level.</li>
+        </ul>
+        
+        <h2>3. Copy Trading Risks</h2>
+        <ul>
+            <li><span class="highlight">Past Performance:</span> Historical trading results are not indicative of future performance. A trader's past success does not guarantee future profits.</li>
+            <li><span class="highlight">Execution Differences:</span> Your trades may be executed at different prices than the master account due to slippage, timing, and market conditions.</li>
+            <li><span class="highlight">Position Sizing:</span> Position sizes relative to account balance may differ, potentially amplifying losses.</li>
+            <li><span class="highlight">Strategy Changes:</span> The trading strategy may change at any time without notice.</li>
+        </ul>
+        
+        <h2>4. Leverage Risks</h2>
+        <div class="risk-box">
+            <p><strong>Trading with leverage amplifies both potential profits AND losses.</strong> You may lose more than your initial margin deposit.</p>
+        </div>
+        <ul>
+            <li>High leverage increases both potential returns and potential losses exponentially</li>
+            <li>Margin calls may force liquidation of positions at unfavorable prices</li>
+            <li>Rapid market movements can exceed margin requirements, resulting in negative balances</li>
+        </ul>
+        
+        <h2>5. Technical Risks</h2>
+        <ul>
+            <li><span class="highlight">System Failures:</span> Software bugs, server outages, or network issues may prevent trade execution.</li>
+            <li><span class="highlight">Connectivity Issues:</span> Internet connection problems may delay or prevent order submission.</li>
+            <li><span class="highlight">Exchange Issues:</span> Third-party exchanges may experience downtime, API failures, or security breaches.</li>
+            <li><span class="highlight">Latency:</span> Network delays may cause trades to execute at different prices than expected.</li>
+        </ul>
+        
+        <h2>6. Regulatory Risks</h2>
+        <ul>
+            <li>Cryptocurrency regulations vary by jurisdiction and may change at any time</li>
+            <li>New regulations could restrict or prohibit certain trading activities</li>
+            <li>Your jurisdiction may prohibit cryptocurrency trading entirely</li>
+            <li>Tax obligations vary by jurisdiction and may affect profitability</li>
+        </ul>
+        
+        <h2>7. Security Risks</h2>
+        <ul>
+            <li>API key security is your responsibility</li>
+            <li>Exchange hacks or security breaches may result in loss of funds</li>
+            <li>Phishing attacks and social engineering may compromise your accounts</li>
+        </ul>
+        
+        <h2>8. No Guarantees</h2>
+        <p>MIMIC and its operators:</p>
+        <ul>
+            <li>Do <strong>NOT</strong> guarantee any specific returns or profits</li>
+            <li>Do <strong>NOT</strong> provide financial, investment, legal, or tax advice</li>
+            <li>Do <strong>NOT</strong> guarantee the accuracy or reliability of trading signals</li>
+            <li>Do <strong>NOT</strong> guarantee system uptime or availability</li>
+        </ul>
+        
+        <h2>9. Independent Decision Making</h2>
+        <p>You acknowledge that:</p>
+        <ul>
+            <li>All trading decisions are made by you</li>
+            <li>You have conducted your own research and due diligence</li>
+            <li>You understand the risks involved in cryptocurrency trading</li>
+            <li>You have sought independent professional advice if needed</li>
+            <li>You have the financial resources to bear potential losses</li>
+        </ul>
+        
+        <h2>10. Acknowledgment</h2>
+        <p>By using MIMIC, you acknowledge that you have read, understood, and accepted all the risks described in this disclaimer. You agree that you are solely responsible for your trading decisions and their outcomes.</p>
+        
+        <div class="risk-box">
+            <p><strong>If you do not fully understand and accept these risks, please do not use this platform.</strong></p>
+        </div>
+        
+        <div class="last-updated">
+            Last updated: January 2026
+        </div>
+    </div>
+</div>
+{% endblock %}

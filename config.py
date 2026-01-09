@@ -325,6 +325,161 @@ class Config:
             if uid.strip().isdigit()
         ] if _authorized_users_str else []
         
+        # --- WEB PUSH NOTIFICATION SETTINGS (VAPID) ---
+        # Generate VAPID keys using: python -c "from pywebpush import webpush; from cryptography.hazmat.primitives.asymmetric import ec; from cryptography.hazmat.backends import default_backend; from cryptography.hazmat.primitives import serialization; import base64; private_key = ec.generate_private_key(ec.SECP256R1(), default_backend()); print('Private:', base64.urlsafe_b64encode(private_key.private_numbers().private_value.to_bytes(32, 'big')).decode()); public_key = private_key.public_key(); public_numbers = public_key.public_numbers(); x = public_numbers.x.to_bytes(32, 'big'); y = public_numbers.y.to_bytes(32, 'big'); print('Public:', base64.urlsafe_b64encode(b'\\x04' + x + y).decode())"
+        # Or simpler: openssl ecparam -name prime256v1 -genkey -noout -out vapid_private.pem
+        VAPID_PUBLIC_KEY = get_config_value(
+            'WebPush', 'vapid_public_key',
+            'VAPID_PUBLIC_KEY',
+            ''
+        ) if config.has_section('WebPush') else os.environ.get('VAPID_PUBLIC_KEY', '')
+        
+        VAPID_PRIVATE_KEY = get_config_value(
+            'WebPush', 'vapid_private_key',
+            'VAPID_PRIVATE_KEY',
+            ''
+        ) if config.has_section('WebPush') else os.environ.get('VAPID_PRIVATE_KEY', '')
+        
+        VAPID_CLAIM_EMAIL = get_config_value(
+            'WebPush', 'vapid_claim_email',
+            'VAPID_CLAIM_EMAIL',
+            'mailto:admin@mimic.cash'
+        ) if config.has_section('WebPush') else os.environ.get('VAPID_CLAIM_EMAIL', 'mailto:admin@mimic.cash')
+        
+        WEBPUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+        
+        # --- TWITTER/X API SETTINGS (for auto-posting successful trades) ---
+        # Get Twitter API credentials from environment or config.ini
+        # Create a developer account at https://developer.twitter.com
+        TWITTER_API_KEY = get_config_value(
+            'Twitter', 'api_key',
+            'TWITTER_API_KEY',
+            ''
+        ) if config.has_section('Twitter') else os.environ.get('TWITTER_API_KEY', '')
+        
+        TWITTER_API_SECRET = get_config_value(
+            'Twitter', 'api_secret',
+            'TWITTER_API_SECRET',
+            ''
+        ) if config.has_section('Twitter') else os.environ.get('TWITTER_API_SECRET', '')
+        
+        TWITTER_ACCESS_TOKEN = get_config_value(
+            'Twitter', 'access_token',
+            'TWITTER_ACCESS_TOKEN',
+            ''
+        ) if config.has_section('Twitter') else os.environ.get('TWITTER_ACCESS_TOKEN', '')
+        
+        TWITTER_ACCESS_SECRET = get_config_value(
+            'Twitter', 'access_secret',
+            'TWITTER_ACCESS_SECRET',
+            ''
+        ) if config.has_section('Twitter') else os.environ.get('TWITTER_ACCESS_SECRET', '')
+        
+        # Minimum ROI threshold for auto-posting (default 50%)
+        TWITTER_MIN_ROI_THRESHOLD = float(get_config_value(
+            'Twitter', 'min_roi_threshold',
+            'TWITTER_MIN_ROI_THRESHOLD',
+            '50.0'
+        ) if config.has_section('Twitter') else os.environ.get('TWITTER_MIN_ROI_THRESHOLD', '50.0'))
+        
+        # Site URL for tweet links
+        SITE_URL = get_config_value(
+            'Twitter', 'site_url',
+            'SITE_URL',
+            'https://mimic.cash'
+        ) if config.has_section('Twitter') else os.environ.get('SITE_URL', 'https://mimic.cash')
+        
+        TWITTER_ENABLED = bool(TWITTER_API_KEY and TWITTER_API_SECRET and TWITTER_ACCESS_TOKEN and TWITTER_ACCESS_SECRET)
+        
+        # --- RAG SUPPORT BOT SETTINGS (OpenAI + LangChain) ---
+        # Get OpenAI API key from environment or config.ini
+        # Sign up at https://platform.openai.com to get an API key
+        OPENAI_API_KEY = get_config_value(
+            'SupportBot', 'openai_api_key',
+            'OPENAI_API_KEY',
+            ''
+        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_API_KEY', '')
+        
+        # OpenAI model settings
+        OPENAI_EMBEDDING_MODEL = get_config_value(
+            'SupportBot', 'embedding_model',
+            'OPENAI_EMBEDDING_MODEL',
+            'text-embedding-3-small'
+        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
+        
+        OPENAI_CHAT_MODEL = get_config_value(
+            'SupportBot', 'chat_model',
+            'OPENAI_CHAT_MODEL',
+            'gpt-4o-mini'
+        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
+        
+        # RAG configuration
+        RAG_CONFIDENCE_THRESHOLD = float(get_config_value(
+            'SupportBot', 'confidence_threshold',
+            'RAG_CONFIDENCE_THRESHOLD',
+            '0.7'
+        ) if config.has_section('SupportBot') else os.environ.get('RAG_CONFIDENCE_THRESHOLD', '0.7'))
+        
+        RAG_CHUNK_SIZE = int(get_config_value(
+            'SupportBot', 'chunk_size',
+            'RAG_CHUNK_SIZE',
+            '500'
+        ) if config.has_section('SupportBot') else os.environ.get('RAG_CHUNK_SIZE', '500'))
+        
+        RAG_CHUNK_OVERLAP = int(get_config_value(
+            'SupportBot', 'chunk_overlap',
+            'RAG_CHUNK_OVERLAP',
+            '50'
+        ) if config.has_section('SupportBot') else os.environ.get('RAG_CHUNK_OVERLAP', '50'))
+        
+        # Enable/disable support bot
+        SUPPORT_BOT_ENABLED = bool(OPENAI_API_KEY)
+        
+        # --- COMPLIANCE SETTINGS (Geo-blocking & TOS) ---
+        # Current Terms of Service version - increment when TOS changes to force re-consent
+        TOS_VERSION = get_config_value(
+            'Compliance', 'tos_version',
+            'TOS_VERSION',
+            '1.0'
+        ) if config.has_section('Compliance') else os.environ.get('TOS_VERSION', '1.0')
+        
+        # Blocked country codes (ISO 3166-1 alpha-2)
+        # US = United States, KP = North Korea, IR = Iran
+        _blocked_countries_str = get_config_value(
+            'Compliance', 'blocked_countries',
+            'BLOCKED_COUNTRIES',
+            'US,KP,IR'
+        ) if config.has_section('Compliance') else os.environ.get('BLOCKED_COUNTRIES', 'US,KP,IR')
+        
+        BLOCKED_COUNTRIES = [c.strip().upper() for c in _blocked_countries_str.split(',') if c.strip()]
+        
+        # GeoIP Database path (MaxMind GeoLite2-Country.mmdb)
+        # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+        GEOIP_DB_PATH = get_config_value(
+            'Compliance', 'geoip_db_path',
+            'GEOIP_DB_PATH',
+            ''
+        ) if config.has_section('Compliance') else os.environ.get('GEOIP_DB_PATH', '')
+        
+        # If not explicitly set, check common locations
+        if not GEOIP_DB_PATH:
+            common_paths = [
+                os.path.join(base_dir, 'GeoLite2-Country.mmdb'),
+                os.path.join(base_dir, 'data', 'GeoLite2-Country.mmdb'),
+                '/usr/share/GeoIP/GeoLite2-Country.mmdb',
+                '/var/lib/GeoIP/GeoLite2-Country.mmdb',
+            ]
+            for path in common_paths:
+                if os.path.exists(path):
+                    GEOIP_DB_PATH = path
+                    break
+        
+        # Enable/disable geo-blocking (disabled if no GeoIP database)
+        GEO_BLOCKING_ENABLED = bool(GEOIP_DB_PATH and os.path.exists(GEOIP_DB_PATH))
+        
+        # Enable/disable TOS consent requirement
+        TOS_CONSENT_ENABLED = config['Compliance'].getboolean('tos_consent_enabled', True) if config.has_section('Compliance') else os.environ.get('TOS_CONSENT_ENABLED', 'true').lower() == 'true'
+        
     except KeyError as e:
         logger.critical(f"❌ Помилка в структурі config.ini: Відсутній ключ {e}")
         raise KeyError(f"Missing key in config.ini: {e}")

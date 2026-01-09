@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
-from models import User, db, TradeHistory, BalanceHistory, UserExchange, ExchangeConfig
+from models import User, db, TradeHistory, BalanceHistory, UserExchange, ExchangeConfig, Strategy, StrategySubscription
 from config import Config
 import ccxt.async_support as ccxt_async  # Async CCXT
 import ccxt as ccxt_sync  # Sync CCXT for class lookups
@@ -434,7 +434,15 @@ class TradingEngine:
         
         # Risk Guardrails Manager (Daily Drawdown/Profit Protection)
         self.risk_guardrails: RiskGuardrailsManager = None
+        
+        # AI Sentiment Manager (Fear & Greed Index based risk adjustment)
+        self.sentiment_manager = None
     
+    def set_sentiment_manager(self, sentiment_manager):
+        """Set the AI Sentiment Manager for risk adjustment based on Fear & Greed Index"""
+        self.sentiment_manager = sentiment_manager
+        logger.info("🧠 AI Sentiment Manager initialized")
+
     def set_redis_client(self, redis_client):
         """Set Redis client for Smart Features (trailing SL, DCA tracking, risk guardrails)"""
         self._redis_client = redis_client
@@ -1700,6 +1708,16 @@ class TradingEngine:
                         'node': node_name,
                         'time': datetime.now().strftime("%H:%M:%S %d/%m")
                     }, room="admin_room")
+                
+                # Post to Twitter if ROI meets threshold (async, non-blocking)
+                if pnl > 0 and roi > 0:
+                    try:
+                        from post_to_twitter import post_successful_trade
+                        post_successful_trade(symbol=symbol, roi=roi, pnl=pnl)
+                    except ImportError:
+                        pass  # Twitter posting not available
+                    except Exception as tw_err:
+                        logger.debug(f"Twitter post skipped: {tw_err}")
                     
         except Exception as e:
             logger.error(f"Failed to record trade: {e}")
@@ -2002,6 +2020,9 @@ class TradingEngine:
         
         return results
 
+    # Whale Alert threshold (profit in USD to trigger alert)
+    WHALE_ALERT_THRESHOLD = 100.0  # Trigger whale alert for profits >= $100
+    
     def record_closed_trade(self, user_id, node_name: str, symbol: str, side: str, pnl: float, roi: float):
         """Record closed trade to database and create referral commission if applicable"""
         try:
@@ -2045,9 +2066,88 @@ class TradingEngine:
                 # Telegram notification
                 if self.telegram:
                     self.telegram.notify_trade_closed(node_name, symbol, side, pnl, roi)
+                
+                # 🐋 WHALE ALERT - Broadcast to live chat when user makes large profit
+                if isinstance(user_id, int) and pnl >= self.WHALE_ALERT_THRESHOLD:
+                    try:
+                        user = User.query.get(user_id)
+                        if user:
+                            self._broadcast_whale_alert(user.id, user.username, symbol, pnl)
+                    except Exception as whale_err:
+                        logger.warning(f"Could not broadcast whale alert: {whale_err}")
+                
+                # 🐦 Post to Twitter if ROI meets threshold (async, non-blocking)
+                if pnl > 0 and roi > 0:
+                    try:
+                        from post_to_twitter import post_successful_trade
+                        post_successful_trade(symbol=symbol, roi=roi, pnl=pnl)
+                    except ImportError:
+                        pass  # Twitter posting not available
+                    except Exception as tw_err:
+                        logger.debug(f"Twitter post skipped: {tw_err}")
                     
         except Exception as e:
             logger.error(f"❌ DB Save Error: {e}")
+    
+    def _broadcast_whale_alert(self, user_id: int, username: str, symbol: str, pnl: float, room: str = 'general'):
+        """
+        Broadcast a whale alert to the live chat when a user makes a large profit.
+        
+        Args:
+            user_id: ID of the trader
+            username: Username of the trader
+            symbol: Trading pair (e.g., 'BTCUSDT')
+            pnl: Profit amount in USD
+            room: Chat room to broadcast to
+        """
+        try:
+            from models import ChatMessage
+            
+            # Mask username for privacy
+            if len(username) > 3:
+                masked_name = username[0] + '*' * (len(username) - 2) + username[-1]
+            else:
+                masked_name = username
+            
+            # Format the whale alert message
+            alert_message = f"🐋 {masked_name} just made +${abs(pnl):.2f} on {symbol}!"
+            
+            # Get admin/system user for the message
+            admin_user = User.query.filter_by(role='admin').first()
+            if not admin_user:
+                admin_user = User.query.first()
+            
+            if admin_user:
+                chat_msg = ChatMessage(
+                    user_id=admin_user.id,
+                    room=room,
+                    message=alert_message,
+                    message_type='whale_alert',
+                    extra_data={
+                        'type': 'whale_alert',
+                        'trader_id': user_id,
+                        'masked_username': masked_name,
+                        'symbol': symbol,
+                        'pnl': round(pnl, 2)
+                    }
+                )
+                db.session.add(chat_msg)
+                db.session.commit()
+                
+                # Broadcast to chat room via SocketIO
+                if self.socketio:
+                    self.socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
+                    self.socketio.emit('whale_alert', {
+                        'masked_username': masked_name,
+                        'symbol': symbol,
+                        'pnl': round(pnl, 2),
+                        'message': alert_message
+                    }, room=f'chat_{room}')
+                    
+                logger.info(f"🐋 Whale Alert: {masked_name} made +${pnl:.2f} on {symbol}")
+                
+        except Exception as e:
+            logger.error(f"Whale alert error: {e}")
 
     async def execute_trade_ccxt_async(self, client_data: dict, signal: dict, master_entry_price: float,
                                         master_balance: float, master_trade_amount: float):
@@ -2285,6 +2385,35 @@ class TradingEngine:
                     if risk_multiplier and risk_multiplier > 0:
                         margin = margin * risk_multiplier
                         logger.info(f"   📊 Risk Multiplier: {risk_multiplier}x applied (margin now: ${margin:.2f})")
+                    
+                    # Apply strategy allocation percentage (for multi-strategy support)
+                    allocation_percent = client_data.get('allocation_percent', 100.0)
+                    if allocation_percent and allocation_percent < 100.0:
+                        margin = margin * (allocation_percent / 100.0)
+                        logger.info(f"   📊 Strategy Allocation: {allocation_percent}% applied (margin now: ${margin:.2f})")
+                    
+                    # === AI SENTIMENT FILTER ===
+                    # Adjust risk based on Fear & Greed Index:
+                    # - Extreme Greed (>80) + LONG = reduce risk by 20% (prevent buying tops)
+                    # - Extreme Fear (<20) + SHORT = reduce risk by 20% (prevent selling bottoms)
+                    ai_adjustment_reason = None
+                    if self.sentiment_manager and client_data.get('ai_sentiment_enabled', True):
+                        try:
+                            trade_side = 'LONG' if action == 'long' else 'SHORT'
+                            # Calculate the original margin as the base
+                            original_margin = margin
+                            adjusted_risk, ai_adjustment_reason = await self.sentiment_manager.calculate_risk_adjustment(
+                                trade_side, 100.0  # Use 100 as base to get percentage factor
+                            )
+                            
+                            if adjusted_risk != 100.0 and ai_adjustment_reason:
+                                # Apply the sentiment-based reduction
+                                sentiment_factor = adjusted_risk / 100.0  # e.g., 80% = 0.8
+                                margin = margin * sentiment_factor
+                                logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
+                                logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
+                        except Exception as sentiment_err:
+                            logger.warning(f"   ⚠️ AI Sentiment check failed: {sentiment_err}")
                     
                     if leverage < 1:
                         leverage = 1
@@ -2981,6 +3110,49 @@ class TradingEngine:
                 if risk_multiplier and risk_multiplier > 0:
                     margin = margin * risk_multiplier
                     logger.info(f"   📊 Risk Multiplier: {risk_multiplier}x applied (margin now: ${margin:.2f})")
+                
+                # Apply strategy allocation percentage (for multi-strategy support)
+                allocation_percent = client_data.get('allocation_percent', 100.0)
+                if allocation_percent and allocation_percent < 100.0:
+                    margin = margin * (allocation_percent / 100.0)
+                    logger.info(f"   📊 Strategy Allocation: {allocation_percent}% applied (margin now: ${margin:.2f})")
+                
+                # === AI SENTIMENT FILTER (SYNC) ===
+                # Adjust risk based on Fear & Greed Index (using cached value from Redis)
+                ai_adjustment_reason = None
+                if self.sentiment_manager and client_data.get('ai_sentiment_enabled', True):
+                    try:
+                        trade_side = 'LONG' if action == 'long' else 'SHORT'
+                        original_margin = margin
+                        # Run async method in sync context
+                        import asyncio
+                        try:
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                # Can't use run_until_complete in running loop, skip sentiment check
+                                logger.debug("Event loop running, skipping sync sentiment check")
+                            else:
+                                adjusted_risk, ai_adjustment_reason = loop.run_until_complete(
+                                    self.sentiment_manager.calculate_risk_adjustment(trade_side, 100.0)
+                                )
+                                if adjusted_risk != 100.0 and ai_adjustment_reason:
+                                    sentiment_factor = adjusted_risk / 100.0
+                                    margin = margin * sentiment_factor
+                                    logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
+                                    logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
+                        except RuntimeError:
+                            # No event loop, create one
+                            loop = asyncio.new_event_loop()
+                            adjusted_risk, ai_adjustment_reason = loop.run_until_complete(
+                                self.sentiment_manager.calculate_risk_adjustment(trade_side, 100.0)
+                            )
+                            if adjusted_risk != 100.0 and ai_adjustment_reason:
+                                sentiment_factor = adjusted_risk / 100.0
+                                margin = margin * sentiment_factor
+                                logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
+                                logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
+                    except Exception as sentiment_err:
+                        logger.warning(f"   ⚠️ AI Sentiment check failed: {sentiment_err}")
 
                 # Ensure leverage is valid (must be >= 1)
                 if leverage < 1:
@@ -3438,12 +3610,46 @@ class TradingEngine:
         else:
             logger.warning("⚠️ No master exchanges configured!")
 
-        # === SLAVE ACCOUNTS ===
+        # === SLAVE ACCOUNTS (filtered by strategy subscription) ===
+        strategy_id = signal.get('strategy_id')
+        
         async with self._async_lock:
-            slaves = list(self.slave_clients)
+            all_slaves = list(self.slave_clients)
+        
+        # Filter slaves by strategy subscription
+        if strategy_id:
+            with self.app.app_context():
+                # Get all active subscriptions for this strategy
+                subscriptions = StrategySubscription.query.filter_by(
+                    strategy_id=strategy_id,
+                    is_active=True
+                ).all()
+                
+                # Create a map of user_id -> allocation_percent
+                subscription_map = {sub.user_id: sub.allocation_percent for sub in subscriptions}
+                
+                # Filter slaves to only those subscribed to this strategy
+                filtered_slaves = []
+                for slave in all_slaves:
+                    user_id = slave['id']
+                    if user_id in subscription_map:
+                        # Add allocation_percent to slave data for trade size calculation
+                        slave_copy = slave.copy()
+                        slave_copy['allocation_percent'] = subscription_map[user_id]
+                        filtered_slaves.append(slave_copy)
+                
+                slaves = filtered_slaves
+                logger.info(f"📊 Strategy {strategy_id}: {len(slaves)} subscribed slaves (of {len(all_slaves)} total)")
+        else:
+            # No strategy specified - process all slaves with 100% allocation (backward compatibility)
+            slaves = []
+            for slave in all_slaves:
+                slave_copy = slave.copy()
+                slave_copy['allocation_percent'] = 100.0
+                slaves.append(slave_copy)
+            logger.info(f"📊 No strategy specified - preparing all {len(slaves)} slave accounts")
         
         if slaves:
-            logger.info(f"📊 Preparing {len(slaves)} slave accounts")
             all_users.extend(slaves)
         
         # Execute all trades concurrently using asyncio.gather

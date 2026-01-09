@@ -306,24 +306,110 @@ class SmartFeaturesManager:
             return
         
         try:
-            # Create a close signal
-            close_signal = {
-                'symbol': data.symbol,
-                'action': 'close',
-                'reason': f'Trailing SL triggered @ ${trigger_price:.4f}'
-            }
+            user_id = int(data.user_id) if data.user_id.isdigit() else data.user_id
+            symbol = data.symbol
             
-            logger.info(f"🔴 Executing trailing SL close: {data.symbol} for {data.user_id}")
+            logger.info(f"🔴 Executing trailing SL close: {symbol} for {user_id}")
             
-            # For now, log the action - actual execution would require specific user's exchange client
-            # In practice, this would need to find the user's exchange client and close the position
-            # The implementation depends on how positions are tracked in the engine
+            # Find the user's exchange client(s)
+            slave_data = None
+            async with self.engine._async_lock:
+                for slave in self.engine.slave_clients:
+                    if slave['id'] == user_id:
+                        slave_data = slave
+                        break
             
-            # TODO: Implement actual position close via exchange
-            # This would need to:
-            # 1. Find the user's exchange client
-            # 2. Execute a market close order
-            # 3. Log the trade result
+            if not slave_data:
+                logger.error(f"Trailing SL close failed: User {user_id} not found in slave_clients")
+                return
+            
+            if slave_data.get('is_paused'):
+                logger.warning(f"User {user_id} is paused, skipping trailing SL close")
+                return
+            
+            client = slave_data.get('client')
+            if not client:
+                logger.error(f"Trailing SL close failed: No client for user {user_id}")
+                return
+            
+            is_ccxt = slave_data.get('is_ccxt', False)
+            is_async = slave_data.get('is_async', False)
+            exchange_type = slave_data.get('exchange_name', 'binance')
+            node_name = slave_data.get('fullname', f'User_{user_id}')
+            
+            closed_position = False
+            pnl = 0.0
+            
+            if is_ccxt and is_async:
+                # CCXT async exchange (OKX, Bybit, etc.)
+                ccxt_symbol = self.engine.convert_symbol_to_ccxt(symbol, exchange_type)
+                try:
+                    positions = await client.fetch_positions([ccxt_symbol])
+                    for pos in positions:
+                        contracts = float(pos.get('contracts', 0) or 0)
+                        if contracts != 0:
+                            side = 'sell' if pos['side'] == 'long' else 'buy'
+                            await client.create_order(
+                                ccxt_symbol, 'market', side,
+                                abs(contracts),
+                                params={'reduceOnly': True}
+                            )
+                            pnl = float(pos.get('unrealizedPnl', 0))
+                            closed_position = True
+                            logger.info(f"✅ [{node_name}] Trailing SL closed {symbol}: PnL={pnl:.2f}$")
+                except Exception as e:
+                    logger.error(f"[{node_name}] CCXT trailing SL close error: {e}")
+            else:
+                # Binance native client
+                try:
+                    positions = client.futures_position_information(symbol=symbol)
+                    for p in positions:
+                        amt = float(p.get('positionAmt', 0))
+                        if amt != 0:
+                            side = 'SELL' if amt > 0 else 'BUY'
+                            prec = self.engine.get_precision(client, symbol)
+                            qty_str = f"{abs(amt):.{prec['qty_prec']}f}"
+                            
+                            # Cancel existing orders first
+                            try:
+                                client.futures_cancel_all_open_orders(symbol=symbol)
+                            except Exception:
+                                pass
+                            
+                            # Execute market close
+                            self.engine.order_limiter.wait_and_proceed(f"tsl_{user_id}")
+                            client.futures_create_order(
+                                symbol=symbol,
+                                side=side,
+                                type='MARKET',
+                                quantity=qty_str,
+                                reduceOnly=True
+                            )
+                            pnl = float(p.get('unRealizedProfit', 0))
+                            closed_position = True
+                            logger.info(f"✅ [{node_name}] Trailing SL closed {symbol}: PnL={pnl:.2f}$")
+                except Exception as e:
+                    logger.error(f"[{node_name}] Binance trailing SL close error: {e}")
+            
+            # Record the trade if closed
+            if closed_position:
+                side_text = data.side
+                self.engine.record_closed_trade(user_id, node_name, symbol, side_text, pnl, 0)
+                self.engine.log_event(
+                    user_id, symbol, 
+                    f"TRAILING SL CLOSED @ ${trigger_price:.4f} | PnL: {pnl:.2f}$"
+                )
+                
+                # Update user balance
+                if not is_ccxt:
+                    self.engine.push_update(user_id, client)
+                
+                # Notify via Telegram if available
+                if self.engine.telegram:
+                    self.engine.telegram.notify_position_closed(
+                        node_name, symbol, side_text, pnl, 
+                        note="Trailing SL triggered"
+                    )
             
         except Exception as e:
             logger.error(f"Failed to execute trailing SL close: {e}")

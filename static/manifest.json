@@ -1,35 +1,129 @@
 {
+    "id": "mimic-pwa",
     "name": "MIMIC Copy Trading",
     "short_name": "MIMIC",
     "description": "Automated crypto copy trading platform - Mirror professional traders on Binance, Bybit, OKX",
-    "start_url": "/",
+    "start_url": "/dashboard?source=pwa",
+    "scope": "/",
     "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
     "background_color": "#0a0a0f",
     "theme_color": "#00f5ff",
     "orientation": "portrait-primary",
     "icons": [
         {
+            "src": "/static/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icons/icon-maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/static/icons/icon-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
             "src": "/static/mimic-logo.svg",
             "sizes": "any",
             "type": "image/svg+xml",
-            "purpose": "any maskable"
+            "purpose": "any"
         }
     ],
-    "categories": ["finance", "trading", "crypto"],
+    "categories": ["finance", "trading", "crypto", "business"],
     "lang": "en",
     "dir": "ltr",
-    "screenshots": [],
+    "prefer_related_applications": false,
+    "screenshots": [
+        {
+            "src": "/static/screenshots/dashboard-wide.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "MIMIC Dashboard - Desktop View"
+        },
+        {
+            "src": "/static/screenshots/dashboard-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "MIMIC Dashboard - Mobile View"
+        }
+    ],
     "shortcuts": [
         {
             "name": "Dashboard",
-            "url": "/dashboard",
-            "description": "View your trading dashboard"
+            "short_name": "Dashboard",
+            "url": "/dashboard?source=shortcut",
+            "description": "View your trading dashboard",
+            "icons": [{ "src": "/static/icons/shortcut-dashboard.png", "sizes": "96x96" }]
+        },
+        {
+            "name": "Messages",
+            "short_name": "Messages",
+            "url": "/messages?source=shortcut",
+            "description": "View your messages",
+            "icons": [{ "src": "/static/icons/shortcut-messages.png", "sizes": "96x96" }]
         },
         {
             "name": "Login",
-            "url": "/login",
-            "description": "Sign in to your account"
+            "short_name": "Login",
+            "url": "/login?source=shortcut",
+            "description": "Sign in to your account",
+            "icons": [{ "src": "/static/icons/shortcut-login.png", "sizes": "96x96" }]
         }
-    ]
+    ],
+    "handle_links": "preferred",
+    "launch_handler": {
+        "client_mode": ["navigate-existing", "auto"]
+    }
 }
 

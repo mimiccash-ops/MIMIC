@@ -714,6 +714,94 @@
     .delay-4 { animation-delay: 0.4s; }
     .delay-5 { animation-delay: 0.5s; }
     .delay-6 { animation-delay: 0.6s; }
+    
+    /* ============= SAFETY POOL / INSURANCE FUND ============= */
+    .safety-pool-stat {
+        position: relative;
+    }
+    
+    .safety-pool-stat .hero-stat-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .verified-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, rgba(57, 255, 20, 0.2), rgba(0, 240, 255, 0.2));
+        border: 2px solid var(--neon-green);
+        border-radius: 50%;
+        color: var(--neon-green);
+        font-size: 0.9rem;
+        animation: verifiedPulse 3s ease-in-out infinite;
+        cursor: help;
+    }
+    
+    @keyframes verifiedPulse {
+        0%, 100% { 
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.3), 0 0 20px rgba(57, 255, 20, 0.1);
+            transform: scale(1);
+        }
+        50% { 
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 40px rgba(57, 255, 20, 0.2);
+            transform: scale(1.05);
+        }
+    }
+    
+    .tooltip-icon {
+        font-size: 0.7rem;
+        opacity: 0.6;
+        margin-left: 4px;
+        cursor: help;
+    }
+    
+    .hero-stat-label:has(.tooltip-icon):hover .tooltip-icon {
+        opacity: 1;
+        color: var(--neon-cyan);
+    }
+    
+    /* Safety Pool Tooltip Styles */
+    .safety-pool-stat::after {
+        content: 'This fund is used to cover slippage losses in extreme market conditions';
+        position: absolute;
+        bottom: -45px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(10, 10, 18, 0.95);
+        border: 1px solid rgba(57, 255, 20, 0.3);
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 0.75rem;
+        font-family: var(--font-sans);
+        color: var(--text-secondary);
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 100;
+        max-width: 280px;
+        white-space: normal;
+        text-align: center;
+    }
+    
+    .safety-pool-stat:hover::after {
+        opacity: 1;
+        visibility: visible;
+        bottom: -55px;
+    }
+    
+    @media (max-width: 640px) {
+        .safety-pool-stat::after {
+            width: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    }
 </style>
 {% endblock %}
 
@@ -764,6 +852,16 @@
             <div class="hero-stat">
                 <div class="hero-stat-value">100%</div>
                 <div class="hero-stat-label" data-i18n="home.transparency">Transparency</div>
+            </div>
+            <!-- Insurance Fund / Safety Pool -->
+            <div class="hero-stat safety-pool-stat" title="This fund is used to cover slippage losses in extreme market conditions">
+                <div class="hero-stat-value">
+                    <span id="safety-pool-amount">$10,000</span>
+                    <span class="verified-badge" title="Verified by platform">
+                        <i class="fas fa-shield-check"></i>
+                    </span>
+                </div>
+                <div class="hero-stat-label" data-i18n="home.safetyPool">Safety Pool <i class="fas fa-info-circle tooltip-icon"></i></div>
             </div>
         </div>
     </div>
@@ -970,4 +1068,39 @@
         </a>
     </div>
 </section>
+
+<!-- Safety Pool / Insurance Fund Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch and update Safety Pool balance
+    function updateSafetyPool() {
+        fetch('/api/insurance-fund')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.insurance_fund) {
+                    const amountEl = document.getElementById('safety-pool-amount');
+                    if (amountEl) {
+                        // Animate the number update
+                        const newBalance = data.insurance_fund.formatted_balance;
+                        amountEl.textContent = newBalance;
+                        
+                        // Add a subtle flash effect
+                        amountEl.style.transition = 'color 0.3s ease';
+                        amountEl.style.color = '#39ff14';
+                        setTimeout(() => {
+                            amountEl.style.color = '';
+                        }, 500);
+                    }
+                }
+            })
+            .catch(err => console.log('Safety Pool fetch error:', err));
+    }
+    
+    // Initial load
+    updateSafetyPool();
+    
+    // Refresh every 60 seconds
+    setInterval(updateSafetyPool, 60000);
+});
+</script>
 {% endblock %}

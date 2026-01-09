@@ -3,11 +3,11 @@ Brain Capital - Copy Trading Platform
 Main Flask Application with Enhanced Security
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, abort, g, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, abort, g, send_from_directory, Response
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit, join_room
 from config import Config
-from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment
+from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent
 from sqlalchemy import text
 from trading_engine import TradingEngine
 from telegram_notifier import init_notifier, get_notifier, init_email_sender, get_email_sender
@@ -208,6 +208,13 @@ if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN and hasattr(Config, 'PANIC_OT
             logger.info("ℹ️ Telegram Bot Handler not started (OTP not configured)")
     except Exception as e:
         logger.warning(f"⚠️ Telegram Bot Handler failed to start: {e}")
+
+# Initialize Compliance Middleware (Geo-blocking + TOS Consent)
+try:
+    from compliance import init_compliance
+    init_compliance(app)
+except Exception as e:
+    logger.warning(f"⚠️ Compliance middleware failed to initialize: {e}")
 
 # Global trade settings
 GLOBAL_TRADE_SETTINGS = {
@@ -429,6 +436,207 @@ def handle_connect():
                 socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
 
 
+# ==================== LIVE CHAT SOCKET EVENTS ====================
+
+@socketio.on('join_chat')
+def handle_join_chat(data):
+    """Handle user joining a chat room"""
+    from flask_socketio import join_room as socket_join_room
+    from models import ChatBan, ChatMessage
+    
+    if not current_user.is_authenticated:
+        emit('chat_error', {'message': 'Please log in to access chat'})
+        return
+    
+    room = data.get('room', 'general')
+    
+    # Check if user has active subscription (required for chat)
+    if not current_user.has_active_subscription() and current_user.role != 'admin':
+        emit('chat_error', {'message': 'Active subscription required to access chat'})
+        return
+    
+    # Check if user is banned
+    is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
+    if is_banned:
+        emit('chat_error', {
+            'message': f'You are {ban_type}ed from chat' + (f': {reason}' if reason else ''),
+            'ban_type': ban_type,
+            'expires_at': expires_at.isoformat() if expires_at else None
+        })
+        return
+    
+    # Join the chat room
+    socket_join_room(f'chat_{room}')
+    logger.info(f"💬 {current_user.username} joined chat room: {room}")
+    
+    # Get recent messages
+    messages = ChatMessage.get_recent_messages(room, limit=50)
+    messages_data = [msg.to_dict() for msg in reversed(messages)]  # Oldest first
+    
+    emit('chat_joined', {
+        'room': room,
+        'messages': messages_data,
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'avatar': current_user.avatar,
+            'avatar_type': current_user.avatar_type,
+            'is_admin': current_user.role == 'admin'
+        }
+    })
+    
+    # Notify room that user joined
+    emit('user_joined', {
+        'username': current_user.username,
+        'avatar': current_user.avatar,
+        'user_id': current_user.id
+    }, room=f'chat_{room}', include_self=False)
+
+
+@socketio.on('leave_chat')
+def handle_leave_chat(data):
+    """Handle user leaving a chat room"""
+    from flask_socketio import leave_room as socket_leave_room
+    
+    if not current_user.is_authenticated:
+        return
+    
+    room = data.get('room', 'general')
+    socket_leave_room(f'chat_{room}')
+    
+    emit('user_left', {
+        'username': current_user.username,
+        'user_id': current_user.id
+    }, room=f'chat_{room}', include_self=False)
+
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    """Handle sending a chat message"""
+    from models import ChatBan, ChatMessage
+    
+    if not current_user.is_authenticated:
+        emit('chat_error', {'message': 'Please log in to send messages'})
+        return
+    
+    room = data.get('room', 'general')
+    message_text = data.get('message', '').strip()
+    
+    # Validate message
+    if not message_text:
+        return
+    
+    if len(message_text) > 500:
+        emit('chat_error', {'message': 'Message too long (max 500 characters)'})
+        return
+    
+    # Check subscription
+    if not current_user.has_active_subscription() and current_user.role != 'admin':
+        emit('chat_error', {'message': 'Active subscription required to send messages'})
+        return
+    
+    # Check if user is banned/muted
+    is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
+    if is_banned:
+        emit('chat_error', {
+            'message': f'You are {ban_type}ed' + (f': {reason}' if reason else ''),
+            'ban_type': ban_type,
+            'expires_at': expires_at.isoformat() if expires_at else None
+        })
+        return
+    
+    # Sanitize message (basic XSS prevention)
+    message_text = message_text.replace('<', '&lt;').replace('>', '&gt;')
+    
+    # Save message to database
+    chat_msg = ChatMessage(
+        user_id=current_user.id,
+        room=room,
+        message=message_text,
+        message_type='admin' if current_user.role == 'admin' else 'user'
+    )
+    db.session.add(chat_msg)
+    db.session.commit()
+    
+    # Broadcast message to room
+    emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
+
+
+@socketio.on('delete_message')
+def handle_delete_message(data):
+    """Handle admin deleting a message"""
+    from models import ChatMessage
+    
+    if not current_user.is_authenticated:
+        return
+    
+    if current_user.role != 'admin':
+        emit('chat_error', {'message': 'Admin access required'})
+        return
+    
+    message_id = data.get('message_id')
+    room = data.get('room', 'general')
+    
+    if not message_id:
+        return
+    
+    message = ChatMessage.query.get(message_id)
+    if message:
+        message.is_deleted = True
+        message.deleted_by_id = current_user.id
+        db.session.commit()
+        
+        emit('message_deleted', {'message_id': message_id}, room=f'chat_{room}')
+
+
+def broadcast_whale_alert(user_id: int, username: str, symbol: str, pnl: float, room: str = 'general'):
+    """
+    Broadcast a whale alert to the chat when a user makes a large profit.
+    Called from the trading engine when a trade closes.
+    """
+    from models import ChatMessage, User
+    
+    # Mask username for privacy
+    if len(username) > 3:
+        masked_name = username[0] + '*' * (len(username) - 2) + username[-1]
+    else:
+        masked_name = username
+    
+    # Format the whale alert message
+    alert_message = f"🐋 {masked_name} just made +${abs(pnl):.2f} on {symbol}!"
+    
+    # Get admin/system user for the message
+    admin_user = User.query.filter_by(role='admin').first()
+    if not admin_user:
+        admin_user = User.query.first()
+    
+    if admin_user:
+        chat_msg = ChatMessage(
+            user_id=admin_user.id,
+            room=room,
+            message=alert_message,
+            message_type='whale_alert',
+            extra_data={
+                'type': 'whale_alert',
+                'trader_id': user_id,
+                'masked_username': masked_name,
+                'symbol': symbol,
+                'pnl': pnl
+            }
+        )
+        db.session.add(chat_msg)
+        db.session.commit()
+        
+        # Broadcast to chat room
+        socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
+        socketio.emit('whale_alert', {
+            'masked_username': masked_name,
+            'symbol': symbol,
+            'pnl': pnl,
+            'message': alert_message
+        }, room=f'chat_{room}')
+
+
 # ==================== SEO ROUTES ====================
 
 @app.route('/robots.txt')
@@ -454,6 +662,86 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
+
+
+# ==================== DYNAMIC SITEMAP ====================
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """
+    Generate dynamic sitemap.xml for SEO.
+    Lists all public pages with proper priorities and change frequencies.
+    """
+    from datetime import datetime
+    
+    # Base URL from config or default
+    base_url = os.environ.get('SITE_URL', 'https://mimic.cash')
+    
+    # Current timestamp for lastmod
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    
+    # Define public pages with their SEO attributes
+    # Format: (path, changefreq, priority)
+    public_pages = [
+        ('/', 'weekly', '1.0'),          # Homepage - highest priority
+        ('/leaderboard', 'hourly', '0.95'),  # Leaderboard - frequently updated
+        ('/register', 'monthly', '0.9'),  # Registration - important for conversions
+        ('/login', 'monthly', '0.8'),     # Login
+        ('/forgot_password', 'yearly', '0.3'),  # Password reset - rarely changed
+    ]
+    
+    # Build XML
+    xml_content = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml_content.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"')
+    xml_content.append('        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">')
+    
+    for path, changefreq, priority in public_pages:
+        xml_content.append('  <url>')
+        xml_content.append(f'    <loc>{base_url}{path}</loc>')
+        xml_content.append(f'    <lastmod>{now}</lastmod>')
+        xml_content.append(f'    <changefreq>{changefreq}</changefreq>')
+        xml_content.append(f'    <priority>{priority}</priority>')
+        
+        # Add image for homepage
+        if path == '/':
+            xml_content.append('    <image:image>')
+            xml_content.append(f'      <image:loc>{base_url}/static/mimic-logo.svg</image:loc>')
+            xml_content.append('      <image:title>MIMIC Copy Trading Logo</image:title>')
+            xml_content.append('      <image:caption>MIMIC - Automated Crypto Copy Trading Platform</image:caption>')
+            xml_content.append('    </image:image>')
+        
+        xml_content.append('  </url>')
+    
+    xml_content.append('</urlset>')
+    
+    return Response(
+        '\n'.join(xml_content),
+        mimetype='application/xml',
+        headers={'Cache-Control': 'public, max-age=3600'}  # Cache for 1 hour
+    )
+
+
+@app.route('/robots.txt')
+def robots():
+    """Serve robots.txt with dynamic sitemap URL"""
+    base_url = os.environ.get('SITE_URL', 'https://mimic.cash')
+    robots_content = f"""User-agent: *
+Allow: /
+Allow: /leaderboard
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /admin/
+Disallow: /webhook/
+
+# Sitemap
+Sitemap: {base_url}/sitemap.xml
+
+# Crawl-delay for politeness
+Crawl-delay: 1
+"""
+    return Response(robots_content, mimetype='text/plain')
 
 
 # ==================== PUBLIC LEADERBOARD ====================
@@ -619,6 +907,812 @@ def get_leaderboard_stats():
         }), 500
 
 
+# ==================== TOURNAMENT SYSTEM ====================
+
+@app.route('/tournament')
+def tournament_page():
+    """
+    Public tournament page showing:
+    - Active tournament with countdown timer
+    - Real-time leaderboard
+    - Registration form for logged-in users
+    - Prize pool and distribution info
+    """
+    return render_template('tournament.html')
+
+
+@app.route('/api/tournament/active')
+def get_active_tournament():
+    """
+    Get the currently active tournament with leaderboard.
+    
+    Public API endpoint - no auth required for viewing.
+    """
+    try:
+        from models import Tournament
+        
+        # Get active tournament
+        tournament = Tournament.get_active_tournament()
+        
+        if not tournament:
+            # Check for upcoming tournament
+            upcoming = Tournament.get_upcoming_tournaments(limit=1)
+            if upcoming:
+                return jsonify({
+                    'success': True,
+                    'tournament': upcoming[0].to_dict(include_leaderboard=False),
+                    'status': 'upcoming',
+                    'message': 'Tournament starting soon!'
+                })
+            return jsonify({
+                'success': True,
+                'tournament': None,
+                'status': 'none',
+                'message': 'No active tournament. Check back soon!'
+            })
+        
+        return jsonify({
+            'success': True,
+            'tournament': tournament.to_dict(include_leaderboard=True),
+            'status': 'active'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting active tournament: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load tournament data'
+        }), 500
+
+
+@app.route('/api/tournament/<int:tournament_id>')
+def get_tournament_by_id(tournament_id):
+    """
+    Get a specific tournament by ID.
+    
+    Public API endpoint.
+    """
+    try:
+        from models import Tournament
+        
+        tournament = Tournament.query.get(tournament_id)
+        
+        if not tournament:
+            return jsonify({
+                'success': False,
+                'error': 'Tournament not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'tournament': tournament.to_dict(include_leaderboard=True)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting tournament {tournament_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load tournament data'
+        }), 500
+
+
+@app.route('/api/tournament/<int:tournament_id>/leaderboard')
+def get_tournament_leaderboard(tournament_id):
+    """
+    Get the leaderboard for a specific tournament.
+    
+    Public API endpoint - refreshes automatically via JS.
+    """
+    try:
+        from models import Tournament
+        
+        tournament = Tournament.query.get(tournament_id)
+        
+        if not tournament:
+            return jsonify({
+                'success': False,
+                'error': 'Tournament not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'tournament_id': tournament_id,
+            'tournament_name': tournament.name,
+            'status': tournament.status,
+            'prize_pool': tournament.prize_pool,
+            'time_remaining': tournament.get_time_remaining(),
+            'leaderboard': tournament.get_leaderboard(limit=50),
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting tournament leaderboard: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load leaderboard'
+        }), 500
+
+
+@app.route('/api/tournament/join', methods=['POST'])
+@login_required
+def join_tournament():
+    """
+    Join the active tournament.
+    
+    Requires authentication. Deducts entry fee from user's balance.
+    """
+    try:
+        from models import Tournament, TournamentParticipant
+        
+        # Get active or upcoming tournament
+        tournament = Tournament.get_active_tournament()
+        if not tournament:
+            upcoming = Tournament.get_upcoming_tournaments(limit=1)
+            if upcoming:
+                tournament = upcoming[0]
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'No tournament available to join'
+                }), 400
+        
+        # Check if registration is open
+        if not tournament.is_registration_open():
+            return jsonify({
+                'success': False,
+                'error': 'Registration is closed for this tournament'
+            }), 400
+        
+        # Check if user already joined
+        existing = TournamentParticipant.query.filter_by(
+            tournament_id=tournament.id,
+            user_id=current_user.id
+        ).first()
+        
+        if existing:
+            return jsonify({
+                'success': False,
+                'error': 'You have already joined this tournament'
+            }), 400
+        
+        # Add participant
+        try:
+            participant = tournament.add_participant(current_user.id)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Successfully joined {tournament.name}!',
+                'tournament': tournament.to_dict(),
+                'participant': participant.to_dict()
+            })
+            
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 400
+        
+    except Exception as e:
+        logger.error(f"Error joining tournament: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to join tournament'
+        }), 500
+
+
+@app.route('/api/tournament/my-participation')
+@login_required
+def get_my_tournament_participation():
+    """
+    Get current user's tournament participation status.
+    """
+    try:
+        from models import Tournament, TournamentParticipant
+        
+        # Get active tournament
+        tournament = Tournament.get_active_tournament()
+        
+        if not tournament:
+            # Check upcoming
+            upcoming = Tournament.get_upcoming_tournaments(limit=1)
+            if upcoming:
+                tournament = upcoming[0]
+            else:
+                return jsonify({
+                    'success': True,
+                    'participating': False,
+                    'tournament': None,
+                    'message': 'No active tournament'
+                })
+        
+        # Check if user is participating
+        participant = TournamentParticipant.query.filter_by(
+            tournament_id=tournament.id,
+            user_id=current_user.id
+        ).first()
+        
+        if participant:
+            # Get user's current rank
+            rank = TournamentParticipant.query.filter(
+                TournamentParticipant.tournament_id == tournament.id,
+                TournamentParticipant.current_roi > participant.current_roi
+            ).count() + 1
+            
+            return jsonify({
+                'success': True,
+                'participating': True,
+                'tournament': tournament.to_dict(),
+                'participation': {
+                    **participant.to_dict(),
+                    'current_rank': rank,
+                    'total_participants': tournament.participants.count()
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'participating': False,
+                'tournament': tournament.to_dict(),
+                'can_join': tournament.is_registration_open()
+            })
+        
+    except Exception as e:
+        logger.error(f"Error getting tournament participation: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load participation data'
+        }), 500
+
+
+@app.route('/api/tournament/history')
+def get_tournament_history():
+    """
+    Get list of past tournaments with winners.
+    
+    Public API endpoint.
+    """
+    try:
+        from models import Tournament
+        
+        # Get completed tournaments
+        completed = Tournament.query.filter_by(status='completed').order_by(
+            Tournament.finalized_at.desc()
+        ).limit(10).all()
+        
+        return jsonify({
+            'success': True,
+            'tournaments': [t.to_dict() for t in completed]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting tournament history: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load tournament history'
+        }), 500
+
+
+# Admin endpoints for tournament management
+
+@app.route('/api/admin/tournament/create', methods=['POST'])
+@login_required
+def admin_create_tournament():
+    """
+    Create a new tournament (admin only).
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Tournament
+        
+        data = request.get_json()
+        
+        name = data.get('name', 'Weekly Championship')
+        entry_fee = float(data.get('entry_fee', 10.0))
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        if start_date and end_date:
+            # Custom dates provided
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            
+            tournament = Tournament(
+                name=name,
+                description=f"Entry: ${entry_fee}. Prizes: 50%/30%/20% for TOP-3.",
+                start_date=start,
+                end_date=end,
+                entry_fee=entry_fee,
+                status='upcoming'
+            )
+            db.session.add(tournament)
+            db.session.commit()
+        else:
+            # Create weekly tournament
+            tournament = Tournament.create_weekly_tournament(
+                name=name,
+                entry_fee=entry_fee
+            )
+        
+        logger.info(f"Admin created tournament: {tournament.name}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Tournament "{tournament.name}" created successfully',
+            'tournament': tournament.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating tournament: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/admin/tournament/<int:tournament_id>/cancel', methods=['POST'])
+@login_required
+def admin_cancel_tournament(tournament_id):
+    """
+    Cancel a tournament (admin only).
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Tournament
+        
+        tournament = Tournament.query.get(tournament_id)
+        
+        if not tournament:
+            return jsonify({
+                'success': False,
+                'error': 'Tournament not found'
+            }), 404
+        
+        if tournament.status == 'completed':
+            return jsonify({
+                'success': False,
+                'error': 'Cannot cancel a completed tournament'
+            }), 400
+        
+        tournament.status = 'cancelled'
+        db.session.commit()
+        
+        logger.info(f"Admin cancelled tournament: {tournament.name}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Tournament "{tournament.name}" cancelled'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error cancelling tournament: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ==================== INSURANCE FUND (SAFETY POOL) ====================
+
+@app.route('/api/insurance-fund')
+def get_insurance_fund():
+    """
+    Public API endpoint for Insurance Fund (Safety Pool) information.
+    
+    The Insurance Fund accumulates 5% of platform fees and is used to
+    cover slippage losses in extreme market conditions.
+    
+    This endpoint is public to promote transparency and build trust.
+    """
+    try:
+        fund_info = SystemStats.get_insurance_fund_info()
+        
+        return jsonify({
+            'success': True,
+            'insurance_fund': {
+                'balance': fund_info['balance'],
+                'formatted_balance': fund_info['formatted_balance'],
+                'contribution_rate': fund_info['contribution_rate'],
+                'description': fund_info['description'],
+                'is_verified': fund_info['is_verified'],
+                'last_updated': fund_info['last_updated']
+            },
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting Insurance Fund info: {e}")
+        # Return a default value even on error for UI consistency
+        return jsonify({
+            'success': True,
+            'insurance_fund': {
+                'balance': 10000.0,
+                'formatted_balance': '$10,000.00',
+                'contribution_rate': '5%',
+                'description': 'Safety Pool - covers slippage losses in extreme market conditions',
+                'is_verified': True,
+                'last_updated': None
+            },
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+
+
+# ==================== GOVERNANCE / VOTING SYSTEM ====================
+
+@app.route('/governance')
+@login_required
+def governance_page():
+    """
+    Governance page showing active proposals and voting UI.
+    Only Elite users (level >= 4) can vote, but all users can view.
+    """
+    return render_template('governance.html')
+
+
+@app.route('/api/governance/proposals')
+def get_proposals():
+    """
+    Get all proposals with optional filtering.
+    
+    Query params:
+    - status: 'active', 'passed', 'rejected', 'implemented', 'all' (default: 'active')
+    - category: 'trading_pair', 'risk_management', 'exchange', 'feature', 'other'
+    - limit: max number of results (default: 50)
+    """
+    try:
+        from models import Proposal, Vote
+        
+        status = request.args.get('status', 'active')
+        category = request.args.get('category')
+        limit = min(int(request.args.get('limit', 50)), 100)
+        
+        # Build query
+        query = Proposal.query
+        
+        if status and status != 'all':
+            query = query.filter_by(status=status)
+        
+        if category:
+            query = query.filter_by(category=category)
+        
+        proposals = query.order_by(Proposal.created_at.desc()).limit(limit).all()
+        
+        # Check if current user can vote and their existing votes
+        user_votes = {}
+        can_vote = False
+        vote_eligibility_message = "Login required to vote"
+        
+        if current_user.is_authenticated:
+            can_vote_result = Vote.can_user_vote(current_user)
+            can_vote = can_vote_result[0]
+            vote_eligibility_message = can_vote_result[1]
+            
+            # Get user's votes for these proposals
+            proposal_ids = [p.id for p in proposals]
+            user_vote_records = Vote.query.filter(
+                Vote.user_id == current_user.id,
+                Vote.proposal_id.in_(proposal_ids)
+            ).all()
+            user_votes = {v.proposal_id: v.vote_type for v in user_vote_records}
+        
+        return jsonify({
+            'success': True,
+            'proposals': [p.to_dict() for p in proposals],
+            'user_votes': user_votes,
+            'can_vote': can_vote,
+            'vote_eligibility_message': vote_eligibility_message,
+            'total_count': len(proposals)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting proposals: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load proposals'
+        }), 500
+
+
+@app.route('/api/governance/proposals/<int:proposal_id>')
+def get_proposal(proposal_id):
+    """Get a single proposal with detailed information."""
+    try:
+        from models import Proposal, Vote
+        
+        proposal = Proposal.query.get(proposal_id)
+        
+        if not proposal:
+            return jsonify({
+                'success': False,
+                'error': 'Proposal not found'
+            }), 404
+        
+        # Check user's vote
+        user_vote = None
+        can_vote = False
+        
+        if current_user.is_authenticated:
+            vote = Vote.query.filter_by(
+                proposal_id=proposal_id,
+                user_id=current_user.id
+            ).first()
+            if vote:
+                user_vote = vote.vote_type
+            
+            can_vote = Vote.can_user_vote(current_user)[0] and proposal.is_voting_open() and user_vote is None
+        
+        return jsonify({
+            'success': True,
+            'proposal': proposal.to_dict(include_votes=True),
+            'user_vote': user_vote,
+            'can_vote': can_vote
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting proposal {proposal_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load proposal'
+        }), 500
+
+
+@app.route('/api/governance/vote', methods=['POST'])
+@login_required
+def submit_vote():
+    """
+    Submit a vote on a proposal.
+    
+    Only Elite users (level >= 4) can vote.
+    """
+    try:
+        from models import Proposal, Vote
+        
+        data = request.get_json()
+        proposal_id = data.get('proposal_id')
+        vote_type = data.get('vote_type', '').lower()
+        
+        if not proposal_id:
+            return jsonify({
+                'success': False,
+                'error': 'Proposal ID required'
+            }), 400
+        
+        if vote_type not in ['yes', 'no']:
+            return jsonify({
+                'success': False,
+                'error': 'Vote must be "yes" or "no"'
+            }), 400
+        
+        # Check if user can vote
+        can_vote, reason = Vote.can_user_vote(current_user)
+        if not can_vote:
+            return jsonify({
+                'success': False,
+                'error': reason
+            }), 403
+        
+        # Get proposal
+        proposal = Proposal.query.get(proposal_id)
+        if not proposal:
+            return jsonify({
+                'success': False,
+                'error': 'Proposal not found'
+            }), 404
+        
+        # Calculate vote weight based on user's volume
+        vote_weight = Vote.calculate_vote_weight(current_user)
+        
+        # Submit vote
+        success, message, vote = proposal.add_vote(
+            user_id=current_user.id,
+            vote_type=vote_type,
+            vote_weight=vote_weight
+        )
+        
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': message
+            }), 400
+        
+        logger.info(f"User {current_user.username} voted {vote_type} on proposal {proposal_id} (weight: {vote_weight:.2f})")
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'vote': vote.to_dict(),
+            'proposal': proposal.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error submitting vote: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to submit vote'
+        }), 500
+
+
+@app.route('/api/governance/eligibility')
+@login_required
+def check_vote_eligibility():
+    """Check if current user is eligible to vote."""
+    try:
+        from models import Vote
+        
+        can_vote, reason = Vote.can_user_vote(current_user)
+        vote_weight = Vote.calculate_vote_weight(current_user) if can_vote else 0
+        
+        user_level = current_user.current_level
+        
+        return jsonify({
+            'success': True,
+            'eligible': can_vote,
+            'reason': reason,
+            'vote_weight': round(vote_weight, 2),
+            'current_level': {
+                'name': user_level.name if user_level else 'None',
+                'order_rank': user_level.order_rank if user_level else 0,
+                'required_rank': 4  # Elite level
+            },
+            'trading_volume': round(current_user.total_trading_volume or 0, 2)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking vote eligibility: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to check eligibility'
+        }), 500
+
+
+# Admin endpoints for proposal management
+
+@app.route('/api/admin/governance/create', methods=['POST'])
+@login_required
+def admin_create_proposal():
+    """Create a new proposal (admin only)."""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Proposal
+        
+        data = request.get_json()
+        
+        title = data.get('title', '').strip()
+        description = data.get('description', '').strip()
+        category = data.get('category', 'other')
+        voting_days = int(data.get('voting_days', 7))
+        min_votes = int(data.get('min_votes', 5))
+        pass_threshold = float(data.get('pass_threshold', 60.0))
+        
+        if not title or not description:
+            return jsonify({
+                'success': False,
+                'error': 'Title and description are required'
+            }), 400
+        
+        if category not in ['trading_pair', 'risk_management', 'exchange', 'feature', 'other']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid category'
+            }), 400
+        
+        proposal = Proposal.create_proposal(
+            title=title,
+            description=description,
+            category=category,
+            created_by_id=current_user.id,
+            voting_days=voting_days,
+            min_votes=min_votes,
+            pass_threshold=pass_threshold
+        )
+        
+        logger.info(f"Admin {current_user.username} created proposal: {title}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Proposal "{title}" created successfully',
+            'proposal': proposal.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating proposal: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/admin/governance/<int:proposal_id>/close', methods=['POST'])
+@login_required
+def admin_close_proposal(proposal_id):
+    """Close voting on a proposal (admin only)."""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Proposal
+        
+        proposal = Proposal.query.get(proposal_id)
+        
+        if not proposal:
+            return jsonify({
+                'success': False,
+                'error': 'Proposal not found'
+            }), 404
+        
+        if proposal.status != 'active':
+            return jsonify({
+                'success': False,
+                'error': 'Proposal is not active'
+            }), 400
+        
+        proposal.close_voting()
+        
+        logger.info(f"Admin {current_user.username} closed proposal {proposal_id}: {proposal.status}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Proposal closed. Status: {proposal.get_status_label()}',
+            'proposal': proposal.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error closing proposal: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/admin/governance/<int:proposal_id>/implement', methods=['POST'])
+@login_required
+def admin_implement_proposal(proposal_id):
+    """Mark a passed proposal as implemented (admin only)."""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Proposal
+        
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', '')
+        
+        proposal = Proposal.query.get(proposal_id)
+        
+        if not proposal:
+            return jsonify({
+                'success': False,
+                'error': 'Proposal not found'
+            }), 404
+        
+        if proposal.status != 'passed':
+            return jsonify({
+                'success': False,
+                'error': 'Only passed proposals can be marked as implemented'
+            }), 400
+        
+        proposal.mark_implemented(admin_notes=admin_notes)
+        
+        logger.info(f"Admin {current_user.username} marked proposal {proposal_id} as implemented")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Proposal marked as implemented',
+            'proposal': proposal.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error implementing proposal: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/favicon.ico')
 def favicon():
     return '', 204  # No content - prevents 404 errors
@@ -712,6 +1806,88 @@ def login():
         flash('Невірний логін або пароль', 'error')
         
     return render_template('login.html')
+
+
+# ==================== LEGAL / COMPLIANCE ROUTES ====================
+
+@app.route('/legal/accept', methods=['GET', 'POST'])
+@login_required
+def legal_accept():
+    """
+    Terms of Service and Risk Disclaimer acceptance page.
+    Users must accept the current TOS version to continue using the platform.
+    """
+    from security import verify_csrf_token
+    
+    tos_version = getattr(Config, 'TOS_VERSION', '1.0')
+    ip = get_client_ip()
+    
+    # Check if user has already accepted this version
+    if UserConsent.has_user_accepted_tos(current_user.id, tos_version):
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        # CSRF validation
+        csrf_token = request.form.get('csrf_token', '')
+        if not verify_csrf_token(csrf_token):
+            audit.log_security_event("CSRF_VALIDATION_FAIL", f"IP: {ip}, Endpoint: legal_accept", "WARNING")
+            flash('Session expired. Please try again.', 'error')
+            return render_template('legal_accept.html', tos_version=tos_version), 403
+        
+        # Check all required consents
+        consent_risks = request.form.get('consent_risks')
+        consent_tos = request.form.get('consent_tos')
+        consent_jurisdiction = request.form.get('consent_jurisdiction')
+        
+        if not all([consent_risks, consent_tos, consent_jurisdiction]):
+            flash('You must accept all terms to continue.', 'error')
+            return render_template('legal_accept.html', tos_version=tos_version)
+        
+        # Record the consent
+        try:
+            user_agent = request.headers.get('User-Agent', '')
+            UserConsent.record_consent(
+                user_id=current_user.id,
+                tos_version=tos_version,
+                ip_address=ip,
+                user_agent=user_agent,
+                consent_type='tos_and_risk_disclaimer'
+            )
+            
+            audit.log_security_event(
+                "TOS_ACCEPTED",
+                f"User: {current_user.username}, Version: {tos_version}, IP: {ip}",
+                "INFO"
+            )
+            logger.info(f"✅ User {current_user.username} accepted TOS v{tos_version}")
+            flash('Thank you for accepting the Terms of Service.', 'success')
+            return redirect(url_for('dashboard'))
+            
+        except Exception as e:
+            logger.error(f"Failed to record TOS consent for user {current_user.id}: {e}")
+            flash('An error occurred. Please try again.', 'error')
+            return render_template('legal_accept.html', tos_version=tos_version)
+    
+    return render_template('legal_accept.html', tos_version=tos_version)
+
+
+@app.route('/legal/tos')
+def legal_tos():
+    """Display the full Terms of Service page"""
+    tos_version = getattr(Config, 'TOS_VERSION', '1.0')
+    return render_template('legal_tos.html', tos_version=tos_version)
+
+
+@app.route('/legal/privacy')
+def legal_privacy():
+    """Display the Privacy Policy page"""
+    return render_template('legal_privacy.html')
+
+
+@app.route('/legal/risk-disclaimer')
+def legal_risk_disclaimer():
+    """Display the Risk Disclaimer page"""
+    return render_template('legal_risk_disclaimer.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -881,6 +2057,14 @@ def register():
             
             db.session.add(user_exchange)
             db.session.commit()
+            
+            # Mark referral click as converted (if applicable)
+            if referrer:
+                try:
+                    from models import ReferralClick
+                    ReferralClick.mark_converted(referrer.id, ip, new_user.id)
+                except Exception as ref_err:
+                    logger.warning(f"Failed to mark referral click as converted: {ref_err}")
             
             engine.load_slaves()
             
@@ -1862,6 +3046,765 @@ def get_referral_stats():
     })
 
 
+# ==================== INFLUENCER DASHBOARD ====================
+
+@app.route('/influencer')
+@login_required
+def influencer_dashboard():
+    """
+    Influencer/Partner Dashboard.
+    
+    Provides:
+    - Detailed statistics (clicks, registrations, deposits, commissions)
+    - Earnings chart over time
+    - Marketing assets with dynamic banners
+    - Payout request functionality
+    """
+    from models import ReferralCommission, ReferralClick, PayoutRequest
+    from banner_generator import get_banner_types, get_platform_top_apy
+    
+    # Ensure user has a referral code
+    if not current_user.referral_code:
+        current_user.ensure_referral_code()
+        db.session.commit()
+    
+    # Get referral stats
+    referral_stats = current_user.get_referral_stats()
+    
+    # Get click stats
+    try:
+        click_stats = ReferralClick.get_referrer_stats(current_user.id)
+    except Exception:
+        click_stats = {
+            'total_clicks': 0,
+            'unique_visitors': 0,
+            'registrations': 0,
+            'deposits': 0,
+            'total_deposit_amount': 0,
+            'click_to_registration_rate': 0,
+            'registration_to_deposit_rate': 0,
+        }
+    
+    # Build referral link
+    referral_link = request.url_root.rstrip('/') + url_for('register') + f"?ref={current_user.referral_code}"
+    
+    # Get referral list
+    referrals = []
+    for ref in current_user.referrals.order_by(User.created_at.desc()).limit(50).all():
+        referrals.append({
+            'username': ref.username,
+            'first_name': ref.first_name,
+            'joined': ref.created_at.strftime("%d %b %Y") if ref.created_at else None,
+            'is_active': ref.is_active
+        })
+    
+    # Get recent commissions
+    recent_commissions = ReferralCommission.query.filter_by(
+        referrer_id=current_user.id
+    ).order_by(ReferralCommission.created_at.desc()).limit(20).all()
+    
+    # Check for pending payout request
+    pending_payout = PayoutRequest.query.filter_by(
+        user_id=current_user.id,
+        status='pending'
+    ).first()
+    
+    # Get payout history
+    payout_history = [p.to_dict() for p in PayoutRequest.get_user_requests(current_user.id, limit=20)]
+    
+    # Get banner types
+    banner_types = get_banner_types()
+    
+    return render_template('influencer.html',
+                           referral_code=current_user.referral_code,
+                           referral_link=referral_link,
+                           referral_stats=referral_stats,
+                           click_stats=click_stats,
+                           referrals=referrals,
+                           recent_commissions=[c.to_dict() for c in recent_commissions],
+                           pending_payout=pending_payout,
+                           payout_history=payout_history,
+                           banner_types=banner_types)
+
+
+@app.route('/r/<code>')
+def track_referral_click(code):
+    """
+    Track referral link clicks and redirect to registration.
+    
+    URL format: /r/CODE?utm_source=...&utm_medium=...&utm_campaign=...
+    """
+    from models import ReferralClick
+    
+    # Find the referrer
+    referrer = User.query.filter_by(referral_code=code.upper().strip()).first()
+    
+    if referrer:
+        # Record the click
+        try:
+            ReferralClick.record_click(
+                referrer_id=referrer.id,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+                referer_url=request.headers.get('Referer'),
+                utm_source=request.args.get('utm_source'),
+                utm_medium=request.args.get('utm_medium'),
+                utm_campaign=request.args.get('utm_campaign'),
+            )
+        except Exception as e:
+            logger.warning(f"Failed to record referral click: {e}")
+    
+    # Redirect to registration with referral code
+    return redirect(url_for('register', ref=code))
+
+
+@app.route('/api/influencer/earnings-chart', methods=['GET'])
+@login_required
+def get_earnings_chart():
+    """
+    Get earnings chart data for the influencer dashboard.
+    
+    Query params:
+        days: Number of days to show (default 30)
+        
+    Returns:
+        JSON with labels, daily_commission, and cumulative arrays
+    """
+    from models import ReferralCommission
+    from sqlalchemy import func
+    from datetime import timedelta
+    
+    days = min(int(request.args.get('days', 30)), 365)  # Max 1 year
+    
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Query daily commission totals
+    daily_data = db.session.query(
+        func.date(ReferralCommission.created_at).label('date'),
+        func.sum(ReferralCommission.amount).label('total')
+    ).filter(
+        ReferralCommission.referrer_id == current_user.id,
+        ReferralCommission.created_at >= start_date
+    ).group_by(
+        func.date(ReferralCommission.created_at)
+    ).order_by(
+        func.date(ReferralCommission.created_at)
+    ).all()
+    
+    # Create a dict of date -> amount
+    daily_dict = {str(d.date): float(d.total or 0) for d in daily_data}
+    
+    # Generate labels for each day
+    labels = []
+    daily_commission = []
+    cumulative = []
+    running_total = 0
+    
+    for i in range(days):
+        date = start_date + timedelta(days=i + 1)
+        date_str = date.strftime('%Y-%m-%d')
+        labels.append(date.strftime('%d %b'))
+        
+        amount = daily_dict.get(date_str, 0)
+        daily_commission.append(round(amount, 2))
+        
+        running_total += amount
+        cumulative.append(round(running_total, 2))
+    
+    return jsonify({
+        'success': True,
+        'labels': labels,
+        'daily_commission': daily_commission,
+        'cumulative': cumulative,
+        'period_total': round(running_total, 2)
+    })
+
+
+@app.route('/api/influencer/banner/<banner_type>')
+@login_required  
+def get_banner(banner_type):
+    """
+    Generate and serve a promotional banner.
+    
+    Args:
+        banner_type: One of 'landscape', 'square', 'story', 'leaderboard', 'sidebar'
+        
+    Returns:
+        PNG image with user's referral code and stats
+    """
+    from banner_generator import generate_banner, get_platform_top_apy, get_user_trading_stats
+    from flask import make_response
+    
+    # Ensure user has referral code
+    if not current_user.referral_code:
+        current_user.ensure_referral_code()
+        db.session.commit()
+    
+    # Get user's trading stats
+    trading_stats = get_user_trading_stats(current_user.id)
+    
+    # Get referral stats
+    referral_stats = current_user.get_referral_stats()
+    
+    # Get platform top APY
+    top_apy = get_platform_top_apy()
+    
+    # Generate banner
+    banner_bytes = generate_banner(
+        banner_type=banner_type,
+        referral_code=current_user.referral_code,
+        username=current_user.username,
+        total_pnl=trading_stats['total_pnl'],
+        total_roi=trading_stats['total_roi'],
+        top_apy=top_apy,
+        referral_count=referral_stats['referral_count'],
+        total_commission=referral_stats['total_commission'],
+    )
+    
+    if banner_bytes:
+        response = make_response(banner_bytes)
+        response.headers['Content-Type'] = 'image/png'
+        response.headers['Content-Disposition'] = f'inline; filename=mimic-banner-{banner_type}.png'
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+        return response
+    else:
+        return jsonify({'error': 'Failed to generate banner'}), 500
+
+
+@app.route('/api/influencer/payout-request', methods=['POST'])
+@login_required
+def request_payout():
+    """
+    Submit a payout request for referral commissions.
+    
+    Request body:
+        amount: Amount to withdraw (min $50)
+        payment_method: One of 'usdt_trc20', 'usdt_erc20', 'usdt_bep20', 'btc', 'bank_transfer'
+        payment_address: Crypto wallet address or bank details
+        
+    Returns:
+        JSON with success status and request details
+    """
+    from models import PayoutRequest
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        amount = float(data.get('amount', 0))
+        payment_method = data.get('payment_method', '').strip()
+        payment_address = data.get('payment_address', '').strip()
+        
+        # Validate inputs
+        if not payment_method:
+            return jsonify({'success': False, 'error': 'Payment method is required'}), 400
+        
+        if not payment_address:
+            return jsonify({'success': False, 'error': 'Payment address is required'}), 400
+        
+        # Create payout request
+        payout = PayoutRequest.create_request(
+            user_id=current_user.id,
+            amount=amount,
+            payment_method=payment_method,
+            payment_address=payment_address
+        )
+        
+        # Send notification to admin (optional - via Telegram)
+        try:
+            notifier = get_notifier()
+            if notifier:
+                notifier.send(
+                    f"💰 <b>NEW PAYOUT REQUEST</b>\n\n"
+                    f"👤 User: <code>{current_user.username}</code>\n"
+                    f"💵 Amount: <code>${amount:.2f}</code>\n"
+                    f"💳 Method: <code>{payment_method}</code>\n"
+                    f"📝 Address: <code>{payment_address[:30]}...</code>\n\n"
+                    f"Review at: /admin/payouts"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to send payout notification: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payout request submitted successfully',
+            'payout': payout.to_dict()
+        })
+        
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Payout request error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to create payout request'}), 500
+
+
+@app.route('/api/influencer/daily-stats', methods=['GET'])
+@login_required
+def get_daily_referral_stats():
+    """
+    Get daily referral statistics for the influencer dashboard.
+    
+    Complex SQL aggregation of:
+    - Daily clicks
+    - Daily registrations
+    - Daily commissions
+    
+    Query params:
+        days: Number of days (default 30)
+        
+    Returns:
+        JSON with daily breakdown
+    """
+    from models import ReferralCommission, ReferralClick
+    from sqlalchemy import func
+    from datetime import timedelta
+    
+    days = min(int(request.args.get('days', 30)), 365)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Daily clicks
+    clicks_query = db.session.query(
+        func.date(ReferralClick.created_at).label('date'),
+        func.count(ReferralClick.id).label('clicks'),
+        func.count(func.distinct(ReferralClick.ip_hash)).label('unique_clicks'),
+        func.sum(func.cast(ReferralClick.converted, db.Integer)).label('conversions')
+    ).filter(
+        ReferralClick.referrer_id == current_user.id,
+        ReferralClick.created_at >= start_date
+    ).group_by(func.date(ReferralClick.created_at)).all()
+    
+    # Daily commissions
+    commissions_query = db.session.query(
+        func.date(ReferralCommission.created_at).label('date'),
+        func.sum(ReferralCommission.amount).label('commission'),
+        func.count(ReferralCommission.id).label('commission_count')
+    ).filter(
+        ReferralCommission.referrer_id == current_user.id,
+        ReferralCommission.created_at >= start_date
+    ).group_by(func.date(ReferralCommission.created_at)).all()
+    
+    # Merge into daily stats
+    clicks_dict = {str(d.date): {'clicks': d.clicks, 'unique': d.unique_clicks, 'conversions': d.conversions or 0} 
+                   for d in clicks_query}
+    commissions_dict = {str(d.date): {'commission': float(d.commission or 0), 'count': d.commission_count} 
+                        for d in commissions_query}
+    
+    daily_stats = []
+    for i in range(days):
+        date = start_date + timedelta(days=i + 1)
+        date_str = date.strftime('%Y-%m-%d')
+        
+        clicks_data = clicks_dict.get(date_str, {'clicks': 0, 'unique': 0, 'conversions': 0})
+        comm_data = commissions_dict.get(date_str, {'commission': 0, 'count': 0})
+        
+        daily_stats.append({
+            'date': date_str,
+            'clicks': clicks_data['clicks'],
+            'unique_clicks': clicks_data['unique'],
+            'conversions': clicks_data['conversions'],
+            'commission': round(comm_data['commission'], 2),
+            'commission_count': comm_data['count']
+        })
+    
+    return jsonify({
+        'success': True,
+        'daily_stats': daily_stats
+    })
+
+
+# ==================== GAMIFICATION API ====================
+
+@app.route('/api/gamification/status', methods=['GET'])
+@login_required
+def get_gamification_status():
+    """
+    Get current user's gamification status including level, XP, and badges.
+    
+    Returns:
+        JSON with level info, XP progress, and unlocked badges
+    """
+    try:
+        # Ensure levels exist
+        UserLevel.initialize_default_levels()
+        
+        # Get gamification summary for current user
+        summary = current_user.get_gamification_summary()
+        
+        return jsonify({
+            'success': True,
+            **summary
+        })
+    except Exception as e:
+        logger.error(f"Error getting gamification status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/gamification/levels', methods=['GET'])
+def get_all_levels():
+    """
+    Get all available levels and their requirements (public endpoint).
+    
+    Returns:
+        JSON with all level definitions
+    """
+    try:
+        # Ensure levels exist
+        UserLevel.initialize_default_levels()
+        
+        levels = UserLevel.query.order_by(UserLevel.order_rank.asc()).all()
+        
+        return jsonify({
+            'success': True,
+            'levels': [level.to_dict() for level in levels]
+        })
+    except Exception as e:
+        logger.error(f"Error getting levels: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/gamification/achievements', methods=['GET'])
+@login_required
+def get_achievements():
+    """
+    Get user's unlocked achievements and all possible achievements.
+    
+    Returns:
+        JSON with unlocked badges and available achievements
+    """
+    try:
+        # Get unlocked achievements for current user
+        unlocked = current_user.get_unlocked_badges()
+        unlocked_types = {a['achievement_type'] for a in unlocked}
+        
+        # Get all possible achievements
+        all_achievements = []
+        for achievement_type, data in UserAchievement.ACHIEVEMENTS.items():
+            all_achievements.append({
+                'type': achievement_type,
+                'name': data['name'],
+                'description': data['description'],
+                'icon': data['icon'],
+                'color': data['color'],
+                'rarity': data['rarity'],
+                'unlocked': achievement_type in unlocked_types
+            })
+        
+        return jsonify({
+            'success': True,
+            'unlocked': unlocked,
+            'all_achievements': all_achievements,
+            'total_unlocked': len(unlocked),
+            'total_available': len(all_achievements)
+        })
+    except Exception as e:
+        logger.error(f"Error getting achievements: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/gamification/leaderboard', methods=['GET'])
+def get_gamification_leaderboard():
+    """
+    Get top users by XP (public endpoint with limited info).
+    
+    Query params:
+        limit: Number of users to return (default 10, max 50)
+    
+    Returns:
+        JSON with top users by XP
+    """
+    try:
+        limit = min(int(request.args.get('limit', 10)), 50)
+        
+        # Get top users by XP
+        top_users = User.query.filter(
+            User.role == 'user',
+            User.xp > 0
+        ).order_by(User.xp.desc()).limit(limit).all()
+        
+        leaderboard = []
+        for i, user in enumerate(top_users, 1):
+            leaderboard.append({
+                'rank': i,
+                'username': user.username[:3] + '*' * max(0, len(user.username) - 4) + user.username[-1:] if len(user.username) > 4 else user.username,
+                'avatar': user.avatar,
+                'avatar_type': user.avatar_type,
+                'xp': user.xp or 0,
+                'level_name': user.current_level.name if user.current_level else 'Novice',
+                'level_icon': user.current_level.icon if user.current_level else 'fa-seedling',
+                'level_color': user.current_level.color if user.current_level else '#888888',
+                'badge_count': user.achievements.count()
+            })
+        
+        return jsonify({
+            'success': True,
+            'leaderboard': leaderboard,
+            'total_participants': User.query.filter(User.role == 'user', User.xp > 0).count()
+        })
+    except Exception as e:
+        logger.error(f"Error getting gamification leaderboard: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/gamification/check_achievements', methods=['POST'])
+@login_required
+def check_user_achievements():
+    """
+    Manually trigger achievement check for current user.
+    
+    Returns:
+        JSON with any newly unlocked achievements
+    """
+    try:
+        new_achievements = UserAchievement.check_and_unlock(current_user.id)
+        
+        return jsonify({
+            'success': True,
+            'new_achievements': [a.to_dict() for a in new_achievements],
+            'count': len(new_achievements)
+        })
+    except Exception as e:
+        logger.error(f"Error checking achievements: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/gamification/stats', methods=['GET'])
+@login_required
+def admin_gamification_stats():
+    """
+    Admin endpoint: Get overall gamification statistics.
+    
+    Returns:
+        JSON with level distribution, achievement stats, etc.
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from sqlalchemy import func
+        
+        # Users by level
+        level_distribution = db.session.query(
+            UserLevel.name,
+            UserLevel.color,
+            func.count(User.id)
+        ).outerjoin(User, User.current_level_id == UserLevel.id).filter(
+            User.role == 'user'
+        ).group_by(UserLevel.id).order_by(UserLevel.order_rank).all()
+        
+        # Achievement stats
+        achievement_stats = db.session.query(
+            UserAchievement.achievement_type,
+            UserAchievement.name,
+            func.count(UserAchievement.id)
+        ).group_by(UserAchievement.achievement_type).order_by(
+            func.count(UserAchievement.id).desc()
+        ).all()
+        
+        # Total XP across platform
+        total_xp = db.session.query(func.sum(User.xp)).filter(User.role == 'user').scalar() or 0
+        
+        # Average XP
+        avg_xp = db.session.query(func.avg(User.xp)).filter(User.role == 'user').scalar() or 0
+        
+        return jsonify({
+            'success': True,
+            'level_distribution': [
+                {'name': name, 'color': color, 'count': count}
+                for name, color, count in level_distribution
+            ],
+            'achievement_stats': [
+                {'type': t, 'name': n, 'count': c}
+                for t, n, c in achievement_stats
+            ],
+            'total_xp_platform': int(total_xp),
+            'average_xp': round(float(avg_xp), 1),
+            'total_achievements_unlocked': UserAchievement.query.count()
+        })
+    except Exception as e:
+        logger.error(f"Error getting admin gamification stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/gamification/recalculate', methods=['POST'])
+@login_required
+def admin_recalculate_xp():
+    """
+    Admin endpoint: Trigger XP recalculation for all users.
+    
+    Returns:
+        JSON with recalculation results
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from sqlalchemy import func
+        
+        # Ensure levels exist
+        UserLevel.initialize_default_levels()
+        
+        users_updated = 0
+        levels_changed = 0
+        
+        # Get all users
+        users = User.query.filter(User.role == 'user').all()
+        
+        for user in users:
+            # Calculate new XP
+            new_xp = user.calculate_xp()
+            old_level_id = user.current_level_id
+            
+            # Update XP and level
+            user.xp = new_xp
+            new_level, leveled_up = user.update_xp_and_level(new_xp)
+            
+            users_updated += 1
+            if leveled_up:
+                levels_changed += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'users_updated': users_updated,
+            'levels_changed': levels_changed,
+            'message': f'Recalculated XP for {users_updated} users, {levels_changed} level changes'
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error recalculating XP: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== AI SENTIMENT FILTER ====================
+
+@app.route('/api/sentiment', methods=['GET'])
+@login_required
+def get_market_sentiment():
+    """
+    Get current market sentiment (Fear & Greed Index) and active risk adjustments.
+    
+    Returns:
+        JSON with:
+        - value: Current Fear & Greed Index (0-100)
+        - classification: 'extreme_fear', 'fear', 'neutral', 'greed', 'extreme_greed'
+        - label: Human-readable label
+        - color: Color code for display
+        - is_extreme: True if in extreme fear/greed zone
+        - risk_adjustments: Active risk adjustment rules
+    """
+    import asyncio
+    from sentiment import SentimentManager
+    
+    try:
+        # Get sentiment data - try Redis cache first, then API
+        if redis_client:
+            try:
+                # Use async-to-sync pattern
+                async def get_sentiment():
+                    import redis.asyncio as aioredis
+                    from urllib.parse import urlparse
+                    
+                    parsed = urlparse(app.config.get('REDIS_URL', 'redis://localhost:6379/0'))
+                    async_redis = aioredis.Redis(
+                        host=parsed.hostname or '127.0.0.1',
+                        port=parsed.port or 6379,
+                        db=int(parsed.path.lstrip('/') or 0) if parsed.path else 0,
+                        password=parsed.password,
+                        socket_timeout=5,
+                    )
+                    
+                    try:
+                        manager = SentimentManager(async_redis)
+                        status = await manager.get_sentiment_status()
+                        return status
+                    finally:
+                        await async_redis.aclose()
+                
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Fallback to sync Redis read
+                        value = redis_client.get('market:sentiment:fear_greed')
+                        if value:
+                            value = int(value)
+                            classification = redis_client.get('market:sentiment:classification')
+                            classification = classification.decode() if isinstance(classification, bytes) else (classification or 'neutral')
+                            timestamp = redis_client.get('market:sentiment:timestamp')
+                            
+                            # Build response
+                            from sentiment import SENTIMENT_CLASSIFICATIONS, EXTREME_FEAR_THRESHOLD, EXTREME_GREED_THRESHOLD, RISK_REDUCTION_PERCENT
+                            
+                            class_details = SENTIMENT_CLASSIFICATIONS.get(classification, {
+                                "label": classification.replace('_', ' ').title(),
+                                "color": "#808080"
+                            })
+                            
+                            adjustments = []
+                            if value > EXTREME_GREED_THRESHOLD:
+                                adjustments.append({
+                                    "affected": "LONG",
+                                    "adjustment": f"-{RISK_REDUCTION_PERCENT}% risk",
+                                    "reason": "Extreme Greed - preventing buying tops"
+                                })
+                            elif value < EXTREME_FEAR_THRESHOLD:
+                                adjustments.append({
+                                    "affected": "SHORT",
+                                    "adjustment": f"-{RISK_REDUCTION_PERCENT}% risk",
+                                    "reason": "Extreme Fear - preventing selling bottoms"
+                                })
+                            
+                            return jsonify({
+                                'success': True,
+                                'value': value,
+                                'classification': classification,
+                                'label': class_details.get('label', classification),
+                                'color': class_details.get('color', '#808080'),
+                                'is_extreme': value < EXTREME_FEAR_THRESHOLD or value > EXTREME_GREED_THRESHOLD,
+                                'risk_adjustments': adjustments,
+                                'last_updated': timestamp.decode() if isinstance(timestamp, bytes) else timestamp,
+                                'source': 'cache'
+                            })
+                    else:
+                        status = loop.run_until_complete(get_sentiment())
+                        return jsonify({'success': True, **status})
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    status = loop.run_until_complete(get_sentiment())
+                    return jsonify({'success': True, **status})
+                    
+            except Exception as redis_err:
+                logger.warning(f"Redis sentiment read failed: {redis_err}")
+        
+        # Fallback: return neutral sentiment
+        return jsonify({
+            'success': True,
+            'value': 50,
+            'classification': 'neutral',
+            'label': 'Neutral',
+            'color': '#ffc400',
+            'is_extreme': False,
+            'risk_adjustments': [],
+            'last_updated': None,
+            'source': 'fallback'
+        })
+        
+    except Exception as e:
+        logger.error(f"Sentiment API error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'value': 50,
+            'classification': 'neutral',
+            'label': 'Unknown',
+            'color': '#808080',
+            'is_extreme': False,
+            'risk_adjustments': []
+        }), 500
+
+
 # ==================== WEBHOOK ====================
 
 # ARQ task queueing helper
@@ -1995,19 +3938,30 @@ def webhook():
         task_leverage = webhook_leverage if webhook_leverage > 1 else GLOBAL_TRADE_SETTINGS['leverage']
         task_risk = webhook_risk if webhook_risk > 0 else GLOBAL_TRADE_SETTINGS['risk_perc']
         
+        # Get strategy_id from webhook (optional - defaults to 1 for backward compatibility)
+        strategy_id = data.get('strategy_id')
+        if strategy_id:
+            try:
+                strategy_id = int(strategy_id)
+            except (ValueError, TypeError):
+                strategy_id = 1  # Default to main strategy
+        else:
+            strategy_id = 1  # Default to main strategy
+        
         signal = {
             'symbol': symbol,
             'action': action,
+            'strategy_id': strategy_id,
             'risk': task_risk,
             'lev': task_leverage,
             'tp_perc': tp_perc,
             'sl_perc': sl_perc
         }
         
-        logger.info(f"📥 Webhook received: {action.upper()} {symbol}")
-        logger.info(f"📊 Signal created: Risk={signal['risk']}%, Leverage={signal['lev']}x, TP={signal['tp_perc']}%, SL={signal['sl_perc']}%")
+        logger.info(f"📥 Webhook received: {action.upper()} {symbol} (strategy_id={strategy_id})")
+        logger.info(f"📊 Signal created: Risk={signal['risk']}%, Leverage={signal['lev']}x, TP={signal['tp_perc']}%, SL={signal['sl_perc']}%, Strategy={strategy_id}")
         logger.info(f"📊 (Webhook values: risk={webhook_risk}%, lev={webhook_leverage}x, using global: {webhook_leverage <= 1})")
-        log_system_event(None, symbol, f"SIGNAL: {action.upper()} (Risk: {signal['risk']}%, Lev: {signal['lev']}x)")
+        log_system_event(None, symbol, f"SIGNAL: {action.upper()} (Strategy: {strategy_id}, Risk: {signal['risk']}%, Lev: {signal['lev']}x)")
         
         # Queue the task via ARQ (preferred) or legacy Redis/memory queue
         queue_mode = 'memory'
@@ -2043,6 +3997,7 @@ def webhook():
             'status': 'queued',
             'symbol': symbol,
             'action': action,
+            'strategy_id': strategy_id,
             'mode': queue_mode
         }
         if job_id:
@@ -2353,6 +4308,183 @@ def actions(action_type):
         audit.log_admin_action(current_user.username, "RELOAD_CONFIG", "Global")
     
     return redirect(url_for('dashboard'))
+
+
+# ==================== ADMIN PAYOUT MANAGEMENT ====================
+
+@app.route('/admin/payouts')
+@login_required
+def admin_payouts():
+    """Admin page to view and manage payout requests"""
+    if current_user.role != 'admin':
+        abort(403)
+    
+    from models import PayoutRequest
+    
+    status_filter = request.args.get('status', 'pending')
+    
+    if status_filter == 'all':
+        payouts = PayoutRequest.query.order_by(PayoutRequest.created_at.desc()).limit(100).all()
+    else:
+        payouts = PayoutRequest.query.filter_by(status=status_filter).order_by(PayoutRequest.created_at.desc()).limit(100).all()
+    
+    # Get counts for each status
+    pending_count = PayoutRequest.query.filter_by(status='pending').count()
+    approved_count = PayoutRequest.query.filter_by(status='approved').count()
+    paid_count = PayoutRequest.query.filter_by(status='paid').count()
+    rejected_count = PayoutRequest.query.filter_by(status='rejected').count()
+    
+    return render_template('admin_payouts.html',
+                           payouts=payouts,
+                           status_filter=status_filter,
+                           pending_count=pending_count,
+                           approved_count=approved_count,
+                           paid_count=paid_count,
+                           rejected_count=rejected_count)
+
+
+@app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])
+@login_required
+def admin_approve_payout(payout_id):
+    """Approve a payout request"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    from models import PayoutRequest
+    
+    payout = PayoutRequest.query.get_or_404(payout_id)
+    notes = request.form.get('notes', '')
+    
+    try:
+        payout.approve(current_user.id, notes)
+        audit.log_admin_action(current_user.username, "APPROVE_PAYOUT", f"ID: {payout_id}, Amount: ${payout.amount}")
+        
+        # Notify user via Telegram
+        user = User.query.get(payout.user_id)
+        if user and user.telegram_enabled and user.telegram_chat_id:
+            try:
+                notifier = get_notifier()
+                if notifier:
+                    notifier.send(
+                        f"✅ <b>PAYOUT APPROVED</b>\n\n"
+                        f"💵 Amount: <code>${payout.amount:.2f}</code>\n"
+                        f"💳 Method: <code>{payout.payment_method}</code>\n\n"
+                        f"Your payout has been approved and will be processed soon.",
+                        chat_id=user.telegram_chat_id
+                    )
+            except Exception:
+                pass
+        
+        flash(f'Payout #{payout_id} approved', 'success')
+    except ValueError as e:
+        flash(str(e), 'error')
+    
+    return redirect(url_for('admin_payouts', status='approved'))
+
+
+@app.route('/admin/payout/<int:payout_id>/reject', methods=['POST'])
+@login_required
+def admin_reject_payout(payout_id):
+    """Reject a payout request"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    from models import PayoutRequest
+    
+    payout = PayoutRequest.query.get_or_404(payout_id)
+    reason = request.form.get('reason', 'No reason provided')
+    
+    try:
+        payout.reject(current_user.id, reason)
+        audit.log_admin_action(current_user.username, "REJECT_PAYOUT", f"ID: {payout_id}, Reason: {reason}")
+        
+        # Notify user via Telegram
+        user = User.query.get(payout.user_id)
+        if user and user.telegram_enabled and user.telegram_chat_id:
+            try:
+                notifier = get_notifier()
+                if notifier:
+                    notifier.send(
+                        f"❌ <b>PAYOUT REJECTED</b>\n\n"
+                        f"💵 Amount: <code>${payout.amount:.2f}</code>\n"
+                        f"📝 Reason: {reason}\n\n"
+                        f"Please contact support if you have questions.",
+                        chat_id=user.telegram_chat_id
+                    )
+            except Exception:
+                pass
+        
+        flash(f'Payout #{payout_id} rejected', 'warning')
+    except ValueError as e:
+        flash(str(e), 'error')
+    
+    return redirect(url_for('admin_payouts'))
+
+
+@app.route('/admin/payout/<int:payout_id>/pay', methods=['POST'])
+@login_required
+def admin_mark_payout_paid(payout_id):
+    """Mark a payout as paid (after actual payment)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    from models import PayoutRequest
+    
+    payout = PayoutRequest.query.get_or_404(payout_id)
+    txn_id = request.form.get('txn_id', '')
+    notes = request.form.get('notes', '')
+    
+    try:
+        payout.mark_paid(current_user.id, txn_id, notes)
+        audit.log_admin_action(current_user.username, "MARK_PAYOUT_PAID", f"ID: {payout_id}, TxnID: {txn_id}")
+        
+        # Notify user via Telegram
+        user = User.query.get(payout.user_id)
+        if user and user.telegram_enabled and user.telegram_chat_id:
+            try:
+                notifier = get_notifier()
+                if notifier:
+                    notifier.send(
+                        f"💰 <b>PAYOUT COMPLETED</b>\n\n"
+                        f"💵 Amount: <code>${payout.amount:.2f}</code>\n"
+                        f"💳 Method: <code>{payout.payment_method}</code>\n"
+                        + (f"🔗 TxnID: <code>{txn_id}</code>\n" if txn_id else "") +
+                        f"\nYour commission has been sent!",
+                        chat_id=user.telegram_chat_id
+                    )
+            except Exception:
+                pass
+        
+        flash(f'Payout #{payout_id} marked as paid', 'success')
+    except ValueError as e:
+        flash(str(e), 'error')
+    
+    return redirect(url_for('admin_payouts', status='paid'))
+
+
+@app.route('/api/admin/payout/<int:payout_id>', methods=['GET'])
+@login_required
+def api_get_payout_details(payout_id):
+    """Get payout details for admin modal"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    from models import PayoutRequest
+    
+    payout = PayoutRequest.query.get_or_404(payout_id)
+    user = User.query.get(payout.user_id)
+    
+    return jsonify({
+        'success': True,
+        'payout': payout.to_dict(),
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'referral_stats': user.get_referral_stats() if user else {}
+        }
+    })
 
 
 # ==================== PASSWORD ROUTES ====================
@@ -2874,6 +5006,494 @@ def get_users_list():
     } for u in users]
     
     return jsonify(users_data)
+
+
+# ==================== LIVE CHAT API ====================
+
+@app.route('/api/chat/history')
+@login_required
+def get_chat_history():
+    """Get chat message history for a room"""
+    from models import ChatMessage, ChatBan
+    
+    room = request.args.get('room', 'general')
+    before_id = request.args.get('before_id', type=int)
+    limit = min(request.args.get('limit', 50, type=int), 100)
+    
+    # Check subscription
+    if not current_user.has_active_subscription() and current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Active subscription required'}), 403
+    
+    # Check if user is banned
+    is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
+    if is_banned:
+        return jsonify({
+            'success': False,
+            'error': f'You are {ban_type}ed from chat',
+            'ban_type': ban_type,
+            'expires_at': expires_at.isoformat() if expires_at else None
+        }), 403
+    
+    messages = ChatMessage.get_recent_messages(room, limit, before_id)
+    
+    return jsonify({
+        'success': True,
+        'messages': [msg.to_dict() for msg in reversed(messages)],
+        'room': room,
+        'has_more': len(messages) == limit
+    })
+
+
+@app.route('/api/chat/status')
+@login_required
+def get_chat_status():
+    """Check if user can access chat and their status"""
+    from models import ChatBan
+    
+    has_subscription = current_user.has_active_subscription() or current_user.role == 'admin'
+    is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
+    
+    return jsonify({
+        'success': True,
+        'can_chat': has_subscription and not is_banned,
+        'has_subscription': has_subscription,
+        'is_banned': is_banned,
+        'ban_type': ban_type,
+        'ban_reason': reason,
+        'ban_expires_at': expires_at.isoformat() if expires_at else None,
+        'is_admin': current_user.role == 'admin'
+    })
+
+
+@app.route('/api/chat/online_users')
+@login_required
+def get_online_users():
+    """Get list of users currently in chat (approximation based on recent activity)"""
+    from models import ChatMessage
+    from datetime import datetime, timezone, timedelta
+    
+    # Check subscription
+    if not current_user.has_active_subscription() and current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Active subscription required'}), 403
+    
+    # Get users who sent messages in the last 5 minutes
+    recent_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
+    
+    recent_users = db.session.query(
+        ChatMessage.user_id,
+        User.username,
+        User.avatar,
+        User.avatar_type,
+        User.role
+    ).join(User, ChatMessage.user_id == User.id).filter(
+        ChatMessage.created_at >= recent_threshold,
+        ChatMessage.is_deleted == False
+    ).distinct().limit(50).all()
+    
+    users_list = [{
+        'user_id': u[0],
+        'username': u[1],
+        'avatar': u[2],
+        'avatar_type': u[3],
+        'is_admin': u[4] == 'admin'
+    } for u in recent_users]
+    
+    return jsonify({
+        'success': True,
+        'online_users': users_list,
+        'count': len(users_list)
+    })
+
+
+# ==================== CHAT ADMIN API ====================
+
+@app.route('/api/admin/chat/bans')
+@login_required
+def get_chat_bans():
+    """Get list of all chat bans (admin only)"""
+    from models import ChatBan
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    active_only = request.args.get('active_only', 'true').lower() == 'true'
+    
+    query = ChatBan.query.order_by(ChatBan.created_at.desc())
+    if active_only:
+        query = query.filter_by(is_active=True)
+    
+    bans = query.limit(100).all()
+    
+    return jsonify({
+        'success': True,
+        'bans': [ban.to_dict() for ban in bans]
+    })
+
+
+@app.route('/api/admin/chat/mute', methods=['POST'])
+@login_required
+def mute_user_chat():
+    """Mute a user from chat (admin only)"""
+    from models import ChatBan
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    duration = data.get('duration', 60)  # Default 60 minutes
+    reason = data.get('reason', 'Chat rule violation')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    # Check if user exists
+    target_user = User.query.get(user_id)
+    if not target_user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Don't allow muting admins
+    if target_user.role == 'admin':
+        return jsonify({'error': 'Cannot mute admin users'}), 400
+    
+    # Create mute
+    ban = ChatBan.mute_user(user_id, duration, reason, current_user.id)
+    
+    # Notify the user via socket
+    socketio.emit('chat_muted', {
+        'message': f'You have been muted for {duration} minutes: {reason}',
+        'duration': duration,
+        'expires_at': ban.expires_at.isoformat() if ban.expires_at else None
+    }, room=f'user_{user_id}')
+    
+    return jsonify({
+        'success': True,
+        'message': f'User {target_user.username} muted for {duration} minutes',
+        'ban': ban.to_dict()
+    })
+
+
+@app.route('/api/admin/chat/ban', methods=['POST'])
+@login_required
+def ban_user_chat():
+    """Permanently ban a user from chat (admin only)"""
+    from models import ChatBan
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    reason = data.get('reason', 'Chat rule violation')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    # Check if user exists
+    target_user = User.query.get(user_id)
+    if not target_user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Don't allow banning admins
+    if target_user.role == 'admin':
+        return jsonify({'error': 'Cannot ban admin users'}), 400
+    
+    # Create ban
+    ban = ChatBan.ban_user(user_id, reason, current_user.id)
+    
+    # Notify the user via socket
+    socketio.emit('chat_banned', {
+        'message': f'You have been banned from chat: {reason}'
+    }, room=f'user_{user_id}')
+    
+    # Force disconnect from chat room
+    socketio.emit('force_leave_chat', {'room': 'general'}, room=f'user_{user_id}')
+    
+    return jsonify({
+        'success': True,
+        'message': f'User {target_user.username} banned from chat',
+        'ban': ban.to_dict()
+    })
+
+
+@app.route('/api/admin/chat/unban', methods=['POST'])
+@login_required
+def unban_user_chat():
+    """Remove ban/mute from a user (admin only)"""
+    from models import ChatBan
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    # Check if user exists
+    target_user = User.query.get(user_id)
+    if not target_user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Remove all active bans
+    ChatBan.unban_user(user_id)
+    
+    # Notify the user via socket
+    socketio.emit('chat_unbanned', {
+        'message': 'Your chat restrictions have been lifted'
+    }, room=f'user_{user_id}')
+    
+    return jsonify({
+        'success': True,
+        'message': f'User {target_user.username} unbanned from chat'
+    })
+
+
+@app.route('/api/admin/chat/delete_message', methods=['POST'])
+@login_required
+def admin_delete_message():
+    """Delete a chat message (admin only)"""
+    from models import ChatMessage
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    data = request.get_json()
+    message_id = data.get('message_id')
+    
+    if not message_id:
+        return jsonify({'error': 'Message ID required'}), 400
+    
+    message = ChatMessage.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+    
+    room = message.room
+    message.is_deleted = True
+    message.deleted_by_id = current_user.id
+    db.session.commit()
+    
+    # Notify chat room
+    socketio.emit('message_deleted', {'message_id': message_id}, room=f'chat_{room}')
+    
+    return jsonify({
+        'success': True,
+        'message': 'Message deleted'
+    })
+
+
+# ==================== AI SUPPORT BOT API ====================
+
+@app.route('/api/support/chat', methods=['POST'])
+def support_chat():
+    """
+    AI Support Bot endpoint using RAG.
+    
+    Receives user questions and returns AI-generated answers based on
+    documentation (README, DEV_MANUAL, FAQ).
+    
+    Request JSON:
+    {
+        "message": "How do I connect Binance?",
+        "session_id": "optional-session-id"
+    }
+    
+    Response JSON:
+    {
+        "success": true,
+        "answer": "To connect Binance...",
+        "confidence": 0.85,
+        "sources": [{"file": "FAQ.md", "similarity": 0.92}],
+        "ticket_id": null,
+        "needs_human_review": false,
+        "session_id": "abc123"
+    }
+    """
+    from support_bot import chat_with_support
+    from config import Config
+    
+    # Check if support bot is enabled
+    if not getattr(Config, 'SUPPORT_BOT_ENABLED', False):
+        return jsonify({
+            'success': False,
+            'error': 'AI Support Bot is not configured. Please contact admin support.'
+        }), 503
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+    
+    message = data.get('message', '').strip()
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required'}), 400
+    
+    if len(message) > 1000:
+        return jsonify({'success': False, 'error': 'Message too long (max 1000 chars)'}), 400
+    
+    session_id = data.get('session_id')
+    
+    # Get user ID if logged in
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    
+    try:
+        response = chat_with_support(
+            message=message,
+            session_id=session_id,
+            user_id=user_id,
+            channel='web'
+        )
+        
+        return jsonify({
+            'success': True,
+            **response
+        })
+        
+    except Exception as e:
+        logger.error(f"Support chat error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'An error occurred while processing your question. Please try again.'
+        }), 500
+
+
+@app.route('/api/support/history')
+def support_history():
+    """Get support conversation history for current session"""
+    from support_bot import get_support_bot
+    
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return jsonify({'success': False, 'error': 'Session ID required'}), 400
+    
+    bot = get_support_bot()
+    history = bot.get_conversation_history(session_id)
+    
+    return jsonify({
+        'success': True,
+        'messages': history
+    })
+
+
+@app.route('/api/support/status')
+def support_status():
+    """Check if support bot is available"""
+    from support_bot import get_support_bot
+    from config import Config
+    
+    bot = get_support_bot()
+    
+    return jsonify({
+        'success': True,
+        'available': bot.is_available(),
+        'enabled': getattr(Config, 'SUPPORT_BOT_ENABLED', False)
+    })
+
+
+@app.route('/api/admin/support/tickets')
+@login_required
+def get_support_tickets():
+    """Get support tickets (admin only)"""
+    from models import SupportTicket
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    status = request.args.get('status', 'open')
+    limit = min(int(request.args.get('limit', 50)), 100)
+    
+    if status == 'all':
+        tickets = SupportTicket.query.order_by(SupportTicket.created_at.desc()).limit(limit).all()
+    else:
+        tickets = SupportTicket.query.filter_by(status=status).order_by(SupportTicket.created_at.desc()).limit(limit).all()
+    
+    return jsonify({
+        'success': True,
+        'tickets': [t.to_dict() for t in tickets]
+    })
+
+
+@app.route('/api/admin/support/tickets/<int:ticket_id>', methods=['GET', 'POST'])
+@login_required
+def manage_support_ticket(ticket_id):
+    """View or respond to a support ticket (admin only)"""
+    from models import SupportTicket
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    ticket = SupportTicket.query.get(ticket_id)
+    if not ticket:
+        return jsonify({'error': 'Ticket not found'}), 404
+    
+    if request.method == 'GET':
+        return jsonify({
+            'success': True,
+            'ticket': ticket.to_dict()
+        })
+    
+    # POST - respond to ticket
+    data = request.get_json()
+    admin_response = data.get('response', '').strip()
+    
+    if not admin_response:
+        return jsonify({'error': 'Response is required'}), 400
+    
+    ticket.resolve(admin_response=admin_response, admin_id=current_user.id)
+    
+    return jsonify({
+        'success': True,
+        'message': 'Ticket resolved',
+        'ticket': ticket.to_dict()
+    })
+
+
+# WebSocket event for support chat
+@socketio.on('support_message')
+def handle_support_message(data):
+    """Handle support chat messages via WebSocket"""
+    from support_bot import chat_with_support
+    from config import Config
+    
+    if not getattr(Config, 'SUPPORT_BOT_ENABLED', False):
+        emit('support_response', {
+            'success': False,
+            'error': 'AI Support Bot is not configured'
+        })
+        return
+    
+    message = data.get('message', '').strip()
+    session_id = data.get('session_id')
+    
+    if not message:
+        emit('support_response', {'success': False, 'error': 'Message required'})
+        return
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    
+    try:
+        response = chat_with_support(
+            message=message,
+            session_id=session_id,
+            user_id=user_id,
+            channel='web'
+        )
+        
+        emit('support_response', {
+            'success': True,
+            **response
+        })
+        
+    except Exception as e:
+        logger.error(f"Support WebSocket error: {e}")
+        emit('support_response', {
+            'success': False,
+            'error': 'An error occurred'
+        })
 
 
 # ==================== EXCHANGE MANAGEMENT ====================
@@ -3871,6 +6491,372 @@ def admin_delete_user_exchange(exchange_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ==================== STRATEGY MANAGEMENT API ====================
+
+@app.route('/api/strategies', methods=['GET'])
+@login_required
+def get_strategies():
+    """Get all available strategies (for users to subscribe to)"""
+    try:
+        strategies = Strategy.query.filter_by(is_active=True).all()
+        
+        return jsonify({
+            'success': True,
+            'strategies': [s.to_dict(include_stats=True) for s in strategies]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching strategies: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/subscriptions', methods=['GET'])
+@login_required
+def get_user_subscriptions():
+    """Get current user's strategy subscriptions"""
+    try:
+        subscriptions = StrategySubscription.query.filter_by(
+            user_id=current_user.id
+        ).all()
+        
+        total_allocation = sum(s.allocation_percent for s in subscriptions if s.is_active)
+        
+        return jsonify({
+            'success': True,
+            'subscriptions': [s.to_dict() for s in subscriptions],
+            'total_allocation': total_allocation,
+            'remaining_allocation': 100.0 - total_allocation
+        })
+    except Exception as e:
+        logger.error(f"Error fetching user subscriptions: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/subscriptions', methods=['POST'])
+@login_required
+def create_subscription():
+    """Subscribe to a strategy"""
+    try:
+        data = request.get_json()
+        strategy_id = data.get('strategy_id')
+        allocation_percent = float(data.get('allocation_percent', 100.0))
+        
+        if not strategy_id:
+            return jsonify({'error': 'strategy_id is required'}), 400
+        
+        if allocation_percent <= 0 or allocation_percent > 100:
+            return jsonify({'error': 'allocation_percent must be between 0 and 100'}), 400
+        
+        # Check strategy exists and is active
+        strategy = Strategy.query.get(strategy_id)
+        if not strategy or not strategy.is_active:
+            return jsonify({'error': 'Strategy not found or inactive'}), 404
+        
+        # Check if already subscribed
+        existing = StrategySubscription.query.filter_by(
+            user_id=current_user.id,
+            strategy_id=strategy_id
+        ).first()
+        
+        if existing:
+            return jsonify({'error': 'Already subscribed to this strategy. Use PUT to update allocation.'}), 400
+        
+        # Validate total allocation won't exceed 100%
+        is_valid, current_total, message = StrategySubscription.validate_user_allocations(
+            current_user.id, allocation_percent
+        )
+        if not is_valid:
+            return jsonify({'error': message}), 400
+        
+        # Create subscription
+        subscription = StrategySubscription(
+            user_id=current_user.id,
+            strategy_id=strategy_id,
+            allocation_percent=allocation_percent,
+            is_active=True
+        )
+        db.session.add(subscription)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Subscribed to {strategy.name} with {allocation_percent}% allocation',
+            'subscription': subscription.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating subscription: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/subscriptions/<int:subscription_id>', methods=['PUT'])
+@login_required
+def update_subscription(subscription_id):
+    """Update a subscription's allocation percent or active status"""
+    try:
+        subscription = StrategySubscription.query.get(subscription_id)
+        if not subscription:
+            return jsonify({'error': 'Subscription not found'}), 404
+        
+        if subscription.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        data = request.get_json()
+        
+        # Update allocation percent if provided
+        if 'allocation_percent' in data:
+            allocation_percent = float(data['allocation_percent'])
+            if allocation_percent <= 0 or allocation_percent > 100:
+                return jsonify({'error': 'allocation_percent must be between 0 and 100'}), 400
+            
+            # Validate total allocation won't exceed 100%
+            is_valid, current_total, message = StrategySubscription.validate_user_allocations(
+                current_user.id, allocation_percent, exclude_subscription_id=subscription_id
+            )
+            if not is_valid:
+                return jsonify({'error': message}), 400
+            
+            subscription.allocation_percent = allocation_percent
+        
+        # Update active status if provided
+        if 'is_active' in data:
+            subscription.is_active = bool(data['is_active'])
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Subscription updated',
+            'subscription': subscription.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating subscription: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/subscriptions/<int:subscription_id>', methods=['DELETE'])
+@login_required
+def delete_subscription(subscription_id):
+    """Unsubscribe from a strategy"""
+    try:
+        subscription = StrategySubscription.query.get(subscription_id)
+        if not subscription:
+            return jsonify({'error': 'Subscription not found'}), 404
+        
+        if subscription.user_id != current_user.id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        strategy_name = subscription.strategy.name if subscription.strategy else 'Unknown'
+        
+        db.session.delete(subscription)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Unsubscribed from {strategy_name}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting subscription: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+# ==================== ADMIN STRATEGY MANAGEMENT ====================
+
+@app.route('/api/admin/strategies', methods=['GET'])
+@login_required
+def admin_get_strategies():
+    """Get all strategies (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        strategies = Strategy.query.all()
+        return jsonify({
+            'success': True,
+            'strategies': [s.to_dict(include_stats=True) for s in strategies]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching strategies: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/strategies', methods=['POST'])
+@login_required
+def admin_create_strategy():
+    """Create a new strategy (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        
+        if not name:
+            return jsonify({'error': 'Strategy name is required'}), 400
+        
+        # Check if name already exists
+        existing = Strategy.query.filter_by(name=name).first()
+        if existing:
+            return jsonify({'error': f'Strategy "{name}" already exists'}), 400
+        
+        strategy = Strategy(
+            name=name,
+            description=data.get('description', ''),
+            risk_level=data.get('risk_level', 'medium'),
+            master_exchange_id=data.get('master_exchange_id'),
+            default_risk_perc=data.get('default_risk_perc'),
+            default_leverage=data.get('default_leverage'),
+            max_positions=data.get('max_positions'),
+            is_active=data.get('is_active', True)
+        )
+        
+        db.session.add(strategy)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Strategy "{name}" created',
+            'strategy': strategy.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating strategy: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/strategies/<int:strategy_id>', methods=['PUT'])
+@login_required
+def admin_update_strategy(strategy_id):
+    """Update a strategy (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        strategy = Strategy.query.get(strategy_id)
+        if not strategy:
+            return jsonify({'error': 'Strategy not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update fields if provided
+        if 'name' in data:
+            new_name = data['name'].strip()
+            if new_name and new_name != strategy.name:
+                existing = Strategy.query.filter_by(name=new_name).first()
+                if existing:
+                    return jsonify({'error': f'Strategy "{new_name}" already exists'}), 400
+                strategy.name = new_name
+        
+        if 'description' in data:
+            strategy.description = data['description']
+        if 'risk_level' in data:
+            strategy.risk_level = data['risk_level']
+        if 'master_exchange_id' in data:
+            strategy.master_exchange_id = data['master_exchange_id']
+        if 'default_risk_perc' in data:
+            strategy.default_risk_perc = data['default_risk_perc']
+        if 'default_leverage' in data:
+            strategy.default_leverage = data['default_leverage']
+        if 'max_positions' in data:
+            strategy.max_positions = data['max_positions']
+        if 'is_active' in data:
+            strategy.is_active = data['is_active']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Strategy updated',
+            'strategy': strategy.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating strategy: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/strategies/<int:strategy_id>', methods=['DELETE'])
+@login_required
+def admin_delete_strategy(strategy_id):
+    """Delete a strategy (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        strategy = Strategy.query.get(strategy_id)
+        if not strategy:
+            return jsonify({'error': 'Strategy not found'}), 404
+        
+        # Check if this is the default strategy
+        if strategy.name == 'Main':
+            return jsonify({'error': 'Cannot delete the default "Main" strategy'}), 400
+        
+        # Check for active subscriptions
+        active_subs = strategy.subscriptions.filter_by(is_active=True).count()
+        if active_subs > 0:
+            return jsonify({
+                'error': f'Cannot delete strategy with {active_subs} active subscribers. Deactivate it instead.'
+            }), 400
+        
+        strategy_name = strategy.name
+        db.session.delete(strategy)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Strategy "{strategy_name}" deleted'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting strategy: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/strategies/<int:strategy_id>/subscribers', methods=['GET'])
+@login_required
+def admin_get_strategy_subscribers(strategy_id):
+    """Get all subscribers of a strategy (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        strategy = Strategy.query.get(strategy_id)
+        if not strategy:
+            return jsonify({'error': 'Strategy not found'}), 404
+        
+        subscriptions = strategy.subscriptions.all()
+        
+        subscribers = []
+        for sub in subscriptions:
+            user = db.session.get(User, sub.user_id)
+            subscribers.append({
+                'subscription_id': sub.id,
+                'user_id': sub.user_id,
+                'username': user.username if user else 'Unknown',
+                'allocation_percent': sub.allocation_percent,
+                'is_active': sub.is_active,
+                'created_at': sub.created_at.isoformat() if sub.created_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'strategy': strategy.to_dict(),
+            'subscribers': subscribers,
+            'total_subscribers': len([s for s in subscribers if s['is_active']])
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching strategy subscribers: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/admin/user/<int:user_id>/balances', methods=['GET'])
 @login_required
 def admin_get_user_balances(user_id):
@@ -4249,6 +7235,552 @@ def get_payment_history():
         'success': True,
         'payments': [p.to_dict() for p in payments]
     })
+
+
+# ==================== WEB PUSH NOTIFICATIONS ====================
+
+@app.route('/api/push/vapid-key', methods=['GET'])
+def get_vapid_public_key():
+    """Get VAPID public key for push subscription"""
+    vapid_key = getattr(Config, 'VAPID_PUBLIC_KEY', '')
+    
+    if not vapid_key:
+        return jsonify({
+            'success': False,
+            'error': 'Push notifications not configured'
+        }), 503
+    
+    return jsonify({
+        'success': True,
+        'publicKey': vapid_key
+    })
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+@login_required
+def push_subscribe():
+    """Subscribe to push notifications"""
+    from models import PushSubscription
+    
+    # Check if push is enabled
+    if not getattr(Config, 'WEBPUSH_ENABLED', False):
+        return jsonify({
+            'success': False,
+            'error': 'Push notifications not configured'
+        }), 503
+    
+    data = request.get_json()
+    if not data or 'subscription' not in data:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid subscription data'
+        }), 400
+    
+    subscription = data['subscription']
+    endpoint = subscription.get('endpoint')
+    keys = subscription.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+    
+    if not all([endpoint, p256dh, auth]):
+        return jsonify({
+            'success': False,
+            'error': 'Missing subscription keys'
+        }), 400
+    
+    try:
+        # Check if subscription already exists
+        existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+        
+        if existing:
+            # Update existing subscription
+            existing.user_id = current_user.id
+            existing.p256dh_key = p256dh
+            existing.auth_key = auth
+            existing.user_agent = data.get('userAgent')
+            existing.language = data.get('language', 'en')
+            existing.is_active = True
+            existing.error_count = 0
+        else:
+            # Create new subscription
+            new_sub = PushSubscription(
+                user_id=current_user.id,
+                endpoint=endpoint,
+                p256dh_key=p256dh,
+                auth_key=auth,
+                user_agent=data.get('userAgent'),
+                language=data.get('language', 'en'),
+                is_active=True
+            )
+            db.session.add(new_sub)
+        
+        db.session.commit()
+        
+        logger.info(f"📱 Push subscription saved for user {current_user.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Subscription saved'
+        })
+        
+    except Exception as e:
+        logger.error(f"Push subscription error: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to save subscription'
+        }), 500
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+@login_required
+def push_unsubscribe():
+    """Unsubscribe from push notifications"""
+    from models import PushSubscription
+    
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    
+    if not endpoint:
+        return jsonify({
+            'success': False,
+            'error': 'Missing endpoint'
+        }), 400
+    
+    try:
+        subscription = PushSubscription.query.filter_by(
+            endpoint=endpoint,
+            user_id=current_user.id
+        ).first()
+        
+        if subscription:
+            db.session.delete(subscription)
+            db.session.commit()
+            logger.info(f"📱 Push subscription removed for user {current_user.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Unsubscribed successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Push unsubscribe error: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to unsubscribe'
+        }), 500
+
+
+@app.route('/api/push/test', methods=['POST'])
+@login_required
+def push_test():
+    """Send a test push notification to current user"""
+    from models import PushSubscription
+    
+    # Check if push is enabled
+    if not getattr(Config, 'WEBPUSH_ENABLED', False):
+        return jsonify({
+            'success': False,
+            'error': 'Push notifications not configured'
+        }), 503
+    
+    try:
+        # Import pywebpush
+        try:
+            from pywebpush import webpush, WebPushException
+        except ImportError:
+            return jsonify({
+                'success': False,
+                'error': 'pywebpush not installed. Run: pip install pywebpush'
+            }), 503
+        
+        # Get user's active subscriptions
+        subscriptions = PushSubscription.query.filter_by(
+            user_id=current_user.id,
+            is_active=True
+        ).all()
+        
+        if not subscriptions:
+            return jsonify({
+                'success': False,
+                'error': 'No active push subscriptions found'
+            }), 404
+        
+        # Prepare notification payload
+        payload = json.dumps({
+            'title': '🚀 MIMIC Test Notification',
+            'body': 'Push notifications are working correctly!',
+            'icon': '/static/icons/icon-192x192.png',
+            'badge': '/static/icons/badge-72x72.png',
+            'tag': 'test-notification',
+            'data': {'url': '/dashboard', 'type': 'test'},
+            'timestamp': int(time.time() * 1000)
+        })
+        
+        vapid_claims = {
+            'sub': Config.VAPID_CLAIM_EMAIL
+        }
+        
+        sent_count = 0
+        for sub in subscriptions:
+            try:
+                webpush(
+                    subscription_info=sub.get_subscription_info(),
+                    data=payload,
+                    vapid_private_key=Config.VAPID_PRIVATE_KEY,
+                    vapid_claims=vapid_claims
+                )
+                sub.mark_used()
+                sent_count += 1
+            except WebPushException as e:
+                logger.error(f"Push send failed: {e}")
+                sub.mark_error()
+                # Handle unsubscribed endpoints
+                if e.response and e.response.status_code in [404, 410]:
+                    sub.is_active = False
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Test notification sent to {sent_count} device(s)'
+        })
+        
+    except Exception as e:
+        logger.error(f"Push test error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+def send_push_notification(user_id: int, title: str, body: str, data: dict = None, tag: str = None):
+    """
+    Send push notification to a user.
+    
+    Args:
+        user_id: User ID to send to
+        title: Notification title
+        body: Notification body text
+        data: Optional extra data (url, type, etc.)
+        tag: Optional tag for notification grouping
+    
+    Returns:
+        Number of successful sends
+    """
+    from models import PushSubscription
+    
+    # Check if push is enabled
+    if not getattr(Config, 'WEBPUSH_ENABLED', False):
+        return 0
+    
+    try:
+        from pywebpush import webpush, WebPushException
+    except ImportError:
+        logger.warning("pywebpush not installed, skipping push notification")
+        return 0
+    
+    # Get user's active subscriptions
+    subscriptions = PushSubscription.query.filter_by(
+        user_id=user_id,
+        is_active=True
+    ).all()
+    
+    if not subscriptions:
+        return 0
+    
+    # Prepare payload
+    payload = json.dumps({
+        'title': title,
+        'body': body,
+        'icon': '/static/icons/icon-192x192.png',
+        'badge': '/static/icons/badge-72x72.png',
+        'tag': tag or 'mimic-notification',
+        'data': data or {'url': '/dashboard'},
+        'timestamp': int(time.time() * 1000)
+    })
+    
+    vapid_claims = {
+        'sub': Config.VAPID_CLAIM_EMAIL
+    }
+    
+    sent_count = 0
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info=sub.get_subscription_info(),
+                data=payload,
+                vapid_private_key=Config.VAPID_PRIVATE_KEY,
+                vapid_claims=vapid_claims
+            )
+            sub.mark_used()
+            sent_count += 1
+        except WebPushException as e:
+            logger.error(f"Push send failed for user {user_id}: {e}")
+            sub.mark_error()
+            if e.response and e.response.status_code in [404, 410]:
+                sub.is_active = False
+    
+    try:
+        db.session.commit()
+    except:
+        db.session.rollback()
+    
+    return sent_count
+
+
+def send_trade_push_notification(user_id: int, trade_type: str, symbol: str, side: str, 
+                                  pnl: float = None, pnl_percent: float = None):
+    """
+    Send trade-specific push notification.
+    
+    Args:
+        user_id: User ID
+        trade_type: 'opened' or 'closed'
+        symbol: Trading pair (e.g., 'BTCUSDT')
+        side: 'BUY' or 'SELL' / 'LONG' or 'SHORT'
+        pnl: Profit/loss amount (for closed trades)
+        pnl_percent: Profit/loss percentage (for closed trades)
+    """
+    if trade_type == 'opened':
+        emoji = '📈' if side.upper() in ['BUY', 'LONG'] else '📉'
+        title = f'{emoji} New Position Opened'
+        body = f'{symbol} {side.upper()} position opened'
+        tag = 'trade-opened'
+    else:
+        if pnl is not None and pnl >= 0:
+            emoji = '💰'
+            pnl_text = f'+${pnl:.2f}' if pnl else ''
+        else:
+            emoji = '📊'
+            pnl_text = f'-${abs(pnl):.2f}' if pnl else ''
+        
+        title = f'{emoji} Position Closed'
+        body = f'{symbol} closed {pnl_text}'
+        if pnl_percent:
+            body += f' ({pnl_percent:+.2f}%)'
+        tag = 'trade-closed'
+    
+    return send_push_notification(
+        user_id=user_id,
+        title=title,
+        body=body,
+        data={'url': '/dashboard', 'type': f'trade_{trade_type}', 'symbol': symbol},
+        tag=tag
+    )
+
+
+# ==================== API KEY MANAGEMENT ====================
+# Routes for managing API keys for the public developer API (api.mimic.cash)
+
+@app.route('/api-keys')
+@login_required
+def api_keys_page():
+    """Display API keys management page"""
+    from models import ApiKey
+    
+    # Get user's API keys
+    api_keys = ApiKey.get_user_keys(current_user.id, include_revoked=False)
+    
+    return render_template('api_keys.html', 
+                           api_keys=api_keys,
+                           max_keys=5)  # Limit of 5 API keys per user
+
+
+@app.route('/api/v1/keys', methods=['GET'])
+@login_required
+def api_keys_list():
+    """List user's API keys"""
+    from models import ApiKey
+    
+    api_keys = ApiKey.get_user_keys(current_user.id)
+    return jsonify({
+        'success': True,
+        'api_keys': [key.to_dict(include_stats=True) for key in api_keys]
+    })
+
+
+@app.route('/api/v1/keys', methods=['POST'])
+@login_required
+def api_keys_create():
+    """Create a new API key"""
+    from models import ApiKey
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+    
+    # Validate label
+    label = data.get('label', 'Default API Key')
+    if len(label) > 100:
+        return jsonify({'success': False, 'error': 'Label too long (max 100 chars)'}), 400
+    
+    # Check user's existing keys count (limit to 5)
+    existing_keys = ApiKey.query.filter_by(user_id=current_user.id, is_active=True).count()
+    if existing_keys >= 5:
+        return jsonify({
+            'success': False, 
+            'error': 'Maximum API keys limit reached (5). Please revoke an existing key first.'
+        }), 400
+    
+    # Check subscription
+    if not current_user.has_active_subscription():
+        return jsonify({
+            'success': False,
+            'error': 'Active subscription required to create API keys'
+        }), 403
+    
+    # Parse permissions
+    permissions = 0
+    if data.get('permission_read', True):
+        permissions |= ApiKey.PERMISSION_READ
+    if data.get('permission_signal', True):
+        permissions |= ApiKey.PERMISSION_SIGNAL
+    if data.get('permission_trade', False):
+        permissions |= ApiKey.PERMISSION_TRADE
+    
+    # Parse rate limit
+    rate_limit = min(int(data.get('rate_limit', 60)), 120)  # Max 120/min
+    rate_limit = max(rate_limit, 10)  # Min 10/min
+    
+    # Parse IP whitelist
+    ip_whitelist = None
+    ip_whitelist_str = data.get('ip_whitelist', '').strip()
+    if ip_whitelist_str:
+        ip_whitelist = [ip.strip() for ip in ip_whitelist_str.split(',') if ip.strip()]
+    
+    # Parse expiration
+    expires_days = None
+    expires_str = data.get('expires', 'never')
+    if expires_str == '30':
+        expires_days = 30
+    elif expires_str == '90':
+        expires_days = 90
+    elif expires_str == '365':
+        expires_days = 365
+    
+    try:
+        # Create the API key
+        api_key, secret = ApiKey.create_for_user(
+            user_id=current_user.id,
+            label=label,
+            permissions=permissions,
+            rate_limit=rate_limit,
+            ip_whitelist=ip_whitelist,
+            expires_days=expires_days
+        )
+        
+        logger.info(f"API key created for user {current_user.id}: {api_key.key[:12]}...")
+        
+        return jsonify({
+            'success': True,
+            'message': 'API key created successfully',
+            'api_key': api_key.to_dict(),
+            'secret': secret,  # This is shown only once!
+            'warning': '⚠️ Save your secret now! It will not be shown again.'
+        })
+        
+    except Exception as e:
+        logger.error(f"API key creation failed: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create API key: {str(e)}'
+        }), 500
+
+
+@app.route('/api/v1/keys/<int:key_id>', methods=['DELETE'])
+@login_required
+def api_keys_revoke(key_id):
+    """Revoke an API key"""
+    from models import ApiKey
+    
+    api_key = ApiKey.query.filter_by(id=key_id, user_id=current_user.id).first()
+    
+    if not api_key:
+        return jsonify({'success': False, 'error': 'API key not found'}), 404
+    
+    try:
+        api_key.revoke()
+        logger.info(f"API key revoked for user {current_user.id}: {api_key.key[:12]}...")
+        
+        return jsonify({
+            'success': True,
+            'message': 'API key revoked successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"API key revocation failed: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to revoke API key: {str(e)}'
+        }), 500
+
+
+@app.route('/api/v1/keys/<int:key_id>', methods=['PATCH'])
+@login_required
+def api_keys_update(key_id):
+    """Update an API key (label, permissions, rate limit, IP whitelist)"""
+    from models import ApiKey
+    
+    api_key = ApiKey.query.filter_by(id=key_id, user_id=current_user.id, is_active=True).first()
+    
+    if not api_key:
+        return jsonify({'success': False, 'error': 'API key not found'}), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+    
+    try:
+        # Update label
+        if 'label' in data:
+            api_key.label = data['label'][:100]
+        
+        # Update permissions
+        if any(k.startswith('permission_') for k in data.keys()):
+            permissions = 0
+            if data.get('permission_read', api_key.can_read()):
+                permissions |= ApiKey.PERMISSION_READ
+            if data.get('permission_signal', api_key.can_signal()):
+                permissions |= ApiKey.PERMISSION_SIGNAL
+            if data.get('permission_trade', api_key.can_trade()):
+                permissions |= ApiKey.PERMISSION_TRADE
+            api_key.permissions = permissions
+        
+        # Update rate limit
+        if 'rate_limit' in data:
+            rate_limit = min(int(data['rate_limit']), 120)
+            rate_limit = max(rate_limit, 10)
+            api_key.rate_limit = rate_limit
+        
+        # Update IP whitelist
+        if 'ip_whitelist' in data:
+            ip_whitelist_str = data['ip_whitelist'].strip()
+            if ip_whitelist_str:
+                api_key.ip_whitelist = [ip.strip() for ip in ip_whitelist_str.split(',') if ip.strip()]
+            else:
+                api_key.ip_whitelist = None
+        
+        db.session.commit()
+        
+        logger.info(f"API key updated for user {current_user.id}: {api_key.key[:12]}...")
+        
+        return jsonify({
+            'success': True,
+            'message': 'API key updated successfully',
+            'api_key': api_key.to_dict(include_stats=True)
+        })
+        
+    except Exception as e:
+        logger.error(f"API key update failed: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to update API key: {str(e)}'
+        }), 500
 
 
 # ==================== LEGACY WORKER ====================

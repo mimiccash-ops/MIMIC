@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy{% endblock %}
+{% block meta_title %}Privacy Policy - MIMIC{% endblock %}
+{% block meta_description %}Read MIMIC's Privacy Policy to understand how we collect, use, and protect your data.{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .legal-page {
+        min-height: calc(100vh - var(--header-height) - 100px);
+        padding: 60px 24px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .legal-header {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+    
+    .legal-header h1 {
+        font-family: var(--font-cyber);
+        font-size: 2rem;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .legal-content {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-xl);
+        padding: 48px;
+    }
+    
+    .legal-content h2 {
+        font-family: var(--font-cyber);
+        font-size: 1.25rem;
+        color: var(--neon-cyan);
+        margin: 32px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    }
+    
+    .legal-content h2:first-child {
+        margin-top: 0;
+    }
+    
+    .legal-content h3 {
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin: 20px 0 10px;
+    }
+    
+    .legal-content p, .legal-content li {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        line-height: 1.8;
+        margin-bottom: 14px;
+    }
+    
+    .legal-content ul {
+        padding-left: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    
+    .data-table th, .data-table td {
+        padding: 12px;
+        text-align: left;
+        border: 1px solid rgba(0, 240, 255, 0.15);
+    }
+    
+    .data-table th {
+        background: rgba(0, 240, 255, 0.08);
+        color: var(--neon-cyan);
+        font-weight: 600;
+    }
+    
+    .data-table td {
+        color: var(--text-secondary);
+    }
+    
+    .last-updated {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(0, 240, 255, 0.1);
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+        .legal-content {
+            padding: 24px;
+        }
+        .legal-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-page animate-slide-up">
+    <div class="legal-header">
+        <h1>Privacy Policy</h1>
+    </div>
+    
+    <div class="legal-content">
+        <h2>1. Introduction</h2>
+        <p>MIMIC ("we", "us", "the Platform") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our copy trading platform.</p>
+        
+        <h2>2. Data We Collect</h2>
+        <h3>2.1 Account Information</h3>
+        <table class="data-table">
+            <tr>
+                <th>Data Type</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>Username</td>
+                <td>Account identification</td>
+            </tr>
+            <tr>
+                <td>Email address</td>
+                <td>Account recovery, notifications</td>
+            </tr>
+            <tr>
+                <td>Phone number (optional)</td>
+                <td>Two-factor authentication, recovery</td>
+            </tr>
+            <tr>
+                <td>Password hash</td>
+                <td>Account security (we never store plaintext passwords)</td>
+            </tr>
+        </table>
+        
+        <h3>2.2 Trading Data</h3>
+        <ul>
+            <li>Trade history (symbols, entry/exit prices, PnL)</li>
+            <li>Balance history for performance tracking</li>
+            <li>Trading preferences and settings</li>
+        </ul>
+        
+        <h3>2.3 Exchange API Keys</h3>
+        <ul>
+            <li>API keys are encrypted using Fernet symmetric encryption</li>
+            <li>We only request trading permissions (never withdrawal)</li>
+            <li>Keys are stored securely and never logged in plaintext</li>
+        </ul>
+        
+        <h3>2.4 Technical Data</h3>
+        <ul>
+            <li>IP address (for security and geo-compliance)</li>
+            <li>Browser type and version</li>
+            <li>Device information</li>
+            <li>Usage patterns and timestamps</li>
+        </ul>
+        
+        <h2>3. How We Use Your Data</h2>
+        <ul>
+            <li><strong>Trading Services:</strong> Execute copy trades on your behalf</li>
+            <li><strong>Account Security:</strong> Prevent unauthorized access and fraud</li>
+            <li><strong>Notifications:</strong> Send trade alerts, system updates, and important notices</li>
+            <li><strong>Compliance:</strong> Meet legal obligations and geo-blocking requirements</li>
+            <li><strong>Improvement:</strong> Analyze usage to improve the Platform</li>
+        </ul>
+        
+        <h2>4. Data Sharing</h2>
+        <p>We do NOT sell your personal data. We may share data with:</p>
+        <ul>
+            <li><strong>Cryptocurrency Exchanges:</strong> Only API credentials necessary for trading</li>
+            <li><strong>Service Providers:</strong> Hosting, email, and security services under strict confidentiality</li>
+            <li><strong>Legal Authorities:</strong> When required by law or to protect our legal rights</li>
+        </ul>
+        
+        <h2>5. Data Security</h2>
+        <p>We implement multiple layers of security:</p>
+        <ul>
+            <li>Fernet encryption for API keys (AES-128-CBC with HMAC)</li>
+            <li>Scrypt password hashing</li>
+            <li>HTTPS/TLS for all connections</li>
+            <li>Rate limiting and brute-force protection</li>
+            <li>Regular security audits</li>
+            <li>Principle of least privilege for data access</li>
+        </ul>
+        
+        <h2>6. Data Retention</h2>
+        <ul>
+            <li><strong>Account Data:</strong> Retained while account is active</li>
+            <li><strong>Trade History:</strong> Retained for 2 years for reporting</li>
+            <li><strong>Security Logs:</strong> Retained for 90 days</li>
+            <li><strong>Deleted Accounts:</strong> Data is anonymized or deleted within 30 days</li>
+        </ul>
+        
+        <h2>7. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li><strong>Access:</strong> Request a copy of your personal data</li>
+            <li><strong>Rectification:</strong> Correct inaccurate information</li>
+            <li><strong>Deletion:</strong> Request account and data deletion</li>
+            <li><strong>Portability:</strong> Receive your data in a structured format</li>
+            <li><strong>Object:</strong> Opt-out of certain data processing</li>
+        </ul>
+        <p>To exercise these rights, contact us through the Platform's support system.</p>
+        
+        <h2>8. Cookies</h2>
+        <p>We use essential cookies for:</p>
+        <ul>
+            <li>Session management and authentication</li>
+            <li>Security (CSRF protection)</li>
+            <li>Preferences and settings</li>
+        </ul>
+        <p>We do not use third-party tracking cookies.</p>
+        
+        <h2>9. International Data Transfers</h2>
+        <p>Your data may be processed in countries outside your residence. We ensure appropriate safeguards are in place for international transfers.</p>
+        
+        <h2>10. Children's Privacy</h2>
+        <p>The Platform is not intended for users under 18 years of age. We do not knowingly collect data from minors.</p>
+        
+        <h2>11. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy periodically. Significant changes will be notified via email or Platform notification.</p>
+        
+        <h2>12. Contact Us</h2>
+        <p>For privacy-related questions or requests, please contact us through the Platform's support system or messaging feature.</p>
+        
+        <div class="last-updated">
+            Last updated: January 2026
+        </div>
+    </div>
+</div>
+{% endblock %}

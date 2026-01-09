@@ -998,6 +998,172 @@
             <div class="stat-value">{{ history|length }}</div>
         </div>
     </div>
+    
+    <!-- Safety Pool / Insurance Fund Badge -->
+    <div id="safety-pool-badge" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(57, 255, 20, 0.2);">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                     style="background: rgba(57, 255, 20, 0.1); border: 1px solid rgba(57, 255, 20, 0.3);">
+                    <i class="fas fa-shield-alt text-xl" style="color: #39ff14;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Insurance Fund</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              style="background: rgba(57, 255, 20, 0.1); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.3);">
+                            <i class="fas fa-check-circle text-xs"></i>
+                            <span>Verified</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-4 mt-2">
+                        <div class="font-display text-2xl font-bold" id="dashboard-safety-pool" style="color: #39ff14;">$10,000.00</div>
+                        <div class="text-xs text-white/40">Safety Pool</div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-right hidden md:block">
+                <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-help" 
+                     style="background: rgba(57, 255, 20, 0.05); border: 1px solid rgba(57, 255, 20, 0.1);"
+                     title="This fund is used to cover slippage losses in extreme market conditions">
+                    <i class="fas fa-info-circle text-green-400 text-sm"></i>
+                    <div class="text-xs text-white/50">
+                        <span>5% of platform fees</span><br>
+                        <span>go to this Safety Pool</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile tooltip -->
+        <div class="mt-3 pt-3 border-t border-white/5 md:hidden">
+            <div class="flex items-start gap-2 text-xs text-white/40">
+                <i class="fas fa-info-circle text-green-400 mt-0.5"></i>
+                <span>This fund is used to cover slippage losses in extreme market conditions. 5% of platform fees go to this Safety Pool.</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Sentiment Badge -->
+    <div id="ai-sentiment-badge" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(0, 255, 136, 0.2);">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                     id="sentiment-icon-container"
+                     style="background: rgba(255, 196, 0, 0.1); border: 1px solid rgba(255, 196, 0, 0.3);">
+                    <i class="fas fa-brain text-xl" style="color: #ffc400;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">AI Sentiment Filter</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              id="sentiment-status-badge"
+                              style="background: rgba(255, 196, 0, 0.1); color: #ffc400; border: 1px solid rgba(255, 196, 0, 0.3);">
+                            <span id="sentiment-label">Loading...</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-4 mt-2">
+                        <div class="font-display text-2xl font-bold" id="sentiment-value" style="color: #ffc400;">--</div>
+                        <div id="sentiment-gauge" class="flex-1 h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1); max-width: 200px;">
+                            <div id="sentiment-gauge-fill" class="h-full rounded-full transition-all duration-500" 
+                                 style="width: 50%; background: linear-gradient(90deg, #ff3d00 0%, #ff9100 25%, #ffc400 50%, #76ff03 75%, #00e676 100%);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div id="ai-risk-adjustment" class="hidden">
+                    <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg" 
+                         style="background: rgba(138, 43, 226, 0.1); border: 1px solid rgba(138, 43, 226, 0.3);">
+                        <i class="fas fa-shield-alt text-purple-400"></i>
+                        <div>
+                            <div class="text-xs text-purple-300 font-medium" id="adjustment-label">AI Risk Adjustment</div>
+                            <div class="text-sm text-purple-400 font-bold" id="adjustment-value">-20% risk</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="ai-risk-normal" class="inline-flex items-center gap-2 text-xs text-white/40">
+                    <i class="fas fa-check-circle text-green-400"></i>
+                    <span>No adjustments active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gamification: Level & Badges -->
+    <div id="gamification-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(147, 51, 234, 0.2);">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <!-- Level Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
+                     id="level-icon-container"
+                     style="background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.3);">
+                    <i class="fas fa-seedling text-2xl" id="level-icon" style="color: #888888;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Trader Level</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              id="level-badge"
+                              style="background: rgba(147, 51, 234, 0.1); color: #9333ea; border: 1px solid rgba(147, 51, 234, 0.3);">
+                            <span id="level-name">Novice</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="font-display text-lg font-bold text-white">
+                            <span id="user-xp">0</span> <span class="text-sm text-white/50">XP</span>
+                        </div>
+                        <div class="text-xs text-white/40" id="xp-to-next">--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- XP Progress Bar -->
+            <div class="flex-1 max-w-md">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs text-white/50" id="current-level-label">Novice</span>
+                    <span class="text-xs text-white/50" id="next-level-label">Amateur</span>
+                </div>
+                <div class="h-3 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1);">
+                    <div id="xp-progress-bar" class="h-full rounded-full transition-all duration-500" 
+                         style="width: 0%; background: linear-gradient(90deg, #9333ea 0%, #c084fc 100%);"></div>
+                </div>
+                <div class="text-xs text-white/40 mt-1 text-center" id="progress-text">0% to next level</div>
+            </div>
+            
+            <!-- Commission Discount -->
+            <div class="text-center lg:text-right">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
+                     id="discount-badge"
+                     style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fas fa-tag text-green-400"></i>
+                    <div>
+                        <div class="text-xs text-green-300 font-medium">Commission Discount</div>
+                        <div class="text-lg text-green-400 font-bold" id="discount-percent">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Unlocked Badges -->
+        <div class="mt-4 pt-4 border-t border-white/5">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-trophy text-yellow-400"></i>
+                    <span class="text-sm text-white/70 font-medium">Achievements</span>
+                    <span class="text-xs text-white/40" id="badge-count">(0 unlocked)</span>
+                </div>
+                <button onclick="showAllAchievements()" class="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+                    View All <i class="fas fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+            <div id="badges-container" class="flex flex-wrap gap-2">
+                <div class="text-xs text-white/30 italic">Complete trades to unlock achievements!</div>
+            </div>
+        </div>
+    </div>
 
     <!-- Open Positions Panel with HTMX polling -->
     <div class="positions-panel">
@@ -1207,6 +1373,37 @@
         </div>
     </div>
 
+    <!-- Trading Strategies -->
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-chess-knight text-purple-400"></i>
+                <span class="font-display font-semibold">Trading Strategies</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold" id="allocation-badge">
+                <span id="total-allocation">0</span>% allocated
+            </span>
+        </div>
+        <div class="section-body">
+            <p class="text-sm text-white/50 mb-4">Subscribe to trading strategies. Your total allocation must equal 100%.</p>
+            
+            <!-- Strategy Cards Container -->
+            <div id="strategies-container" class="space-y-3">
+                <div class="flex items-center justify-center py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl text-white/30"></i>
+                </div>
+            </div>
+            
+            <!-- Allocation Warning -->
+            <div id="allocation-warning" class="hidden mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <div class="flex items-center gap-2 text-yellow-400 text-sm">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="allocation-warning-text">Total allocation must equal 100%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Target Goal -->
     <div class="section-card mb-8">
         <div class="section-header">
@@ -1343,6 +1540,14 @@
                         Earn 5% on referral profits!
                     </div>
                 </div>
+            </div>
+            
+            <!-- Influencer Dashboard Link -->
+            <div class="mt-4">
+                <a href="{{ url_for('influencer_dashboard') }}" class="btn-cyber w-full text-center">
+                    <i class="fas fa-rocket mr-2"></i>
+                    Open Influencer Dashboard
+                </a>
             </div>
         </div>
     </div>
@@ -1976,12 +2181,595 @@
         }
     });
 
+    // ==================== AI SENTIMENT ====================
+    function loadSentiment() {
+        fetch('/api/sentiment')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                
+                const valueEl = document.getElementById('sentiment-value');
+                const labelEl = document.getElementById('sentiment-label');
+                const gaugeFill = document.getElementById('sentiment-gauge-fill');
+                const statusBadge = document.getElementById('sentiment-status-badge');
+                const iconContainer = document.getElementById('sentiment-icon-container');
+                const adjustmentEl = document.getElementById('ai-risk-adjustment');
+                const normalEl = document.getElementById('ai-risk-normal');
+                const adjustmentLabel = document.getElementById('adjustment-label');
+                const adjustmentValue = document.getElementById('adjustment-value');
+                
+                // Update value
+                if (valueEl) valueEl.textContent = data.value;
+                if (labelEl) labelEl.textContent = data.label;
+                
+                // Update gauge fill position
+                if (gaugeFill) {
+                    gaugeFill.style.width = `${data.value}%`;
+                }
+                
+                // Update colors based on classification
+                const color = data.color || '#ffc400';
+                if (valueEl) valueEl.style.color = color;
+                if (statusBadge) {
+                    statusBadge.style.background = `${color}15`;
+                    statusBadge.style.color = color;
+                    statusBadge.style.borderColor = `${color}50`;
+                }
+                if (iconContainer) {
+                    iconContainer.style.background = `${color}15`;
+                    iconContainer.style.borderColor = `${color}50`;
+                    iconContainer.querySelector('i').style.color = color;
+                }
+                
+                // Show/hide risk adjustments
+                if (data.risk_adjustments && data.risk_adjustments.length > 0) {
+                    const adj = data.risk_adjustments[0];
+                    if (adjustmentEl) adjustmentEl.classList.remove('hidden');
+                    if (normalEl) normalEl.classList.add('hidden');
+                    if (adjustmentLabel) adjustmentLabel.textContent = `${adj.affected} trades`;
+                    if (adjustmentValue) adjustmentValue.textContent = adj.adjustment;
+                } else {
+                    if (adjustmentEl) adjustmentEl.classList.add('hidden');
+                    if (normalEl) normalEl.classList.remove('hidden');
+                }
+                
+                // Add pulse animation for extreme values
+                const badge = document.getElementById('ai-sentiment-badge');
+                if (badge && data.is_extreme) {
+                    badge.style.borderColor = `${color}60`;
+                    badge.style.boxShadow = `0 0 30px ${color}30`;
+                } else if (badge) {
+                    badge.style.borderColor = 'rgba(0, 255, 136, 0.2)';
+                    badge.style.boxShadow = 'none';
+                }
+            })
+            .catch(err => console.error('Sentiment load error:', err));
+    }
+
+    // ==================== STRATEGY SUBSCRIPTIONS ====================
+    let userSubscriptions = [];
+    let availableStrategies = [];
+
+    function loadStrategies() {
+        const container = document.getElementById('strategies-container');
+        if (!container) return;
+
+        // Load both available strategies and user's subscriptions
+        Promise.all([
+            fetch('/api/strategies').then(r => r.json()),
+            fetch('/api/subscriptions').then(r => r.json())
+        ])
+        .then(([strategiesData, subscriptionsData]) => {
+            if (!strategiesData.success || !subscriptionsData.success) {
+                throw new Error('Failed to load data');
+            }
+
+            availableStrategies = strategiesData.strategies;
+            userSubscriptions = subscriptionsData.subscriptions;
+            
+            renderStrategies();
+            updateAllocationDisplay();
+        })
+        .catch(err => {
+            console.error('Error loading strategies:', err);
+            container.innerHTML = `
+                <div class="text-center py-6 text-red-400">
+                    <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                    <p>Failed to load strategies</p>
+                    <button onclick="loadStrategies()" class="btn-cyber btn-cyber-sm mt-3">
+                        <i class="fas fa-sync"></i> Retry
+                    </button>
+                </div>`;
+        });
+    }
+
+    function renderStrategies() {
+        const container = document.getElementById('strategies-container');
+        if (!container || !availableStrategies.length) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-white/50">
+                    <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
+                    <p>No strategies available</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = availableStrategies.map(strategy => {
+            const subscription = userSubscriptions.find(s => s.strategy_id === strategy.id);
+            const isSubscribed = subscription && subscription.is_active;
+            const allocation = subscription ? subscription.allocation_percent : 0;
+            
+            const riskBadgeColor = {
+                'low': 'bg-green-500/10 text-green-400 border-green-500/30',
+                'medium': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+                'high': 'bg-red-500/10 text-red-400 border-red-500/30'
+            }[strategy.risk_level] || 'bg-gray-500/10 text-gray-400 border-gray-500/30';
+
+            return `
+                <div class="strategy-card p-4 rounded-xl border transition-all ${isSubscribed ? 'bg-purple-500/5 border-purple-500/30' : 'bg-black/30 border-white/5'}" data-strategy-id="${strategy.id}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center ${isSubscribed ? 'bg-purple-500/20 text-purple-400' : 'bg-white/5 text-white/40'}">
+                                <i class="fas fa-chess-knight"></i>
+                            </div>
+                            <div>
+                                <div class="font-display font-semibold text-white">${strategy.name}</div>
+                                <div class="text-xs text-white/50">${strategy.description || 'No description'}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold border ${riskBadgeColor}">
+                                ${strategy.risk_level.toUpperCase()}
+                            </span>
+                            <span class="text-xs text-white/40">${strategy.subscriber_count || 0} users</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <!-- Toggle Switch -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer strategy-toggle" 
+                                   data-strategy-id="${strategy.id}"
+                                   data-subscription-id="${subscription ? subscription.id : ''}"
+                                   ${isSubscribed ? 'checked' : ''}
+                                   onchange="toggleStrategySubscription(this, ${strategy.id})">
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                        </label>
+                        
+                        <!-- Allocation Slider -->
+                        <div class="flex-1 ${isSubscribed ? '' : 'opacity-30 pointer-events-none'}">
+                            <div class="flex items-center gap-3">
+                                <input type="range" min="5" max="100" step="5" value="${allocation}"
+                                       class="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500 strategy-allocation"
+                                       data-strategy-id="${strategy.id}"
+                                       data-subscription-id="${subscription ? subscription.id : ''}"
+                                       onchange="updateStrategyAllocation(this, ${strategy.id})"
+                                       oninput="previewAllocation(this)">
+                                <span class="w-12 text-right font-mono text-sm text-purple-400 allocation-value">${allocation}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function updateAllocationDisplay() {
+        const totalAllocation = userSubscriptions
+            .filter(s => s.is_active)
+            .reduce((sum, s) => sum + s.allocation_percent, 0);
+        
+        const badge = document.getElementById('allocation-badge');
+        const warning = document.getElementById('allocation-warning');
+        const warningText = document.getElementById('allocation-warning-text');
+        const totalEl = document.getElementById('total-allocation');
+
+        if (totalEl) totalEl.textContent = totalAllocation.toFixed(0);
+
+        if (badge) {
+            if (totalAllocation === 100) {
+                badge.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400';
+            } else if (totalAllocation > 100) {
+                badge.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400';
+            } else {
+                badge.className = 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400';
+            }
+        }
+
+        if (warning && warningText) {
+            if (totalAllocation !== 100) {
+                warning.classList.remove('hidden');
+                if (totalAllocation > 100) {
+                    warningText.textContent = `Total allocation is ${totalAllocation}% - exceeds 100%!`;
+                    warning.className = 'mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30';
+                } else {
+                    warningText.textContent = `Total allocation is ${totalAllocation}% - ${100 - totalAllocation}% unallocated`;
+                    warning.className = 'mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30';
+                }
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
+    }
+
+    function previewAllocation(input) {
+        const valueEl = input.parentElement.querySelector('.allocation-value');
+        if (valueEl) valueEl.textContent = input.value + '%';
+    }
+
+    async function toggleStrategySubscription(checkbox, strategyId) {
+        const isSubscribed = checkbox.checked;
+        const subscriptionId = checkbox.dataset.subscriptionId;
+        const card = checkbox.closest('.strategy-card');
+        const slider = card.querySelector('.strategy-allocation');
+        const sliderContainer = slider.parentElement.parentElement;
+
+        try {
+            if (isSubscribed) {
+                // Subscribe with default 100% or remaining allocation
+                const currentTotal = userSubscriptions
+                    .filter(s => s.is_active && s.strategy_id !== strategyId)
+                    .reduce((sum, s) => sum + s.allocation_percent, 0);
+                const defaultAllocation = Math.min(100 - currentTotal, 100);
+
+                const response = await fetch('/api/subscriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        strategy_id: strategyId,
+                        allocation_percent: defaultAllocation
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Subscribed to strategy`, 'success');
+                    loadStrategies(); // Reload to get updated data
+                } else {
+                    checkbox.checked = false;
+                    showToast(result.error || 'Failed to subscribe', 'error');
+                }
+            } else {
+                // Unsubscribe
+                if (subscriptionId) {
+                    const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast('Unsubscribed from strategy', 'success');
+                        loadStrategies();
+                    } else {
+                        checkbox.checked = true;
+                        showToast(result.error || 'Failed to unsubscribe', 'error');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error toggling subscription:', err);
+            checkbox.checked = !isSubscribed;
+            showToast('Network error', 'error');
+        }
+
+        // Toggle slider visibility
+        sliderContainer.classList.toggle('opacity-30', !isSubscribed);
+        sliderContainer.classList.toggle('pointer-events-none', !isSubscribed);
+    }
+
+    async function updateStrategyAllocation(input, strategyId) {
+        const subscriptionId = input.dataset.subscriptionId;
+        const newAllocation = parseFloat(input.value);
+
+        if (!subscriptionId) {
+            showToast('Please subscribe first', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ allocation_percent: newAllocation })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local data
+                const sub = userSubscriptions.find(s => s.id === parseInt(subscriptionId));
+                if (sub) sub.allocation_percent = newAllocation;
+                updateAllocationDisplay();
+                showToast(`Allocation updated to ${newAllocation}%`, 'success', 1500);
+            } else {
+                showToast(result.error || 'Failed to update', 'error');
+                loadStrategies(); // Reload to restore correct value
+            }
+        } catch (err) {
+            console.error('Error updating allocation:', err);
+            showToast('Network error', 'error');
+            loadStrategies();
+        }
+    }
+
+    // ==================== SAFETY POOL / INSURANCE FUND ====================
+    function loadSafetyPool() {
+        fetch('/api/insurance-fund')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.insurance_fund) {
+                    const poolEl = document.getElementById('dashboard-safety-pool');
+                    if (poolEl) {
+                        poolEl.textContent = data.insurance_fund.formatted_balance;
+                        
+                        // Add subtle pulse animation on update
+                        const badge = document.getElementById('safety-pool-badge');
+                        if (badge) {
+                            badge.style.borderColor = 'rgba(57, 255, 20, 0.4)';
+                            badge.style.boxShadow = '0 0 20px rgba(57, 255, 20, 0.1)';
+                            setTimeout(() => {
+                                badge.style.borderColor = 'rgba(57, 255, 20, 0.2)';
+                                badge.style.boxShadow = 'none';
+                            }, 1000);
+                        }
+                    }
+                }
+            })
+            .catch(err => console.log('Safety Pool fetch error:', err));
+    }
+
+    // ==================== GAMIFICATION ====================
+    let gamificationData = null;
+    
+    function loadGamification() {
+        fetch('/api/gamification/status')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                
+                gamificationData = data;
+                updateGamificationUI(data);
+            })
+            .catch(err => console.log('Gamification fetch error:', err));
+    }
+    
+    function updateGamificationUI(data) {
+        // Update level icon and container
+        const levelIcon = document.getElementById('level-icon');
+        const levelIconContainer = document.getElementById('level-icon-container');
+        const levelBadge = document.getElementById('level-badge');
+        const levelName = document.getElementById('level-name');
+        
+        const levelColor = data.level_color || '#888888';
+        
+        if (levelIcon) {
+            levelIcon.className = `fas ${data.level_icon || 'fa-seedling'} text-2xl`;
+            levelIcon.style.color = levelColor;
+        }
+        if (levelIconContainer) {
+            levelIconContainer.style.background = `${levelColor}15`;
+            levelIconContainer.style.borderColor = `${levelColor}50`;
+        }
+        if (levelBadge) {
+            levelBadge.style.background = `${levelColor}15`;
+            levelBadge.style.color = levelColor;
+            levelBadge.style.borderColor = `${levelColor}50`;
+        }
+        if (levelName) {
+            levelName.textContent = data.level_name || 'Novice';
+        }
+        
+        // Update XP display
+        const userXp = document.getElementById('user-xp');
+        const xpToNext = document.getElementById('xp-to-next');
+        if (userXp) {
+            userXp.textContent = (data.current_xp || 0).toLocaleString();
+        }
+        if (xpToNext) {
+            if (data.is_max_level) {
+                xpToNext.textContent = '🎉 MAX LEVEL!';
+            } else {
+                xpToNext.textContent = `${data.xp_to_next.toLocaleString()} XP to ${data.next_level_name || 'next level'}`;
+            }
+        }
+        
+        // Update progress bar
+        const currentLevelLabel = document.getElementById('current-level-label');
+        const nextLevelLabel = document.getElementById('next-level-label');
+        const xpProgressBar = document.getElementById('xp-progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        if (currentLevelLabel) currentLevelLabel.textContent = data.level_name || 'Novice';
+        if (nextLevelLabel) nextLevelLabel.textContent = data.next_level_name || (data.is_max_level ? '👑 MAX' : 'Next');
+        if (xpProgressBar) {
+            xpProgressBar.style.width = `${data.progress || 0}%`;
+            xpProgressBar.style.background = `linear-gradient(90deg, ${levelColor} 0%, ${levelColor}99 100%)`;
+        }
+        if (progressText) {
+            if (data.is_max_level) {
+                progressText.textContent = '✨ Maximum level achieved!';
+            } else {
+                progressText.textContent = `${data.progress || 0}% to next level`;
+            }
+        }
+        
+        // Update discount badge
+        const discountPercent = document.getElementById('discount-percent');
+        const discountBadge = document.getElementById('discount-badge');
+        if (discountPercent) {
+            discountPercent.textContent = `${data.discount_percent || 0}%`;
+        }
+        if (discountBadge) {
+            if (data.discount_percent > 0) {
+                discountBadge.style.background = 'rgba(34, 197, 94, 0.15)';
+                discountBadge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+            } else {
+                discountBadge.style.background = 'rgba(34, 197, 94, 0.05)';
+                discountBadge.style.borderColor = 'rgba(34, 197, 94, 0.2)';
+            }
+        }
+        
+        // Update badges container
+        const badgesContainer = document.getElementById('badges-container');
+        const badgeCount = document.getElementById('badge-count');
+        
+        if (badgeCount) {
+            badgeCount.textContent = `(${data.total_badges || 0} unlocked)`;
+        }
+        
+        if (badgesContainer && data.badges) {
+            if (data.badges.length === 0) {
+                badgesContainer.innerHTML = `
+                    <div class="text-xs text-white/30 italic">Complete trades to unlock achievements!</div>
+                `;
+            } else {
+                badgesContainer.innerHTML = data.badges.slice(0, 6).map(badge => {
+                    const rarityGlow = {
+                        'common': '',
+                        'rare': 'box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);',
+                        'epic': 'box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);',
+                        'legendary': 'box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);'
+                    }[badge.rarity] || '';
+                    
+                    return `
+                        <div class="badge-item inline-flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-transform hover:scale-105"
+                             style="background: ${badge.color}20; border: 1px solid ${badge.color}40; ${rarityGlow}"
+                             title="${badge.description}\n\nRarity: ${badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}"
+                             onclick="showBadgeDetails('${badge.achievement_type}')">
+                            <i class="fas ${badge.icon}" style="color: ${badge.color};"></i>
+                            <span class="text-xs font-medium" style="color: ${badge.color};">${badge.name}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add "more" indicator if there are more badges
+                if (data.badges.length > 6) {
+                    badgesContainer.innerHTML += `
+                        <button onclick="showAllAchievements()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-white/50 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            +${data.badges.length - 6} more
+                        </button>
+                    `;
+                }
+            }
+        }
+    }
+    
+    function showBadgeDetails(achievementType) {
+        if (!gamificationData) return;
+        
+        const badge = gamificationData.badges.find(b => b.achievement_type === achievementType);
+        if (!badge) return;
+        
+        const rarityColors = {
+            'common': { bg: '#888', label: 'Common' },
+            'rare': { bg: '#2196F3', label: 'Rare' },
+            'epic': { bg: '#9C27B0', label: 'Epic' },
+            'legendary': { bg: '#FFD700', label: 'Legendary' }
+        };
+        const rarity = rarityColors[badge.rarity] || rarityColors.common;
+        
+        // Show a simple alert or toast - could be enhanced with a modal
+        const unlockedDate = new Date(badge.unlocked_at).toLocaleDateString();
+        alert(`🏆 ${badge.name}\n\n${badge.description}\n\nRarity: ${rarity.label}\nUnlocked: ${unlockedDate}`);
+    }
+    
+    function showAllAchievements() {
+        fetch('/api/gamification/achievements')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                
+                // Create modal content
+                let content = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+                
+                data.all_achievements.forEach(achievement => {
+                    const isUnlocked = achievement.unlocked;
+                    const opacity = isUnlocked ? '' : 'opacity-40';
+                    const lockIcon = isUnlocked ? '' : '<i class="fas fa-lock text-white/30 ml-auto"></i>';
+                    
+                    const rarityBorder = {
+                        'common': 'border-gray-500/30',
+                        'rare': 'border-blue-500/30',
+                        'epic': 'border-purple-500/30',
+                        'legendary': 'border-yellow-500/30'
+                    }[achievement.rarity] || 'border-gray-500/30';
+                    
+                    content += `
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-black/30 border ${rarityBorder} ${opacity}">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                 style="background: ${achievement.color}20;">
+                                <i class="fas ${achievement.icon}" style="color: ${achievement.color};"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-white text-sm">${achievement.name}</div>
+                                <div class="text-xs text-white/50 truncate">${achievement.description}</div>
+                            </div>
+                            ${lockIcon}
+                        </div>
+                    `;
+                });
+                
+                content += '</div>';
+                content += `<div class="text-center mt-4 text-sm text-white/50">${data.total_unlocked} of ${data.total_available} achievements unlocked</div>`;
+                
+                // Show in existing modal or create simple alert
+                showAchievementsModal(content, data.total_unlocked, data.total_available);
+            })
+            .catch(err => console.error('Error loading achievements:', err));
+    }
+    
+    function showAchievementsModal(content, unlocked, total) {
+        // Create and show modal
+        const existingModal = document.getElementById('achievements-modal');
+        if (existingModal) existingModal.remove();
+        
+        const modal = document.createElement('div');
+        modal.id = 'achievements-modal';
+        modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
+        modal.style.background = 'rgba(0,0,0,0.8)';
+        modal.innerHTML = `
+            <div class="modal-cyber max-w-2xl w-full max-h-[80vh] flex flex-col">
+                <div class="modal-head">
+                    <div class="modal-title">
+                        <i class="fas fa-trophy text-yellow-400"></i>
+                        <span>Achievements (${unlocked}/${total})</span>
+                    </div>
+                    <button class="modal-close" onclick="document.getElementById('achievements-modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body overflow-y-auto">
+                    ${content}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
     // ==================== INIT ====================
     document.addEventListener('DOMContentLoaded', () => {
         initSocket();
         initTVChart();
         loadStats();
         loadExchanges();
+        loadSentiment();
+        loadStrategies();
+        loadSafetyPool();
+        loadGamification();
+        
+        // Refresh sentiment every 5 minutes
+        setInterval(loadSentiment, 5 * 60 * 1000);
+        
+        // Refresh Safety Pool every 5 minutes
+        setInterval(loadSafetyPool, 5 * 60 * 1000);
+        
+        // Refresh Gamification every 5 minutes
+        setInterval(loadGamification, 5 * 60 * 1000);
         
         // Initial progress ring update
         const balanceEl = document.getElementById('balance-value');

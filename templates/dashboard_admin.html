@@ -208,6 +208,33 @@
             </div>
         </div>
 
+        <!-- Insurance Fund / Safety Pool Card -->
+        <div class="card mb-6" style="background: linear-gradient(135deg, rgba(57, 255, 20, 0.03), rgba(0, 240, 255, 0.02)); border-color: rgba(57, 255, 20, 0.2);">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-center" style="width: 48px; height: 48px; background: rgba(57, 255, 20, 0.1); border: 1px solid rgba(57, 255, 20, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-shield-alt text-xl" style="color: #39ff14;"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-muted text-xs uppercase tracking-wider">Insurance Fund</span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 0.65rem; font-weight: 600; background: rgba(57, 255, 20, 0.1); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.3);">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                        </div>
+                        <div class="font-mono font-bold text-2xl" id="admin-safety-pool" style="color: #39ff14;">$10,000.00</div>
+                    </div>
+                </div>
+                <div class="text-right hidden md:block">
+                    <div class="text-muted text-xs mb-1">Safety Pool</div>
+                    <div class="text-xs" style="color: rgba(255,255,255,0.4);">5% of fees → fund</div>
+                    <div class="text-xs mt-1" style="color: rgba(255,255,255,0.3);" title="Covers slippage in extreme markets">
+                        <i class="fas fa-info-circle"></i> Slippage protection
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Logs -->
         <div class="card">
             <div class="flex items-center justify-between mb-4">
@@ -667,6 +694,90 @@
             <p class="text-xxs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
         </div>
         
+        <!-- Strategies Management -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-chess-knight text-purple"></i>
+                    <span>Trading Strategies</span>
+                </h2>
+                <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm">
+                    <i class="fas fa-plus"></i>
+                    <span>New Strategy</span>
+                </button>
+            </div>
+            
+            <div id="admin-strategies-container" class="space-y-3">
+                <div class="flex items-center justify-center py-6">
+                    <i class="fas fa-spinner fa-spin text-2xl text-muted"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Moderation -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-comments text-cyan"></i>
+                    <span>Live Chat Moderation</span>
+                </h2>
+                <button onclick="refreshChatBans()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+            
+            <!-- Chat Settings -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                    <div class="flex items-center gap-2 text-xs text-muted mb-1">
+                        <i class="fas fa-users text-cyan"></i>
+                        <span>Chat Room</span>
+                    </div>
+                    <span class="text-lg font-display font-semibold text-bright">General Room</span>
+                </div>
+                <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                    <div class="flex items-center gap-2 text-xs text-muted mb-1">
+                        <i class="fas fa-ban text-red"></i>
+                        <span>Active Bans</span>
+                    </div>
+                    <span class="text-lg font-display font-semibold text-red" id="activeBansCount">0</span>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="mb-4">
+                <label class="text-xs text-muted mb-2 block">Quick Actions - Select a user to moderate:</label>
+                <div class="flex gap-2">
+                    <select id="chatModerateUser" class="input flex-1">
+                        <option value="">-- Select User --</option>
+                    </select>
+                    <button onclick="muteSelectedUser(15)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 15 minutes">
+                        <i class="fas fa-volume-mute"></i>
+                        15m
+                    </button>
+                    <button onclick="muteSelectedUser(60)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 1 hour">
+                        <i class="fas fa-volume-mute"></i>
+                        1h
+                    </button>
+                    <button onclick="banSelectedUser()" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Permanent Ban">
+                        <i class="fas fa-ban"></i>
+                        Ban
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Active Bans List -->
+            <div>
+                <label class="text-xs text-muted mb-2 block">Currently Banned/Muted Users:</label>
+                <div id="chatBansList" class="space-y-2 max-h-48 overflow-y-auto">
+                    <div class="text-center py-4 text-muted text-sm">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Admin Profile -->
         <div class="card">
             <div class="flex items-center justify-between mb-4">
@@ -891,7 +1002,185 @@
     }
     function loadUnreadCount() { fetch('/api/messages/unread').then(r => r.json()).then(data => { const stat = document.getElementById('unread-messages-stat'); if (stat) stat.querySelector('p').textContent = data.unread; }).catch(console.error); }
 
-    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); });
+    // ==================== CHAT MODERATION ====================
+    
+    async function loadChatUsers() {
+        try {
+            const response = await fetch('/api/users/list');
+            const users = await response.json();
+            const select = document.getElementById('chatModerateUser');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Select User --</option>';
+            users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = `${u.username} (${u.name || u.username})`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Failed to load users:', err);
+        }
+    }
+    
+    async function refreshChatBans() {
+        try {
+            const response = await fetch('/api/admin/chat/bans?active_only=true');
+            const data = await response.json();
+            
+            if (!data.success) {
+                showToast(data.error || 'Failed to load bans', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('chatBansList');
+            const countEl = document.getElementById('activeBansCount');
+            
+            if (countEl) countEl.textContent = data.bans.length;
+            
+            if (!data.bans || data.bans.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-green">
+                        <i class="fas fa-check-circle"></i> No active bans
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = data.bans.map(ban => `
+                <div class="flex items-center justify-between p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <span class="badge ${ban.ban_type === 'ban' ? 'badge-danger' : 'badge-warning'}">
+                            ${ban.ban_type.toUpperCase()}
+                        </span>
+                        <span class="text-sm font-semibold">${ban.username}</span>
+                        ${ban.reason ? `<span class="text-xs text-muted">- ${ban.reason}</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${ban.expires_at ? `<span class="text-xxs text-muted">Expires: ${new Date(ban.expires_at).toLocaleString()}</span>` : '<span class="text-xxs text-red">Permanent</span>'}
+                        <button onclick="unbanUser(${ban.user_id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Remove ban">
+                            <i class="fas fa-unlock"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+        } catch (err) {
+            console.error('Failed to refresh bans:', err);
+            showToast('Failed to load bans', 'error');
+        }
+    }
+    
+    async function muteSelectedUser(duration) {
+        const userId = document.getElementById('chatModerateUser').value;
+        if (!userId) {
+            showToast('Please select a user first', 'warning');
+            return;
+        }
+        
+        const reason = prompt(`Mute reason (optional):`);
+        
+        try {
+            const response = await fetch('/api/admin/chat/mute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    duration: duration,
+                    reason: reason || 'Chat rule violation'
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Failed to mute user', 'error');
+            }
+        } catch (err) {
+            console.error('Mute error:', err);
+            showToast('Failed to mute user', 'error');
+        }
+    }
+    
+    async function banSelectedUser() {
+        const userId = document.getElementById('chatModerateUser').value;
+        if (!userId) {
+            showToast('Please select a user first', 'warning');
+            return;
+        }
+        
+        if (!confirm('Are you sure you want to PERMANENTLY ban this user from chat?')) {
+            return;
+        }
+        
+        const reason = prompt(`Ban reason:`);
+        
+        try {
+            const response = await fetch('/api/admin/chat/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    reason: reason || 'Chat rule violation'
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Failed to ban user', 'error');
+            }
+        } catch (err) {
+            console.error('Ban error:', err);
+            showToast('Failed to ban user', 'error');
+        }
+    }
+    
+    async function unbanUser(userId) {
+        if (!confirm('Remove this ban/mute?')) return;
+        
+        try {
+            const response = await fetch('/api/admin/chat/unban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Failed to unban user', 'error');
+            }
+        } catch (err) {
+            console.error('Unban error:', err);
+            showToast('Failed to unban user', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); loadAdminStrategies(); loadChatUsers(); refreshChatBans(); loadAdminSafetyPool(); });
+    
+    // Safety Pool / Insurance Fund
+    function loadAdminSafetyPool() {
+        fetch('/api/insurance-fund')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.insurance_fund) {
+                    const poolEl = document.getElementById('admin-safety-pool');
+                    if (poolEl) {
+                        poolEl.textContent = data.insurance_fund.formatted_balance;
+                    }
+                }
+            })
+            .catch(err => console.log('Admin Safety Pool fetch error:', err));
+    }
+    // Refresh Safety Pool every 5 minutes
+    setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
     
     // Exchange Config - ALL exchanges (for connecting)
     let allExchangeConfigs = [];
@@ -1810,6 +2099,262 @@
             console.error('Error deleting user:', err);
             showToast('Network error while deleting user', 'error');
         });
+    }
+
+    // ==================== STRATEGY MANAGEMENT ====================
+    let adminStrategies = [];
+    
+    function loadAdminStrategies() {
+        const container = document.getElementById('admin-strategies-container');
+        if (!container) return;
+        
+        fetch('/api/admin/strategies')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load strategies');
+                }
+                
+                adminStrategies = data.strategies;
+                renderAdminStrategies();
+            })
+            .catch(err => {
+                console.error('Error loading strategies:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Failed to load strategies</p>
+                        <button onclick="loadAdminStrategies()" class="cyber-btn cyber-btn-sm mt-3">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>`;
+            });
+    }
+    
+    function renderAdminStrategies() {
+        const container = document.getElementById('admin-strategies-container');
+        if (!container) return;
+        
+        if (!adminStrategies.length) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-muted">
+                    <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
+                    <p>No strategies created yet</p>
+                </div>`;
+            return;
+        }
+        
+        container.innerHTML = adminStrategies.map(s => {
+            const riskColor = { low: 'green', medium: 'yellow', high: 'red' }[s.risk_level] || 'muted';
+            return `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,0,0,0.3)] border border-[var(--color-border)] hover:border-[var(--neon-purple)] transition-all" data-strategy-id="${s.id}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center ${s.is_active ? 'bg-purple/20' : 'bg-muted/10'}">
+                            <i class="fas fa-chess-knight ${s.is_active ? 'text-purple' : 'text-muted'}"></i>
+                        </div>
+                        <div>
+                            <div class="font-display font-semibold ${s.is_active ? 'text-bright' : 'text-muted'}">${s.name}</div>
+                            <div class="text-xxs text-muted">${s.description || 'No description'}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
+                        <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="toggleStrategy(${s.id}, ${!s.is_active})" class="cyber-btn cyber-btn-sm ${s.is_active ? 'cyber-btn-warning' : 'cyber-btn-gradient-green'}" title="${s.is_active ? 'Deactivate' : 'Activate'}">
+                                <i class="fas fa-${s.is_active ? 'pause' : 'play'}"></i>
+                            </button>
+                            ${s.name !== 'Main' ? `<button onclick="deleteStrategy(${s.id}, '${s.name}')" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function openCreateStrategyModal() {
+        const modalHtml = `
+            <div id="strategyModal" class="modal-overlay" style="display: flex;" onclick="if(event.target===this)closeStrategyModal()">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <i class="fas fa-chess-knight text-purple"></i>
+                            <span>Create Strategy</span>
+                        </div>
+                        <button onclick="closeStrategyModal()" class="modal-close"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="strategy-form" onsubmit="submitStrategy(event)" class="space-y-4">
+                            <input type="hidden" id="strategy-id" value="">
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Name *</label>
+                                <input type="text" id="strategy-name" class="input" placeholder="e.g., Aggressive BTC" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Description</label>
+                                <textarea id="strategy-description" class="input" rows="2" placeholder="Strategy description..."></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Risk Level</label>
+                                <select id="strategy-risk-level" class="input">
+                                    <option value="low">Low Risk</option>
+                                    <option value="medium" selected>Medium Risk</option>
+                                    <option value="high">High Risk</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Risk % Override</label>
+                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Use global" step="0.1" min="0.1" max="100">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Leverage Override</label>
+                                    <input type="number" id="strategy-leverage" class="input" placeholder="Use global" min="1" max="125">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Max Positions</label>
+                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Use global" min="1" max="50">
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="strategy-active" class="cyber-checkbox" checked>
+                                    <span class="text-sm">Active</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="cyber-btn w-full" id="strategy-submit-btn">
+                                <i class="fas fa-save"></i>
+                                <span>Create Strategy</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    function closeStrategyModal() {
+        const modal = document.getElementById('strategyModal');
+        if (modal) modal.remove();
+    }
+    
+    function editStrategy(strategyId) {
+        const strategy = adminStrategies.find(s => s.id === strategyId);
+        if (!strategy) return;
+        
+        openCreateStrategyModal();
+        
+        // Wait for modal to be added to DOM
+        setTimeout(() => {
+            document.getElementById('strategy-id').value = strategyId;
+            document.getElementById('strategy-name').value = strategy.name;
+            document.getElementById('strategy-description').value = strategy.description || '';
+            document.getElementById('strategy-risk-level').value = strategy.risk_level;
+            document.getElementById('strategy-risk-perc').value = strategy.default_risk_perc || '';
+            document.getElementById('strategy-leverage').value = strategy.default_leverage || '';
+            document.getElementById('strategy-max-pos').value = strategy.max_positions || '';
+            document.getElementById('strategy-active').checked = strategy.is_active;
+            
+            document.querySelector('#strategyModal .modal-title span').textContent = 'Edit Strategy';
+            document.querySelector('#strategy-submit-btn span').textContent = 'Update Strategy';
+        }, 50);
+    }
+    
+    async function submitStrategy(event) {
+        event.preventDefault();
+        
+        const strategyId = document.getElementById('strategy-id').value;
+        const isEdit = !!strategyId;
+        
+        const data = {
+            name: document.getElementById('strategy-name').value.trim(),
+            description: document.getElementById('strategy-description').value.trim(),
+            risk_level: document.getElementById('strategy-risk-level').value,
+            default_risk_perc: parseFloat(document.getElementById('strategy-risk-perc').value) || null,
+            default_leverage: parseInt(document.getElementById('strategy-leverage').value) || null,
+            max_positions: parseInt(document.getElementById('strategy-max-pos').value) || null,
+            is_active: document.getElementById('strategy-active').checked
+        };
+        
+        const btn = document.getElementById('strategy-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const url = isEdit ? `/api/admin/strategies/${strategyId}` : '/api/admin/strategies';
+            const response = await fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(result.message || `Strategy ${isEdit ? 'updated' : 'created'}!`, 'success');
+                closeStrategyModal();
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to save strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error saving strategy:', err);
+            showToast('Network error', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save"></i> <span>${isEdit ? 'Update' : 'Create'} Strategy</span>`;
+        }
+    }
+    
+    async function toggleStrategy(strategyId, activate) {
+        try {
+            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: activate })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(`Strategy ${activate ? 'activated' : 'deactivated'}`, 'success');
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to update strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error toggling strategy:', err);
+            showToast('Network error', 'error');
+        }
+    }
+    
+    async function deleteStrategy(strategyId, strategyName) {
+        if (!confirm(`Delete strategy "${strategyName}"?\n\nThis cannot be undone.`)) return;
+        
+        try {
+            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(result.message || 'Strategy deleted', 'success');
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to delete strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error deleting strategy:', err);
+            showToast('Network error', 'error');
+        }
     }
 </script>
 {% endblock %}

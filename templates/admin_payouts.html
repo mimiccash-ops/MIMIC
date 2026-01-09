@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Payout Management{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-dark py-8">
+    <div class="container mx-auto px-4 max-w-7xl">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-display font-bold text-gradient mb-2">
+                    <i class="fas fa-money-check-alt mr-2"></i>Payout Management
+                </h1>
+                <p class="text-white/60">Review and process commission payout requests</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+                <a href="{{ url_for('dashboard') }}" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Filter Tabs -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <a href="{{ url_for('admin_payouts', status='pending') }}" 
+               class="px-4 py-2 rounded-lg border transition-all {{ 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' if status_filter == 'pending' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
+                <i class="fas fa-clock mr-2"></i>Pending
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">{{ pending_count }}</span>
+            </a>
+            <a href="{{ url_for('admin_payouts', status='approved') }}" 
+               class="px-4 py-2 rounded-lg border transition-all {{ 'bg-blue-500/20 border-blue-500/50 text-blue-400' if status_filter == 'approved' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
+                <i class="fas fa-thumbs-up mr-2"></i>Approved
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs">{{ approved_count }}</span>
+            </a>
+            <a href="{{ url_for('admin_payouts', status='paid') }}" 
+               class="px-4 py-2 rounded-lg border transition-all {{ 'bg-green-500/20 border-green-500/50 text-green-400' if status_filter == 'paid' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
+                <i class="fas fa-check-circle mr-2"></i>Paid
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-xs">{{ paid_count }}</span>
+            </a>
+            <a href="{{ url_for('admin_payouts', status='rejected') }}" 
+               class="px-4 py-2 rounded-lg border transition-all {{ 'bg-red-500/20 border-red-500/50 text-red-400' if status_filter == 'rejected' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
+                <i class="fas fa-times-circle mr-2"></i>Rejected
+                <span class="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">{{ rejected_count }}</span>
+            </a>
+            <a href="{{ url_for('admin_payouts', status='all') }}" 
+               class="px-4 py-2 rounded-lg border transition-all {{ 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' if status_filter == 'all' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
+                <i class="fas fa-list mr-2"></i>All
+            </a>
+        </div>
+
+        <!-- Payouts Table -->
+        <div class="section-card">
+            <div class="section-body">
+                {% if payouts %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-xs text-white/40 border-b border-white/10">
+                                <th class="pb-3 font-medium">ID</th>
+                                <th class="pb-3 font-medium">User</th>
+                                <th class="pb-3 font-medium">Amount</th>
+                                <th class="pb-3 font-medium">Method</th>
+                                <th class="pb-3 font-medium">Address</th>
+                                <th class="pb-3 font-medium">Status</th>
+                                <th class="pb-3 font-medium">Date</th>
+                                <th class="pb-3 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            {% for payout in payouts %}
+                            <tr class="hover:bg-white/5">
+                                <td class="py-4 font-mono text-sm text-white/60">#{{ payout.id }}</td>
+                                <td class="py-4">
+                                    <div class="font-semibold text-white">{{ payout.user.username }}</div>
+                                    <div class="text-xs text-white/40">{{ payout.user.email or 'No email' }}</div>
+                                </td>
+                                <td class="py-4 font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
+                                <td class="py-4 text-sm text-white/60">
+                                    {% if payout.payment_method == 'usdt_trc20' %}
+                                    <span class="text-cyan-400">USDT (TRC20)</span>
+                                    {% elif payout.payment_method == 'usdt_erc20' %}
+                                    <span class="text-blue-400">USDT (ERC20)</span>
+                                    {% elif payout.payment_method == 'usdt_bep20' %}
+                                    <span class="text-yellow-400">USDT (BEP20)</span>
+                                    {% elif payout.payment_method == 'btc' %}
+                                    <span class="text-orange-400">Bitcoin</span>
+                                    {% else %}
+                                    <span>{{ payout.payment_method }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4">
+                                    <div class="max-w-xs truncate font-mono text-xs text-white/60" title="{{ payout.payment_address }}">
+                                        {{ payout.payment_address[:30] }}...
+                                    </div>
+                                    <button onclick="copyAddress('{{ payout.payment_address }}')" class="text-xs text-cyan-400 hover:text-cyan-300">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                </td>
+                                <td class="py-4">
+                                    {% if payout.status == 'paid' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                                        <i class="fas fa-check"></i> Paid
+                                    </span>
+                                    {% elif payout.status == 'approved' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400">
+                                        <i class="fas fa-thumbs-up"></i> Approved
+                                    </span>
+                                    {% elif payout.status == 'pending' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                    {% elif payout.status == 'rejected' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400">
+                                        <i class="fas fa-times"></i> Rejected
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-4 text-sm text-white/40">
+                                    {{ payout.created_at.strftime('%d %b %Y') if payout.created_at else '-' }}
+                                    <br>
+                                    <span class="text-xs">{{ payout.created_at.strftime('%H:%M') if payout.created_at else '' }}</span>
+                                </td>
+                                <td class="py-4 text-right">
+                                    {% if payout.status == 'pending' %}
+                                    <div class="flex gap-2 justify-end">
+                                        <button onclick="openApproveModal({{ payout.id }})" 
+                                                class="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-green-400 text-xs hover:bg-green-500/20">
+                                            <i class="fas fa-check mr-1"></i>Approve
+                                        </button>
+                                        <button onclick="openRejectModal({{ payout.id }})" 
+                                                class="px-3 py-1 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs hover:bg-red-500/20">
+                                            <i class="fas fa-times mr-1"></i>Reject
+                                        </button>
+                                    </div>
+                                    {% elif payout.status == 'approved' %}
+                                    <button onclick="openPayModal({{ payout.id }})" 
+                                            class="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs hover:bg-cyan-500/20">
+                                        <i class="fas fa-money-bill mr-1"></i>Mark Paid
+                                    </button>
+                                    {% else %}
+                                    <button onclick="viewDetails({{ payout.id }})" 
+                                            class="px-3 py-1 rounded bg-white/5 border border-white/10 text-white/60 text-xs hover:bg-white/10">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-white/40">
+                    <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                    <p>No {{ status_filter }} payout requests</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="modal-cyber" onclick="if(event.target===this)closeModal('approveModal')">
+    <div class="modal-content max-w-md">
+        <div class="modal-head">
+            <div class="modal-title text-green-400">
+                <i class="fas fa-check-circle"></i>
+                Approve Payout
+            </div>
+            <button onclick="closeModal('approveModal')" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="approveForm" method="POST" action="">
+            <div class="modal-body">
+                <p class="text-white/60 mb-4">Are you sure you want to approve this payout request?</p>
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Notes (optional)</label>
+                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Add notes for reference..."></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" onclick="closeModal('approveModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="submit" class="btn-cyber btn-cyber-sm bg-green-500/10 border-green-500/30 text-green-400">
+                    <i class="fas fa-check mr-1"></i>Approve
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal-cyber" onclick="if(event.target===this)closeModal('rejectModal')">
+    <div class="modal-content max-w-md">
+        <div class="modal-head">
+            <div class="modal-title text-red-400">
+                <i class="fas fa-times-circle"></i>
+                Reject Payout
+            </div>
+            <button onclick="closeModal('rejectModal')" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="rejectForm" method="POST" action="">
+            <div class="modal-body">
+                <p class="text-white/60 mb-4">Please provide a reason for rejection:</p>
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Reason *</label>
+                    <textarea name="reason" class="input-cyber" rows="3" placeholder="Enter rejection reason..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" onclick="closeModal('rejectModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="submit" class="btn-cyber btn-cyber-sm bg-red-500/10 border-red-500/30 text-red-400">
+                    <i class="fas fa-times mr-1"></i>Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Mark Paid Modal -->
+<div id="payModal" class="modal-cyber" onclick="if(event.target===this)closeModal('payModal')">
+    <div class="modal-content max-w-md">
+        <div class="modal-head">
+            <div class="modal-title text-cyan-400">
+                <i class="fas fa-money-bill-wave"></i>
+                Mark as Paid
+            </div>
+            <button onclick="closeModal('payModal')" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="payForm" method="POST" action="">
+            <div class="modal-body">
+                <p class="text-white/60 mb-4">Confirm that payment has been sent:</p>
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Transaction ID</label>
+                    <input type="text" name="txn_id" class="input-cyber" placeholder="Blockchain transaction ID or reference">
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-white/40 block mb-2">Notes (optional)</label>
+                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Add notes for reference..."></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" onclick="closeModal('payModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="submit" class="btn-cyber btn-cyber-sm bg-cyan-500/10 border-cyan-500/30 text-cyan-400">
+                    <i class="fas fa-check mr-1"></i>Confirm Paid
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div id="detailsModal" class="modal-cyber" onclick="if(event.target===this)closeModal('detailsModal')">
+    <div class="modal-content max-w-lg">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fas fa-info-circle"></i>
+                Payout Details
+            </div>
+            <button onclick="closeModal('detailsModal')" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="detailsContent">
+            <div class="flex items-center justify-center py-8">
+                <i class="fas fa-spinner fa-spin text-2xl text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+function openApproveModal(payoutId) {
+    document.getElementById('approveForm').action = `/admin/payout/${payoutId}/approve`;
+    openModal('approveModal');
+}
+
+function openRejectModal(payoutId) {
+    document.getElementById('rejectForm').action = `/admin/payout/${payoutId}/reject`;
+    openModal('rejectModal');
+}
+
+function openPayModal(payoutId) {
+    document.getElementById('payForm').action = `/admin/payout/${payoutId}/pay`;
+    openModal('payModal');
+}
+
+function viewDetails(payoutId) {
+    const content = document.getElementById('detailsContent');
+    content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-cyan-400"></i></div>';
+    openModal('detailsModal');
+    
+    fetch(`/api/admin/payout/${payoutId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const p = data.payout;
+                const u = data.user;
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs text-white/40">User</div>
+                                <div class="font-semibold">${u.username}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-white/40">Email</div>
+                                <div>${u.email || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs text-white/40">Amount</div>
+                                <div class="font-mono font-bold text-green-400">$${p.amount.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-white/40">Status</div>
+                                <div class="capitalize">${p.status}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-white/40">Payment Method</div>
+                            <div>${p.payment_method_label}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-white/40">Payment Address</div>
+                            <div class="font-mono text-sm break-all bg-dark-lighter p-2 rounded">${p.payment_address || 'N/A'}</div>
+                        </div>
+                        ${p.txn_id ? `<div><div class="text-xs text-white/40">Transaction ID</div><div class="font-mono text-sm">${p.txn_id}</div></div>` : ''}
+                        ${p.admin_notes ? `<div><div class="text-xs text-white/40">Admin Notes</div><div>${p.admin_notes}</div></div>` : ''}
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-xs text-white/40">Created</div>
+                                <div>${p.created_at || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-white/40">Processed</div>
+                                <div>${p.paid_at || p.reviewed_at || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            content.innerHTML = '<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>Failed to load details</div>';
+        });
+}
+
+function copyAddress(address) {
+    navigator.clipboard.writeText(address);
+    // Show brief notification
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm z-50';
+    toast.innerHTML = '<i class="fas fa-check mr-2"></i>Address copied!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
+</script>
+{% endblock %}

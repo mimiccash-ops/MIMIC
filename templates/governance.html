@@ -1,0 +1,1244 @@
+{% extends "base.html" %}
+{% block title %}Governance - Vote on Proposals{% endblock %}
+{% block meta_title %}MIMIC Governance | Elite Member Voting{% endblock %}
+{% block meta_description %}Shape the future of MIMIC. Elite members can vote on new trading pairs, risk management changes, and exchange integrations.{% endblock %}
+{% block meta_keywords %}crypto governance, voting, trading pairs, risk management, community voting, elite members{% endblock %}
+{% block og_title %}MIMIC Governance - Shape Our Future{% endblock %}
+{% block og_description %}Elite members vote on new features, trading pairs, and platform changes. Your voice matters.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "MIMIC Governance",
+    "description": "Community governance portal for Elite MIMIC members to vote on proposals",
+    "url": "https://mimic.cash/governance"
+}
+</script>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* ============= GOVERNANCE PAGE STYLES ============= */
+    .governance-hero {
+        padding: 80px 24px 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .governance-hero::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 1200px;
+        height: 1200px;
+        background: 
+            radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
+            radial-gradient(ellipse at 30% 70%, rgba(0, 240, 255, 0.08) 0%, transparent 40%);
+        pointer-events: none;
+        animation: heroGlow 12s ease-in-out infinite;
+    }
+    
+    @keyframes heroGlow {
+        0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+    }
+    
+    .governance-hero h1 {
+        font-family: var(--font-cyber);
+        font-size: clamp(2.2rem, 7vw, 4rem);
+        font-weight: 900;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .governance-hero h1 .gradient {
+        background: linear-gradient(90deg, #8b5cf6, #00f0ff, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .governance-hero p {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        max-width: 650px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* ============= ELIGIBILITY BANNER ============= */
+    .eligibility-banner {
+        max-width: 900px;
+        margin: 0 auto 40px;
+        padding: 0 24px;
+    }
+    
+    .eligibility-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.98), rgba(15, 15, 24, 0.98));
+        border: 2px solid rgba(139, 92, 246, 0.25);
+        border-radius: var(--radius-2xl);
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+    
+    .eligibility-card.eligible {
+        border-color: rgba(57, 255, 20, 0.3);
+    }
+    
+    .eligibility-card.not-eligible {
+        border-color: rgba(255, 45, 146, 0.3);
+    }
+    
+    .eligibility-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .eligibility-icon {
+        width: 52px;
+        height: 52px;
+        background: rgba(139, 92, 246, 0.15);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+    }
+    
+    .eligibility-card.eligible .eligibility-icon {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.3);
+    }
+    
+    .eligibility-card.not-eligible .eligibility-icon {
+        background: rgba(255, 45, 146, 0.15);
+        border-color: rgba(255, 45, 146, 0.3);
+    }
+    
+    .eligibility-text h3 {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    
+    .eligibility-text p {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .eligibility-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: rgba(255, 215, 0, 0.12);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 100px;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: #ffd700;
+    }
+    
+    /* ============= FILTER TABS ============= */
+    .filter-section {
+        max-width: 1200px;
+        margin: 0 auto 32px;
+        padding: 0 24px;
+    }
+    
+    .filter-tabs {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-tab {
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 100px;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filter-tab:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        color: var(--text-primary);
+    }
+    
+    .filter-tab.active {
+        background: rgba(139, 92, 246, 0.15);
+        border-color: var(--neon-purple);
+        color: var(--neon-purple);
+    }
+    
+    .filter-tab .count {
+        background: rgba(139, 92, 246, 0.3);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+    }
+    
+    /* ============= PROPOSALS GRID ============= */
+    .proposals-section {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px 80px;
+    }
+    
+    .proposals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 24px;
+    }
+    
+    @media (max-width: 500px) {
+        .proposals-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* ============= PROPOSAL CARD ============= */
+    .proposal-card {
+        background: linear-gradient(135deg, rgba(10, 10, 18, 0.95), rgba(15, 15, 24, 0.95));
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-radius: var(--radius-2xl);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .proposal-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(139, 92, 246, 0.3);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 40px rgba(139, 92, 246, 0.1);
+    }
+    
+    .proposal-card.voted {
+        border-color: rgba(0, 240, 255, 0.3);
+    }
+    
+    .proposal-header {
+        padding: 24px 24px 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    
+    .proposal-category {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: var(--neon-purple);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .proposal-category.trading_pair { color: #00f0ff; background: rgba(0, 240, 255, 0.1); border-color: rgba(0, 240, 255, 0.2); }
+    .proposal-category.risk_management { color: #ff2d92; background: rgba(255, 45, 146, 0.1); border-color: rgba(255, 45, 146, 0.2); }
+    .proposal-category.exchange { color: #39ff14; background: rgba(57, 255, 20, 0.1); border-color: rgba(57, 255, 20, 0.2); }
+    .proposal-category.feature { color: #ffd700; background: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.2); }
+    
+    .proposal-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(57, 255, 20, 0.1);
+        border: 1px solid rgba(57, 255, 20, 0.2);
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: var(--neon-green);
+        text-transform: uppercase;
+    }
+    
+    .proposal-status.passed { color: #00f0ff; background: rgba(0, 240, 255, 0.1); border-color: rgba(0, 240, 255, 0.2); }
+    .proposal-status.rejected { color: #ff003c; background: rgba(255, 0, 60, 0.1); border-color: rgba(255, 0, 60, 0.2); }
+    .proposal-status.implemented { color: #ffd700; background: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.2); }
+    
+    .proposal-status .dot {
+        width: 6px;
+        height: 6px;
+        background: currentColor;
+        border-radius: 50%;
+        animation: pulse-dot 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+    
+    .proposal-body {
+        padding: 20px 24px;
+    }
+    
+    .proposal-title {
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
+    
+    .proposal-description {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 20px;
+        /* Limit to 3 lines */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* ============= VOTING PROGRESS BARS ============= */
+    .voting-section {
+        padding: 0 24px 20px;
+    }
+    
+    .vote-progress-container {
+        margin-bottom: 16px;
+    }
+    
+    .vote-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+    }
+    
+    .vote-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .vote-label.yes { color: var(--neon-green); }
+    .vote-label.no { color: var(--neon-pink); }
+    
+    .vote-label .count {
+        font-family: var(--font-mono);
+        font-weight: 600;
+    }
+    
+    .vote-label .percent {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+    
+    .vote-progress-bar {
+        height: 10px;
+        background: rgba(255, 45, 146, 0.3);
+        border-radius: 100px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .vote-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--neon-green), #00ff88);
+        border-radius: 100px;
+        transition: width 0.5s ease;
+        position: relative;
+    }
+    
+    .vote-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 100px 100px 0 0;
+    }
+    
+    .vote-threshold {
+        position: absolute;
+        height: 100%;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.5);
+        top: 0;
+    }
+    
+    .vote-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+    }
+    
+    .vote-stats span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* ============= VOTING BUTTONS ============= */
+    .voting-actions {
+        padding: 0 24px 24px;
+        display: flex;
+        gap: 12px;
+    }
+    
+    .vote-btn {
+        flex: 1;
+        padding: 14px 20px;
+        border: 2px solid;
+        border-radius: var(--radius-lg);
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: transparent;
+    }
+    
+    .vote-btn.yes {
+        border-color: var(--neon-green);
+        color: var(--neon-green);
+    }
+    
+    .vote-btn.yes:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+    }
+    
+    .vote-btn.no {
+        border-color: var(--neon-pink);
+        color: var(--neon-pink);
+    }
+    
+    .vote-btn.no:hover:not(:disabled) {
+        background: rgba(255, 45, 146, 0.15);
+        box-shadow: 0 0 20px rgba(255, 45, 146, 0.2);
+    }
+    
+    .vote-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    .vote-btn.voted {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: var(--neon-purple);
+        color: var(--neon-purple);
+    }
+    
+    .user-vote-badge {
+        padding: 14px 24px;
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.2);
+        border-radius: var(--radius-lg);
+        text-align: center;
+        font-size: 0.9rem;
+    }
+    
+    .user-vote-badge i {
+        margin-right: 8px;
+        color: var(--neon-cyan);
+    }
+    
+    .user-vote-badge .vote-type {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .user-vote-badge .vote-type.yes { color: var(--neon-green); }
+    .user-vote-badge .vote-type.no { color: var(--neon-pink); }
+    
+    /* ============= PROPOSAL FOOTER ============= */
+    .proposal-footer {
+        padding: 16px 24px;
+        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid rgba(139, 92, 246, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .proposal-footer .time-remaining {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--neon-cyan);
+        font-family: var(--font-mono);
+    }
+    
+    .proposal-footer .time-remaining.expired {
+        color: var(--text-muted);
+    }
+    
+    /* ============= EMPTY STATE ============= */
+    .no-proposals {
+        text-align: center;
+        padding: 80px 24px;
+        grid-column: 1 / -1;
+    }
+    
+    .no-proposals .icon-big {
+        font-size: 5rem;
+        margin-bottom: 24px;
+        opacity: 0.5;
+    }
+    
+    .no-proposals h2 {
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        margin-bottom: 12px;
+    }
+    
+    .no-proposals p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+    
+    /* ============= ADMIN CREATE BUTTON ============= */
+    .admin-actions {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 100;
+    }
+    
+    .create-proposal-btn {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+        border: none;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        color: #000;
+        cursor: pointer;
+        box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .create-proposal-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 40px rgba(139, 92, 246, 0.5);
+    }
+    
+    /* ============= CREATE PROPOSAL MODAL ============= */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    
+    .modal-overlay.show {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: linear-gradient(135deg, rgba(15, 15, 24, 0.98), rgba(10, 10, 18, 0.98));
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: var(--radius-2xl);
+        width: 100%;
+        max-width: 550px;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-header {
+        padding: 24px 28px;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .modal-header h2 {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .modal-header h2 i {
+        color: var(--neon-purple);
+    }
+    
+    .modal-close {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-close:hover {
+        background: rgba(255, 45, 146, 0.15);
+        border-color: var(--neon-pink);
+        color: var(--neon-pink);
+    }
+    
+    .modal-body {
+        padding: 28px;
+    }
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 14px 16px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--neon-purple);
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    }
+    
+    .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    
+    .modal-footer {
+        padding: 20px 28px 28px;
+        display: flex;
+        gap: 12px;
+    }
+    
+    .modal-footer .btn {
+        flex: 1;
+        padding: 14px 24px;
+        border-radius: var(--radius-lg);
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .modal-footer .btn-cancel {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-secondary);
+    }
+    
+    .modal-footer .btn-cancel:hover {
+        border-color: var(--text-muted);
+        color: var(--text-primary);
+    }
+    
+    .modal-footer .btn-submit {
+        background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+        border: none;
+        color: #000;
+    }
+    
+    .modal-footer .btn-submit:hover {
+        box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    /* ============= LOADING STATE ============= */
+    .loading-shimmer {
+        background: linear-gradient(90deg, 
+            rgba(139, 92, 246, 0.05) 0%, 
+            rgba(139, 92, 246, 0.12) 50%, 
+            rgba(139, 92, 246, 0.05) 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ==================== HERO SECTION ==================== -->
+<section class="governance-hero">
+    <h1>
+        <span class="gradient">Governance</span>
+    </h1>
+    <p>Shape the future of MIMIC. Elite members vote on new trading pairs, risk management changes, and exchange integrations.</p>
+</section>
+
+<!-- ==================== ELIGIBILITY BANNER ==================== -->
+<section class="eligibility-banner">
+    <div class="eligibility-card" id="eligibility-card">
+        <div class="eligibility-info">
+            <div class="eligibility-icon" id="eligibility-icon">
+                <i class="fas fa-crown"></i>
+            </div>
+            <div class="eligibility-text">
+                <h3 id="eligibility-title">Checking eligibility...</h3>
+                <p id="eligibility-message">Please wait while we verify your voting status.</p>
+            </div>
+        </div>
+        <div class="eligibility-badge" id="eligibility-badge" style="display: none;">
+            <i class="fas fa-star"></i>
+            <span id="eligibility-level">Elite</span>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FILTER TABS ==================== -->
+<section class="filter-section">
+    <div class="filter-tabs">
+        <button class="filter-tab active" data-status="active">
+            <i class="fas fa-vote-yea"></i>
+            Active
+            <span class="count" id="count-active">0</span>
+        </button>
+        <button class="filter-tab" data-status="passed">
+            <i class="fas fa-check-circle"></i>
+            Passed
+            <span class="count" id="count-passed">0</span>
+        </button>
+        <button class="filter-tab" data-status="rejected">
+            <i class="fas fa-times-circle"></i>
+            Rejected
+            <span class="count" id="count-rejected">0</span>
+        </button>
+        <button class="filter-tab" data-status="implemented">
+            <i class="fas fa-rocket"></i>
+            Implemented
+            <span class="count" id="count-implemented">0</span>
+        </button>
+    </div>
+</section>
+
+<!-- ==================== PROPOSALS GRID ==================== -->
+<section class="proposals-section">
+    <div class="proposals-grid" id="proposals-grid">
+        <div class="no-proposals loading-shimmer" style="height: 300px; border-radius: 24px;">
+            Loading proposals...
+        </div>
+    </div>
+</section>
+
+<!-- ==================== ADMIN CREATE BUTTON ==================== -->
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+<div class="admin-actions">
+    <button class="create-proposal-btn" onclick="openCreateModal()" title="Create Proposal">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+<!-- Create Proposal Modal -->
+<div class="modal-overlay" id="create-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-plus-circle"></i> Create Proposal</h2>
+            <button class="modal-close" onclick="closeCreateModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="create-form">
+                <div class="form-group">
+                    <label>Proposal Title</label>
+                    <input type="text" id="proposal-title" placeholder="e.g., Add SOL/USDT Trading Pair" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="proposal-description" placeholder="Describe the proposal in detail..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="proposal-category" required>
+                        <option value="trading_pair">New Trading Pair</option>
+                        <option value="risk_management">Risk Management</option>
+                        <option value="exchange">New Exchange</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Voting Duration (Days)</label>
+                        <input type="number" id="proposal-days" value="7" min="1" max="30">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Votes Required</label>
+                        <input type="number" id="proposal-min-votes" value="5" min="1" max="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Pass Threshold (%)</label>
+                    <input type="number" id="proposal-threshold" value="60" min="50" max="100" step="5">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeCreateModal()">Cancel</button>
+            <button class="btn btn-submit" onclick="createProposal()">
+                <i class="fas fa-check"></i>
+                Create Proposal
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// State
+let proposals = [];
+let userVotes = {};
+let canVote = false;
+let currentFilter = 'active';
+let isLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
+let isAdmin = {{ 'true' if current_user.is_authenticated and current_user.role == 'admin' else 'false' }};
+
+// Load eligibility
+async function loadEligibility() {
+    if (!isLoggedIn) {
+        updateEligibilityUI(false, 'Login required to vote', null);
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/governance/eligibility');
+        const data = await response.json();
+        
+        if (data.success) {
+            canVote = data.eligible;
+            updateEligibilityUI(data.eligible, data.reason, data.current_level);
+        }
+    } catch (error) {
+        console.error('Error loading eligibility:', error);
+    }
+}
+
+function updateEligibilityUI(eligible, reason, level) {
+    const card = document.getElementById('eligibility-card');
+    const icon = document.getElementById('eligibility-icon');
+    const title = document.getElementById('eligibility-title');
+    const message = document.getElementById('eligibility-message');
+    const badge = document.getElementById('eligibility-badge');
+    const levelSpan = document.getElementById('eligibility-level');
+    
+    card.classList.remove('eligible', 'not-eligible');
+    
+    if (!isLoggedIn) {
+        icon.innerHTML = '<i class="fas fa-user-lock"></i>';
+        title.textContent = 'Login Required';
+        message.textContent = 'Sign in to see your voting eligibility.';
+        badge.style.display = 'none';
+    } else if (eligible) {
+        card.classList.add('eligible');
+        icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        title.textContent = 'You Can Vote!';
+        message.textContent = 'As an Elite member, your vote helps shape MIMIC\'s future.';
+        badge.style.display = 'inline-flex';
+        levelSpan.textContent = level.name;
+    } else {
+        card.classList.add('not-eligible');
+        icon.innerHTML = '<i class="fas fa-lock"></i>';
+        title.textContent = 'Voting Locked';
+        message.textContent = reason || 'Reach Elite level to unlock voting privileges.';
+        badge.style.display = level ? 'inline-flex' : 'none';
+        if (level) levelSpan.textContent = level.name;
+    }
+}
+
+// Load proposals
+async function loadProposals(status = 'active') {
+    try {
+        const response = await fetch(`/api/governance/proposals?status=${status}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            proposals = data.proposals;
+            userVotes = data.user_votes || {};
+            canVote = data.can_vote;
+            renderProposals();
+            updateCounts();
+        }
+    } catch (error) {
+        console.error('Error loading proposals:', error);
+        document.getElementById('proposals-grid').innerHTML = `
+            <div class="no-proposals">
+                <div class="icon-big">⚠️</div>
+                <h2>Failed to Load</h2>
+                <p>Could not load proposals. Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+function updateCounts() {
+    // Fetch counts for all statuses
+    ['active', 'passed', 'rejected', 'implemented'].forEach(async (status) => {
+        try {
+            const response = await fetch(`/api/governance/proposals?status=${status}`);
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById(`count-${status}`).textContent = data.proposals.length;
+            }
+        } catch (error) {}
+    });
+}
+
+function renderProposals() {
+    const grid = document.getElementById('proposals-grid');
+    
+    if (!proposals || proposals.length === 0) {
+        grid.innerHTML = `
+            <div class="no-proposals">
+                <div class="icon-big">🗳️</div>
+                <h2>No Proposals</h2>
+                <p>There are no ${currentFilter} proposals at this time.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = proposals.map(proposal => renderProposalCard(proposal)).join('');
+}
+
+function renderProposalCard(proposal) {
+    const userVote = userVotes[proposal.id];
+    const hasVoted = !!userVote;
+    const isActive = proposal.status === 'active';
+    const timeRemaining = proposal.time_remaining;
+    
+    // Time remaining text
+    let timeText = '';
+    if (timeRemaining) {
+        if (timeRemaining.expired) {
+            timeText = 'Voting ended';
+        } else {
+            const parts = [];
+            if (timeRemaining.days > 0) parts.push(`${timeRemaining.days}d`);
+            if (timeRemaining.hours > 0) parts.push(`${timeRemaining.hours}h`);
+            if (timeRemaining.minutes > 0) parts.push(`${timeRemaining.minutes}m`);
+            timeText = parts.join(' ') + ' left';
+        }
+    }
+    
+    // Voting buttons or status
+    let votingHTML = '';
+    if (isActive && !hasVoted && canVote) {
+        votingHTML = `
+            <div class="voting-actions">
+                <button class="vote-btn yes" onclick="submitVote(${proposal.id}, 'yes')">
+                    <i class="fas fa-thumbs-up"></i>
+                    Yes
+                </button>
+                <button class="vote-btn no" onclick="submitVote(${proposal.id}, 'no')">
+                    <i class="fas fa-thumbs-down"></i>
+                    No
+                </button>
+            </div>
+        `;
+    } else if (hasVoted) {
+        votingHTML = `
+            <div class="voting-actions">
+                <div class="user-vote-badge">
+                    <i class="fas fa-check-circle"></i>
+                    You voted: <span class="vote-type ${userVote}">${userVote.toUpperCase()}</span>
+                </div>
+            </div>
+        `;
+    } else if (isActive && !canVote) {
+        votingHTML = `
+            <div class="voting-actions">
+                <button class="vote-btn yes" disabled>
+                    <i class="fas fa-lock"></i>
+                    Elite Only
+                </button>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="proposal-card ${hasVoted ? 'voted' : ''}">
+            <div class="proposal-header">
+                <span class="proposal-category ${proposal.category}">
+                    <i class="fas ${proposal.category_icon}"></i>
+                    ${proposal.category_label}
+                </span>
+                <span class="proposal-status ${proposal.status}">
+                    ${isActive ? '<span class="dot"></span>' : ''}
+                    ${proposal.status_label}
+                </span>
+            </div>
+            
+            <div class="proposal-body">
+                <h3 class="proposal-title">${escapeHtml(proposal.title)}</h3>
+                <p class="proposal-description">${escapeHtml(proposal.description)}</p>
+            </div>
+            
+            <div class="voting-section">
+                <div class="vote-progress-container">
+                    <div class="vote-labels">
+                        <div class="vote-label yes">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span class="count">${proposal.votes_yes}</span>
+                            <span class="percent">(${proposal.yes_percentage}%)</span>
+                        </div>
+                        <div class="vote-label no">
+                            <span class="count">${proposal.votes_no}</span>
+                            <span class="percent">(${proposal.no_percentage}%)</span>
+                            <i class="fas fa-thumbs-down"></i>
+                        </div>
+                    </div>
+                    <div class="vote-progress-bar">
+                        <div class="vote-progress-fill" style="width: ${proposal.yes_percentage}%"></div>
+                        <div class="vote-threshold" style="left: ${proposal.pass_threshold}%"></div>
+                    </div>
+                    <div class="vote-stats">
+                        <span><i class="fas fa-users"></i> ${proposal.total_votes} vote${proposal.total_votes !== 1 ? 's' : ''}</span>
+                        <span><i class="fas fa-check"></i> ${proposal.pass_threshold}% to pass</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${votingHTML}
+            
+            <div class="proposal-footer">
+                <span>
+                    <i class="fas fa-user"></i>
+                    by ${escapeHtml(proposal.created_by)}
+                </span>
+                ${timeRemaining ? `
+                    <span class="time-remaining ${timeRemaining.expired ? 'expired' : ''}">
+                        <i class="fas fa-clock"></i>
+                        ${timeText}
+                    </span>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Submit vote
+async function submitVote(proposalId, voteType) {
+    if (!canVote) {
+        alert('You are not eligible to vote. Reach Elite level to unlock voting.');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/governance/vote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                proposal_id: proposalId,
+                vote_type: voteType
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update local state
+            userVotes[proposalId] = voteType;
+            
+            // Update proposal in list
+            const idx = proposals.findIndex(p => p.id === proposalId);
+            if (idx !== -1) {
+                proposals[idx] = data.proposal;
+            }
+            
+            renderProposals();
+            
+            // Show success toast
+            if (typeof showToast === 'function') {
+                showToast(`Vote recorded: ${voteType.toUpperCase()}`, 'success');
+            }
+        } else {
+            alert(data.error || 'Failed to submit vote');
+        }
+    } catch (error) {
+        console.error('Error submitting vote:', error);
+        alert('Failed to submit vote. Please try again.');
+    }
+}
+
+// Filter tabs
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.status;
+        loadProposals(currentFilter);
+    });
+});
+
+// Admin: Create proposal
+function openCreateModal() {
+    document.getElementById('create-modal').classList.add('show');
+}
+
+function closeCreateModal() {
+    document.getElementById('create-modal').classList.remove('show');
+    document.getElementById('create-form').reset();
+}
+
+async function createProposal() {
+    const title = document.getElementById('proposal-title').value.trim();
+    const description = document.getElementById('proposal-description').value.trim();
+    const category = document.getElementById('proposal-category').value;
+    const votingDays = parseInt(document.getElementById('proposal-days').value);
+    const minVotes = parseInt(document.getElementById('proposal-min-votes').value);
+    const passThreshold = parseFloat(document.getElementById('proposal-threshold').value);
+    
+    if (!title || !description) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/governance/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title,
+                description,
+                category,
+                voting_days: votingDays,
+                min_votes: minVotes,
+                pass_threshold: passThreshold
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            closeCreateModal();
+            loadProposals('active');
+            if (typeof showToast === 'function') {
+                showToast('Proposal created successfully!', 'success');
+            }
+        } else {
+            alert(data.error || 'Failed to create proposal');
+        }
+    } catch (error) {
+        console.error('Error creating proposal:', error);
+        alert('Failed to create proposal. Please try again.');
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeCreateModal();
+    }
+});
+
+// Close modal on overlay click
+document.getElementById('create-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'create-modal') {
+        closeCreateModal();
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadEligibility();
+    loadProposals('active');
+    
+    // Refresh every 30 seconds
+    setInterval(() => {
+        loadProposals(currentFilter);
+    }, 30000);
+});
+</script>
+{% endblock %}
