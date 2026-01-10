@@ -291,19 +291,300 @@
     }
     
     .strength-weak { 
-        width: 33%; 
+        width: 25%; 
         background: linear-gradient(90deg, var(--neon-red), #ff4466); 
         box-shadow: 0 0 10px rgba(255, 0, 68, 0.5);
     }
     .strength-medium { 
-        width: 66%; 
+        width: 50%; 
         background: linear-gradient(90deg, var(--neon-yellow), var(--neon-orange)); 
         box-shadow: 0 0 10px rgba(255, 240, 0, 0.5);
+    }
+    .strength-good { 
+        width: 75%; 
+        background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); 
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
     }
     .strength-strong { 
         width: 100%; 
         background: linear-gradient(90deg, var(--neon-green), #00cc88); 
         box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+    
+    /* Password Requirements Checklist */
+    .password-requirements {
+        margin-top: 16px;
+        padding: 16px;
+        background: rgba(0, 240, 255, 0.03);
+        border: 1px solid rgba(0, 240, 255, 0.1);
+        border-radius: var(--radius-lg);
+    }
+    
+    .password-requirements-title {
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .password-req-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    @media (max-width: 480px) {
+        .password-req-list {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .password-req-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+    }
+    
+    .password-req-item i {
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.65rem;
+        transition: all 0.3s ease;
+    }
+    
+    .password-req-item.pending i {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-muted);
+    }
+    
+    .password-req-item.valid {
+        color: var(--neon-green);
+        background: rgba(57, 255, 20, 0.05);
+    }
+    
+    .password-req-item.valid i {
+        background: var(--neon-green);
+        color: #000;
+        box-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+    }
+    
+    .password-req-item.invalid {
+        color: var(--neon-red);
+        background: rgba(255, 0, 68, 0.05);
+    }
+    
+    .password-req-item.invalid i {
+        background: var(--neon-red);
+        color: #fff;
+    }
+    
+    /* API Instructions */
+    .api-instructions {
+        margin-top: 20px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(57, 255, 20, 0.04), rgba(0, 240, 255, 0.03));
+        border: 1px solid rgba(57, 255, 20, 0.2);
+        border-radius: var(--radius-lg);
+    }
+    
+    .api-instructions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        margin-bottom: 0;
+        transition: margin-bottom 0.3s ease;
+    }
+    
+    .api-instructions-header.expanded {
+        margin-bottom: 16px;
+    }
+    
+    .api-instructions-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--neon-green);
+    }
+    
+    .api-instructions-toggle {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(57, 255, 20, 0.1);
+        border: 1px solid rgba(57, 255, 20, 0.2);
+        border-radius: var(--radius-md);
+        color: var(--neon-green);
+        transition: all 0.3s ease;
+    }
+    
+    .api-instructions-toggle i {
+        transition: transform 0.3s ease;
+    }
+    
+    .api-instructions-toggle.expanded i {
+        transform: rotate(180deg);
+    }
+    
+    .api-instructions-content {
+        display: none;
+    }
+    
+    .api-instructions-content.expanded {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .api-step {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 16px;
+        padding: 14px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: var(--radius-md);
+    }
+    
+    .api-step:last-child {
+        margin-bottom: 0;
+    }
+    
+    .api-step-number {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #000;
+    }
+    
+    .api-step-content {
+        flex: 1;
+    }
+    
+    .api-step-content h5 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+    
+    .api-step-content p {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+    
+    .ip-address-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 12px 18px;
+        background: rgba(0, 240, 255, 0.08);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-md);
+    }
+    
+    .ip-address {
+        font-family: var(--font-mono);
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--neon-cyan);
+        letter-spacing: 0.05em;
+    }
+    
+    .copy-ip-btn {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 240, 255, 0.15);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        border-radius: var(--radius-sm);
+        color: var(--neon-cyan);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .copy-ip-btn:hover {
+        background: rgba(0, 240, 255, 0.25);
+        transform: scale(1.05);
+    }
+    
+    .copy-ip-btn.copied {
+        background: var(--neon-green);
+        border-color: var(--neon-green);
+        color: #000;
+    }
+    
+    /* Contact Admin Button */
+    .contact-admin-section {
+        margin-top: 24px;
+        padding: 20px;
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: var(--radius-lg);
+        text-align: center;
+    }
+    
+    .contact-admin-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+    }
+    
+    .contact-admin-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(0, 240, 255, 0.1));
+        border: 1px solid rgba(139, 92, 246, 0.4);
+        border-radius: var(--radius-md);
+        color: var(--neon-purple);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .contact-admin-btn:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(0, 240, 255, 0.15));
+        border-color: var(--neon-purple);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
     }
     
     /* Exchange Dropdown */
@@ -692,7 +973,7 @@
                         <i class="fas fa-lock text-purple"></i> <span data-i18n="auth.password">Password</span> *
                     </label>
                     <div class="relative">
-                        <input type="password" name="password" id="password" class="cyber-input" style="padding-right: 50px;" data-i18n-placeholder="auth.minChars" placeholder="Minimum 6 characters" required minlength="6" oninput="checkPasswordStrength(); updateSteps()">
+                        <input type="password" name="password" id="password" class="cyber-input" style="padding-right: 50px;" data-i18n-placeholder="auth.minChars" placeholder="Minimum 8 characters" required minlength="8" oninput="checkPasswordStrength(); updateSteps()">
                         <button type="button" onclick="togglePassword('password', 'eyeIcon')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;">
                             <i class="fas fa-eye" id="eyeIcon"></i>
                         </button>
@@ -701,6 +982,36 @@
                         <div id="strengthBar" class="password-strength-bar" style="width: 0;"></div>
                     </div>
                     <p id="strengthText" class="text-xs mt-2 font-semibold"></p>
+                    
+                    <!-- Password Requirements Checklist -->
+                    <div class="password-requirements">
+                        <div class="password-requirements-title">
+                            <i class="fas fa-shield-alt"></i>
+                            <span data-i18n="auth.passwordRequirements">Password Requirements</span>
+                        </div>
+                        <div class="password-req-list">
+                            <div class="password-req-item pending" id="req-length">
+                                <i class="fas fa-circle"></i>
+                                <span data-i18n="auth.req8chars">At least 8 characters</span>
+                            </div>
+                            <div class="password-req-item pending" id="req-uppercase">
+                                <i class="fas fa-circle"></i>
+                                <span data-i18n="auth.reqUppercase">One uppercase letter (A-Z)</span>
+                            </div>
+                            <div class="password-req-item pending" id="req-lowercase">
+                                <i class="fas fa-circle"></i>
+                                <span data-i18n="auth.reqLowercase">One lowercase letter (a-z)</span>
+                            </div>
+                            <div class="password-req-item pending" id="req-number">
+                                <i class="fas fa-circle"></i>
+                                <span data-i18n="auth.reqNumber">One number (0-9)</span>
+                            </div>
+                            <div class="password-req-item pending" id="req-special">
+                                <i class="fas fa-circle"></i>
+                                <span data-i18n="auth.reqSpecial">One special character (!@#$%)</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Exchange API Keys -->
@@ -784,6 +1095,67 @@
                         </div>
                     </div>
 
+                    <!-- API Creation Instructions (Collapsible) -->
+                    <div class="api-instructions">
+                        <div class="api-instructions-header" onclick="toggleApiInstructions()">
+                            <div class="api-instructions-title">
+                                <i class="fas fa-book-open"></i>
+                                <span data-i18n="auth.apiInstructions">How to Create API Keys</span>
+                            </div>
+                            <div class="api-instructions-toggle" id="apiInstructionsToggle">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="api-instructions-content" id="apiInstructionsContent">
+                            <div class="api-step">
+                                <div class="api-step-number">1</div>
+                                <div class="api-step-content">
+                                    <h5 data-i18n="auth.apiStep1Title">Go to API Management</h5>
+                                    <p data-i18n="auth.apiStep1Desc">Log in to your exchange account → Settings → API Management</p>
+                                </div>
+                            </div>
+                            
+                            <div class="api-step">
+                                <div class="api-step-number">2</div>
+                                <div class="api-step-content">
+                                    <h5 data-i18n="auth.apiStep2Title">Create New API Key</h5>
+                                    <p data-i18n="auth.apiStep2Desc">Click "Create API" and enter a name (e.g., "MIMIC Trading")</p>
+                                </div>
+                            </div>
+                            
+                            <div class="api-step">
+                                <div class="api-step-number">3</div>
+                                <div class="api-step-content">
+                                    <h5 data-i18n="auth.apiStep3Title">Set Permissions</h5>
+                                    <p data-i18n="auth.apiStep3Desc">Enable "Futures Trading" permission. <strong class="text-red">Disable Withdrawals!</strong></p>
+                                </div>
+                            </div>
+                            
+                            <div class="api-step">
+                                <div class="api-step-number">4</div>
+                                <div class="api-step-content">
+                                    <h5 data-i18n="auth.apiStep4Title">Add IP Whitelist (Important!)</h5>
+                                    <p data-i18n="auth.apiStep4Desc">For security, add our server IP to the whitelist:</p>
+                                    <div class="ip-address-box">
+                                        <span class="ip-address" id="serverIpAddress">38.180.147.102</span>
+                                        <button type="button" class="copy-ip-btn" onclick="copyIpAddress()" id="copyIpBtn" title="Copy IP">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="api-step">
+                                <div class="api-step-number">5</div>
+                                <div class="api-step-content">
+                                    <h5 data-i18n="auth.apiStep5Title">Save API Key & Secret</h5>
+                                    <p data-i18n="auth.apiStep5Desc">Copy your API Key and Secret Key. <strong class="text-yellow">The Secret is shown only once!</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="security-tips">
                         <p class="security-tips-title">
                             <i class="fas fa-exclamation-triangle"></i> <span data-i18n="auth.securityTips">Important Security Tips:</span>
@@ -791,7 +1163,7 @@
                         <ul style="list-style: none; padding: 0; margin: 0;">
                             <li><i class="fas fa-check text-green"></i> <span data-i18n="auth.enableFutures">Enable <strong>Futures Trading</strong> permissions</span></li>
                             <li><i class="fas fa-times text-red"></i> <span data-i18n="auth.disableWithdrawals">Disable <strong>Withdrawals</strong></span></li>
-                            <li><i class="fas fa-shield-alt text-cyan"></i> <span data-i18n="auth.enableIpWhitelist">Enable <strong>IP Whitelist</strong> for security</span></li>
+                            <li><i class="fas fa-shield-alt text-cyan"></i> <span data-i18n="auth.enableIpWhitelist">Enable <strong>IP Whitelist</strong> and add: <strong class="font-mono">38.180.147.102</strong></span></li>
                         </ul>
                     </div>
                     
@@ -805,6 +1177,18 @@
                             <li data-i18n="auth.step2">Your request will be sent to the administrator</li>
                             <li data-i18n="auth.step3"><span class="text-green font-semibold">Admin will decide</span> whether to start trading</li>
                         </ol>
+                    </div>
+                    
+                    <!-- Contact Admin Section -->
+                    <div class="contact-admin-section">
+                        <p class="contact-admin-text">
+                            <i class="fas fa-question-circle text-purple"></i>
+                            <span data-i18n="auth.needHelp">Need help with registration or API keys?</span>
+                        </p>
+                        <a href="https://t.me/mimiccash" target="_blank" rel="noopener noreferrer" class="contact-admin-btn">
+                            <i class="fab fa-telegram"></i>
+                            <span data-i18n="auth.contactAdmin">Contact Administrator</span>
+                        </a>
                     </div>
                 </div>
 
@@ -1009,25 +1393,39 @@ function checkPasswordStrength() {
     const bar = document.getElementById('strengthBar');
     const text = document.getElementById('strengthText');
     
-    let strength = 0;
-    if (password.length >= 6) strength++;
-    if (password.length >= 10) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    // Check individual requirements
+    const requirements = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)
+    };
+    
+    // Update requirement indicators
+    updateRequirement('req-length', requirements.length);
+    updateRequirement('req-uppercase', requirements.uppercase);
+    updateRequirement('req-lowercase', requirements.lowercase);
+    updateRequirement('req-number', requirements.number);
+    updateRequirement('req-special', requirements.special);
+    
+    // Count passed requirements
+    let passedCount = Object.values(requirements).filter(Boolean).length;
     
     const currentLang = localStorage.getItem('lang') || 'en';
     const t = (key) => {
         const translations = {
             en: {
-                'auth.weakPassword': 'Weak password',
-                'auth.mediumPassword': 'Medium password',
-                'auth.strongPassword': 'Strong password'
+                'auth.weakPassword': 'Weak password - add more variety',
+                'auth.mediumPassword': 'Medium password - almost there!',
+                'auth.goodPassword': 'Good password - one more to go!',
+                'auth.strongPassword': 'Strong password! ✓'
             },
             ua: {
-                'auth.weakPassword': 'Слабкий пароль',
-                'auth.mediumPassword': 'Нормальний пароль',
-                'auth.strongPassword': 'Надійний пароль! 💪'
+                'auth.weakPassword': 'Слабкий пароль - додайте різноманітності',
+                'auth.mediumPassword': 'Нормальний пароль - майже готово!',
+                'auth.goodPassword': 'Добрий пароль - ще трохи!',
+                'auth.strongPassword': 'Надійний пароль! ✓'
             }
         };
         return translations[currentLang]?.[key] || translations['en'][key] || key;
@@ -1037,19 +1435,92 @@ function checkPasswordStrength() {
         bar.style.width = '0';
         bar.className = 'password-strength-bar';
         text.textContent = '';
-    } else if (strength <= 2) {
+    } else if (passedCount <= 2) {
         bar.className = 'password-strength-bar strength-weak';
         text.textContent = t('auth.weakPassword');
         text.style.color = 'var(--neon-red)';
-    } else if (strength <= 4) {
+    } else if (passedCount === 3) {
         bar.className = 'password-strength-bar strength-medium';
         text.textContent = t('auth.mediumPassword');
         text.style.color = 'var(--neon-yellow)';
+    } else if (passedCount === 4) {
+        bar.className = 'password-strength-bar strength-good';
+        text.textContent = t('auth.goodPassword');
+        text.style.color = 'var(--neon-cyan)';
     } else {
         bar.className = 'password-strength-bar strength-strong';
         text.textContent = t('auth.strongPassword');
         text.style.color = 'var(--neon-green)';
     }
+}
+
+function updateRequirement(id, isValid) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    
+    const icon = element.querySelector('i');
+    
+    if (isValid) {
+        element.classList.remove('pending', 'invalid');
+        element.classList.add('valid');
+        icon.className = 'fas fa-check';
+    } else {
+        const password = document.getElementById('password').value;
+        if (password.length > 0) {
+            element.classList.remove('pending', 'valid');
+            element.classList.add('invalid');
+            icon.className = 'fas fa-times';
+        } else {
+            element.classList.remove('valid', 'invalid');
+            element.classList.add('pending');
+            icon.className = 'fas fa-circle';
+        }
+    }
+}
+
+// Toggle API instructions
+function toggleApiInstructions() {
+    const content = document.getElementById('apiInstructionsContent');
+    const toggle = document.getElementById('apiInstructionsToggle');
+    const header = document.querySelector('.api-instructions-header');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        toggle.classList.remove('expanded');
+        header.classList.remove('expanded');
+    } else {
+        content.classList.add('expanded');
+        toggle.classList.add('expanded');
+        header.classList.add('expanded');
+    }
+    
+    if (typeof playSound === 'function') playSound('click');
+}
+
+// Copy IP address to clipboard
+function copyIpAddress() {
+    const ip = document.getElementById('serverIpAddress').textContent;
+    const btn = document.getElementById('copyIpBtn');
+    
+    navigator.clipboard.writeText(ip).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        
+        // Show toast notification
+        if (typeof showToast === 'function') {
+            const currentLang = localStorage.getItem('lang') || 'en';
+            showToast(currentLang === 'ua' ? 'IP адресу скопійовано!' : 'IP address copied!', 'success');
+        }
+        
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<i class="fas fa-copy"></i>';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+    
+    if (typeof playSound === 'function') playSound('success');
 }
 
 function updateSteps() {
@@ -1073,7 +1544,14 @@ function updateSteps() {
         step2.classList.remove('active');
     }
     
-    if (password.length >= 6) {
+    // Check if password meets all requirements
+    const passwordValid = password.length >= 8 && 
+                          /[A-Z]/.test(password) && 
+                          /[a-z]/.test(password) && 
+                          /[0-9]/.test(password) && 
+                          /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
+    
+    if (passwordValid) {
         step2.classList.add('completed');
         step3.classList.add('active');
     } else {
@@ -1087,5 +1565,39 @@ function updateSteps() {
         step3.classList.remove('completed');
     }
 }
+
+// Form validation before submit
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    
+    // Check all password requirements
+    const requirements = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)
+    };
+    
+    const allValid = Object.values(requirements).every(Boolean);
+    
+    if (!allValid) {
+        e.preventDefault();
+        
+        const currentLang = localStorage.getItem('lang') || 'en';
+        const message = currentLang === 'ua' 
+            ? 'Пароль повинен містити мінімум 8 символів, велику літеру, малу літеру, цифру та спеціальний символ'
+            : 'Password must contain at least 8 characters, uppercase letter, lowercase letter, number and special character';
+        
+        if (typeof showToast === 'function') {
+            showToast(message, 'error');
+        } else {
+            alert(message);
+        }
+        
+        document.getElementById('password').focus();
+        return false;
+    }
+});
 </script>
 {% endblock %}

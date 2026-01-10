@@ -38,6 +38,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("BrainCapital")
 
+# ==================== SENTRY ERROR TRACKING ====================
+# Optional: Set SENTRY_DSN environment variable to enable error tracking
+try:
+    from sentry_config import init_sentry
+    SENTRY_ENABLED = init_sentry(framework='flask')
+except ImportError:
+    SENTRY_ENABLED = False
+    logger.info("Sentry not configured (optional)")
+
 # Initialize Flask app
 app = Flask(__name__)
 try:
@@ -191,23 +200,32 @@ else:
 # Initialize Trading Engine
 engine = TradingEngine(app, socketio, telegram)
 
-# Initialize Telegram Bot Handler (for panic commands with OTP)
+# Initialize Telegram Bot Handler (for commands including panic with OTP)
 telegram_bot = None
-if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN and hasattr(Config, 'PANIC_OTP_SECRET'):
+if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN:
     try:
+        # Get OTP secret if available (optional for basic commands)
+        otp_secret = getattr(Config, 'PANIC_OTP_SECRET', '') or ''
+        authorized_users = getattr(Config, 'PANIC_AUTHORIZED_USERS', [])
+        
         telegram_bot = init_telegram_bot(
             bot_token=Config.TG_TOKEN,
-            otp_secret=Config.PANIC_OTP_SECRET,
-            authorized_users=getattr(Config, 'PANIC_AUTHORIZED_USERS', []),
+            otp_secret=otp_secret,
+            authorized_users=authorized_users,
             panic_callback=engine.close_all_positions_all_accounts,
             admin_chat_id=Config.TG_CHAT_ID
         )
         if telegram_bot:
-            logger.info("✅ Telegram Bot Handler started (panic commands enabled)")
+            if otp_secret and authorized_users:
+                logger.info("✅ Telegram Bot Handler started (panic commands enabled)")
+            else:
+                logger.info("✅ Telegram Bot Handler started (basic commands only, OTP not configured)")
         else:
-            logger.info("ℹ️ Telegram Bot Handler not started (OTP not configured)")
+            logger.warning("⚠️ Telegram Bot Handler not started (initialization failed)")
     except Exception as e:
         logger.warning(f"⚠️ Telegram Bot Handler failed to start: {e}")
+        import traceback
+        logger.debug(f"Telegram Bot traceback: {traceback.format_exc()}")
 
 # Initialize Compliance Middleware (Geo-blocking + TOS Consent)
 try:
@@ -450,10 +468,7 @@ def handle_join_chat(data):
     
     room = data.get('room', 'general')
     
-    # Check if user has active subscription (required for chat)
-    if not current_user.has_active_subscription() and current_user.role != 'admin':
-        emit('chat_error', {'message': 'Active subscription required to access chat'})
-        return
+    # Chat is available to all logged-in users (no subscription required)
     
     # Check if user is banned
     is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
@@ -530,10 +545,7 @@ def handle_send_message(data):
         emit('chat_error', {'message': 'Message too long (max 500 characters)'})
         return
     
-    # Check subscription
-    if not current_user.has_active_subscription() and current_user.role != 'admin':
-        emit('chat_error', {'message': 'Active subscription required to send messages'})
-        return
+    # Chat is available to all logged-in users (no subscription required)
     
     # Check if user is banned/muted
     is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
@@ -664,6 +676,79 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/faq')
+def faq_page():
+    """
+    Public FAQ page accessible to all users.
+    Renders FAQ.md content as HTML.
+    """
+    import os
+    import re
+    
+    faq_path = os.path.join(os.path.dirname(__file__), 'FAQ.md')
+    
+    try:
+        with open(faq_path, 'r', encoding='utf-8') as f:
+            faq_content = f.read()
+        
+        # Simple markdown to HTML conversion
+        def md_to_html(text):
+            # Headers
+            text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+            text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
+            text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
+            
+            # Bold
+            text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+            
+            # Inline code
+            text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+            
+            # Lists
+            text = re.sub(r'^- (.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
+            text = re.sub(r'(<li>.+</li>\n?)+', r'<ul>\g<0></ul>', text)
+            
+            # Code blocks
+            text = re.sub(r'```(\w+)?\n(.+?)\n```', r'<pre><code>\2</code></pre>', text, flags=re.DOTALL)
+            
+            # Horizontal rules
+            text = re.sub(r'^---$', r'<hr>', text, flags=re.MULTILINE)
+            
+            # Links
+            text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2" target="_blank">\1</a>', text)
+            
+            # Tables (simple)
+            def convert_table(match):
+                lines = match.group(0).strip().split('\n')
+                html = '<table class="faq-table">'
+                for i, line in enumerate(lines):
+                    if '---' in line:
+                        continue
+                    cells = [c.strip() for c in line.split('|') if c.strip()]
+                    tag = 'th' if i == 0 else 'td'
+                    html += f'<tr>{"".join(f"<{tag}>{c}</{tag}>" for c in cells)}</tr>'
+                html += '</table>'
+                return html
+            
+            text = re.sub(r'(\|.+\|\n)+', convert_table, text)
+            
+            # Paragraphs
+            paragraphs = text.split('\n\n')
+            for i, p in enumerate(paragraphs):
+                if not any(p.startswith(tag) for tag in ['<h', '<ul', '<pre', '<hr', '<table']):
+                    paragraphs[i] = f'<p>{p}</p>' if p.strip() else ''
+            text = '\n'.join(paragraphs)
+            
+            return text
+        
+        faq_html = md_to_html(faq_content)
+        
+        return render_template('faq.html', faq_content=faq_html)
+        
+    except FileNotFoundError:
+        return render_template('faq.html', faq_content='<p>FAQ content not found.</p>')
+
+
 # ==================== DYNAMIC SITEMAP ====================
 
 @app.route('/sitemap.xml')
@@ -685,6 +770,7 @@ def sitemap():
     public_pages = [
         ('/', 'weekly', '1.0'),          # Homepage - highest priority
         ('/leaderboard', 'hourly', '0.95'),  # Leaderboard - frequently updated
+        ('/faq', 'weekly', '0.9'),       # FAQ - important for users
         ('/register', 'monthly', '0.9'),  # Registration - important for conversions
         ('/login', 'monthly', '0.8'),     # Login
         ('/forgot_password', 'yearly', '0.3'),  # Password reset - rarely changed
@@ -1293,6 +1379,520 @@ def admin_cancel_tournament(tournament_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
+# ==================== TASK/CHALLENGE SYSTEM ====================
+
+@app.route('/api/tasks')
+def get_tasks():
+    """
+    Get all active tasks available for participation.
+    
+    Query params:
+    - type: Filter by task type (social, trading, referral, community, custom)
+    - featured: true/false - only show featured tasks
+    """
+    try:
+        from models import Task
+        
+        task_type = request.args.get('type')
+        featured_only = request.args.get('featured', '').lower() == 'true'
+        
+        tasks = Task.get_active_tasks(task_type=task_type, featured_only=featured_only)
+        
+        # Add user participation status if logged in
+        tasks_data = []
+        for task in tasks:
+            task_dict = task.to_dict()
+            
+            if current_user.is_authenticated:
+                from models import TaskParticipation
+                participation = TaskParticipation.query.filter_by(
+                    task_id=task.id,
+                    user_id=current_user.id
+                ).order_by(TaskParticipation.joined_at.desc()).first()
+                
+                task_dict['user_participation'] = participation.to_dict() if participation else None
+                can_participate, reason = task.can_user_participate(current_user)
+                task_dict['can_participate'] = can_participate
+                task_dict['participation_reason'] = reason
+            
+            tasks_data.append(task_dict)
+        
+        return jsonify({
+            'success': True,
+            'tasks': tasks_data,
+            'task_types': Task.get_task_types(),
+            'reward_types': Task.get_reward_types()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting tasks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tasks/<int:task_id>')
+def get_task(task_id):
+    """Get a specific task by ID"""
+    try:
+        from models import Task, TaskParticipation
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        task_dict = task.to_dict()
+        
+        if current_user.is_authenticated:
+            participation = TaskParticipation.query.filter_by(
+                task_id=task.id,
+                user_id=current_user.id
+            ).order_by(TaskParticipation.joined_at.desc()).first()
+            
+            task_dict['user_participation'] = participation.to_dict() if participation else None
+            can_participate, reason = task.can_user_participate(current_user)
+            task_dict['can_participate'] = can_participate
+            task_dict['participation_reason'] = reason
+        
+        return jsonify({'success': True, 'task': task_dict})
+        
+    except Exception as e:
+        logger.error(f"Error getting task {task_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tasks/<int:task_id>/join', methods=['POST'])
+@login_required
+def join_task(task_id):
+    """Join a task/challenge"""
+    try:
+        from models import Task, TaskParticipation
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        can_participate, reason = task.can_user_participate(current_user)
+        if not can_participate:
+            return jsonify({'success': False, 'error': reason}), 400
+        
+        # Create participation
+        participation = TaskParticipation(
+            task_id=task_id,
+            user_id=current_user.id,
+            status='in_progress'
+        )
+        db.session.add(participation)
+        
+        # Update task stats
+        task.total_participants += 1
+        
+        db.session.commit()
+        
+        logger.info(f"User {current_user.username} joined task: {task.title}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'You joined the task: {task.title}',
+            'participation': participation.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error joining task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tasks/<int:task_id>/submit', methods=['POST'])
+@login_required
+def submit_task(task_id):
+    """Submit task completion for review"""
+    try:
+        from models import Task, TaskParticipation
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        # Find user's active participation
+        participation = TaskParticipation.query.filter_by(
+            task_id=task_id,
+            user_id=current_user.id
+        ).filter(TaskParticipation.status.in_(['pending', 'in_progress'])).first()
+        
+        if not participation:
+            return jsonify({'success': False, 'error': 'You have not joined this task'}), 400
+        
+        data = request.get_json() or {}
+        submission_text = data.get('text', '')
+        submission_url = data.get('url', '')
+        
+        participation.submit(text=submission_text, url=submission_url)
+        
+        logger.info(f"User {current_user.username} submitted task: {task.title}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Task submitted for review!' if task.requires_approval else 'Task completed!',
+            'participation': participation.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error submitting task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tasks/my-participations')
+@login_required
+def get_my_task_participations():
+    """Get current user's task participations"""
+    try:
+        from models import TaskParticipation
+        
+        status = request.args.get('status')
+        participations = TaskParticipation.get_user_participations(
+            current_user.id, 
+            status=status
+        )
+        
+        return jsonify({
+            'success': True,
+            'participations': [p.to_dict() for p in participations]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting participations: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== TASK ADMIN ROUTES ====================
+
+@app.route('/api/admin/tasks')
+@login_required
+def admin_get_tasks():
+    """Get all tasks (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Task
+        
+        status = request.args.get('status', 'all')
+        
+        query = Task.query
+        if status != 'all':
+            query = query.filter_by(status=status)
+        
+        tasks = query.order_by(Task.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'tasks': [t.to_dict(include_participations=False) for t in tasks],
+            'task_types': Task.get_task_types(),
+            'reward_types': Task.get_reward_types()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting admin tasks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks', methods=['POST'])
+@login_required
+def admin_create_task():
+    """Create a new task (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Task
+        
+        data = request.get_json()
+        
+        if not data.get('title'):
+            return jsonify({'success': False, 'error': 'Title is required'}), 400
+        
+        task = Task(
+            title=data.get('title'),
+            description=data.get('description', ''),
+            instructions=data.get('instructions', ''),
+            task_type=data.get('task_type', 'custom'),
+            category=data.get('category'),
+            icon=data.get('icon', 'fa-tasks'),
+            color=data.get('color', '#00f5ff'),
+            image_url=data.get('image_url'),
+            reward_type=data.get('reward_type', 'money'),
+            reward_amount=float(data.get('reward_amount', 0)),
+            reward_description=data.get('reward_description'),
+            max_participants=int(data['max_participants']) if data.get('max_participants') else None,
+            max_completions_per_user=int(data.get('max_completions_per_user', 1)),
+            min_user_level=int(data.get('min_user_level', 0)),
+            requires_subscription=data.get('requires_subscription', False),
+            required_subscription_plans=data.get('required_subscription_plans'),
+            requires_approval=data.get('requires_approval', True),
+            status=data.get('status', 'active'),
+            is_featured=data.get('is_featured', False),
+            created_by_id=current_user.id
+        )
+        
+        # Parse dates if provided
+        if data.get('start_date'):
+            task.start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
+        if data.get('end_date'):
+            task.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        
+        db.session.add(task)
+        db.session.commit()
+        
+        logger.info(f"Admin created task: {task.title}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Task "{task.title}" created successfully',
+            'task': task.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/<int:task_id>', methods=['PUT'])
+@login_required
+def admin_update_task(task_id):
+    """Update a task (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Task
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update fields
+        if 'title' in data:
+            task.title = data['title']
+        if 'description' in data:
+            task.description = data['description']
+        if 'instructions' in data:
+            task.instructions = data['instructions']
+        if 'task_type' in data:
+            task.task_type = data['task_type']
+        if 'category' in data:
+            task.category = data['category']
+        if 'icon' in data:
+            task.icon = data['icon']
+        if 'color' in data:
+            task.color = data['color']
+        if 'image_url' in data:
+            task.image_url = data['image_url']
+        if 'reward_type' in data:
+            task.reward_type = data['reward_type']
+        if 'reward_amount' in data:
+            task.reward_amount = float(data['reward_amount'])
+        if 'reward_description' in data:
+            task.reward_description = data['reward_description']
+        if 'max_participants' in data:
+            task.max_participants = int(data['max_participants']) if data['max_participants'] else None
+        if 'max_completions_per_user' in data:
+            task.max_completions_per_user = int(data['max_completions_per_user'])
+        if 'min_user_level' in data:
+            task.min_user_level = int(data['min_user_level'])
+        if 'requires_subscription' in data:
+            task.requires_subscription = data['requires_subscription']
+        if 'required_subscription_plans' in data:
+            task.required_subscription_plans = data['required_subscription_plans']
+        if 'requires_approval' in data:
+            task.requires_approval = data['requires_approval']
+        if 'status' in data:
+            task.status = data['status']
+        if 'is_featured' in data:
+            task.is_featured = data['is_featured']
+        if 'start_date' in data:
+            task.start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00')) if data['start_date'] else None
+        if 'end_date' in data:
+            task.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00')) if data['end_date'] else None
+        
+        db.session.commit()
+        
+        logger.info(f"Admin updated task: {task.title}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Task "{task.title}" updated successfully',
+            'task': task.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/<int:task_id>', methods=['DELETE'])
+@login_required
+def admin_delete_task(task_id):
+    """Delete a task (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Task
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        title = task.title
+        db.session.delete(task)
+        db.session.commit()
+        
+        logger.info(f"Admin deleted task: {title}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Task "{title}" deleted successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/pending-reviews')
+@login_required
+def admin_get_pending_reviews():
+    """Get all task submissions awaiting review (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import TaskParticipation
+        
+        pending = TaskParticipation.get_pending_reviews()
+        
+        return jsonify({
+            'success': True,
+            'pending_count': len(pending),
+            'submissions': [p.to_dict() for p in pending]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting pending reviews: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/participation/<int:participation_id>/approve', methods=['POST'])
+@login_required
+def admin_approve_participation(participation_id):
+    """Approve a task submission (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import TaskParticipation
+        
+        participation = TaskParticipation.query.get(participation_id)
+        if not participation:
+            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+        
+        if participation.status != 'submitted':
+            return jsonify({'success': False, 'error': 'Submission is not pending review'}), 400
+        
+        data = request.get_json() or {}
+        notes = data.get('notes', '')
+        
+        participation.approve(current_user, notes=notes)
+        
+        logger.info(f"Admin approved task submission for user {participation.user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Submission approved! Reward given: {participation.reward_amount}',
+            'participation': participation.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error approving submission: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/participation/<int:participation_id>/reject', methods=['POST'])
+@login_required
+def admin_reject_participation(participation_id):
+    """Reject a task submission (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import TaskParticipation
+        
+        participation = TaskParticipation.query.get(participation_id)
+        if not participation:
+            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+        
+        if participation.status != 'submitted':
+            return jsonify({'success': False, 'error': 'Submission is not pending review'}), 400
+        
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Submission did not meet requirements')
+        notes = data.get('notes', '')
+        
+        participation.reject(current_user, reason=reason, notes=notes)
+        
+        logger.info(f"Admin rejected task submission for user {participation.user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Submission rejected',
+            'participation': participation.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error rejecting submission: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/tasks/<int:task_id>/participations')
+@login_required
+def admin_get_task_participations(task_id):
+    """Get all participations for a specific task (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Task, TaskParticipation
+        
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+        
+        status = request.args.get('status')
+        query = TaskParticipation.query.filter_by(task_id=task_id)
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        participations = query.order_by(TaskParticipation.updated_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'task': task.to_dict(),
+            'participations': [p.to_dict() for p in participations]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting task participations: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ==================== INSURANCE FUND (SAFETY POOL) ====================
@@ -2077,8 +2677,12 @@ def register():
                     f"{first_name} {last_name}\n📱 {phone}\n🏦 {exchange_config.display_name}"
                 )
             
-            flash(f'Реєстрація успішна! Ваша заявка на підключення до {exchange_config.display_name} надіслана адміністратору.', 'success')
-            return redirect(url_for('login'))
+            # Auto-login the user after successful registration
+            login_user(new_user)
+            audit.log_security_event("AUTO_LOGIN_AFTER_REGISTER", f"User: {phone}, IP: {ip}", "INFO")
+            
+            flash(f'Реєстрація успішна! Ваша заявка на підключення до {exchange_config.display_name} надіслана адміністратору на перевірку.', 'success')
+            return redirect(url_for('dashboard'))
             
         except Exception as e:
             db.session.rollback()
@@ -2252,23 +2856,42 @@ def update_telegram():
         chat_id = request.form.get('telegram_chat_id', '').strip()
         enabled = request.form.get('telegram_enabled') == 'on'
         
-        if chat_id and enabled and telegram:
+        # Validate chat_id format (should be numeric, possibly with minus for groups)
+        if chat_id:
+            # Remove any non-numeric characters except minus sign
+            chat_id_clean = ''.join(c for c in chat_id if c.isdigit() or c == '-')
+            if not chat_id_clean or (chat_id_clean != chat_id.replace(' ', '')):
+                flash('❌ Невірний формат Chat ID! ID повинен містити тільки цифри (наприклад: 123456789)', 'error')
+                return redirect(url_for('dashboard'))
+            chat_id = chat_id_clean
+        
+        if chat_id and enabled:
+            # Check if telegram is configured
+            if not telegram:
+                flash('❌ Telegram бот не налаштований на сервері. Зверніться до адміністратора.', 'error')
+                return redirect(url_for('dashboard'))
+            
             # Test connection by sending welcome message
             user_display = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.username
             success, error = telegram.test_connection(chat_id, user_display)
             
             if not success:
+                bot_username = telegram.get_bot_username()
+                bot_link = f'<a href="https://t.me/{bot_username}" target="_blank">@{bot_username}</a>' if bot_username else 'боту'
+                id_link = '<a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>'
+                
                 if error == "chat_not_found":
-                    # Get bot username for the link
-                    bot_username = telegram.get_bot_username()
-                    if bot_username:
-                        flash(f'❌ Чат не знайдено! Спочатку напишіть боту @{bot_username} команду /start, потім спробуйте знову.', 'error')
-                    else:
-                        flash('❌ Чат не знайдено! Спочатку напишіть боту будь-яке повідомлення, потім спробуйте знову.', 'error')
+                    flash(f'❌ Чат не знайдено! Переконайтеся що: 1) Ви написали {bot_link} команду /start, 2) ID правильний (отримайте його через {id_link})', 'error')
                 elif error == "bot_blocked":
-                    flash('❌ Ви заблокували бота! Розблокуйте його і спробуйте знову.', 'error')
+                    flash(f'❌ Ви заблокували бота! Розблокуйте {bot_link} в Telegram і спробуйте знову.', 'error')
+                elif error == "user_deactivated":
+                    flash('❌ Акаунт Telegram деактивований. Перевірте свій Telegram.', 'error')
+                elif "timeout" in error.lower():
+                    flash('❌ Telegram не відповідає. Спробуйте пізніше.', 'error')
+                elif "not initialized" in error.lower():
+                    flash('❌ Telegram бот не налаштований. Зверніться до адміністратора.', 'error')
                 else:
-                    flash(f'❌ Помилка підключення: {error}', 'error')
+                    flash(f'❌ Помилка підключення: {error}. Перевірте правильність Chat ID.', 'error')
                 return redirect(url_for('dashboard'))
             
             # Connection successful - save settings
@@ -2281,16 +2904,16 @@ def update_telegram():
             current_user.telegram_chat_id = chat_id
             current_user.telegram_enabled = False
             db.session.commit()
-            flash('Telegram ID збережено, сповіщення вимкнено', 'info')
+            flash('💾 Telegram ID збережено, сповіщення вимкнено.', 'info')
         else:
             # Clear telegram settings
             current_user.telegram_chat_id = None
             current_user.telegram_enabled = False
             db.session.commit()
-            flash('Telegram налаштування очищено', 'info')
+            flash('🗑️ Telegram налаштування очищено.', 'info')
     except Exception as e:
         logger.error(f"Error updating telegram settings: {e}")
-        flash(f'Помилка: {e}', 'error')
+        flash(f'❌ Помилка: Не вдалося зберегти налаштування. Спробуйте пізніше.', 'error')
     return redirect(url_for('dashboard'))
 
 
@@ -3756,6 +4379,606 @@ def admin_subscription_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ==================== SUBSCRIPTION MANAGEMENT ====================
+
+@app.route('/api/admin/subscription-settings', methods=['GET'])
+@login_required
+def get_subscription_settings():
+    """Get subscription settings for admin panel"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import SystemSetting
+        
+        # Get subscription settings
+        subscription_settings = SystemSetting.get_category_settings('subscription')
+        wallet_settings = SystemSetting.get_category_settings('wallet')
+        insurance_settings = SystemSetting.get_category_settings('insurance_fund')
+        
+        # Get subscription plans from config
+        plans = []
+        for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+            plans.append({
+                'id': plan_id,
+                'name': plan_data['name'],
+                'price': plan_data['price'],
+                'days': plan_data['days']
+            })
+        
+        return jsonify({
+            'success': True,
+            'subscription': {
+                'enabled': subscription_settings.get('enabled', 'false').lower() == 'true',
+                'auto_confirm': subscription_settings.get('auto_confirm', 'false').lower() == 'true',
+                'confirm_timeout_hours': int(subscription_settings.get('confirm_timeout_hours', '24')),
+                'default_days': int(subscription_settings.get('default_days', '30'))
+            },
+            'wallets': {
+                'usdt_trc20': wallet_settings.get('usdt_trc20', ''),
+                'usdt_erc20': wallet_settings.get('usdt_erc20', ''),
+                'usdt_bep20': wallet_settings.get('usdt_bep20', ''),
+                'btc': wallet_settings.get('btc', ''),
+                'eth': wallet_settings.get('eth', ''),
+                'ltc': wallet_settings.get('ltc', ''),
+                'sol': wallet_settings.get('sol', '')
+            },
+            'insurance_fund': {
+                'wallet_address': insurance_settings.get('wallet_address', ''),
+                'wallet_network': insurance_settings.get('wallet_network', 'USDT_TRC20'),
+                'contribution_rate': float(insurance_settings.get('contribution_rate', '5'))
+            },
+            'plans': plans
+        })
+    except Exception as e:
+        logger.error(f"Error getting subscription settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/subscription-settings', methods=['POST'])
+@login_required
+def update_subscription_settings():
+    """Update subscription settings from admin panel"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import SystemSetting
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        updated = []
+        
+        # Update subscription settings
+        if 'subscription' in data:
+            sub_data = data['subscription']
+            if 'enabled' in sub_data:
+                SystemSetting.set_setting('subscription', 'enabled', str(sub_data['enabled']).lower())
+                updated.append('subscription.enabled')
+            if 'auto_confirm' in sub_data:
+                SystemSetting.set_setting('subscription', 'auto_confirm', str(sub_data['auto_confirm']).lower())
+                updated.append('subscription.auto_confirm')
+            if 'confirm_timeout_hours' in sub_data:
+                SystemSetting.set_setting('subscription', 'confirm_timeout_hours', str(sub_data['confirm_timeout_hours']))
+                updated.append('subscription.confirm_timeout_hours')
+            if 'default_days' in sub_data:
+                SystemSetting.set_setting('subscription', 'default_days', str(sub_data['default_days']))
+                updated.append('subscription.default_days')
+        
+        # Update wallet settings
+        if 'wallets' in data:
+            for network, address in data['wallets'].items():
+                if network in ['usdt_trc20', 'usdt_erc20', 'usdt_bep20', 'btc', 'eth', 'ltc', 'sol']:
+                    SystemSetting.set_setting('wallet', network, address or '')
+                    updated.append(f'wallet.{network}')
+        
+        # Update insurance fund settings
+        if 'insurance_fund' in data:
+            ins_data = data['insurance_fund']
+            if 'wallet_address' in ins_data:
+                SystemSetting.set_setting('insurance_fund', 'wallet_address', ins_data['wallet_address'] or '')
+                updated.append('insurance_fund.wallet_address')
+            if 'wallet_network' in ins_data:
+                SystemSetting.set_setting('insurance_fund', 'wallet_network', ins_data['wallet_network'])
+                updated.append('insurance_fund.wallet_network')
+            if 'contribution_rate' in ins_data:
+                SystemSetting.set_setting('insurance_fund', 'contribution_rate', str(ins_data['contribution_rate']))
+                updated.append('insurance_fund.contribution_rate')
+        
+        logger.info(f"Admin {current_user.username} updated subscription settings: {updated}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Updated {len(updated)} settings',
+            'updated': updated
+        })
+    except Exception as e:
+        logger.error(f"Error updating subscription settings: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/subscription-payments', methods=['GET'])
+@login_required
+def get_admin_subscription_payments():
+    """Get all pending and recent subscription payments for admin"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        status_filter = request.args.get('status', 'all')
+        limit = int(request.args.get('limit', 50))
+        
+        query = Payment.query
+        
+        if status_filter != 'all':
+            query = query.filter(Payment.status == status_filter)
+        
+        payments = query.order_by(Payment.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for p in payments:
+            user = User.query.get(p.user_id)
+            result.append({
+                'id': p.id,
+                'user_id': p.user_id,
+                'username': user.username if user else 'Unknown',
+                'email': user.email if user else None,
+                'amount_usd': p.amount_usd,
+                'amount_crypto': p.amount_crypto,
+                'currency': p.currency,
+                'plan': p.plan,
+                'days': p.days,
+                'status': p.status,
+                'provider': p.provider,
+                'wallet_address': p.wallet_address,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+                'completed_at': p.completed_at.isoformat() if p.completed_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'payments': result,
+            'total': len(result)
+        })
+    except Exception as e:
+        logger.error(f"Error getting admin subscription payments: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/confirm-payment/<int:payment_id>', methods=['POST'])
+@login_required
+def admin_confirm_payment(payment_id):
+    """Manually confirm a pending payment and activate subscription"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+        
+        if payment.status == 'completed':
+            return jsonify({'success': False, 'error': 'Payment already confirmed'}), 400
+        
+        user = User.query.get(payment.user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        # Update payment status
+        payment.status = 'completed'
+        payment.completed_at = datetime.now(timezone.utc)
+        
+        # Activate user subscription
+        user.extend_subscription(days=payment.days, plan=payment.plan)
+        
+        db.session.commit()
+        
+        logger.info(f"Admin {current_user.username} confirmed payment {payment_id} for user {user.username}")
+        
+        # Send notification if Telegram is enabled
+        notifier = get_notifier()
+        if notifier and user.telegram_chat_id and user.telegram_enabled:
+            msg = f"""
+💎 <b>SUBSCRIPTION ACTIVATED!</b>
+
+✅ <b>Plan:</b> <code>{payment.plan.upper()}</code>
+📅 <b>Days:</b> <code>{payment.days}</code>
+💰 <b>Amount:</b> <code>${payment.amount_usd:.2f}</code>
+
+🚀 Your subscription is active until: <code>{user.subscription_expires_at.strftime('%d.%m.%Y %H:%M')}</code>
+
+Thank you for your payment! Trading is now enabled.
+"""
+            notifier.send(msg.strip(), chat_id=user.telegram_chat_id)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Payment confirmed and subscription activated for {user.username}',
+            'subscription_expires': user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+        })
+    except Exception as e:
+        logger.error(f"Error confirming payment: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/reject-payment/<int:payment_id>', methods=['POST'])
+@login_required
+def admin_reject_payment(payment_id):
+    """Reject a pending payment"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Payment not verified')
+        
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+        
+        if payment.status == 'completed':
+            return jsonify({'success': False, 'error': 'Cannot reject completed payment'}), 400
+        
+        user = User.query.get(payment.user_id)
+        
+        # Update payment status
+        payment.status = 'cancelled'
+        db.session.commit()
+        
+        logger.info(f"Admin {current_user.username} rejected payment {payment_id}: {reason}")
+        
+        # Notify user if Telegram is enabled
+        notifier = get_notifier()
+        if notifier and user and user.telegram_chat_id and user.telegram_enabled:
+            msg = f"""
+❌ <b>PAYMENT REJECTED</b>
+
+Your payment request has been rejected.
+<b>Reason:</b> <code>{reason}</code>
+
+Please contact support if you believe this is an error.
+"""
+            notifier.send(msg.strip(), chat_id=user.telegram_chat_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment rejected'
+        })
+    except Exception as e:
+        logger.error(f"Error rejecting payment: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/activate-subscription/<int:user_id>', methods=['POST'])
+@login_required
+def admin_activate_subscription(user_id):
+    """Manually activate subscription for a user without payment"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import SystemSetting
+        data = request.get_json() or {}
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        
+        plan = data.get('plan', 'basic')
+        days = int(data.get('days', SystemSetting.get_setting('subscription', 'default_days', '30') or '30'))
+        
+        # Activate subscription
+        user.extend_subscription(days=days, plan=plan)
+        
+        # Create a manual payment record
+        payment = Payment(
+            user_id=user.id,
+            provider='manual',
+            amount_usd=0,
+            plan=plan,
+            days=days,
+            status='completed',
+            completed_at=datetime.now(timezone.utc)
+        )
+        db.session.add(payment)
+        db.session.commit()
+        
+        logger.info(f"Admin {current_user.username} manually activated {days} days of {plan} subscription for user {user.username}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Subscription activated for {user.username}',
+            'plan': plan,
+            'days': days,
+            'expires_at': user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+        })
+    except Exception as e:
+        logger.error(f"Error activating subscription: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/subscription/create-payment', methods=['POST'])
+@login_required
+def create_direct_payment():
+    """
+    Create a direct wallet payment request (replaces Plisio).
+    User selects plan and network, receives admin wallet address.
+    """
+    try:
+        from models import SystemSetting
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        plan_id = data.get('plan', 'basic')
+        network = data.get('network', 'usdt_trc20')
+        
+        # Validate plan
+        if plan_id not in Config.SUBSCRIPTION_PLANS:
+            return jsonify({'success': False, 'error': f'Invalid plan: {plan_id}'}), 400
+        
+        plan = Config.SUBSCRIPTION_PLANS[plan_id]
+        
+        # Get wallet address for the selected network
+        wallet_address = SystemSetting.get_setting('wallet', network, '')
+        
+        if not wallet_address:
+            return jsonify({
+                'success': False, 
+                'error': f'Wallet address not configured for {network}. Please contact admin.'
+            }), 400
+        
+        # Check if subscription system is enabled
+        subscription_enabled = SystemSetting.get_setting('subscription', 'enabled', 'false').lower() == 'true'
+        if not subscription_enabled:
+            return jsonify({
+                'success': False,
+                'error': 'Subscription payments are currently disabled. You have free access.'
+            }), 400
+        
+        # Generate unique payment reference
+        payment_ref = f"SUB-{current_user.id}-{secrets.token_hex(6).upper()}"
+        
+        # Create pending payment record
+        payment = Payment(
+            user_id=current_user.id,
+            provider='direct_wallet',
+            provider_txn_id=payment_ref,
+            amount_usd=plan['price'],
+            currency=network.upper(),
+            plan=plan_id,
+            days=plan['days'],
+            status='pending',
+            wallet_address=wallet_address,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+        )
+        
+        db.session.add(payment)
+        db.session.commit()
+        
+        # Network display names
+        network_names = {
+            'usdt_trc20': 'USDT (TRC20 - Tron)',
+            'usdt_erc20': 'USDT (ERC20 - Ethereum)',
+            'usdt_bep20': 'USDT (BEP20 - BSC)',
+            'btc': 'Bitcoin (BTC)',
+            'eth': 'Ethereum (ETH)',
+            'ltc': 'Litecoin (LTC)',
+            'sol': 'Solana (SOL)'
+        }
+        
+        return jsonify({
+            'success': True,
+            'payment': {
+                'id': payment.id,
+                'reference': payment_ref,
+                'plan_name': plan['name'],
+                'amount_usd': plan['price'],
+                'days': plan['days'],
+                'network': network,
+                'network_name': network_names.get(network, network),
+                'wallet_address': wallet_address,
+                'expires_at': payment.expires_at.isoformat()
+            },
+            'message': f'Send ${plan["price"]:.2f} worth of {network_names.get(network, network)} to the wallet address below'
+        })
+    except Exception as e:
+        logger.error(f"Error creating direct payment: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/subscription/mark-paid/<int:payment_id>', methods=['POST'])
+@login_required
+def mark_payment_as_paid(payment_id):
+    """User marks their payment as sent, awaiting admin confirmation"""
+    try:
+        from models import SystemSetting
+        
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+        
+        if payment.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        
+        if payment.status != 'pending':
+            return jsonify({'success': False, 'error': f'Payment is already {payment.status}'}), 400
+        
+        data = request.get_json() or {}
+        tx_hash = data.get('tx_hash', '')
+        
+        # Update payment status to awaiting confirmation
+        payment.status = 'awaiting_confirmation'
+        if tx_hash:
+            payment.provider_txn_id = f"{payment.provider_txn_id}|TX:{tx_hash}"
+        
+        db.session.commit()
+        
+        # Check if auto-confirm is enabled
+        auto_confirm = SystemSetting.get_setting('subscription', 'auto_confirm', 'false').lower() == 'true'
+        
+        if auto_confirm:
+            # Auto-confirm the payment
+            payment.status = 'completed'
+            payment.completed_at = datetime.now(timezone.utc)
+            current_user.extend_subscription(days=payment.days, plan=payment.plan)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Payment automatically confirmed! Your subscription is now active.',
+                'auto_confirmed': True,
+                'subscription_expires': current_user.subscription_expires_at.isoformat() if current_user.subscription_expires_at else None
+            })
+        
+        # Notify admin via Telegram if available
+        notifier = get_notifier()
+        if notifier:
+            admin_msg = f"""
+📬 <b>NEW PAYMENT AWAITING CONFIRMATION</b>
+
+👤 <b>User:</b> <code>{current_user.username}</code>
+📧 <b>Email:</b> <code>{current_user.email or 'N/A'}</code>
+💰 <b>Amount:</b> <code>${payment.amount_usd:.2f}</code>
+📋 <b>Plan:</b> <code>{payment.plan}</code>
+🔗 <b>Network:</b> <code>{payment.currency}</code>
+{f'📝 <b>TX Hash:</b> <code>{tx_hash}</code>' if tx_hash else ''}
+
+Please verify and confirm in the admin panel.
+"""
+            try:
+                notifier.send(admin_msg.strip())
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment marked as sent. Awaiting admin confirmation.',
+            'auto_confirmed': False
+        })
+    except Exception as e:
+        logger.error(f"Error marking payment as paid: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/subscription/status', methods=['GET'])
+@login_required
+def get_user_subscription_status():
+    """Get current user's detailed subscription status"""
+    try:
+        from models import SystemSetting
+        
+        # Check if subscription system is enabled
+        subscription_enabled = SystemSetting.get_setting('subscription', 'enabled', 'false').lower() == 'true'
+        
+        # Get pending payments
+        pending_payments = Payment.query.filter(
+            Payment.user_id == current_user.id,
+            Payment.status.in_(['pending', 'awaiting_confirmation'])
+        ).order_by(Payment.created_at.desc()).all()
+        
+        pending_list = [{
+            'id': p.id,
+            'plan': p.plan,
+            'amount_usd': p.amount_usd,
+            'currency': p.currency,
+            'status': p.status,
+            'wallet_address': p.wallet_address,
+            'created_at': p.created_at.isoformat() if p.created_at else None,
+            'expires_at': p.expires_at.isoformat() if p.expires_at else None
+        } for p in pending_payments]
+        
+        # Get payment history
+        payment_history = Payment.query.filter(
+            Payment.user_id == current_user.id,
+            Payment.status == 'completed'
+        ).order_by(Payment.completed_at.desc()).limit(10).all()
+        
+        history_list = [{
+            'id': p.id,
+            'plan': p.plan,
+            'days': p.days,
+            'amount_usd': p.amount_usd,
+            'completed_at': p.completed_at.isoformat() if p.completed_at else None
+        } for p in payment_history]
+        
+        return jsonify({
+            'success': True,
+            'subscription_enabled': subscription_enabled,
+            'is_active': current_user.has_active_subscription() if subscription_enabled else True,
+            'plan': current_user.subscription_plan or 'free',
+            'expires_at': current_user.subscription_expires_at.isoformat() if current_user.subscription_expires_at else None,
+            'days_remaining': current_user.subscription_days_remaining() if subscription_enabled else 999,
+            'can_trade': (current_user.has_active_subscription() or not subscription_enabled) and current_user.is_active,
+            'pending_payments': pending_list,
+            'payment_history': history_list
+        })
+    except Exception as e:
+        logger.error(f"Error getting subscription status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/subscription/available-networks', methods=['GET'])
+def get_available_payment_networks():
+    """Get list of available payment networks with wallet addresses configured"""
+    try:
+        from models import SystemSetting
+        
+        # Check if subscription is enabled
+        subscription_enabled = SystemSetting.get_setting('subscription', 'enabled', 'false').lower() == 'true'
+        
+        networks = []
+        network_info = {
+            'usdt_trc20': {'name': 'USDT (TRC20)', 'icon': 'tron', 'symbol': 'USDT'},
+            'usdt_erc20': {'name': 'USDT (ERC20)', 'icon': 'ethereum', 'symbol': 'USDT'},
+            'usdt_bep20': {'name': 'USDT (BEP20)', 'icon': 'binance', 'symbol': 'USDT'},
+            'btc': {'name': 'Bitcoin', 'icon': 'bitcoin', 'symbol': 'BTC'},
+            'eth': {'name': 'Ethereum', 'icon': 'ethereum', 'symbol': 'ETH'},
+            'ltc': {'name': 'Litecoin', 'icon': 'litecoin', 'symbol': 'LTC'},
+            'sol': {'name': 'Solana', 'icon': 'solana', 'symbol': 'SOL'}
+        }
+        
+        for network_id, info in network_info.items():
+            wallet = SystemSetting.get_setting('wallet', network_id, '')
+            if wallet:  # Only show networks with configured wallets
+                networks.append({
+                    'id': network_id,
+                    'name': info['name'],
+                    'icon': info['icon'],
+                    'symbol': info['symbol'],
+                    'available': True
+                })
+        
+        # Get subscription plans
+        plans = []
+        for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+            plans.append({
+                'id': plan_id,
+                'name': plan_data['name'],
+                'price': plan_data['price'],
+                'days': plan_data['days']
+            })
+        
+        return jsonify({
+            'success': True,
+            'subscription_enabled': subscription_enabled,
+            'networks': networks,
+            'plans': plans
+        })
+    except Exception as e:
+        logger.error(f"Error getting available networks: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ==================== AI SENTIMENT FILTER ====================
 
 @app.route('/api/sentiment', methods=['GET'])
@@ -5123,18 +6346,36 @@ def get_chat_history():
 
 
 @app.route('/api/chat/status')
-@login_required
 def get_chat_status():
-    """Check if user can access chat and their status"""
+    """Check if user can access chat and their status.
+    
+    Non-authenticated users can still access AI Support, but not Live Chat.
+    """
     from models import ChatBan
     
-    has_subscription = current_user.has_active_subscription() or current_user.role == 'admin'
+    # Check if user is authenticated
+    if not current_user.is_authenticated:
+        return jsonify({
+            'success': True,
+            'is_authenticated': False,
+            'can_chat': False,  # Live chat requires authentication
+            'has_subscription': False,
+            'is_banned': False,
+            'ban_type': None,
+            'ban_reason': None,
+            'ban_expires_at': None,
+            'is_admin': False,
+            'message': 'AI Support available. Log in for Live Chat.'
+        })
+    
+    # All logged-in users can access chat (no subscription required)
     is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
     
     return jsonify({
         'success': True,
-        'can_chat': has_subscription and not is_banned,
-        'has_subscription': has_subscription,
+        'is_authenticated': True,
+        'can_chat': not is_banned,  # All users can chat unless banned
+        'has_subscription': True,  # Always true - chat is free for all users
         'is_banned': is_banned,
         'ban_type': ban_type,
         'ban_reason': reason,
@@ -5150,9 +6391,7 @@ def get_online_users():
     from models import ChatMessage
     from datetime import datetime, timezone, timedelta
     
-    # Check subscription
-    if not current_user.has_active_subscription() and current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Active subscription required'}), 403
+    # Chat is available to all logged-in users (no subscription required)
     
     # Get users who sent messages in the last 5 minutes
     recent_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)

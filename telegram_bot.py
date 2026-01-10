@@ -699,7 +699,7 @@ def init_telegram_bot(
     
     Args:
         bot_token: Telegram bot token
-        otp_secret: TOTP secret for 2FA
+        otp_secret: TOTP secret for 2FA (optional - panic commands disabled without it)
         authorized_users: List of authorized Telegram user IDs
         panic_callback: Function to call for panic close
         admin_chat_id: Chat ID for admin notifications
@@ -709,28 +709,59 @@ def init_telegram_bot(
     """
     global _bot_handler
     
+    # Debug logging for troubleshooting
+    logger.info("🔍 Telegram Bot Initialization Debug:")
+    logger.info(f"   - python-telegram-bot available: {TELEGRAM_BOT_AVAILABLE}")
+    logger.info(f"   - pyotp available: {PYOTP_AVAILABLE}")
+    logger.info(f"   - bot_token provided: {bool(bot_token)}")
+    if bot_token:
+        # Show first 10 chars of token for debug (safe to show)
+        logger.info(f"   - bot_token prefix: {bot_token[:10]}...")
+    logger.info(f"   - otp_secret provided: {bool(otp_secret)}")
+    logger.info(f"   - authorized_users: {authorized_users}")
+    logger.info(f"   - admin_chat_id: {admin_chat_id}")
+    
     if not TELEGRAM_BOT_AVAILABLE:
-        logger.error("Telegram bot dependencies not available")
+        logger.error("❌ Telegram bot dependencies not available!")
+        logger.error("   Install with: pip install python-telegram-bot[ext]")
         return None
     
     if not bot_token:
-        logger.warning("No bot token provided - Telegram bot disabled")
+        logger.warning("⚠️ No bot token provided - Telegram bot disabled")
+        logger.warning("   Set TELEGRAM_BOT_TOKEN in .env or bot_token in config.ini")
+        return None
+    
+    # Validate token format (should be like 123456789:ABCdefGHI...)
+    if ':' not in bot_token or len(bot_token) < 30:
+        logger.error(f"❌ Invalid bot token format!")
+        logger.error("   Token should look like: 123456789:ABCdefGHIjklMNOpqrSTUvwxYZ...")
+        logger.error("   Get your token from @BotFather on Telegram")
         return None
     
     try:
         _bot_handler = TelegramBotHandler(
             bot_token=bot_token,
-            otp_secret=otp_secret,
-            authorized_users=authorized_users,
+            otp_secret=otp_secret or '',
+            authorized_users=authorized_users or [],
             panic_callback=panic_callback,
-            admin_chat_id=admin_chat_id
+            admin_chat_id=admin_chat_id or ''
         )
         
         _bot_handler.start()
+        
+        if otp_secret and authorized_users:
+            logger.info("✅ Telegram Bot started with panic commands enabled")
+        else:
+            logger.info("✅ Telegram Bot started (basic commands only)")
+            if not otp_secret:
+                logger.info("   ℹ️ Set PANIC_OTP_SECRET to enable panic commands")
+        
         return _bot_handler
         
     except Exception as e:
-        logger.error(f"Failed to initialize Telegram bot: {e}")
+        logger.error(f"❌ Failed to initialize Telegram bot: {e}")
+        import traceback
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         return None
 
 

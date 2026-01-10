@@ -248,9 +248,14 @@ MIMIC/
 │
 └── 📚 Documentation
     ├── README.md             # This file
-    ├── DEV_MANUAL.md         # Complete developer manual
+    ├── DEV_MANUAL.md         # Complete developer manual (v3.2)
     ├── LINUX_DEPLOYMENT.md   # Linux server deployment
-    └── SECURITY.md           # Security guidelines
+    ├── SECURITY.md           # Security guidelines
+    ├── SECURITY_HARDENING.md # Production hardening
+    ├── CLOUDFLARE_SETUP.md   # Cloudflare configuration
+    ├── PUBLIC_API.md         # Public API documentation
+    ├── AUTO_DEPLOY_SETUP.md  # Auto-deploy setup guide
+    └── FAQ.md                # Frequently Asked Questions
 ```
 
 📚 **For complete documentation, see [DEV_MANUAL.md](DEV_MANUAL.md)**
@@ -468,4 +473,4 @@ MIT License - see LICENSE file
 
 ---
 
-*Last Updated: January 9, 2026*
+*Last Updated: January 11, 2026*

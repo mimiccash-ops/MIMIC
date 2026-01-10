@@ -15,6 +15,14 @@
     <i class="fas fa-link"></i>
     <span data-i18n="section.exchange">Connections</span>
 </a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="subscription" onclick="showSection('subscription'); return false;">
+    <i class="fas fa-crown"></i>
+    <span data-i18n="section.subscription">Subscription</span>
+</a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="showSection('tasks'); return false;">
+    <i class="fas fa-trophy"></i>
+    <span data-i18n="section.tasks">Tasks</span>
+</a>
 <a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
     <i class="fas fa-sliders"></i>
     <span data-i18n="section.settings">Config</span>
@@ -1155,8 +1163,12 @@
                     <span class="text-sm text-white/70 font-medium">Achievements</span>
                     <span class="text-xs text-white/40" id="badge-count">(0 unlocked)</span>
                 </div>
-                <button onclick="showAllAchievements()" class="text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                    View All <i class="fas fa-chevron-right ml-1"></i>
+                <button onclick="showAllAchievements()" 
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 group"
+                        style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(147, 51, 234, 0.4); color: #c084fc;">
+                    <i class="fas fa-medal group-hover:scale-110 transition-transform"></i>
+                    <span>All</span>
+                    <i class="fas fa-chevron-right text-xs opacity-60 group-hover:translate-x-1 transition-transform"></i>
                 </button>
             </div>
             <div id="badges-container" class="flex flex-wrap gap-2">
@@ -1476,19 +1488,91 @@
             </span>
         </div>
         <div class="section-body">
-            {% if telegram_bot_username and not user_settings.telegram_enabled %}
-            <div class="mb-4 p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                <p class="text-sm text-blue-400 mb-2"><b>Connect in 2 steps:</b></p>
-                <ol class="text-sm text-white/50 space-y-1 pl-4">
-                    <li>1. Open <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" class="text-cyan-400 hover:underline">@{{ telegram_bot_username }}</a></li>
-                    <li>2. Get your ID from <a href="https://t.me/userinfobot" target="_blank" class="text-cyan-400 hover:underline">@userinfobot</a></li>
-                </ol>
+            <!-- Connection Instructions -->
+            {% if not user_settings.telegram_enabled %}
+            <div class="mb-5 p-5 rounded-xl" style="background: linear-gradient(135deg, rgba(0, 136, 204, 0.08), rgba(0, 136, 204, 0.02)); border: 1px solid rgba(0, 136, 204, 0.25);">
+                <p class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-400"></i>
+                    <span data-i18n="dash.telegramHowToConnect">How to connect Telegram:</span>
+                </p>
+                <div class="space-y-3">
+                    <!-- Step 1: Open Bot -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style="background: rgba(0, 136, 204, 0.2); color: #0088cc;">1</div>
+                        <div class="flex-1">
+                            <p class="text-sm text-white/80" data-i18n="dash.telegramStep1">Open our bot and press START:</p>
+                            {% if telegram_bot_username %}
+                            <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                               style="background: linear-gradient(135deg, rgba(0, 136, 204, 0.2), rgba(0, 136, 204, 0.1)); border: 1px solid rgba(0, 136, 204, 0.4); color: #0088cc;">
+                                <i class="fab fa-telegram"></i>
+                                <span>@{{ telegram_bot_username }}</span>
+                                <i class="fas fa-external-link-alt text-xs opacity-60"></i>
+                            </a>
+                            {% else %}
+                            <p class="text-xs text-yellow-400 mt-1"><i class="fas fa-exclamation-triangle"></i> Bot not configured. Contact administrator.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Get Chat ID -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style="background: rgba(0, 136, 204, 0.2); color: #0088cc;">2</div>
+                        <div class="flex-1">
+                            <p class="text-sm text-white/80" data-i18n="dash.telegramStep2">Get your Chat ID:</p>
+                            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-2 mt-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                               style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(147, 51, 234, 0.1)); border: 1px solid rgba(147, 51, 234, 0.4); color: #c084fc;">
+                                <i class="fas fa-id-card"></i>
+                                <span>@userinfobot</span>
+                                <i class="fas fa-external-link-alt text-xs opacity-60"></i>
+                            </a>
+                            <p class="text-xs text-white/50 mt-2" data-i18n="dash.telegramStep2Hint">Send /start to this bot and it will show your ID</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Enter ID -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style="background: rgba(0, 136, 204, 0.2); color: #0088cc;">3</div>
+                        <div class="flex-1">
+                            <p class="text-sm text-white/80" data-i18n="dash.telegramStep3">Enter your Chat ID below and enable notifications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Already connected - show bot link for reference -->
+            <div class="mb-4 p-4 rounded-lg flex items-center justify-between" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25);">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-check-circle text-green-400"></i>
+                    <span class="text-sm text-green-400 font-medium" data-i18n="dash.telegramConnected">Telegram connected successfully!</span>
+                </div>
+                {% if telegram_bot_username %}
+                <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" rel="noopener noreferrer"
+                   class="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                    <i class="fab fa-telegram"></i> @{{ telegram_bot_username }}
+                </a>
+                {% endif %}
             </div>
             {% endif %}
             
             <form method="POST" action="{{ url_for('update_telegram') }}" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="telegram_chat_id" value="{{ user_settings.telegram_chat_id or '' }}" class="input-cyber" placeholder="Enter Chat ID">
+                <div>
+                    <label class="text-xs text-white/50 mb-2 block flex items-center gap-2">
+                        <i class="fas fa-hashtag"></i>
+                        <span data-i18n="dash.yourChatId">Your Chat ID</span>
+                    </label>
+                    <input type="text" name="telegram_chat_id" value="{{ user_settings.telegram_chat_id or '' }}" 
+                           class="input-cyber font-mono" 
+                           placeholder="123456789"
+                           pattern="[0-9-]+"
+                           title="Chat ID should be numbers only">
+                    <p class="text-xs text-white/40 mt-1">
+                        <i class="fas fa-question-circle"></i>
+                        <span data-i18n="dash.chatIdHelp">Example: 123456789 (numbers only)</span>
+                    </p>
+                </div>
                 <div class="flex items-center gap-4">
                     <label class="flex-1 flex items-center gap-3 p-3 bg-black/30 border border-white/5 rounded-lg cursor-pointer hover:border-green-500/30 transition-all">
                         <input type="checkbox" name="telegram_enabled" {{ 'checked' if user_settings.telegram_enabled else '' }} class="w-5 h-5 accent-green-400">
@@ -1500,6 +1584,381 @@
                     </button>
                 </div>
             </form>
+            
+            <!-- Help link -->
+            <div class="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer"
+                   class="text-xs text-white/40 hover:text-cyan-400 transition-colors flex items-center gap-1">
+                    <i class="fas fa-question-circle"></i>
+                    <span data-i18n="dash.dontKnowChatId">Don't know your Chat ID?</span>
+                </a>
+                {% if telegram_bot_username %}
+                <a href="https://t.me/{{ telegram_bot_username }}" target="_blank" rel="noopener noreferrer"
+                   class="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1">
+                    <i class="fab fa-telegram"></i>
+                    <span data-i18n="dash.openBot">Open Bot</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== SUBSCRIPTION SECTION ==================== -->
+<div class="section-content" data-section="subscription">
+    <div class="section-card mb-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-crown text-yellow-400"></i>
+                <span class="font-display font-semibold">My Subscription</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" id="sub-status-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                <i class="fas fa-circle text-xs"></i>
+                <span id="sub-status-text">Loading...</span>
+            </span>
+        </div>
+        <div class="section-body">
+            <!-- Subscription Status Card -->
+            <div id="subscription-status-card" class="mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Current Plan -->
+                    <div class="p-5 rounded-xl border transition-all" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1)); border-color: rgba(59, 130, 246, 0.2);">
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Current Plan</div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3);">
+                                <i class="fas fa-crown text-xl text-blue-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-display font-bold text-xl text-white" id="sub-current-plan">Free</div>
+                                <div class="text-xs text-white/50" id="sub-plan-description">Basic access</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Expiration -->
+                    <div class="p-5 rounded-xl border" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Expires</div>
+                        <div class="font-mono text-2xl font-bold" id="sub-expires-at" style="color: var(--neon-cyan);">Never</div>
+                        <div class="text-xs text-white/40 mt-1" id="sub-days-remaining">-</div>
+                    </div>
+                    
+                    <!-- Trading Status -->
+                    <div class="p-5 rounded-xl border" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Trading Status</div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full animate-pulse" id="sub-trading-dot" style="background: var(--neon-green);"></span>
+                            <span class="font-display font-bold text-xl" id="sub-trading-status" style="color: var(--neon-green);">ENABLED</span>
+                        </div>
+                        <div class="text-xs text-white/40 mt-1" id="sub-trading-note">Full access to copy trading</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Payments Alert -->
+            <div id="pending-payments-alert" class="hidden mb-6 p-4 rounded-xl border" style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.3);">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-clock text-yellow-400 text-xl"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold text-yellow-400">Payment Pending Confirmation</div>
+                        <div class="text-sm text-white/60" id="pending-payment-details">Your payment is being verified by admin.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Free Mode Banner (shown when subscriptions disabled) -->
+            <div id="free-mode-banner" class="hidden mb-6 p-4 rounded-xl border" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 240, 255, 0.1)); border-color: rgba(0, 255, 136, 0.3);">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-gift text-green-400 text-2xl"></i>
+                    <div>
+                        <div class="font-display font-bold text-green-400">Free Access Mode</div>
+                        <div class="text-sm text-white/60">Paid subscriptions are currently disabled. Enjoy free access to all features!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upgrade/Payment Section -->
+    <div class="section-card mb-8" id="upgrade-section">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-rocket text-purple-400"></i>
+                <span class="font-display font-semibold">Upgrade Plan</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <!-- Available Plans -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="plans-container">
+                <!-- Plans will be loaded dynamically -->
+                <div class="col-span-3 flex items-center justify-center py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl text-white/30"></i>
+                </div>
+            </div>
+            
+            <!-- Payment Form (shown when plan selected) -->
+            <div id="payment-form" class="hidden">
+                <div class="p-6 rounded-xl border mb-4" style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2);">
+                    <h4 class="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                        <i class="fas fa-wallet text-purple-400"></i>
+                        <span>Complete Payment</span>
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs text-white/50 mb-2">Selected Plan</label>
+                            <div class="p-3 rounded-lg bg-black/30 border border-white/10">
+                                <span id="selected-plan-name" class="font-semibold text-white">-</span>
+                                <span id="selected-plan-price" class="ml-2 text-purple-400">$0</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/50 mb-2">Select Network</label>
+                            <select id="payment-network" class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none">
+                                <option value="">Loading networks...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Wallet Address Display -->
+                    <div id="wallet-display" class="hidden mb-4">
+                        <label class="block text-xs text-white/50 mb-2">Send Payment To</label>
+                        <div class="p-4 rounded-lg bg-black/50 border border-purple-500/30">
+                            <div class="flex items-center justify-between">
+                                <code class="text-sm text-purple-300 break-all" id="payment-wallet-address">-</code>
+                                <button onclick="copyWalletAddress()" class="ml-2 p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 transition-all">
+                                    <i class="fas fa-copy text-purple-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                            <div class="flex items-start gap-2">
+                                <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
+                                <div class="text-xs text-yellow-200/80">
+                                    <strong>Important:</strong> Send exactly <span id="payment-amount-display" class="font-mono text-yellow-400">$0.00</span> worth of crypto to this address. 
+                                    Wrong amount or network may result in lost funds.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- TX Hash Input -->
+                    <div id="tx-hash-section" class="hidden mb-4">
+                        <label class="block text-xs text-white/50 mb-2">Transaction Hash (Optional)</label>
+                        <input type="text" id="tx-hash-input" placeholder="Enter your transaction hash for faster verification" 
+                               class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none font-mono text-sm">
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="btn-create-payment" onclick="createPayment()" 
+                                class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                                style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
+                            <i class="fas fa-qrcode"></i>
+                            <span>Get Payment Address</span>
+                        </button>
+                        <button id="btn-mark-paid" onclick="markAsPaid()" 
+                                class="hidden flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+                                style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>I've Sent Payment</span>
+                        </button>
+                        <button onclick="cancelPayment()" 
+                                class="py-3 px-6 rounded-xl font-semibold transition-all border border-white/20 text-white/60 hover:text-white hover:border-white/40">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment History -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-history text-cyan-400"></i>
+                <span class="font-display font-semibold">Payment History</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <div id="payment-history-container">
+                <div class="text-center py-8 text-white/40">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading payment history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== TASKS/CHALLENGES SECTION ==================== -->
+<div class="section-content" data-section="tasks">
+    <!-- Tasks Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-display text-xl font-semibold flex items-center gap-3" style="color: var(--neon-green);">
+                <i class="fas fa-trophy"></i>
+                <span data-i18n="user.tasksAndChallenges">Tasks & Challenges</span>
+            </h1>
+            <p class="text-white/50 text-sm mt-1">Complete tasks to earn rewards!</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="refreshUserTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                <i class="fas fa-sync-alt" id="user-tasks-refresh-icon"></i>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- User Task Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="p-4 bg-black/30 border border-cyan-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/20">
+                    <i class="fas fa-tasks text-cyan-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50">Available Tasks</div>
+                    <div class="font-mono font-bold text-lg text-cyan-400" id="user-available-tasks">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-black/30 border border-yellow-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                    <i class="fas fa-hourglass-half text-yellow-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50">In Progress</div>
+                    <div class="font-mono font-bold text-lg text-yellow-400" id="user-in-progress-tasks">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-black/30 border border-green-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-green-500/20">
+                    <i class="fas fa-check-circle text-green-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50">Completed</div>
+                    <div class="font-mono font-bold text-lg text-green-400" id="user-completed-tasks">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-black/30 border border-pink-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-pink-500/20">
+                    <i class="fas fa-gift text-pink-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50">Total Rewards</div>
+                    <div class="font-mono font-bold text-lg text-pink-400" id="user-total-rewards">$0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Participations (In Progress / Pending) -->
+    <div class="section-card mb-6" id="my-participations-section" style="display: none;">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-clock text-yellow-400"></i>
+                <span class="font-display font-semibold">My Active Tasks</span>
+                <span class="badge bg-yellow-500/20 text-yellow-400" id="active-tasks-badge">0</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <div id="my-participations-list" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Tasks -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-list text-cyan-400"></i>
+                <span class="font-display font-semibold">Available Tasks</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="user-task-type-filter" class="input text-sm" style="width: auto; padding: 6px 12px;" onchange="loadUserTasks()">
+                    <option value="">All Types</option>
+                    <option value="social">Social Media</option>
+                    <option value="trading">Trading</option>
+                    <option value="referral">Referral</option>
+                    <option value="community">Community</option>
+                    <option value="custom">Special</option>
+                </select>
+            </div>
+        </div>
+        <div class="section-body">
+            <div id="available-tasks-list" class="space-y-4">
+                <div class="text-center py-8 text-white/40">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading tasks...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Tasks History -->
+    <div class="section-card mt-6">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-history text-green-400"></i>
+                <span class="font-display font-semibold">Completed Tasks</span>
+            </div>
+        </div>
+        <div class="section-body">
+            <div id="completed-tasks-list" class="space-y-3">
+                <div class="text-center py-4 text-white/40">
+                    <p>No completed tasks yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Details/Submit Modal -->
+<div id="taskDetailsModal" class="modal-overlay" onclick="if(event.target===this)closeTaskDetailsModal()" style="display: none;">
+    <div class="modal-card" style="max-width: 550px; background: var(--cyber-dark, #0d0d14); border: 1px solid rgba(0, 255, 136, 0.2);">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(0, 255, 136, 0.1);">
+            <div class="modal-title">
+                <i class="fas fa-trophy" id="task-modal-icon" style="color: var(--neon-green);"></i>
+                <span id="task-details-title">Task Details</span>
+            </div>
+            <button onclick="closeTaskDetailsModal()" style="width: 32px; height: 32px; border: none; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.5);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="modal-task-id" value="">
+            
+            <div id="task-details-content">
+                <!-- Populated by JS -->
+            </div>
+            
+            <!-- Submission Form (shown when in progress) -->
+            <div id="task-submission-form" style="display: none;">
+                <div class="mb-4">
+                    <label class="text-xs text-white/50 mb-1 block">Proof / Notes (optional)</label>
+                    <textarea id="task-submission-text" class="input" rows="3" placeholder="Add any notes or proof of completion"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-white/50 mb-1 block">Proof URL (optional)</label>
+                    <input type="url" id="task-submission-url" class="input" placeholder="https://...">
+                </div>
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t" style="border-color: rgba(255,255,255,0.1);">
+                <button onclick="closeTaskDetailsModal()" class="cyber-btn cyber-btn-outline flex-1">
+                    Close
+                </button>
+                <button onclick="handleTaskAction()" class="cyber-btn cyber-btn-success flex-1" id="task-action-btn" style="display: none;">
+                    <i class="fas fa-play"></i>
+                    <span>Join Task</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -2354,9 +2813,371 @@
     }
     
     // ==================== SUBSCRIPTION ====================
+    let subscriptionData = null;
+    let selectedPlan = null;
+    let currentPaymentId = null;
+    let availableNetworks = [];
+
     function showUpgradeModal() {
-        // Show upgrade modal or redirect to subscription page
-        showToast('Subscription upgrade coming soon! Contact admin for premium access.', 'info');
+        // Navigate to subscription section
+        showSection('subscription');
+    }
+    
+    function loadSubscriptionStatus() {
+        fetch('/api/subscription/status')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to load subscription status');
+                    return;
+                }
+                
+                subscriptionData = data;
+                updateSubscriptionDisplay(data);
+                loadPaymentHistory(data.payment_history);
+                showPendingPayments(data.pending_payments);
+            })
+            .catch(err => console.error('Error loading subscription:', err));
+    }
+    
+    function updateSubscriptionDisplay(data) {
+        const statusBadge = document.getElementById('sub-status-badge');
+        const statusText = document.getElementById('sub-status-text');
+        const planEl = document.getElementById('sub-current-plan');
+        const descEl = document.getElementById('sub-plan-description');
+        const expiresEl = document.getElementById('sub-expires-at');
+        const daysEl = document.getElementById('sub-days-remaining');
+        const tradingDot = document.getElementById('sub-trading-dot');
+        const tradingStatus = document.getElementById('sub-trading-status');
+        const tradingNote = document.getElementById('sub-trading-note');
+        const freeBanner = document.getElementById('free-mode-banner');
+        const upgradeSection = document.getElementById('upgrade-section');
+        
+        // Check if subscriptions are disabled (free mode)
+        if (!data.subscription_enabled) {
+            freeBanner.classList.remove('hidden');
+            upgradeSection.classList.add('hidden');
+            statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+            statusBadge.style.color = '#10b981';
+            statusText.textContent = 'FREE ACCESS';
+            tradingDot.style.background = 'var(--neon-green)';
+            tradingStatus.textContent = 'ENABLED';
+            tradingStatus.style.color = 'var(--neon-green)';
+            tradingNote.textContent = 'Full access - Subscriptions disabled';
+            return;
+        }
+        
+        freeBanner.classList.add('hidden');
+        upgradeSection.classList.remove('hidden');
+        
+        // Plan info
+        const planNames = {
+            'free': 'Free',
+            'basic': 'Basic',
+            'pro': 'Pro',
+            'enterprise': 'Enterprise',
+            'basic_annual': 'Basic Annual',
+            'pro_annual': 'Pro Annual'
+        };
+        
+        planEl.textContent = planNames[data.plan] || data.plan || 'Free';
+        
+        // Status badge
+        if (data.is_active) {
+            statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+            statusBadge.style.color = '#10b981';
+            statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            statusText.textContent = 'ACTIVE';
+        } else {
+            statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+            statusBadge.style.color = '#ef4444';
+            statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            statusText.textContent = 'EXPIRED';
+        }
+        
+        // Expiration
+        if (data.expires_at) {
+            const expires = new Date(data.expires_at);
+            expiresEl.textContent = expires.toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+            daysEl.textContent = `${data.days_remaining} days remaining`;
+            
+            if (data.days_remaining <= 7) {
+                expiresEl.style.color = 'var(--neon-red)';
+            } else if (data.days_remaining <= 30) {
+                expiresEl.style.color = 'var(--neon-yellow)';
+            }
+        } else {
+            expiresEl.textContent = data.plan === 'free' ? 'N/A' : 'Never';
+            daysEl.textContent = '';
+        }
+        
+        // Trading status
+        if (data.can_trade) {
+            tradingDot.style.background = 'var(--neon-green)';
+            tradingStatus.textContent = 'ENABLED';
+            tradingStatus.style.color = 'var(--neon-green)';
+            tradingNote.textContent = 'Full access to copy trading';
+        } else {
+            tradingDot.style.background = 'var(--neon-red)';
+            tradingStatus.textContent = 'DISABLED';
+            tradingStatus.style.color = 'var(--neon-red)';
+            tradingNote.textContent = 'Upgrade to enable trading';
+        }
+        
+        // Update feature badges
+        updateSubscriptionUI();
+    }
+    
+    function showPendingPayments(pendingPayments) {
+        const alert = document.getElementById('pending-payments-alert');
+        const details = document.getElementById('pending-payment-details');
+        
+        if (pendingPayments && pendingPayments.length > 0) {
+            alert.classList.remove('hidden');
+            const p = pendingPayments[0];
+            details.textContent = `${p.plan.toUpperCase()} plan - $${p.amount_usd.toFixed(2)} (${p.status === 'awaiting_confirmation' ? 'Awaiting admin confirmation' : 'Waiting for payment'})`;
+        } else {
+            alert.classList.add('hidden');
+        }
+    }
+    
+    function loadPaymentHistory(history) {
+        const container = document.getElementById('payment-history-container');
+        
+        if (!history || history.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-white/40">
+                    <i class="fas fa-receipt text-3xl mb-2"></i>
+                    <p>No payment history yet</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="space-y-3">';
+        history.forEach(p => {
+            const date = new Date(p.completed_at);
+            html += `
+                <div class="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-green-500/10">
+                            <i class="fas fa-check-circle text-green-400"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-white">${p.plan.toUpperCase()} - ${p.days} days</div>
+                            <div class="text-xs text-white/50">${date.toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-mono font-bold text-green-400">$${p.amount_usd.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+    
+    function loadAvailablePlans() {
+        fetch('/api/subscription/available-networks')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                
+                availableNetworks = data.networks;
+                renderPlans(data.plans);
+                updateNetworkSelect(data.networks);
+            })
+            .catch(err => console.error('Error loading plans:', err));
+    }
+    
+    function renderPlans(plans) {
+        const container = document.getElementById('plans-container');
+        
+        if (!plans || plans.length === 0) {
+            container.innerHTML = '<div class="col-span-3 text-center text-white/50">No plans available</div>';
+            return;
+        }
+        
+        // Filter to show main plans
+        const mainPlans = plans.filter(p => ['basic', 'pro', 'enterprise'].includes(p.id));
+        
+        let html = '';
+        mainPlans.forEach((plan, idx) => {
+            const isPopular = plan.id === 'pro';
+            const colors = {
+                'basic': { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', accent: '#3b82f6' },
+                'pro': { bg: 'rgba(139, 92, 246, 0.1)', border: 'rgba(139, 92, 246, 0.3)', accent: '#8b5cf6' },
+                'enterprise': { bg: 'rgba(236, 72, 153, 0.1)', border: 'rgba(236, 72, 153, 0.3)', accent: '#ec4899' }
+            };
+            const c = colors[plan.id] || colors.basic;
+            
+            html += `
+                <div class="relative p-5 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] ${selectedPlan?.id === plan.id ? 'ring-2 ring-purple-500' : ''}"
+                     style="background: ${c.bg}; border-color: ${c.border};"
+                     onclick="selectPlan('${plan.id}', '${plan.name}', ${plan.price}, ${plan.days})">
+                    ${isPopular ? '<span class="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">POPULAR</span>' : ''}
+                    <div class="text-center">
+                        <div class="text-sm text-white/50 mb-1">${plan.id.toUpperCase()}</div>
+                        <div class="text-3xl font-bold mb-1" style="color: ${c.accent};">$${plan.price}</div>
+                        <div class="text-xs text-white/40 mb-4">${plan.days} days</div>
+                        <div class="text-sm font-semibold text-white">${plan.name}</div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+    
+    function selectPlan(id, name, price, days) {
+        selectedPlan = { id, name, price, days };
+        document.getElementById('payment-form').classList.remove('hidden');
+        document.getElementById('selected-plan-name').textContent = name;
+        document.getElementById('selected-plan-price').textContent = `$${price}`;
+        document.getElementById('payment-amount-display').textContent = `$${price.toFixed(2)}`;
+        
+        // Re-render plans to show selection
+        loadAvailablePlans();
+    }
+    
+    function updateNetworkSelect(networks) {
+        const select = document.getElementById('payment-network');
+        
+        if (!networks || networks.length === 0) {
+            select.innerHTML = '<option value="">No payment methods configured</option>';
+            return;
+        }
+        
+        let html = '<option value="">Select payment network...</option>';
+        networks.forEach(n => {
+            html += `<option value="${n.id}">${n.name}</option>`;
+        });
+        select.innerHTML = html;
+    }
+    
+    function createPayment() {
+        if (!selectedPlan) {
+            showToast('Please select a plan first', 'warning');
+            return;
+        }
+        
+        const network = document.getElementById('payment-network').value;
+        if (!network) {
+            showToast('Please select a payment network', 'warning');
+            return;
+        }
+        
+        const btn = document.getElementById('btn-create-payment');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        
+        fetch('/api/subscription/create-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plan: selectedPlan.id,
+                network: network
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showToast(data.error || 'Failed to create payment', 'error');
+                return;
+            }
+            
+            currentPaymentId = data.payment.id;
+            
+            // Show wallet address
+            document.getElementById('wallet-display').classList.remove('hidden');
+            document.getElementById('tx-hash-section').classList.remove('hidden');
+            document.getElementById('payment-wallet-address').textContent = data.payment.wallet_address;
+            document.getElementById('payment-amount-display').textContent = `$${data.payment.amount_usd.toFixed(2)}`;
+            
+            // Toggle buttons
+            btn.classList.add('hidden');
+            document.getElementById('btn-mark-paid').classList.remove('hidden');
+            
+            showToast('Payment address generated! Send crypto to the address shown.', 'success');
+        })
+        .catch(err => {
+            showToast('Error creating payment', 'error');
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+    
+    function markAsPaid() {
+        if (!currentPaymentId) {
+            showToast('No active payment found', 'error');
+            return;
+        }
+        
+        const txHash = document.getElementById('tx-hash-input').value.trim();
+        const btn = document.getElementById('btn-mark-paid');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        fetch(`/api/subscription/mark-paid/${currentPaymentId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tx_hash: txHash })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showToast(data.error || 'Failed to mark payment', 'error');
+                return;
+            }
+            
+            if (data.auto_confirmed) {
+                showToast('Payment confirmed! Your subscription is now active.', 'success');
+            } else {
+                showToast('Payment marked as sent. Awaiting admin confirmation.', 'info');
+            }
+            
+            // Reset form and reload status
+            cancelPayment();
+            loadSubscriptionStatus();
+        })
+        .catch(err => {
+            showToast('Error processing payment', 'error');
+            console.error(err);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+    
+    function cancelPayment() {
+        document.getElementById('payment-form').classList.add('hidden');
+        document.getElementById('wallet-display').classList.add('hidden');
+        document.getElementById('tx-hash-section').classList.add('hidden');
+        document.getElementById('btn-create-payment').classList.remove('hidden');
+        document.getElementById('btn-mark-paid').classList.add('hidden');
+        document.getElementById('tx-hash-input').value = '';
+        selectedPlan = null;
+        currentPaymentId = null;
+        loadAvailablePlans();
+    }
+    
+    function copyWalletAddress() {
+        const address = document.getElementById('payment-wallet-address').textContent;
+        navigator.clipboard.writeText(address).then(() => {
+            showToast('Wallet address copied!', 'success');
+        }).catch(() => {
+            showToast('Failed to copy', 'error');
+        });
     }
     
     // Update subscription UI based on plan
@@ -2378,6 +3199,25 @@
             }
         }
     }
+    
+    // Initialize subscription when section is shown
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load subscription data when subscription section becomes active
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.target.classList.contains('active') && 
+                    mutation.target.getAttribute('data-section') === 'subscription') {
+                    loadSubscriptionStatus();
+                    loadAvailablePlans();
+                }
+            });
+        });
+        
+        const subSection = document.querySelector('[data-section="subscription"]');
+        if (subSection) {
+            observer.observe(subSection, { attributes: true, attributeFilter: ['class'] });
+        }
+    });
     
     // Initialize subscription UI
     updateSubscriptionUI();
@@ -2887,40 +3727,101 @@
             .then(data => {
                 if (!data.success) return;
                 
-                // Create modal content
-                let content = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+                // Separate unlocked and locked achievements
+                const unlockedAchievements = data.all_achievements.filter(a => a.unlocked);
+                const lockedAchievements = data.all_achievements.filter(a => !a.unlocked);
                 
-                data.all_achievements.forEach(achievement => {
-                    const isUnlocked = achievement.unlocked;
-                    const opacity = isUnlocked ? '' : 'opacity-40';
-                    const lockIcon = isUnlocked ? '' : '<i class="fas fa-lock text-white/30 ml-auto"></i>';
+                // Rarity styles
+                const getRarityStyles = (rarity, isUnlocked) => {
+                    const styles = {
+                        'common': { border: 'rgba(156, 163, 175, 0.4)', glow: 'rgba(156, 163, 175, 0.2)', label: 'Common', color: '#9ca3af' },
+                        'rare': { border: 'rgba(59, 130, 246, 0.5)', glow: 'rgba(59, 130, 246, 0.3)', label: 'Rare', color: '#3b82f6' },
+                        'epic': { border: 'rgba(147, 51, 234, 0.5)', glow: 'rgba(147, 51, 234, 0.3)', label: 'Epic', color: '#9333ea' },
+                        'legendary': { border: 'rgba(251, 191, 36, 0.5)', glow: 'rgba(251, 191, 36, 0.3)', label: 'Legendary', color: '#fbbf24' }
+                    };
+                    return styles[rarity] || styles['common'];
+                };
+                
+                // Build achievement card
+                const buildCard = (achievement, isUnlocked) => {
+                    const rarity = getRarityStyles(achievement.rarity, isUnlocked);
+                    const opacity = isUnlocked ? '1' : '0.5';
+                    const grayscale = isUnlocked ? '' : 'filter: grayscale(60%);';
+                    const statusIcon = isUnlocked 
+                        ? `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;"><i class="fas fa-check"></i> Unlocked</div>`
+                        : `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs" style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.4);"><i class="fas fa-lock"></i> Locked</div>`;
+                    const glowEffect = isUnlocked ? `box-shadow: 0 0 20px ${rarity.glow};` : '';
                     
-                    const rarityBorder = {
-                        'common': 'border-gray-500/30',
-                        'rare': 'border-blue-500/30',
-                        'epic': 'border-purple-500/30',
-                        'legendary': 'border-yellow-500/30'
-                    }[achievement.rarity] || 'border-gray-500/30';
-                    
-                    content += `
-                        <div class="flex items-center gap-3 p-3 rounded-lg bg-black/30 border ${rarityBorder} ${opacity}">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                 style="background: ${achievement.color}20;">
-                                <i class="fas ${achievement.icon}" style="color: ${achievement.color};"></i>
+                    return `
+                        <div class="flex items-start gap-3 p-4 rounded-xl transition-all duration-300" 
+                             style="background: rgba(0,0,0,0.4); border: 1px solid ${rarity.border}; opacity: ${opacity}; ${grayscale} ${glowEffect}">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative"
+                                 style="background: ${achievement.color}20; border: 1px solid ${achievement.color}40;">
+                                <i class="fas ${achievement.icon} text-lg" style="color: ${achievement.color};"></i>
+                                ${isUnlocked ? `<div class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center"><i class="fas fa-check text-xs text-black"></i></div>` : ''}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="font-medium text-white text-sm">${achievement.name}</div>
-                                <div class="text-xs text-white/50 truncate">${achievement.description}</div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-white text-sm">${achievement.name}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background: ${rarity.color}20; color: ${rarity.color}; border: 1px solid ${rarity.color}40;">${rarity.label}</span>
+                                </div>
+                                <div class="text-xs text-white/60 leading-relaxed">${achievement.description}</div>
                             </div>
-                            ${lockIcon}
+                            ${statusIcon}
                         </div>
                     `;
-                });
+                };
                 
-                content += '</div>';
-                content += `<div class="text-center mt-4 text-sm text-white/50">${data.total_unlocked} of ${data.total_available} achievements unlocked</div>`;
+                // Build modal content
+                let content = '';
                 
-                // Show in existing modal or create simple alert
+                // Unlocked section
+                if (unlockedAchievements.length > 0) {
+                    content += `
+                        <div class="mb-6">
+                            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                                <i class="fas fa-trophy text-yellow-400"></i>
+                                <span class="text-sm font-semibold text-white">Unlocked Achievements</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-bold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">${unlockedAchievements.length}</span>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3">
+                                ${unlockedAchievements.map(a => buildCard(a, true)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Locked section
+                if (lockedAchievements.length > 0) {
+                    content += `
+                        <div>
+                            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                                <i class="fas fa-lock text-white/40"></i>
+                                <span class="text-sm font-semibold text-white/70">Available to Unlock</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5);">${lockedAchievements.length}</span>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3">
+                                ${lockedAchievements.map(a => buildCard(a, false)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Progress bar at bottom
+                const progressPercent = data.total_available > 0 ? (data.total_unlocked / data.total_available) * 100 : 0;
+                content += `
+                    <div class="mt-6 pt-4 border-t border-white/10">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-white/60">Overall Progress</span>
+                            <span class="text-sm font-bold" style="color: #c084fc;">${data.total_unlocked} / ${data.total_available}</span>
+                        </div>
+                        <div class="h-3 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1);">
+                            <div class="h-full rounded-full transition-all duration-500" style="width: ${progressPercent}%; background: linear-gradient(90deg, #9333ea, #c084fc, #fbbf24);"></div>
+                        </div>
+                        <div class="text-center mt-2 text-xs text-white/40">Complete trades to unlock more achievements!</div>
+                    </div>
+                `;
+                
                 showAchievementsModal(content, data.total_unlocked, data.total_available);
             })
             .catch(err => console.error('Error loading achievements:', err));
@@ -2931,22 +3832,38 @@
         const existingModal = document.getElementById('achievements-modal');
         if (existingModal) existingModal.remove();
         
+        const progressPercent = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+        
         const modal = document.createElement('div');
         modal.id = 'achievements-modal';
         modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
-        modal.style.background = 'rgba(0,0,0,0.8)';
+        modal.style.cssText = 'background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);';
         modal.innerHTML = `
-            <div class="modal-cyber max-w-2xl w-full max-h-[80vh] flex flex-col">
-                <div class="modal-head">
-                    <div class="modal-title">
-                        <i class="fas fa-trophy text-yellow-400"></i>
-                        <span>Achievements (${unlocked}/${total})</span>
+            <div class="max-w-2xl w-full max-h-[85vh] flex flex-col rounded-2xl overflow-hidden"
+                 style="background: linear-gradient(135deg, rgba(15, 15, 25, 0.98), rgba(10, 10, 20, 0.98)); border: 1px solid rgba(147, 51, 234, 0.3); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(147, 51, 234, 0.15);">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-5" style="background: linear-gradient(90deg, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1)); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2)); border: 1px solid rgba(251, 191, 36, 0.4);">
+                            <i class="fas fa-trophy text-xl text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">All Achievements</h3>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-sm text-white/60">${progressPercent}% Complete</span>
+                                <span class="text-white/30">•</span>
+                                <span class="text-sm font-semibold" style="color: #c084fc;">${unlocked} of ${total} unlocked</span>
+                            </div>
+                        </div>
                     </div>
-                    <button class="modal-close" onclick="document.getElementById('achievements-modal').remove()">
-                        <i class="fas fa-times"></i>
+                    <button onclick="document.getElementById('achievements-modal').remove()" 
+                            class="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
+                            style="border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="fas fa-times text-white/60 hover:text-white"></i>
                     </button>
                 </div>
-                <div class="modal-body overflow-y-auto">
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto p-5" style="scrollbar-width: thin; scrollbar-color: rgba(147, 51, 234, 0.5) transparent;">
                     ${content}
                 </div>
             </div>
@@ -2954,10 +3871,29 @@
         
         document.body.appendChild(modal);
         
+        // Add entrance animation
+        const modalContent = modal.querySelector('.max-w-2xl');
+        modalContent.style.transform = 'scale(0.95) translateY(20px)';
+        modalContent.style.opacity = '0';
+        modalContent.style.transition = 'all 0.3s ease-out';
+        requestAnimationFrame(() => {
+            modalContent.style.transform = 'scale(1) translateY(0)';
+            modalContent.style.opacity = '1';
+        });
+        
         // Close on backdrop click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) modal.remove();
         });
+        
+        // Close on Escape key
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
     }
 
     // ==================== INIT ====================
@@ -2988,5 +3924,365 @@
             updateProfitDisplay(balance);
         }
     });
+    
+    // ==================== TASKS & CHALLENGES ====================
+    
+    let userTasks = [];
+    let myParticipations = [];
+    let userTaskTypes = {};
+    let userRewardTypes = {};
+    let currentTaskAction = null; // 'join', 'submit'
+    
+    async function loadUserTasks() {
+        const taskType = document.getElementById('user-task-type-filter')?.value || '';
+        
+        try {
+            const url = taskType ? `/api/tasks?type=${taskType}` : '/api/tasks';
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.success) {
+                userTasks = data.tasks;
+                userTaskTypes = data.task_types || {};
+                userRewardTypes = data.reward_types || {};
+                renderAvailableTasks();
+                updateUserTaskStats();
+            }
+        } catch (err) {
+            console.error('Error loading tasks:', err);
+        }
+    }
+    
+    async function loadMyParticipations() {
+        try {
+            const response = await fetch('/api/tasks/my-participations');
+            const data = await response.json();
+            
+            if (data.success) {
+                myParticipations = data.participations;
+                renderMyParticipations();
+                updateUserTaskStats();
+            }
+        } catch (err) {
+            console.error('Error loading participations:', err);
+        }
+    }
+    
+    function updateUserTaskStats() {
+        const availableCount = userTasks.filter(t => t.can_participate).length;
+        const inProgressCount = myParticipations.filter(p => ['pending', 'in_progress', 'submitted'].includes(p.status)).length;
+        const completedCount = myParticipations.filter(p => p.status === 'completed').length;
+        const totalRewards = myParticipations.filter(p => p.reward_given).reduce((sum, p) => sum + (p.reward_amount || 0), 0);
+        
+        document.getElementById('user-available-tasks').textContent = availableCount;
+        document.getElementById('user-in-progress-tasks').textContent = inProgressCount;
+        document.getElementById('user-completed-tasks').textContent = completedCount;
+        document.getElementById('user-total-rewards').textContent = '$' + totalRewards.toFixed(2);
+        document.getElementById('active-tasks-badge').textContent = inProgressCount;
+    }
+    
+    function renderAvailableTasks() {
+        const container = document.getElementById('available-tasks-list');
+        
+        // Filter out tasks that user is already participating in
+        const availableTasks = userTasks.filter(t => !t.user_participation || t.user_participation.status === 'rejected');
+        
+        if (availableTasks.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-white/40">
+                    <i class="fas fa-check-circle text-3xl mb-3 text-green-400"></i>
+                    <p>No new tasks available right now</p>
+                    <p class="text-sm mt-1">Check back later for new challenges!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        availableTasks.forEach(task => {
+            const typeInfo = userTaskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
+            const rewardInfo = userRewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+            
+            const spotsText = task.spots_remaining !== null ? 
+                `<span class="text-orange-400">${task.spots_remaining} spots left</span>` : 
+                '<span class="text-white/40">Unlimited spots</span>';
+            
+            html += `
+                <div class="p-4 rounded-xl transition-all hover:scale-[1.01] cursor-pointer" 
+                     style="background: linear-gradient(135deg, ${task.color}10, transparent); border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : task.color + '30'};"
+                     onclick="openTaskDetails(${task.id})">
+                    <div class="flex items-start gap-4">
+                        <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style="background: ${task.color}20; border: 1px solid ${task.color}40;">
+                            <i class="fas ${task.icon}" style="color: ${task.color}; font-size: 1.5rem;"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-semibold text-white">${task.title}</span>
+                                ${task.is_featured ? '<span class="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-400">⭐ Featured</span>' : ''}
+                            </div>
+                            <p class="text-sm text-white/60 mt-1 line-clamp-2">${task.description || 'Complete this task to earn rewards!'}</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs">
+                                <span class="flex items-center gap-1" style="color: ${typeInfo.color};">
+                                    <i class="fas ${typeInfo.icon}"></i> ${typeInfo.name}
+                                </span>
+                                <span class="flex items-center gap-1" style="color: ${rewardInfo.color};">
+                                    <i class="fas ${rewardInfo.icon}"></i> 
+                                    ${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}
+                                </span>
+                                ${spotsText}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            ${task.can_participate ? 
+                                '<button class="cyber-btn cyber-btn-success cyber-btn-sm"><i class="fas fa-play"></i></button>' :
+                                '<span class="text-xs text-white/40">' + (task.participation_reason || 'Unavailable') + '</span>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function renderMyParticipations() {
+        const container = document.getElementById('my-participations-list');
+        const section = document.getElementById('my-participations-section');
+        const completedContainer = document.getElementById('completed-tasks-list');
+        
+        const activeParticipations = myParticipations.filter(p => ['pending', 'in_progress', 'submitted'].includes(p.status));
+        const completedParticipations = myParticipations.filter(p => p.status === 'completed');
+        
+        // Active participations
+        if (activeParticipations.length > 0) {
+            section.style.display = 'block';
+            
+            let html = '';
+            activeParticipations.forEach(p => {
+                const task = p.task || {};
+                const statusColors = {
+                    'pending': { bg: 'bg-gray-500/20', text: 'text-gray-400', icon: 'fa-clock' },
+                    'in_progress': { bg: 'bg-yellow-500/20', text: 'text-yellow-400', icon: 'fa-spinner fa-spin' },
+                    'submitted': { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: 'fa-hourglass-half' }
+                };
+                const status = statusColors[p.status] || statusColors.pending;
+                
+                html += `
+                    <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: ${task.color || '#888'}20;">
+                                <i class="fas ${task.icon || 'fa-tasks'}" style="color: ${task.color || '#888'};"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">${task.title || 'Task'}</div>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <span class="${status.bg} ${status.text} px-2 py-0.5 rounded-full">
+                                        <i class="fas ${status.icon} mr-1"></i>
+                                        ${p.status === 'submitted' ? 'Awaiting Review' : p.status.replace('_', ' ')}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        ${p.status !== 'submitted' ? `
+                            <button onclick="openTaskDetails(${task.id}, true)" class="cyber-btn cyber-btn-primary cyber-btn-sm">
+                                <i class="fas fa-paper-plane"></i> Submit
+                            </button>
+                        ` : `
+                            <span class="text-xs text-blue-400"><i class="fas fa-clock mr-1"></i> Under Review</span>
+                        `}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        } else {
+            section.style.display = 'none';
+        }
+        
+        // Completed participations
+        if (completedParticipations.length > 0) {
+            let html = '';
+            completedParticipations.slice(0, 10).forEach(p => {
+                const task = p.task || {};
+                const completedAt = new Date(p.completed_at);
+                
+                html += `
+                    <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-green-500/20">
+                                <i class="fas fa-check text-green-400"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">${task.title || 'Task'}</div>
+                                <div class="text-xs text-white/50">${completedAt.toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-mono font-bold text-green-400">
+                                ${task.reward_type === 'money' ? '+$' + p.reward_amount : '+' + p.reward_amount}
+                            </div>
+                            <div class="text-xs text-white/40">${task.reward_type || 'reward'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            completedContainer.innerHTML = html;
+        } else {
+            completedContainer.innerHTML = '<div class="text-center py-4 text-white/40"><p>No completed tasks yet</p></div>';
+        }
+    }
+    
+    function openTaskDetails(taskId, isSubmitting = false) {
+        const task = userTasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        document.getElementById('modal-task-id').value = taskId;
+        document.getElementById('task-details-title').textContent = task.title;
+        document.getElementById('task-modal-icon').className = `fas ${task.icon}`;
+        document.getElementById('task-modal-icon').style.color = task.color;
+        
+        const typeInfo = userTaskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
+        const rewardInfo = userRewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+        
+        const participation = task.user_participation;
+        const isInProgress = participation && ['pending', 'in_progress'].includes(participation.status);
+        
+        let contentHtml = `
+            <div class="mb-4">
+                <p class="text-white/70">${task.description || 'Complete this task to earn rewards!'}</p>
+            </div>
+            
+            ${task.instructions ? `
+                <div class="mb-4 p-3 rounded-lg" style="background: rgba(0, 245, 255, 0.1); border: 1px solid rgba(0, 245, 255, 0.2);">
+                    <h4 class="text-sm font-semibold text-cyan-400 mb-2"><i class="fas fa-info-circle mr-1"></i> Instructions</h4>
+                    <p class="text-sm text-white/70 whitespace-pre-line">${task.instructions}</p>
+                </div>
+            ` : ''}
+            
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="p-3 rounded-lg" style="background: ${typeInfo.color}15; border: 1px solid ${typeInfo.color}30;">
+                    <div class="text-xs text-white/50">Type</div>
+                    <div class="font-semibold" style="color: ${typeInfo.color};"><i class="fas ${typeInfo.icon} mr-1"></i> ${typeInfo.name}</div>
+                </div>
+                <div class="p-3 rounded-lg" style="background: ${rewardInfo.color}15; border: 1px solid ${rewardInfo.color}30;">
+                    <div class="text-xs text-white/50">Reward</div>
+                    <div class="font-semibold" style="color: ${rewardInfo.color};"><i class="fas ${rewardInfo.icon} mr-1"></i> ${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}</div>
+                </div>
+            </div>
+            
+            ${task.reward_description ? `<p class="text-sm text-white/60 mb-4"><i class="fas fa-gift mr-1"></i> ${task.reward_description}</p>` : ''}
+        `;
+        
+        document.getElementById('task-details-content').innerHTML = contentHtml;
+        
+        const actionBtn = document.getElementById('task-action-btn');
+        const submissionForm = document.getElementById('task-submission-form');
+        
+        if (isSubmitting || isInProgress) {
+            // Show submission form
+            submissionForm.style.display = 'block';
+            actionBtn.style.display = 'flex';
+            actionBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit Completion</span>';
+            currentTaskAction = 'submit';
+        } else if (task.can_participate) {
+            // Show join button
+            submissionForm.style.display = 'none';
+            actionBtn.style.display = 'flex';
+            actionBtn.innerHTML = '<i class="fas fa-play"></i> <span>Join Task</span>';
+            currentTaskAction = 'join';
+        } else {
+            // Can't participate
+            submissionForm.style.display = 'none';
+            actionBtn.style.display = 'none';
+            currentTaskAction = null;
+        }
+        
+        // Clear submission fields
+        document.getElementById('task-submission-text').value = '';
+        document.getElementById('task-submission-url').value = '';
+        
+        document.getElementById('taskDetailsModal').style.display = 'flex';
+    }
+    
+    function closeTaskDetailsModal() {
+        document.getElementById('taskDetailsModal').style.display = 'none';
+    }
+    
+    async function handleTaskAction() {
+        const taskId = document.getElementById('modal-task-id').value;
+        const btn = document.getElementById('task-action-btn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        try {
+            if (currentTaskAction === 'join') {
+                const response = await fetch(`/api/tasks/${taskId}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message || 'Joined task successfully!', 'success');
+                    closeTaskDetailsModal();
+                    refreshUserTasks();
+                } else {
+                    showToast(data.error || 'Failed to join task', 'error');
+                }
+            } else if (currentTaskAction === 'submit') {
+                const submissionText = document.getElementById('task-submission-text').value.trim();
+                const submissionUrl = document.getElementById('task-submission-url').value.trim();
+                
+                const response = await fetch(`/api/tasks/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: submissionText, url: submissionUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message || 'Task submitted for review!', 'success');
+                    closeTaskDetailsModal();
+                    refreshUserTasks();
+                } else {
+                    showToast(data.error || 'Failed to submit task', 'error');
+                }
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    function refreshUserTasks() {
+        const icon = document.getElementById('user-tasks-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        Promise.all([
+            loadUserTasks(),
+            loadMyParticipations()
+        ]).finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+    
+    // Override showSection to load tasks when switching
+    const originalUserShowSection = window.showSection;
+    window.showSection = function(section) {
+        if (typeof originalUserShowSection === 'function') {
+            originalUserShowSection(section);
+        }
+        if (section === 'tasks') {
+            loadUserTasks();
+            loadMyParticipations();
+        }
+    };
 </script>
 {% endblock %}

@@ -3858,3 +3858,427 @@ SERVICE_CATEGORIES = {
         'description': 'General application settings',
     },
 }
+
+
+# ==================== TASK/CHALLENGE SYSTEM ====================
+
+class Task(db.Model):
+    """
+    Admin-created tasks/challenges that users can complete for rewards.
+    
+    Task types:
+    - social: Social media tasks (follow, like, share, etc.)
+    - trading: Trading-related tasks (make X trades, reach Y profit)
+    - referral: Refer X users
+    - community: Community engagement tasks
+    - custom: Custom admin-defined tasks
+    
+    Reward types:
+    - money: Cash reward added to user balance
+    - goods: Physical or digital goods (coupon, merchandise, etc.)
+    - xp: Experience points
+    - subscription: Free subscription days
+    """
+    __tablename__ = 'tasks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Task info
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    instructions = db.Column(db.Text, nullable=True)  # Detailed instructions for users
+    
+    # Task type and category
+    task_type = db.Column(db.String(50), default='custom', index=True)  # social, trading, referral, community, custom
+    category = db.Column(db.String(100), nullable=True)  # Optional category for grouping
+    
+    # Visual
+    icon = db.Column(db.String(50), default='fa-tasks')  # FontAwesome icon
+    color = db.Column(db.String(20), default='#00f5ff')  # Accent color
+    image_url = db.Column(db.String(500), nullable=True)  # Optional banner image
+    
+    # Reward settings
+    reward_type = db.Column(db.String(50), default='money')  # money, goods, xp, subscription
+    reward_amount = db.Column(db.Float, default=0.0)  # For money/xp, this is the amount
+    reward_description = db.Column(db.String(500), nullable=True)  # For goods: description of what they get
+    
+    # Participation limits
+    max_participants = db.Column(db.Integer, nullable=True)  # NULL = unlimited
+    max_completions_per_user = db.Column(db.Integer, default=1)  # How many times a user can complete this
+    
+    # Availability
+    start_date = db.Column(db.DateTime, nullable=True, index=True)  # NULL = immediately available
+    end_date = db.Column(db.DateTime, nullable=True, index=True)  # NULL = no expiry
+    
+    # Requirements
+    min_user_level = db.Column(db.Integer, default=0)  # Minimum user level required
+    requires_subscription = db.Column(db.Boolean, default=False)  # Requires active subscription
+    required_subscription_plans = db.Column(db.String(200), nullable=True)  # Comma-separated: 'basic,pro,enterprise'
+    
+    # Verification
+    requires_approval = db.Column(db.Boolean, default=True)  # Admin must approve completion
+    auto_verify = db.Column(db.Boolean, default=False)  # Can be auto-verified (for trading tasks)
+    verification_url = db.Column(db.String(500), nullable=True)  # URL to verify (for social tasks)
+    
+    # Status
+    status = db.Column(db.String(20), default='active', index=True)  # draft, active, paused, completed, cancelled
+    is_featured = db.Column(db.Boolean, default=False, index=True)  # Featured on main page
+    
+    # Statistics
+    total_participants = db.Column(db.Integer, default=0)
+    total_completions = db.Column(db.Integer, default=0)
+    total_rewards_given = db.Column(db.Float, default=0.0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    
+    # Relationships
+    created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_tasks')
+    participations = db.relationship('TaskParticipation', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    
+    # Indexes
+    __table_args__ = (
+        db.Index('idx_task_status_dates', 'status', 'start_date', 'end_date'),
+        db.Index('idx_task_type_status', 'task_type', 'status'),
+    )
+    
+    def to_dict(self, include_participations=False):
+        """Convert task to dictionary for API response"""
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'instructions': self.instructions,
+            'task_type': self.task_type,
+            'category': self.category,
+            'icon': self.icon,
+            'color': self.color,
+            'image_url': self.image_url,
+            'reward_type': self.reward_type,
+            'reward_amount': self.reward_amount,
+            'reward_description': self.reward_description,
+            'max_participants': self.max_participants,
+            'max_completions_per_user': self.max_completions_per_user,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'min_user_level': self.min_user_level,
+            'requires_subscription': self.requires_subscription,
+            'requires_approval': self.requires_approval,
+            'status': self.status,
+            'is_featured': self.is_featured,
+            'total_participants': self.total_participants,
+            'total_completions': self.total_completions,
+            'total_rewards_given': self.total_rewards_given,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'is_available': self.is_available(),
+            'spots_remaining': self.get_spots_remaining(),
+        }
+        
+        if include_participations:
+            data['participations'] = [p.to_dict() for p in self.participations.limit(100).all()]
+        
+        return data
+    
+    def is_available(self):
+        """Check if task is currently available for participation"""
+        if self.status != 'active':
+            return False
+        
+        now = datetime.now(timezone.utc)
+        
+        if self.start_date and now < self.start_date:
+            return False
+        
+        if self.end_date and now > self.end_date:
+            return False
+        
+        if self.max_participants and self.total_participants >= self.max_participants:
+            return False
+        
+        return True
+    
+    def get_spots_remaining(self):
+        """Get remaining spots, or None if unlimited"""
+        if not self.max_participants:
+            return None
+        return max(0, self.max_participants - self.total_participants)
+    
+    def can_user_participate(self, user):
+        """Check if a specific user can participate in this task"""
+        if not self.is_available():
+            return False, "Task is not currently available"
+        
+        # Check user level
+        if user.current_level_id:
+            from models import UserLevel
+            level = UserLevel.query.get(user.current_level_id)
+            if level and level.level_number < self.min_user_level:
+                return False, f"Requires level {self.min_user_level} or higher"
+        elif self.min_user_level > 0:
+            return False, f"Requires level {self.min_user_level} or higher"
+        
+        # Check subscription requirement
+        if self.requires_subscription:
+            if not user.subscription_expires_at or user.subscription_expires_at < datetime.now(timezone.utc):
+                return False, "Requires active subscription"
+            
+            if self.required_subscription_plans:
+                allowed_plans = [p.strip() for p in self.required_subscription_plans.split(',')]
+                if user.subscription_plan not in allowed_plans:
+                    return False, f"Requires {' or '.join(allowed_plans)} subscription"
+        
+        # Check if user already completed max times
+        user_completions = TaskParticipation.query.filter_by(
+            task_id=self.id,
+            user_id=user.id,
+            status='completed'
+        ).count()
+        
+        if user_completions >= self.max_completions_per_user:
+            return False, "You have already completed this task the maximum number of times"
+        
+        # Check if user has a pending participation
+        pending = TaskParticipation.query.filter_by(
+            task_id=self.id,
+            user_id=user.id
+        ).filter(TaskParticipation.status.in_(['pending', 'in_progress', 'submitted'])).first()
+        
+        if pending:
+            return False, "You already have an active participation for this task"
+        
+        return True, "OK"
+    
+    @staticmethod
+    def get_active_tasks(task_type=None, featured_only=False, limit=50):
+        """Get all active and available tasks"""
+        query = Task.query.filter_by(status='active')
+        
+        now = datetime.now(timezone.utc)
+        query = query.filter(
+            db.or_(Task.start_date.is_(None), Task.start_date <= now)
+        ).filter(
+            db.or_(Task.end_date.is_(None), Task.end_date > now)
+        )
+        
+        if task_type:
+            query = query.filter_by(task_type=task_type)
+        
+        if featured_only:
+            query = query.filter_by(is_featured=True)
+        
+        return query.order_by(Task.is_featured.desc(), Task.created_at.desc()).limit(limit).all()
+    
+    @staticmethod
+    def get_task_types():
+        """Get available task types with metadata"""
+        return {
+            'social': {
+                'name': 'Social Media',
+                'icon': 'fa-share-alt',
+                'color': '#1da1f2',
+                'description': 'Follow, like, share, and engage on social media'
+            },
+            'trading': {
+                'name': 'Trading',
+                'icon': 'fa-chart-line',
+                'color': '#00ff88',
+                'description': 'Complete trading-related challenges'
+            },
+            'referral': {
+                'name': 'Referral',
+                'icon': 'fa-users',
+                'color': '#a855f7',
+                'description': 'Invite friends and grow the community'
+            },
+            'community': {
+                'name': 'Community',
+                'icon': 'fa-comments',
+                'color': '#f59e0b',
+                'description': 'Engage with the community'
+            },
+            'custom': {
+                'name': 'Special',
+                'icon': 'fa-star',
+                'color': '#ec4899',
+                'description': 'Special limited-time tasks'
+            }
+        }
+    
+    @staticmethod
+    def get_reward_types():
+        """Get available reward types with metadata"""
+        return {
+            'money': {
+                'name': 'Cash Reward',
+                'icon': 'fa-dollar-sign',
+                'color': '#22c55e',
+                'description': 'Credited to your balance'
+            },
+            'goods': {
+                'name': 'Goods/Prizes',
+                'icon': 'fa-gift',
+                'color': '#f43f5e',
+                'description': 'Physical or digital prizes'
+            },
+            'xp': {
+                'name': 'Experience Points',
+                'icon': 'fa-bolt',
+                'color': '#eab308',
+                'description': 'Level up faster'
+            },
+            'subscription': {
+                'name': 'Free Subscription',
+                'icon': 'fa-crown',
+                'color': '#8b5cf6',
+                'description': 'Free subscription days'
+            }
+        }
+
+
+class TaskParticipation(db.Model):
+    """
+    Tracks user participation in tasks.
+    
+    Status flow:
+    1. pending: User joined, hasn't started
+    2. in_progress: User is working on the task
+    3. submitted: User submitted completion proof (awaiting approval)
+    4. completed: Admin approved, rewards given
+    5. rejected: Admin rejected the submission
+    6. cancelled: User or admin cancelled
+    """
+    __tablename__ = 'task_participations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, in_progress, submitted, completed, rejected, cancelled
+    
+    # Submission details
+    submission_text = db.Column(db.Text, nullable=True)  # User's proof/notes
+    submission_url = db.Column(db.String(500), nullable=True)  # Proof URL (screenshot, link, etc.)
+    submission_data = db.Column(db.Text, nullable=True)  # JSON data for auto-verification
+    submitted_at = db.Column(db.DateTime, nullable=True)
+    
+    # Review details
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_notes = db.Column(db.Text, nullable=True)  # Admin notes on review
+    rejection_reason = db.Column(db.String(500), nullable=True)
+    
+    # Reward tracking
+    reward_given = db.Column(db.Boolean, default=False)
+    reward_amount = db.Column(db.Float, default=0.0)  # Actual reward given
+    reward_given_at = db.Column(db.DateTime, nullable=True)
+    
+    # Timestamps
+    joined_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('task_participations', lazy='dynamic'))
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
+    
+    # Unique constraint: user can only have one active participation per task
+    __table_args__ = (
+        db.Index('idx_participation_task_user', 'task_id', 'user_id'),
+        db.Index('idx_participation_status', 'status'),
+    )
+    
+    def to_dict(self):
+        """Convert participation to dictionary"""
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'status': self.status,
+            'submission_text': self.submission_text,
+            'submission_url': self.submission_url,
+            'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None,
+            'reviewed_by': self.reviewed_by.username if self.reviewed_by else None,
+            'reviewed_at': self.reviewed_at.isoformat() if self.reviewed_at else None,
+            'review_notes': self.review_notes,
+            'rejection_reason': self.rejection_reason,
+            'reward_given': self.reward_given,
+            'reward_amount': self.reward_amount,
+            'joined_at': self.joined_at.isoformat() if self.joined_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'task': self.task.to_dict() if self.task else None,
+        }
+    
+    def submit(self, text=None, url=None, data=None):
+        """Submit task completion for review"""
+        self.status = 'submitted'
+        self.submission_text = text
+        self.submission_url = url
+        self.submission_data = data
+        self.submitted_at = datetime.now(timezone.utc)
+        db.session.commit()
+    
+    def approve(self, admin_user, notes=None):
+        """Approve the submission and give rewards"""
+        self.status = 'completed'
+        self.reviewed_by_id = admin_user.id
+        self.reviewed_at = datetime.now(timezone.utc)
+        self.review_notes = notes
+        self.completed_at = datetime.now(timezone.utc)
+        
+        # Give reward
+        task = self.task
+        if task:
+            self.reward_amount = task.reward_amount
+            
+            if task.reward_type == 'money':
+                # Add to user's custom_risk (used as balance in some implementations)
+                # Or implement your own balance field
+                pass  # Balance handling depends on your implementation
+            elif task.reward_type == 'xp':
+                self.user.xp = (self.user.xp or 0) + int(task.reward_amount)
+            elif task.reward_type == 'subscription':
+                # Add subscription days
+                days_to_add = int(task.reward_amount)
+                if self.user.subscription_expires_at and self.user.subscription_expires_at > datetime.now(timezone.utc):
+                    self.user.subscription_expires_at += timedelta(days=days_to_add)
+                else:
+                    self.user.subscription_expires_at = datetime.now(timezone.utc) + timedelta(days=days_to_add)
+                    if not self.user.subscription_plan or self.user.subscription_plan == 'free':
+                        self.user.subscription_plan = 'basic'
+            
+            self.reward_given = True
+            self.reward_given_at = datetime.now(timezone.utc)
+            
+            # Update task statistics
+            task.total_completions += 1
+            task.total_rewards_given += self.reward_amount
+        
+        db.session.commit()
+    
+    def reject(self, admin_user, reason=None, notes=None):
+        """Reject the submission"""
+        self.status = 'rejected'
+        self.reviewed_by_id = admin_user.id
+        self.reviewed_at = datetime.now(timezone.utc)
+        self.review_notes = notes
+        self.rejection_reason = reason
+        db.session.commit()
+    
+    @staticmethod
+    def get_pending_reviews(limit=100):
+        """Get all submissions awaiting admin review"""
+        return TaskParticipation.query.filter_by(status='submitted')\
+            .order_by(TaskParticipation.submitted_at.asc())\
+            .limit(limit).all()
+    
+    @staticmethod
+    def get_user_participations(user_id, status=None, limit=50):
+        """Get a user's task participations"""
+        query = TaskParticipation.query.filter_by(user_id=user_id)
+        if status:
+            query = query.filter_by(status=status)
+        return query.order_by(TaskParticipation.updated_at.desc()).limit(limit).all()

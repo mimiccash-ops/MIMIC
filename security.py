@@ -308,9 +308,9 @@ class InputValidator:
         Validate password strength
         
         SECURITY: Enforces strong password policy
-        - Minimum 8 characters (was 6)
+        - Minimum 8 characters
         - Maximum 128 characters
-        - Must contain uppercase, lowercase, digit for strict mode
+        - Must contain uppercase, lowercase, digit, and special character for strict mode
         """
         if not password:
             return False, "Password is required"
@@ -326,9 +326,16 @@ class InputValidator:
             has_upper = any(c.isupper() for c in password)
             has_lower = any(c.islower() for c in password)
             has_digit = any(c.isdigit() for c in password)
+            has_special = bool(re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?~`]', password))
             
-            if not (has_upper and has_lower and has_digit):
-                return False, "Password must contain uppercase, lowercase, and a number"
+            if not has_upper:
+                return False, "Password must contain at least one uppercase letter (A-Z)"
+            if not has_lower:
+                return False, "Password must contain at least one lowercase letter (a-z)"
+            if not has_digit:
+                return False, "Password must contain at least one number (0-9)"
+            if not has_special:
+                return False, "Password must contain at least one special character (!@#$%^&*)"
         
         # Check for dangerous patterns
         for pattern in cls.SQL_INJECTION_PATTERNS:

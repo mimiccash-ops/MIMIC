@@ -7,7 +7,7 @@
     <!-- Primary Meta Tags -->
     <title>{% block title %}MIMIC{% endblock %} | Automated Crypto Copy Trading Platform</title>
     <meta name="title" content="{% block meta_title %}MIMIC - Automated Crypto Copy Trading Platform{% endblock %}">
-    <meta name="description" content="{% block meta_description %}MIMIC is the leading automated crypto copy trading platform. Mirror professional traders on Binance, Bybit, OKX & KuCoin. Real-time trade copying, customizable risk management, 24/7 automated profits.{% endblock %}">
+    <meta name="description" content="{% block meta_description %}MIMIC is the leading automated crypto copy trading platform. Mirror professional traders on Binance, Bybit, OKX, Gate.io & MEXC. Real-time trade copying, customizable risk management, 24/7 automated profits.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}copy trading, crypto copy trading, automated trading, binance copy trading, bybit copy trading, okx trading, cryptocurrency trading, mirror trading, social trading, bitcoin trading, futures trading, crypto signals, trading bot, automated crypto trading{% endblock %}">
     <meta name="author" content="MIMIC">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -23,7 +23,7 @@
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:url" content="https://mimic.cash{{ request.path }}">
     <meta property="og:title" content="{% block og_title %}MIMIC - Automated Crypto Copy Trading Platform{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Mirror professional crypto traders automatically. Connect your exchange and start copy trading on Binance, Bybit, OKX. Real-time execution, customizable risk.{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Mirror professional crypto traders automatically. Connect your exchange and start copy trading on Binance, Bybit, OKX, Gate.io & MEXC. Real-time execution, customizable risk.{% endblock %}">
     <meta property="og:image" content="{% block og_image %}https://mimic.cash/static/og-image.svg{% endblock %}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -47,7 +47,7 @@
         "alternateName": "MIMIC Cash",
         "url": "https://mimic.cash",
         "logo": "https://mimic.cash/static/mimic-logo.svg",
-        "description": "Automated crypto copy trading platform for Binance, Bybit, OKX and more",
+        "description": "Automated crypto copy trading platform for Binance, Bybit, OKX, Gate.io, MEXC and more",
         "foundingDate": "2024",
         "sameAs": [
             "https://t.me/mimiccash"
@@ -277,6 +277,10 @@
                     </a>
                     <div class="dropdown-divider"></div>
                     <!-- Account -->
+                    <a href="#" class="dropdown-item" onclick="showSection('subscription'); closeUserMenu(); return false;">
+                        <i class="fas fa-crown"></i>
+                        <span data-i18n="nav.subscription">Subscription</span>
+                    </a>
                     <a href="{{ url_for('messages') }}" class="dropdown-item">
                         <i class="fas fa-envelope"></i>
                         <span data-i18n="nav.messages">Messages</span>
@@ -380,6 +384,10 @@
             
             <div class="mobile-divider"></div>
             <div class="mobile-nav-label" data-i18n="nav.account">Account</div>
+            <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); showSection('subscription'); return false;">
+                <i class="fas fa-crown"></i>
+                <span data-i18n="nav.subscription">Subscription</span>
+            </a>
             <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-envelope"></i>
                 <span data-i18n="nav.messages">Messages</span>
@@ -507,6 +515,7 @@
                         <li><a href="{{ url_for('index') }}" data-i18n="footer.home">Home</a></li>
                         <li><a href="{{ url_for('leaderboard') }}" data-i18n="nav.leaderboard">Leaderboard</a></li>
                         <li><a href="{{ url_for('governance_page') }}" data-i18n="nav.governance">Governance</a></li>
+                        <li><a href="{{ url_for('faq_page') }}" data-i18n="footer.faq">FAQ</a></li>
                         <li><a href="{{ url_for('login') }}" data-i18n="footer.signIn">Sign In</a></li>
                         <li><a href="{{ url_for('register') }}" data-i18n="footer.getStarted">Get Started</a></li>
                     </ul>
@@ -515,10 +524,11 @@
                 <div class="footer-links">
                     <h4 data-i18n="footer.exchanges">Exchanges</h4>
                     <ul>
-                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Binance Futures</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Binance</span></li>
                         <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Bybit</span></li>
                         <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> OKX</span></li>
-                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> KuCoin</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> Gate.io</span></li>
+                        <li><span class="exchange-item"><i class="fas fa-circle text-green" style="font-size: 0.5rem;"></i> MEXC</span></li>
                     </ul>
                 </div>
 
@@ -763,10 +773,8 @@
     <!-- PWA & Push Notifications -->
     <script src="{{ url_for('static', filename='js/push.js') }}"></script>
     
-    <!-- Live Chat (for logged-in users) -->
-    {% if current_user.is_authenticated %}
+    <!-- Live Chat & AI Support Bot (available for all users) -->
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-    {% endif %}
     
     <!-- PWA Install Banner Styles -->
     <style>

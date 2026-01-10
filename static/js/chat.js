@@ -14,6 +14,7 @@ class MimicChat {
         this.username = null;
         this.isAdmin = false;
         this.canChat = false;
+        this.isAuthenticated = false; // Track if user is logged in
         this.messages = [];
         this.unreadCount = 0;
         this.contextMenu = null;
@@ -292,19 +293,59 @@ class MimicChat {
             if (data.success) {
                 this.canChat = data.can_chat;
                 this.isAdmin = data.is_admin;
+                this.isAuthenticated = data.is_authenticated !== false; // Default true for backward compat
                 
                 if (data.can_chat) {
                     this.initSocket();
                 } else if (data.is_banned) {
                     this.showBannedStatus(data.ban_type, data.ban_reason, data.ban_expires_at);
+                } else if (!this.isAuthenticated) {
+                    // Non-authenticated users: hide live chat, show only AI Support
+                    this.hideliveChatForGuests();
                 } else if (!data.has_subscription) {
                     this.showSubscriptionRequired();
                 }
             }
         } catch (err) {
             console.error('Chat status check failed:', err);
-            this.showErrorStatus('Unable to connect to chat');
+            // For non-authenticated users or errors, default to support-only mode
+            this.isAuthenticated = false;
+            this.hideliveChatForGuests();
         }
+    }
+    
+    hideliveChatForGuests() {
+        // For non-authenticated users, only show AI Support mode
+        this.mode = 'support';
+        
+        // Hide the Live Chat tab
+        if (this.elements.tabChat) {
+            this.elements.tabChat.style.display = 'none';
+        }
+        
+        // Set the support tab as active
+        if (this.elements.tabSupport) {
+            this.elements.tabSupport.classList.add('active');
+        }
+        
+        // Hide mode toggle button (no need to switch)
+        if (this.elements.modeBtn) {
+            this.elements.modeBtn.style.display = 'none';
+        }
+        
+        // Update header for support mode
+        this.elements.headerIcon.innerHTML = '<i class="fas fa-robot"></i>';
+        this.elements.headerTitle.textContent = 'AI Support';
+        this.elements.onlineCount.textContent = 'Ask me anything!';
+        this.elements.onlineDot.style.background = '#9b59b6';
+        this.elements.input.placeholder = 'Ask a question about MIMIC...';
+        
+        // Enable input for AI Support (no auth required)
+        this.elements.input.disabled = false;
+        this.elements.sendBtn.disabled = false;
+        
+        // Render support welcome message
+        this.renderSupportMessages();
     }
     
     initSocket() {
@@ -747,13 +788,15 @@ class MimicChat {
     }
     
     showSubscriptionRequired() {
+        // This should not happen as chat is now free for all users
+        // But keep as fallback with a generic connection error message
         this.elements.status.innerHTML = `
-            <div class="chat-status-icon">🔒</div>
+            <div class="chat-status-icon">⚠️</div>
             <div class="chat-status-text">
-                <strong>Subscription Required</strong><br>
-                Upgrade to a paid plan to access live chat with fellow traders.
+                <strong>Connection Error</strong><br>
+                Unable to connect to chat. Please refresh the page.
             </div>
-            <a href="/subscribe" class="chat-status-btn">View Plans</a>
+            <button onclick="location.reload()" class="chat-status-btn">Refresh</button>
         `;
         this.elements.status.style.display = 'flex';
         this.elements.messages.innerHTML = '';
@@ -911,8 +954,7 @@ class MimicChat {
 // Initialize chat when script loads
 let mimicChat;
 document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize if user is logged in (check for common auth indicators)
-    if (document.querySelector('.user-menu') || document.querySelector('[data-user-id]')) {
-        mimicChat = new MimicChat();
-    }
+    // Initialize chat widget for all users (AI Support available to everyone)
+    // Live Chat requires authentication, but AI Support is public
+    mimicChat = new MimicChat();
 });

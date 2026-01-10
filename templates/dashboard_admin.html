@@ -15,6 +15,10 @@
     <i class="fas fa-cogs"></i>
     <span data-i18n="section.exchange">Exchange</span>
 </a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="showSection('tasks'); return false;">
+    <i class="fas fa-tasks"></i>
+    <span data-i18n="section.tasks">Tasks</span>
+</a>
 <a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
     <i class="fas fa-sliders-h"></i>
     <span data-i18n="section.settings">Settings</span>
@@ -919,6 +923,116 @@
             </div>
         </div>
         
+        <!-- ==================== SUBSCRIPTION MANAGEMENT ==================== -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-crown text-yellow"></i>
+                    <span>Subscription Management</span>
+                </h2>
+                <button onclick="refreshSubscriptionSettings()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync" id="sub-refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+            
+            <!-- Subscription Toggle -->
+            <div class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));">
+                            <i class="fas fa-toggle-on text-yellow text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-display font-semibold text-bright">Subscription System</div>
+                            <div class="text-xs text-muted">When OFF, all users have FREE access (no payment required)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-muted" id="sub-toggle-label">OFF</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="subscription-enabled-toggle" class="sr-only peer" onchange="toggleSubscriptionSystem(this)">
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-yellow-500 peer-checked:to-orange-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Premium Users</div>
+                    <div class="font-mono text-2xl font-bold text-cyan" id="admin-premium-users">0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Pending Payments</div>
+                    <div class="font-mono text-2xl font-bold text-yellow" id="admin-pending-payments">0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Total Revenue</div>
+                    <div class="font-mono text-2xl font-bold text-green" id="admin-total-revenue">$0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Insurance Fund</div>
+                    <div class="font-mono text-2xl font-bold text-magenta" id="admin-insurance-fund">$0</div>
+                </div>
+            </div>
+            
+            <!-- Wallet Addresses Section -->
+            <div class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-wallet text-purple"></i>
+                    <span>Payment Wallet Addresses</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="wallet-addresses-grid">
+                    <div class="flex items-center justify-center py-4">
+                        <i class="fas fa-spinner fa-spin text-muted"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-[var(--color-border)]">
+                    <button onclick="openWalletSettingsModal()" class="cyber-btn cyber-btn-gradient-purple w-full">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit Wallet Addresses</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Insurance Fund Settings -->
+            <div class="p-4 rounded-xl mb-4" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-3">
+                    <i class="fas fa-shield-alt text-purple"></i>
+                    <span>Insurance Fund (Safety Pool)</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Fund Wallet Address</label>
+                        <div class="font-mono text-sm text-purple break-all" id="insurance-wallet-display">Not configured</div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Network</label>
+                        <div class="font-semibold text-bright" id="insurance-network-display">-</div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Contribution Rate</label>
+                        <div class="font-semibold text-bright" id="insurance-rate-display">5%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Payments List -->
+            <div class="p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-clock text-yellow"></i>
+                    <span>Pending Payments</span>
+                </h3>
+                <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto">
+                    <div class="text-center py-4 text-muted text-sm">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Admin Profile -->
         <div class="card">
             <div class="flex items-center justify-between mb-4">
@@ -948,6 +1062,308 @@
                         <span data-i18n="dash.changePassword">Change Password</span>
                     </a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TASKS MANAGEMENT SECTION ==================== -->
+    <div class="section-content" data-section="tasks">
+        <!-- Tasks Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="font-display text-xl font-semibold flex items-center gap-3">
+                    <i class="fas fa-tasks text-cyan"></i>
+                    <span data-i18n="admin.taskManagement">Task Management</span>
+                </h1>
+                <p class="text-muted text-sm mt-1">Create challenges and rewards for users to complete</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="refreshTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync-alt" id="tasks-refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+                <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Task</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Task Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card p-4" style="border-color: rgba(0, 245, 255, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(0, 245, 255, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-tasks text-cyan"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Active Tasks</div>
+                        <div class="font-mono font-bold text-lg" id="admin-active-tasks">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(255, 193, 7, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(255, 193, 7, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-clock text-yellow"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Pending Reviews</div>
+                        <div class="font-mono font-bold text-lg" id="admin-pending-reviews">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(34, 197, 94, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-check-circle text-green"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Total Completions</div>
+                        <div class="font-mono font-bold text-lg" id="admin-total-completions">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(168, 85, 247, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-gift text-purple"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Rewards Given</div>
+                        <div class="font-mono font-bold text-lg" id="admin-rewards-given">$0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Reviews Section -->
+        <div class="card mb-6" id="pending-reviews-section" style="display: none;">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-clock text-yellow"></i>
+                    <span>Pending Submissions</span>
+                    <span class="badge badge-yellow" id="pending-reviews-badge">0</span>
+                </h2>
+            </div>
+            <div id="pending-reviews-list" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Tasks List -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-list text-cyan"></i>
+                    <span>All Tasks</span>
+                </h2>
+                <div class="flex items-center gap-2">
+                    <select id="admin-task-status-filter" class="input" style="width: auto;" onchange="loadAdminTasks()">
+                        <option value="all">All Status</option>
+                        <option value="active" selected>Active</option>
+                        <option value="draft">Draft</option>
+                        <option value="paused">Paused</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+            <div id="admin-tasks-list" class="space-y-3">
+                <div class="text-center py-8 text-muted">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading tasks...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Task Modal -->
+<div id="createTaskModal" class="modal-overlay" onclick="if(event.target===this)closeCreateTaskModal()">
+    <div class="modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-plus-circle text-cyan"></i>
+                <span id="task-modal-title">Create New Task</span>
+            </div>
+            <button onclick="closeCreateTaskModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="task-edit-id" value="">
+            
+            <!-- Basic Info -->
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Title *</label>
+                    <input type="text" id="task-title" class="input" placeholder="e.g., Follow us on Twitter" required>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Description</label>
+                    <textarea id="task-description" class="input" rows="2" placeholder="Brief description of the task"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Instructions (what users need to do)</label>
+                    <textarea id="task-instructions" class="input" rows="3" placeholder="Step-by-step instructions for completing the task"></textarea>
+                </div>
+            </div>
+
+            <!-- Type & Category -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Task Type</label>
+                    <select id="task-type" class="input">
+                        <option value="custom">Special</option>
+                        <option value="social">Social Media</option>
+                        <option value="trading">Trading</option>
+                        <option value="referral">Referral</option>
+                        <option value="community">Community</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Category (optional)</label>
+                    <input type="text" id="task-category" class="input" placeholder="e.g., Social, Weekly, etc.">
+                </div>
+            </div>
+
+            <!-- Reward Settings -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-green"></i>
+                    <span>Reward Settings</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                        <select id="task-reward-type" class="input" onchange="updateRewardAmountLabel()">
+                            <option value="money">Cash ($)</option>
+                            <option value="xp">XP Points</option>
+                            <option value="subscription">Subscription Days</option>
+                            <option value="goods">Goods/Prizes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block" id="reward-amount-label">Amount ($)</label>
+                        <input type="number" id="task-reward-amount" class="input" value="0" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="text-xs text-muted mb-1 block">Reward Description</label>
+                    <input type="text" id="task-reward-description" class="input" placeholder="e.g., $10 credited to your balance">
+                </div>
+            </div>
+
+            <!-- Limits & Requirements -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Max Participants (empty = unlimited)</label>
+                    <input type="number" id="task-max-participants" class="input" placeholder="Unlimited" min="1">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Max Completions Per User</label>
+                    <input type="number" id="task-max-completions" class="input" value="1" min="1">
+                </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Icon (FontAwesome)</label>
+                    <input type="text" id="task-icon" class="input" value="fa-tasks" placeholder="fa-tasks">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Color</label>
+                    <input type="color" id="task-color" class="input" value="#00f5ff" style="height: 42px; padding: 4px;">
+                </div>
+            </div>
+
+            <!-- Status & Options -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Status</label>
+                    <select id="task-status" class="input">
+                        <option value="active">Active</option>
+                        <option value="draft">Draft</option>
+                        <option value="paused">Paused</option>
+                    </select>
+                </div>
+                <div class="flex items-end gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="task-requires-approval" checked class="cyber-checkbox">
+                        <span class="text-sm">Requires Approval</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="task-is-featured" class="cyber-checkbox">
+                        <span class="text-sm">Featured</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dates (optional) -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Start Date (optional)</label>
+                    <input type="datetime-local" id="task-start-date" class="input">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">End Date (optional)</label>
+                    <input type="datetime-local" id="task-end-date" class="input">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                <button onclick="closeCreateTaskModal()" class="cyber-btn cyber-btn-outline flex-1">
+                    Cancel
+                </button>
+                <button onclick="saveTask()" class="cyber-btn cyber-btn-primary flex-1" id="save-task-btn">
+                    <i class="fas fa-save"></i>
+                    <span>Create Task</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Submission Modal -->
+<div id="reviewSubmissionModal" class="modal-overlay" onclick="if(event.target===this)closeReviewModal()">
+    <div class="modal-card" style="max-width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-clipboard-check text-yellow"></i>
+                <span>Review Submission</span>
+            </div>
+            <button onclick="closeReviewModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="review-participation-id" value="">
+            
+            <div id="review-submission-details" class="space-y-4 mb-6">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-xs text-muted mb-1 block">Admin Notes (optional)</label>
+                <textarea id="review-notes" class="input" rows="2" placeholder="Notes for internal tracking"></textarea>
+            </div>
+            
+            <div id="rejection-reason-field" class="mb-4" style="display: none;">
+                <label class="text-xs text-muted mb-1 block">Rejection Reason</label>
+                <input type="text" id="review-rejection-reason" class="input" placeholder="Why is this being rejected?">
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                <button onclick="rejectSubmission()" class="cyber-btn cyber-btn-danger flex-1">
+                    <i class="fas fa-times"></i>
+                    <span>Reject</span>
+                </button>
+                <button onclick="approveSubmission()" class="cyber-btn cyber-btn-success flex-1">
+                    <i class="fas fa-check"></i>
+                    <span>Approve & Give Reward</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1053,6 +1469,121 @@
         <div class="modal-body" id="serviceEditContent">
             <div class="flex items-center justify-center py-12">
                 <i class="fas fa-spinner fa-spin text-3xl text-muted"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Wallet Settings Modal -->
+<div id="walletSettingsModal" class="modal-overlay" onclick="if(event.target===this)closeWalletSettingsModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
+            <div class="modal-title">
+                <i class="fas fa-wallet text-purple"></i>
+                <span>Wallet & Payment Settings</span>
+            </div>
+            <button onclick="closeWalletSettingsModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Payment Wallet Addresses -->
+            <div class="mb-6">
+                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-coins text-yellow"></i>
+                    <span>Payment Wallet Addresses</span>
+                </h4>
+                <p class="text-xs text-muted mb-4">Configure wallet addresses for each network. Only networks with configured addresses will be shown to users.</p>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (TRC20)</label>
+                        <input type="text" id="wallet-usdt-trc20" placeholder="TRON wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (ERC20)</label>
+                        <input type="text" id="wallet-usdt-erc20" placeholder="Ethereum wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (BEP20)</label>
+                        <input type="text" id="wallet-usdt-bep20" placeholder="BSC wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Bitcoin (BTC)</label>
+                        <input type="text" id="wallet-btc" placeholder="Bitcoin wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Ethereum (ETH)</label>
+                        <input type="text" id="wallet-eth" placeholder="Ethereum wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Litecoin (LTC)</label>
+                        <input type="text" id="wallet-ltc" placeholder="Litecoin wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Solana (SOL)</label>
+                        <input type="text" id="wallet-sol" placeholder="Solana wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Insurance Fund Settings -->
+            <div class="mb-6 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
+                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-shield-alt text-purple"></i>
+                    <span>Insurance Fund Wallet</span>
+                </h4>
+                <p class="text-xs text-muted mb-4">Configure the wallet address for storing Insurance Fund (Safety Pool) funds.</p>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Wallet Address</label>
+                        <input type="text" id="insurance-wallet" placeholder="Insurance fund wallet address" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Network</label>
+                        <select id="insurance-network" class="input flex-1">
+                            <option value="USDT_TRC20">USDT (TRC20 - Tron)</option>
+                            <option value="USDT_ERC20">USDT (ERC20 - Ethereum)</option>
+                            <option value="USDT_BEP20">USDT (BEP20 - BSC)</option>
+                            <option value="BTC">Bitcoin (BTC)</option>
+                            <option value="ETH">Ethereum (ETH)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Contribution %</label>
+                        <input type="number" id="insurance-rate" value="5" min="0" max="100" step="0.5" class="input w-24">
+                        <span class="text-xs text-muted">% of platform fees</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Auto Confirm Setting -->
+            <div class="mb-6 p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-display font-semibold flex items-center gap-2">
+                            <i class="fas fa-magic text-cyan"></i>
+                            <span>Auto-Confirm Payments</span>
+                        </h4>
+                        <p class="text-xs text-muted mt-1">⚠️ RISKY: Automatically activate subscription when user marks payment as sent</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-confirm-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Save Button -->
+            <div class="flex gap-3">
+                <button onclick="saveWalletSettings()" class="cyber-btn cyber-btn-gradient-purple flex-1">
+                    <i class="fas fa-save"></i>
+                    <span>Save All Settings</span>
+                </button>
+                <button onclick="closeWalletSettingsModal()" class="cyber-btn cyber-btn-outline">
+                    <span>Cancel</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1392,6 +1923,10 @@
                 const premiumEl = document.getElementById('admin-premium-users');
                 if (premiumEl) premiumEl.textContent = '0';
             });
+        
+        // Load subscription settings for admin panel
+        loadSubscriptionSettings();
+        loadPendingPayments();
         
         // Load active tournament
         fetch('/api/tournament/active')
@@ -3044,8 +3579,850 @@
             originalShowSection(section);
             if (section === 'settings') {
                 refreshServiceStatus();
+                loadSubscriptionSettings();
+                loadPendingPayments();
             }
         };
     }
+    
+    // ==================== SUBSCRIPTION MANAGEMENT ====================
+    let subscriptionSettings = null;
+    
+    async function loadSubscriptionSettings() {
+        try {
+            const response = await fetch('/api/admin/subscription-settings');
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('Failed to load subscription settings');
+                return;
+            }
+            
+            subscriptionSettings = data;
+            
+            // Update toggle
+            const toggle = document.getElementById('subscription-enabled-toggle');
+            const label = document.getElementById('sub-toggle-label');
+            if (toggle) {
+                toggle.checked = data.subscription.enabled;
+                if (label) label.textContent = data.subscription.enabled ? 'ON' : 'OFF';
+            }
+            
+            // Update wallet addresses grid
+            renderWalletAddresses(data.wallets);
+            
+            // Update insurance fund display
+            const insWallet = document.getElementById('insurance-wallet-display');
+            const insNetwork = document.getElementById('insurance-network-display');
+            const insRate = document.getElementById('insurance-rate-display');
+            
+            if (insWallet) {
+                insWallet.textContent = data.insurance_fund.wallet_address || 'Not configured';
+            }
+            if (insNetwork) {
+                insNetwork.textContent = data.insurance_fund.wallet_network || '-';
+            }
+            if (insRate) {
+                insRate.textContent = `${data.insurance_fund.contribution_rate}%`;
+            }
+            
+            // Load insurance fund balance
+            loadInsuranceFundBalance();
+            
+        } catch (err) {
+            console.error('Error loading subscription settings:', err);
+        }
+    }
+    
+    function renderWalletAddresses(wallets) {
+        const grid = document.getElementById('wallet-addresses-grid');
+        if (!grid) return;
+        
+        const networkNames = {
+            'usdt_trc20': { name: 'USDT (TRC20)', icon: 'fas fa-coins', color: 'text-green' },
+            'usdt_erc20': { name: 'USDT (ERC20)', icon: 'fab fa-ethereum', color: 'text-blue-400' },
+            'usdt_bep20': { name: 'USDT (BEP20)', icon: 'fas fa-coins', color: 'text-yellow' },
+            'btc': { name: 'Bitcoin', icon: 'fab fa-bitcoin', color: 'text-orange-500' },
+            'eth': { name: 'Ethereum', icon: 'fab fa-ethereum', color: 'text-purple' },
+            'ltc': { name: 'Litecoin', icon: 'fas fa-coins', color: 'text-gray-400' },
+            'sol': { name: 'Solana', icon: 'fas fa-sun', color: 'text-purple-400' }
+        };
+        
+        let html = '';
+        for (const [key, info] of Object.entries(networkNames)) {
+            const address = wallets[key] || '';
+            const hasAddress = address && address.length > 0;
+            
+            html += `
+                <div class="p-3 rounded-lg flex items-center gap-3" style="background: ${hasAddress ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${hasAddress ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-border)'};">
+                    <i class="${info.icon} ${info.color}"></i>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-muted">${info.name}</div>
+                        <div class="font-mono text-xs ${hasAddress ? 'text-bright' : 'text-muted'} truncate">
+                            ${hasAddress ? address.substring(0, 12) + '...' + address.slice(-6) : 'Not set'}
+                        </div>
+                    </div>
+                    <span class="w-2 h-2 rounded-full ${hasAddress ? 'bg-green-500' : 'bg-gray-600'}"></span>
+                </div>
+            `;
+        }
+        grid.innerHTML = html;
+    }
+    
+    async function loadInsuranceFundBalance() {
+        try {
+            const response = await fetch('/api/insurance-fund');
+            const data = await response.json();
+            
+            if (data.success) {
+                const el = document.getElementById('admin-insurance-fund');
+                if (el) el.textContent = data.insurance_fund.formatted_balance || '$0.00';
+            }
+        } catch (err) {
+            console.error('Error loading insurance fund:', err);
+        }
+    }
+    
+    async function loadPendingPayments() {
+        try {
+            const response = await fetch('/api/admin/subscription-payments?status=awaiting_confirmation');
+            const data = await response.json();
+            
+            if (!data.success) return;
+            
+            // Update pending count
+            const pendingCountEl = document.getElementById('admin-pending-payments');
+            if (pendingCountEl) pendingCountEl.textContent = data.payments.length;
+            
+            // Render list
+            renderPendingPaymentsList(data.payments);
+            
+            // Calculate total revenue from completed payments
+            loadTotalRevenue();
+            
+        } catch (err) {
+            console.error('Error loading pending payments:', err);
+        }
+    }
+    
+    async function loadTotalRevenue() {
+        try {
+            const response = await fetch('/api/admin/subscription-payments?status=completed');
+            const data = await response.json();
+            
+            if (data.success) {
+                const total = data.payments.reduce((sum, p) => sum + (p.amount_usd || 0), 0);
+                const el = document.getElementById('admin-total-revenue');
+                if (el) el.textContent = `$${total.toFixed(2)}`;
+            }
+        } catch (err) {
+            console.error('Error loading revenue:', err);
+        }
+    }
+    
+    function renderPendingPaymentsList(payments) {
+        const container = document.getElementById('pending-payments-list');
+        if (!container) return;
+        
+        if (!payments || payments.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-muted">
+                    <i class="fas fa-check-circle text-2xl mb-2 text-green"></i>
+                    <p>No pending payments</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        payments.forEach(p => {
+            const createdAt = new Date(p.created_at);
+            html += `
+                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                            <i class="fas fa-clock text-yellow"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-bright">${p.username}</div>
+                            <div class="text-xs text-muted">${p.plan.toUpperCase()} - ${p.currency}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-mono font-bold text-yellow">$${p.amount_usd.toFixed(2)}</div>
+                        <div class="text-xs text-muted">${createdAt.toLocaleDateString()}</div>
+                    </div>
+                    <div class="flex gap-2 ml-3">
+                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success" title="Confirm">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Reject">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+    
+    async function toggleSubscriptionSystem(checkbox) {
+        const enabled = checkbox.checked;
+        const label = document.getElementById('sub-toggle-label');
+        
+        try {
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: { enabled: enabled }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (label) label.textContent = enabled ? 'ON' : 'OFF';
+                showToast(enabled ? 'Subscription system enabled' : 'Free access mode enabled', 'success');
+            } else {
+                checkbox.checked = !enabled;
+                showToast(data.error || 'Failed to update', 'error');
+            }
+        } catch (err) {
+            checkbox.checked = !enabled;
+            showToast('Network error', 'error');
+        }
+    }
+    
+    async function confirmPayment(paymentId) {
+        if (!confirm('Confirm this payment and activate user subscription?')) return;
+        
+        try {
+            const response = await fetch(`/api/admin/confirm-payment/${paymentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Payment confirmed!', 'success');
+                loadPendingPayments();
+                loadTotalRevenue();
+            } else {
+                showToast(data.error || 'Failed to confirm', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    async function rejectPayment(paymentId) {
+        const reason = prompt('Enter rejection reason (optional):');
+        if (reason === null) return; // Cancelled
+        
+        try {
+            const response = await fetch(`/api/admin/reject-payment/${paymentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason || 'Payment not verified' })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Payment rejected', 'info');
+                loadPendingPayments();
+            } else {
+                showToast(data.error || 'Failed to reject', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    function refreshSubscriptionSettings() {
+        const icon = document.getElementById('sub-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        Promise.all([
+            loadSubscriptionSettings(),
+            loadPendingPayments()
+        ]).finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+    
+    function openWalletSettingsModal() {
+        const modal = document.getElementById('walletSettingsModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            populateWalletForm();
+        }
+    }
+    
+    function closeWalletSettingsModal() {
+        const modal = document.getElementById('walletSettingsModal');
+        if (modal) modal.style.display = 'none';
+    }
+    
+    function populateWalletForm() {
+        if (!subscriptionSettings) return;
+        
+        const wallets = subscriptionSettings.wallets || {};
+        const insurance = subscriptionSettings.insurance_fund || {};
+        
+        // Payment wallets
+        document.getElementById('wallet-usdt-trc20').value = wallets.usdt_trc20 || '';
+        document.getElementById('wallet-usdt-erc20').value = wallets.usdt_erc20 || '';
+        document.getElementById('wallet-usdt-bep20').value = wallets.usdt_bep20 || '';
+        document.getElementById('wallet-btc').value = wallets.btc || '';
+        document.getElementById('wallet-eth').value = wallets.eth || '';
+        document.getElementById('wallet-ltc').value = wallets.ltc || '';
+        document.getElementById('wallet-sol').value = wallets.sol || '';
+        
+        // Insurance fund
+        document.getElementById('insurance-wallet').value = insurance.wallet_address || '';
+        document.getElementById('insurance-network').value = insurance.wallet_network || 'USDT_TRC20';
+        document.getElementById('insurance-rate').value = insurance.contribution_rate || 5;
+        
+        // Auto confirm
+        const autoConfirm = document.getElementById('auto-confirm-toggle');
+        if (autoConfirm) {
+            autoConfirm.checked = subscriptionSettings.subscription?.auto_confirm || false;
+        }
+    }
+    
+    async function saveWalletSettings() {
+        const btn = document.querySelector('#walletSettingsModal button[onclick="saveWalletSettings()"]');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const payload = {
+                wallets: {
+                    usdt_trc20: document.getElementById('wallet-usdt-trc20').value.trim(),
+                    usdt_erc20: document.getElementById('wallet-usdt-erc20').value.trim(),
+                    usdt_bep20: document.getElementById('wallet-usdt-bep20').value.trim(),
+                    btc: document.getElementById('wallet-btc').value.trim(),
+                    eth: document.getElementById('wallet-eth').value.trim(),
+                    ltc: document.getElementById('wallet-ltc').value.trim(),
+                    sol: document.getElementById('wallet-sol').value.trim()
+                },
+                insurance_fund: {
+                    wallet_address: document.getElementById('insurance-wallet').value.trim(),
+                    wallet_network: document.getElementById('insurance-network').value,
+                    contribution_rate: parseFloat(document.getElementById('insurance-rate').value) || 5
+                },
+                subscription: {
+                    auto_confirm: document.getElementById('auto-confirm-toggle')?.checked || false
+                }
+            };
+            
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Settings saved successfully!', 'success');
+                closeWalletSettingsModal();
+                loadSubscriptionSettings();
+            } else {
+                showToast(data.error || 'Failed to save', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    // ==================== TASK MANAGEMENT ====================
+    
+    let adminTasks = [];
+    let pendingReviews = [];
+    let taskTypes = {};
+    let rewardTypes = {};
+    
+    async function loadAdminTasks() {
+        const status = document.getElementById('admin-task-status-filter')?.value || 'active';
+        
+        try {
+            const response = await fetch(`/api/admin/tasks?status=${status}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                adminTasks = data.tasks;
+                taskTypes = data.task_types || {};
+                rewardTypes = data.reward_types || {};
+                renderAdminTasks();
+                updateTaskStats();
+            }
+        } catch (err) {
+            console.error('Error loading tasks:', err);
+        }
+    }
+    
+    async function loadPendingReviews() {
+        try {
+            const response = await fetch('/api/admin/tasks/pending-reviews');
+            const data = await response.json();
+            
+            if (data.success) {
+                pendingReviews = data.submissions;
+                document.getElementById('admin-pending-reviews').textContent = data.pending_count;
+                document.getElementById('pending-reviews-badge').textContent = data.pending_count;
+                
+                const section = document.getElementById('pending-reviews-section');
+                if (data.pending_count > 0) {
+                    section.style.display = 'block';
+                    renderPendingReviews();
+                } else {
+                    section.style.display = 'none';
+                }
+            }
+        } catch (err) {
+            console.error('Error loading pending reviews:', err);
+        }
+    }
+    
+    function updateTaskStats() {
+        const activeTasks = adminTasks.filter(t => t.status === 'active').length;
+        const totalCompletions = adminTasks.reduce((sum, t) => sum + (t.total_completions || 0), 0);
+        const totalRewards = adminTasks.reduce((sum, t) => sum + (t.total_rewards_given || 0), 0);
+        
+        document.getElementById('admin-active-tasks').textContent = activeTasks;
+        document.getElementById('admin-total-completions').textContent = totalCompletions;
+        document.getElementById('admin-rewards-given').textContent = '$' + totalRewards.toFixed(2);
+    }
+    
+    function renderAdminTasks() {
+        const container = document.getElementById('admin-tasks-list');
+        
+        if (adminTasks.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-muted">
+                    <i class="fas fa-tasks text-3xl mb-3 opacity-50"></i>
+                    <p>No tasks found</p>
+                    <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary cyber-btn-sm mt-3">
+                        <i class="fas fa-plus"></i> Create First Task
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        adminTasks.forEach(task => {
+            const typeInfo = taskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
+            const rewardInfo = rewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+            const statusColors = {
+                'active': 'text-green',
+                'draft': 'text-muted',
+                'paused': 'text-yellow',
+                'completed': 'text-purple'
+            };
+            
+            html += `
+                <div class="flex items-center justify-between p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : 'var(--color-border)'};">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: ${task.color}20; border: 1px solid ${task.color}40;">
+                            <i class="fas ${task.icon}" style="color: ${task.color}; font-size: 1.25rem;"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold">${task.title}</span>
+                                ${task.is_featured ? '<span class="badge badge-yellow" style="font-size: 0.6rem;">FEATURED</span>' : ''}
+                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.6rem; text-transform: uppercase;">${task.status}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-muted mt-1">
+                                <span><i class="fas ${typeInfo.icon} mr-1"></i>${typeInfo.name}</span>
+                                <span><i class="fas ${rewardInfo.icon} mr-1"></i>${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}</span>
+                                <span><i class="fas fa-users mr-1"></i>${task.total_participants} participants</span>
+                                <span><i class="fas fa-check-circle mr-1"></i>${task.total_completions} completed</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="View Participations">
+                            <i class="fas fa-users"></i>
+                        </button>
+                        <button onclick="editTask(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function renderPendingReviews() {
+        const container = document.getElementById('pending-reviews-list');
+        
+        if (pendingReviews.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">No pending reviews</div>';
+            return;
+        }
+        
+        let html = '';
+        pendingReviews.forEach(p => {
+            const submittedAt = new Date(p.submitted_at);
+            html += `
+                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                            <i class="fas fa-clipboard-check text-yellow"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-bright">${p.username}</div>
+                            <div class="text-xs text-muted">${p.task?.title || 'Task #' + p.task_id}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-muted">${submittedAt.toLocaleDateString()}</div>
+                        <div class="text-xs text-muted">${submittedAt.toLocaleTimeString()}</div>
+                    </div>
+                    <button onclick="openReviewModal(${p.id})" class="cyber-btn cyber-btn-primary cyber-btn-sm ml-3">
+                        <i class="fas fa-eye"></i> Review
+                    </button>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function openCreateTaskModal() {
+        document.getElementById('task-edit-id').value = '';
+        document.getElementById('task-modal-title').textContent = 'Create New Task';
+        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Create Task';
+        
+        // Reset form
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-description').value = '';
+        document.getElementById('task-instructions').value = '';
+        document.getElementById('task-type').value = 'custom';
+        document.getElementById('task-category').value = '';
+        document.getElementById('task-reward-type').value = 'money';
+        document.getElementById('task-reward-amount').value = '0';
+        document.getElementById('task-reward-description').value = '';
+        document.getElementById('task-max-participants').value = '';
+        document.getElementById('task-max-completions').value = '1';
+        document.getElementById('task-icon').value = 'fa-tasks';
+        document.getElementById('task-color').value = '#00f5ff';
+        document.getElementById('task-status').value = 'active';
+        document.getElementById('task-requires-approval').checked = true;
+        document.getElementById('task-is-featured').checked = false;
+        document.getElementById('task-start-date').value = '';
+        document.getElementById('task-end-date').value = '';
+        
+        updateRewardAmountLabel();
+        document.getElementById('createTaskModal').style.display = 'flex';
+    }
+    
+    function closeCreateTaskModal() {
+        document.getElementById('createTaskModal').style.display = 'none';
+    }
+    
+    function editTask(taskId) {
+        const task = adminTasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        document.getElementById('task-edit-id').value = task.id;
+        document.getElementById('task-modal-title').textContent = 'Edit Task';
+        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        
+        document.getElementById('task-title').value = task.title || '';
+        document.getElementById('task-description').value = task.description || '';
+        document.getElementById('task-instructions').value = task.instructions || '';
+        document.getElementById('task-type').value = task.task_type || 'custom';
+        document.getElementById('task-category').value = task.category || '';
+        document.getElementById('task-reward-type').value = task.reward_type || 'money';
+        document.getElementById('task-reward-amount').value = task.reward_amount || 0;
+        document.getElementById('task-reward-description').value = task.reward_description || '';
+        document.getElementById('task-max-participants').value = task.max_participants || '';
+        document.getElementById('task-max-completions').value = task.max_completions_per_user || 1;
+        document.getElementById('task-icon').value = task.icon || 'fa-tasks';
+        document.getElementById('task-color').value = task.color || '#00f5ff';
+        document.getElementById('task-status').value = task.status || 'active';
+        document.getElementById('task-requires-approval').checked = task.requires_approval !== false;
+        document.getElementById('task-is-featured').checked = task.is_featured === true;
+        
+        if (task.start_date) {
+            document.getElementById('task-start-date').value = task.start_date.slice(0, 16);
+        } else {
+            document.getElementById('task-start-date').value = '';
+        }
+        if (task.end_date) {
+            document.getElementById('task-end-date').value = task.end_date.slice(0, 16);
+        } else {
+            document.getElementById('task-end-date').value = '';
+        }
+        
+        updateRewardAmountLabel();
+        document.getElementById('createTaskModal').style.display = 'flex';
+    }
+    
+    function updateRewardAmountLabel() {
+        const rewardType = document.getElementById('task-reward-type').value;
+        const label = document.getElementById('reward-amount-label');
+        
+        switch(rewardType) {
+            case 'money': label.textContent = 'Amount ($)'; break;
+            case 'xp': label.textContent = 'XP Points'; break;
+            case 'subscription': label.textContent = 'Days'; break;
+            case 'goods': label.textContent = 'Value ($)'; break;
+            default: label.textContent = 'Amount';
+        }
+    }
+    
+    async function saveTask() {
+        const btn = document.getElementById('save-task-btn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        const taskId = document.getElementById('task-edit-id').value;
+        const isEdit = !!taskId;
+        
+        const payload = {
+            title: document.getElementById('task-title').value.trim(),
+            description: document.getElementById('task-description').value.trim(),
+            instructions: document.getElementById('task-instructions').value.trim(),
+            task_type: document.getElementById('task-type').value,
+            category: document.getElementById('task-category').value.trim() || null,
+            reward_type: document.getElementById('task-reward-type').value,
+            reward_amount: parseFloat(document.getElementById('task-reward-amount').value) || 0,
+            reward_description: document.getElementById('task-reward-description').value.trim(),
+            max_participants: document.getElementById('task-max-participants').value ? parseInt(document.getElementById('task-max-participants').value) : null,
+            max_completions_per_user: parseInt(document.getElementById('task-max-completions').value) || 1,
+            icon: document.getElementById('task-icon').value.trim() || 'fa-tasks',
+            color: document.getElementById('task-color').value,
+            status: document.getElementById('task-status').value,
+            requires_approval: document.getElementById('task-requires-approval').checked,
+            is_featured: document.getElementById('task-is-featured').checked,
+            start_date: document.getElementById('task-start-date').value || null,
+            end_date: document.getElementById('task-end-date').value || null
+        };
+        
+        if (!payload.title) {
+            showToast('Title is required', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
+        
+        try {
+            const url = isEdit ? `/api/admin/tasks/${taskId}` : '/api/admin/tasks';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || 'Task saved successfully!', 'success');
+                closeCreateTaskModal();
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to save task', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    async function deleteTask(taskId, taskTitle) {
+        if (!confirm(`Are you sure you want to delete the task "${taskTitle}"? This will also delete all participations.`)) return;
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/${taskId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || 'Task deleted', 'success');
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to delete', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    async function viewTaskParticipations(taskId) {
+        // For now, just show an alert. Could be expanded to a modal.
+        try {
+            const response = await fetch(`/api/admin/tasks/${taskId}/participations`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const task = data.task;
+                const parts = data.participations;
+                
+                let msg = `Task: ${task.title}\nParticipants: ${parts.length}\n\n`;
+                parts.slice(0, 10).forEach(p => {
+                    msg += `• ${p.username}: ${p.status}\n`;
+                });
+                if (parts.length > 10) msg += `... and ${parts.length - 10} more`;
+                
+                alert(msg);
+            }
+        } catch (err) {
+            showToast('Error loading participations', 'error');
+        }
+    }
+    
+    function openReviewModal(participationId) {
+        const participation = pendingReviews.find(p => p.id === participationId);
+        if (!participation) return;
+        
+        document.getElementById('review-participation-id').value = participationId;
+        
+        const detailsHtml = `
+            <div class="p-4 rounded-lg" style="background: var(--color-surface-3); border: 1px solid var(--color-border);">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(0, 245, 255, 0.1);">
+                        <i class="fas fa-user text-cyan"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold">${participation.username}</div>
+                        <div class="text-xs text-muted">Submitted: ${new Date(participation.submitted_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="text-sm mb-2">
+                    <strong>Task:</strong> ${participation.task?.title || 'Task #' + participation.task_id}
+                </div>
+                <div class="text-sm mb-2">
+                    <strong>Reward:</strong> ${participation.task?.reward_type === 'money' ? '$' + participation.task?.reward_amount : participation.task?.reward_amount + ' ' + participation.task?.reward_type}
+                </div>
+                ${participation.submission_text ? `<div class="text-sm mb-2"><strong>Submission:</strong> ${participation.submission_text}</div>` : ''}
+                ${participation.submission_url ? `<div class="text-sm"><strong>Proof URL:</strong> <a href="${participation.submission_url}" target="_blank" class="text-cyan hover:underline">${participation.submission_url}</a></div>` : ''}
+            </div>
+        `;
+        
+        document.getElementById('review-submission-details').innerHTML = detailsHtml;
+        document.getElementById('review-notes').value = '';
+        document.getElementById('review-rejection-reason').value = '';
+        document.getElementById('rejection-reason-field').style.display = 'none';
+        
+        document.getElementById('reviewSubmissionModal').style.display = 'flex';
+    }
+    
+    function closeReviewModal() {
+        document.getElementById('reviewSubmissionModal').style.display = 'none';
+    }
+    
+    async function approveSubmission() {
+        const participationId = document.getElementById('review-participation-id').value;
+        const notes = document.getElementById('review-notes').value.trim();
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/participation/${participationId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || 'Submission approved!', 'success');
+                closeReviewModal();
+                loadPendingReviews();
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to approve', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    async function rejectSubmission() {
+        const reasonField = document.getElementById('rejection-reason-field');
+        if (reasonField.style.display === 'none') {
+            reasonField.style.display = 'block';
+            return;
+        }
+        
+        const participationId = document.getElementById('review-participation-id').value;
+        const notes = document.getElementById('review-notes').value.trim();
+        const reason = document.getElementById('review-rejection-reason').value.trim() || 'Submission did not meet requirements';
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/participation/${participationId}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes, reason })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('Submission rejected', 'info');
+                closeReviewModal();
+                loadPendingReviews();
+            } else {
+                showToast(data.error || 'Failed to reject', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    function refreshTasks() {
+        const icon = document.getElementById('tasks-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        Promise.all([
+            loadAdminTasks(),
+            loadPendingReviews()
+        ]).finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+    
+    // Load tasks when switching to tasks section
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're on tasks section initially
+        if (document.querySelector('[data-section="tasks"].active')) {
+            loadAdminTasks();
+            loadPendingReviews();
+        }
+    });
+    
+    // Override showSection to load tasks when switching
+    const originalShowSection = window.showSection;
+    window.showSection = function(section) {
+        if (typeof originalShowSection === 'function') {
+            originalShowSection(section);
+        }
+        if (section === 'tasks') {
+            loadAdminTasks();
+            loadPendingReviews();
+        }
+    };
 </script>
 {% endblock %}

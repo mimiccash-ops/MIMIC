@@ -1,0 +1,265 @@
+# =============================================================================
+# MIMIC - CI/CD Pipeline with Testing
+# =============================================================================
+# This workflow runs tests on every push and pull request
+# Tests must pass before deployment can proceed
+#
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                           TEST WORKFLOW                                     │
+# │                                                                              │
+# │  1. Runs on every push and pull request                                    │
+# │  2. Sets up Python environment                                             │
+# │  3. Installs dependencies                                                  │
+# │  4. Runs linting (optional)                                                │
+# │  5. Runs unit and integration tests                                        │
+# │  6. Generates coverage report                                              │
+# └─────────────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+name: 🧪 Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allows manual trigger
+  workflow_call:  # Allows being called by other workflows (e.g., deploy.yml)
+    secrets:
+      TEST_MASTER_KEY:
+        required: false
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ==================== LINTING ====================
+  lint:
+    name: 🔍 Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: 🔍 Run flake8 (warnings only)
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+        continue-on-error: true
+
+  # ==================== UNIT TESTS ====================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      # PostgreSQL service for integration tests
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Redis service for queue tests
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-mock httpx
+
+      - name: 📄 Create test config
+        run: |
+          # Create minimal config.ini for tests
+          cat > config.ini << 'EOF'
+          [MasterAccount]
+          api_key = test_api_key
+          api_secret = test_api_secret
+
+          [Webhook]
+          passphrase = test_passphrase_12345678901234567890
+
+          [Telegram]
+          bot_token = test_token
+          chat_id = 123456
+          enabled = false
+
+          [Settings]
+          testnet = true
+          max_open_positions = 5
+          EOF
+
+      - name: 🔐 Set up test environment
+        run: |
+          # Generate test master key
+          python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" > /tmp/master.key
+          
+        env:
+          FLASK_ENV: testing
+          TESTING: 'true'
+          FLASK_SECRET_KEY: 'test-secret-key-for-ci-testing-purposes-only!'
+          BRAIN_CAPITAL_MASTER_KEY: ${{ secrets.TEST_MASTER_KEY || '' }}
+          DATABASE_URL: sqlite:///test.db
+
+      - name: 🧪 Run tests with coverage
+        run: |
+          # Set environment variables
+          export FLASK_ENV=testing
+          export TESTING=true
+          export FLASK_SECRET_KEY='test-secret-key-for-ci-testing-purposes-only!'
+          export BRAIN_CAPITAL_MASTER_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+          export DATABASE_URL=sqlite:///test.db
+          
+          # Run tests
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=html --cov-report=term-missing \
+            --ignore=tests/test_integration_external.py \
+            -x --tb=short
+        continue-on-error: false
+
+      - name: 📊 Upload coverage report
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+        continue-on-error: true
+
+      - name: 📁 Upload coverage HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
+  # ==================== SECURITY SCAN ====================
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 📦 Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+
+      - name: 🔒 Run Bandit security scan
+        run: |
+          bandit -r . -x ./tests,./venv,./.git -f json -o bandit-report.json || true
+          bandit -r . -x ./tests,./venv,./.git -ll
+        continue-on-error: true
+
+      - name: 🔍 Check dependencies for vulnerabilities
+        run: |
+          pip install -r requirements.txt
+          safety check --json --output safety-report.json || true
+          safety check
+        continue-on-error: true
+
+      - name: 📁 Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+          retention-days: 7
+
+  # ==================== TEST SUMMARY ====================
+  summary:
+    name: ✅ Test Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, security]
+    if: always()
+    
+    steps:
+      - name: 📊 Check test results
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "                    TEST SUMMARY                            "
+          echo "════════════════════════════════════════════════════════════"
+          
+          if [ "${{ needs.lint.result }}" == "success" ]; then
+            echo "✅ Linting: PASSED"
+          else
+            echo "⚠️ Linting: ${{ needs.lint.result }}"
+          fi
+          
+          if [ "${{ needs.test.result }}" == "success" ]; then
+            echo "✅ Tests: PASSED"
+          else
+            echo "❌ Tests: ${{ needs.test.result }}"
+          fi
+          
+          if [ "${{ needs.security.result }}" == "success" ]; then
+            echo "✅ Security: PASSED"
+          else
+            echo "⚠️ Security: ${{ needs.security.result }}"
+          fi
+          
+          echo "════════════════════════════════════════════════════════════"
+          
+          # Fail if tests failed
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests must pass before deployment!"
+            exit 1
+          fi

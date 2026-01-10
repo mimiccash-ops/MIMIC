@@ -93,6 +93,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("FastAPI")
 
+# ==================== SENTRY ERROR TRACKING ====================
+# Optional: Set SENTRY_DSN environment variable to enable error tracking
+try:
+    from sentry_config import init_sentry
+    SENTRY_ENABLED = init_sentry(framework='fastapi')
+except ImportError:
+    SENTRY_ENABLED = False
+    logger.info("Sentry not configured (optional)")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

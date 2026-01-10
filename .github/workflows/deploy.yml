@@ -36,9 +36,17 @@ env:
   APP_DIR: /var/www/mimic
   
 jobs:
+  # ==================== RUN TESTS FIRST ====================
+  test:
+    name: 🧪 Run Tests
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  # ==================== DEPLOY AFTER TESTS PASS ====================
   deploy:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
+    needs: test  # Only deploy if tests pass
     
     steps:
       - name: 📥 Checkout code

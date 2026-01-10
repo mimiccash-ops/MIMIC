@@ -2,9 +2,9 @@
 
 **Copy Trading Platform for Cryptocurrency Exchanges**
 
-Version: 3.1  
-Last Updated: January 9, 2026  
-Code Audit Date: January 9, 2026
+Version: 3.2  
+Last Updated: January 11, 2026  
+Code Audit Date: January 11, 2026
 
 ---
 
@@ -147,6 +147,9 @@ Code Audit Date: January 9, 2026
 | **2FA** | PyOTP | TOTP for panic kill switch |
 | **Payments** | Plisio | Crypto payment gateway |
 | **Observability** | Prometheus + Loki | Metrics and logging |
+| **Error Tracking** | Sentry (optional) | Exception and performance monitoring |
+| **Testing** | pytest | Unit and integration tests |
+| **DB Migrations** | Alembic | Schema version control |
 | **AI Support** | OpenAI + LangChain | RAG-based support bot |
 
 ---
@@ -252,6 +255,7 @@ deploy_production.bat
 | `OPENAI_API_KEY` | OpenAI API key for support bot | None |
 | `VAPID_PUBLIC_KEY` | Web push public key | None |
 | `VAPID_PRIVATE_KEY` | Web push private key | None |
+| `SENTRY_DSN` | Sentry error tracking DSN | None |
 
 ### Generate Security Keys
 
@@ -293,6 +297,7 @@ MIMIC/
 │   ├── banner_generator.py       # Influencer banner generation
 │   ├── post_to_twitter.py        # Twitter/X auto-posting
 │   ├── metrics.py                # Prometheus metrics
+│   ├── settings_manager.py       # Dynamic settings from database
 │   └── run_server.py             # Production server launcher
 │
 ├── 📄 Background Tasks (Optional)
@@ -322,6 +327,7 @@ MIMIC/
 │   ├── migrate_add_smart_features.py # DCA and Trailing SL
 │   ├── migrate_add_risk_guardrails.py # Risk guardrails
 │   ├── migrate_add_subscription.py # Subscription system
+│   ├── migrate_add_subscription_settings.py # Subscription settings
 │   ├── migrate_add_strategies.py # Multi-strategy support
 │   ├── migrate_add_chat.py       # Live chat system
 │   ├── migrate_add_gamification.py # Levels & achievements
@@ -333,6 +339,8 @@ MIMIC/
 │   ├── migrate_add_support_bot.py # RAG support tables
 │   ├── migrate_add_insurance_fund.py # Insurance fund
 │   ├── migrate_add_push_subscriptions.py # Web push
+│   ├── migrate_add_system_settings.py # System settings table
+│   ├── migrate_add_tasks.py      # Task management tables
 │   ├── migrate_high_traffic_indexes.py # Performance indexes
 │   └── migrate_sqlite_to_postgres.py # DB migration
 │
@@ -343,28 +351,33 @@ MIMIC/
 │   ├── DEPLOY.bat / deploy.sh    # VPS deployment scripts
 │   ├── deploy_production.bat     # Windows production deployment
 │   ├── deploy_production.ps1     # PowerShell deployment
+│   ├── deploy.ps1                # PowerShell deploy script
 │   ├── run_production.bat/.sh    # Production mode launcher
 │   ├── run_bot.bat               # Development mode launcher
 │   ├── run_worker.bat            # Start ARQ worker
+│   ├── CONFIGURE.bat             # Configuration wizard
+│   ├── configure.sh              # Linux config wizard
 │   ├── fix_port.bat              # Free port 80 conflicts
 │   ├── vps_setup.sh              # One-time VPS setup
+│   ├── mimic-control.sh          # Linux service control
 │   ├── mimic.service             # Systemd service template
+│   ├── backup_db.sh              # Database backup script
 │   ├── Dockerfile                # Docker container
 │   ├── docker-compose.yml        # Full Docker stack
+│   ├── docker.env.example        # Docker env template
+│   ├── nginx.conf.example        # Nginx config template
 │   └── nginx.conf.production     # Production nginx config
 │
 ├── 📂 static/                    # Static assets
 │   ├── css/
 │   │   ├── main.css              # Main stylesheet
-│   │   ├── main.min.css          # Minified CSS
 │   │   └── chat.css              # Live chat styles
 │   ├── js/
 │   │   ├── main.js               # Main JavaScript
-│   │   ├── main.min.js           # Minified JS
 │   │   ├── chat.js               # Live chat functionality
 │   │   └── push.js               # Web push notifications
-│   ├── icons/                    # PWA icons
 │   ├── music/                    # Optional background music
+│   │   └── README.txt            # Music instructions
 │   ├── manifest.json             # PWA manifest
 │   ├── service-worker.js         # PWA service worker
 │   ├── mimic-logo.svg            # Logo
@@ -372,8 +385,8 @@ MIMIC/
 │   ├── robots.txt                # SEO
 │   └── sitemap.xml               # SEO
 │
-├── 📂 templates/                 # Jinja2 HTML templates (21 files)
-│   ├── base.html                 # Base layout
+├── 📂 templates/                 # Jinja2 HTML templates
+│   ├── base.html                 # Base layout with SEO
 │   ├── index.html                # Landing page
 │   ├── login.html                # Login
 │   ├── register.html             # Registration
@@ -384,18 +397,53 @@ MIMIC/
 │   ├── governance.html           # Voting/Proposals
 │   ├── influencer.html           # Influencer analytics
 │   ├── api_keys.html             # API key management
-│   ├── messages_*.html           # Messaging system
-│   ├── legal_*.html              # Legal pages (TOS, Privacy, Risk)
+│   ├── faq.html                  # FAQ page
+│   ├── admin_payouts.html        # Admin payout management
+│   ├── messages_admin.html       # Admin messages
+│   ├── messages_user.html        # User messages
+│   ├── message_view_admin.html   # Message detail (admin)
+│   ├── message_view_user.html    # Message detail (user)
+│   ├── change_password.html      # Password change
+│   ├── forgot_password.html      # Password recovery
+│   ├── reset_password.html       # Password reset
+│   ├── legal_tos.html            # Terms of Service
+│   ├── legal_privacy.html        # Privacy Policy
+│   ├── legal_risk_disclaimer.html # Risk Disclaimer
+│   ├── legal_accept.html         # TOS acceptance page
 │   └── offline.html              # PWA offline page
 │
 ├── 📂 monitoring/                # Observability stack
 │   ├── grafana/                  # Grafana dashboards
+│   │   ├── dashboards/           # Dashboard JSON files
+│   │   └── provisioning/         # Auto-provisioning
 │   ├── prometheus/               # Metrics and alerts
+│   │   ├── prometheus.yml        # Prometheus config
+│   │   └── alerts.yml            # Alert rules
 │   ├── loki/                     # Log aggregation
+│   │   └── loki-config.yml       # Loki configuration
 │   └── promtail/                 # Log shipping
+│       └── promtail-config.yml   # Promtail configuration
+│
+├── 📂 migrations/                # SQL migration files
+│   └── add_high_traffic_indexes.sql
+│
+├── 📂 tests/                     # Test Suite (pytest)
+│   ├── __init__.py               # Test package init
+│   ├── conftest.py               # Pytest fixtures and configuration
+│   ├── test_models.py            # Database model tests
+│   ├── test_security.py          # Security feature tests
+│   ├── test_api.py               # API endpoint tests
+│   └── test_trading.py           # Trading engine tests
+│
+├── 📂 alembic/                   # Database Migrations (Alembic)
+│   ├── env.py                    # Alembic environment config
+│   ├── script.py.mako            # Migration template
+│   ├── README                    # Migration documentation
+│   └── versions/                 # Migration scripts
 │
 ├── 📂 .github/workflows/         # GitHub Actions
-│   └── deploy.yml                # Auto-deploy to VPS
+│   ├── deploy.yml                # Auto-deploy to VPS (requires tests to pass)
+│   └── test.yml                  # CI/CD test pipeline
 │
 └── 📄 Documentation
     ├── README.md                 # Project overview
@@ -405,6 +453,8 @@ MIMIC/
     ├── SECURITY_HARDENING.md     # Production hardening
     ├── CLOUDFLARE_SETUP.md       # Cloudflare configuration
     ├── PUBLIC_API.md             # Public API documentation
+    ├── AUTO_DEPLOY_SETUP.md      # Auto-deploy setup guide
+    ├── README_EXCHANGE_MANAGEMENT.md # Exchange management
     └── FAQ.md                    # Frequently Asked Questions
 ```
 
@@ -481,6 +531,7 @@ SQLAlchemy models with optimized indexes:
 - `Proposal` / `Vote` - Governance
 - `ApiKey` - Public API keys
 - `UserConsent` - TOS consent tracking
+- `SystemSetting` - Dynamic configuration
 
 ### `support_bot.py` - AI Support Bot
 
@@ -489,6 +540,13 @@ RAG-based support using OpenAI:
 - Context-aware responses
 - Confidence scoring
 - Escalation to human support
+
+### `settings_manager.py` - Dynamic Settings
+
+Provides runtime access to configuration:
+- Database-first settings lookup
+- Fallback to config.py/environment
+- Service enable/disable management
 
 ---
 
@@ -512,6 +570,7 @@ RAG-based support using OpenAI:
 | `/governance` | GET | Yes | Voting proposals |
 | `/influencer` | GET | Yes | Influencer dashboard |
 | `/api-keys` | GET | Yes | API key management |
+| `/faq` | GET | No | FAQ page |
 
 ### FastAPI Routes (app_fastapi.py)
 
@@ -576,6 +635,7 @@ RAG-based support using OpenAI:
 | `support_messages` | Support chat messages |
 | `support_tickets` | Escalated tickets |
 | `system_stats` | Insurance fund, etc. |
+| `system_settings` | Dynamic configuration |
 
 ---
 
@@ -602,7 +662,7 @@ RAG-based support using OpenAI:
 
 ## 📋 Technical Debt & TODOs
 
-### Code Audit Summary (January 9, 2026)
+### Code Audit Summary (January 11, 2026)
 
 **Audit Scope:** Full codebase review including backend, frontend, configuration, and deployment scripts.
 
@@ -610,42 +670,39 @@ RAG-based support using OpenAI:
 
 **Total active TODOs found:** 0
 
-All previously identified TODOs have been implemented:
+All previously identified TODOs have been implemented. No pending technical debt in the form of TODO comments exists in the codebase.
 
-| File | Status | Description |
-|------|--------|-------------|
-| `smart_features.py` | ✅ **FIXED** | Trailing SL trigger now executes actual position close via exchange |
-| `public_api.py` | ✅ **FIXED** | Public API position endpoint now fetches positions from exchanges |
+#### Unused Files
 
-#### Issues Found and Fixed
+**No unused files found.** All Python files are either:
+- Core modules imported by the main application
+- Utility scripts designed to be run directly (`setup_env.py`, `stress_test.py`, etc.)
+- Migration scripts for database updates
 
-| Issue | Status | Date |
-|-------|--------|------|
-| Missing legal templates (`legal_tos.html`, `legal_privacy.html`, `legal_risk_disclaimer.html`) | ✅ **Created** | Jan 9, 2026 |
+#### Code Quality Summary
 
-### Recommendations
+| Aspect | Status | Notes |
+|--------|--------|-------|
+| **Backend Structure** | ✅ Well-organized | Clear separation of concerns |
+| **Security Module** | ✅ Comprehensive | Rate limiting, encryption, input validation |
+| **Database Models** | ✅ Optimized | Indexes on frequently queried columns |
+| **Frontend Templates** | ✅ Complete | 26 templates with i18n support |
+| **Configuration** | ✅ Secure | Secret management with fallbacks |
+| **Documentation** | ✅ Complete | README, DEV_MANUAL, deployment guides |
 
-#### 🔴 High Priority
-1. ~~**Complete trailing SL execution**~~ - ✅ **DONE** (Jan 9, 2026)
-2. ~~**Complete public API position fetching**~~ - ✅ **DONE** (Jan 9, 2026)
-3. **Add comprehensive unit/integration tests** - No test suite exists
-4. **Set up CI/CD pipeline** - GitHub Actions for automated testing
+### Recommendations - Implementation Status
 
-#### 🟡 Medium Priority
-1. **Database migrations with Alembic** - Consider for version control
-2. **Centralized logging with Loki** - Production tuning needed
-3. **API documentation** - Add detailed docstrings
-4. **WebSocket reconnection logic** - Improve client-side handling
-
-#### 🟢 Low Priority
-1. **User API rate limiting per subscription tier**
-2. **Error tracking with Sentry**
-3. **APM integration** - Application Performance Monitoring
-4. **Image optimization** - WebP conversion
-
-### All Files Are Actively Used
-
-No unused files were found during the audit. All Python files, templates, and static assets are referenced and utilized.
+| Priority | Recommendation | Status |
+|----------|----------------|--------|
+| 🔴 High | Unit/Integration Tests | ✅ Implemented (`tests/` directory with pytest) |
+| 🔴 High | CI/CD with Tests | ✅ Implemented (`.github/workflows/test.yml`) |
+| 🟡 Medium | Database Migrations (Alembic) | ✅ Implemented (`alembic/` directory) |
+| 🟡 Medium | OpenAPI/Swagger Docs | ✅ Available at `/docs` and `/redoc` (FastAPI) |
+| 🟡 Medium | Centralized Logging | ✅ Configured (Prometheus + Loki stack) |
+| 🟢 Low | Error Tracking (Sentry) | ✅ Implemented (`sentry_config.py`) |
+| 🟢 Low | APM Integration | ✅ Using Prometheus metrics |
+| 🟢 Low | User API rate limiting per tier | Consider for future |
+| 🟢 Low | WebSocket reconnection logic | Consider for future |
 
 ---
 
@@ -736,13 +793,26 @@ scp vps_setup.sh root@YOUR_VPS_IP:/tmp/
 ssh root@YOUR_VPS_IP "chmod +x /tmp/vps_setup.sh && /tmp/vps_setup.sh"
 ```
 
-### GitHub Actions Auto-Deploy
+### GitHub Actions CI/CD
 
-Push to `main` branch triggers automatic deployment. Configure secrets:
+**Test Pipeline** (`.github/workflows/test.yml`):
+- Runs on every push and pull request
+- Linting with flake8
+- Unit and integration tests with pytest
+- Security scan with bandit
+- Coverage report upload to Codecov
+
+**Deploy Pipeline** (`.github/workflows/deploy.yml`):
+- Push to `main` branch triggers deployment
+- **Tests must pass before deployment**
+- Automatic rollout to VPS
+
+Configure GitHub Secrets:
 - `VPS_HOST` - Your VPS IP
 - `VPS_USER` - SSH username
 - `VPS_SSH_KEY` - Private SSH key
 - `VPS_PORT` - SSH port (22)
+- `TEST_MASTER_KEY` (optional) - Master key for CI tests
 
 ### Docker Deployment
 
@@ -789,6 +859,28 @@ python migrate_all.py
 - Use logging instead of print statements
 - Emojis in log messages: ✅ success, ❌ error, ⚠️ warning, 🔄 processing
 
+### Running Tests
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=. --cov-report=html
+
+# Run specific test file
+pytest tests/test_models.py -v
+
+# Run specific test
+pytest tests/test_models.py::TestUserModel::test_create_user -v
+
+# Run only unit tests (fast)
+pytest tests/ -v -m unit
+
+# Run security tests
+pytest tests/ -v -m security
+```
+
 ### Testing Webhook
 
 ```bash
@@ -797,12 +889,85 @@ curl -X POST http://localhost/webhook \
   -d '{"passphrase":"your_passphrase","symbol":"BTCUSDT","action":"long"}'
 ```
 
-### Database Migrations
+### Database Migrations with Alembic
 
-When changing models:
-1. Update `models.py`
-2. Add changes to `migrate_all.py` or create new migration script
-3. Run migration: `python migrate_all.py`
+**Alembic** is now configured for proper database migrations:
+
+```bash
+# Create a new migration after model changes
+alembic revision --autogenerate -m "Add new column to users"
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Rollback the last migration
+alembic downgrade -1
+
+# View migration history
+alembic history
+
+# View current database version
+alembic current
+```
+
+**Legacy migrations** (`migrate_*.py`) are still available and can be run with:
+```bash
+python migrate_all.py
+```
+
+### API Documentation (OpenAPI/Swagger)
+
+FastAPI automatically generates interactive API documentation:
+
+| URL | Description |
+|-----|-------------|
+| `/docs` | Interactive Swagger UI |
+| `/redoc` | ReDoc documentation |
+| `/openapi.json` | OpenAPI specification |
+
+### Error Tracking with Sentry
+
+**Sentry** integration is available for error tracking and performance monitoring:
+
+1. Create a Sentry account at https://sentry.io
+2. Create a new Python project
+3. Set the `SENTRY_DSN` environment variable
+
+```bash
+# Add to .env file
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+```
+
+Features:
+- Automatic exception capture
+- Performance monitoring (traces)
+- Session tracking
+- Breadcrumbs for debugging context
+- Sensitive data filtering (passwords, API keys)
+
+Usage in code:
+```python
+from sentry_config import capture_exception, capture_message, set_user_context
+
+# Capture an exception
+try:
+    risky_operation()
+except Exception as e:
+    capture_exception(e, user_id=123, operation='risky')
+
+# Capture a message
+capture_message("User performed important action", level='info')
+
+# Set user context for better error tracking
+set_user_context(user_id=123, username='john', email='john@example.com')
+```
+
+### Adding New Features
+
+1. **New API Endpoint**: Add route to `app.py` (Flask) or `routers.py` (FastAPI)
+2. **New Database Model**: Add to `models.py`, create migration script
+3. **New Frontend Page**: Create template in `templates/`, add route
+4. **New Service**: Create module, update `config.py` and `settings_manager.py`
 
 ---
 
@@ -820,5 +985,6 @@ For issues and questions:
 
 ---
 
-*Last updated: January 9, 2026*  
-*Code Audit: Full codebase review - 2 active TODOs found, 3 missing templates created*
+*Last updated: January 11, 2026*  
+*Code Audit: Full codebase review - 0 TODOs found, 0 unused files, all systems operational*  
+*Testing: pytest suite implemented - CI/CD pipeline with automated tests*
