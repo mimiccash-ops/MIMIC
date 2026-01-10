@@ -277,6 +277,9 @@ MIMIC/
 | Add background tasks | `tasks.py` + `worker.py` |
 | Add smart trading features | `smart_features.py` |
 | Handle payments | `payment_router.py` |
+| Add security features | `security.py` |
+| Telegram notifications | `telegram_notifier.py` + `telegram_bot.py` |
+| AI support bot | `support_bot.py` + `ingest_docs.py` |
 
 ### Running the Application
 
@@ -288,6 +291,34 @@ MIMIC/
 | `START.bat` | Interactive menu (Windows) |
 | `./start.sh` | Interactive menu (Linux/Mac) |
 
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=. --cov-report=html
+
+# Run specific test file
+pytest tests/test_models.py -v
+```
+
+### Database Migrations
+
+```bash
+# Run all legacy migrations
+python migrate_all.py
+
+# Using Alembic (recommended)
+alembic upgrade head           # Apply all migrations
+alembic revision --autogenerate -m "description"  # Create new migration
+alembic history               # View migration history
+```
+
 ### Code Style
 
 - Python: Follow PEP 8
@@ -295,6 +326,12 @@ MIMIC/
 - Logging: `✅` success, `❌` error, `⚠️` warning, `🔄` processing
 - Comments in English, UI supports multiple languages
 - All API keys must be encrypted using Fernet
+
+### API Documentation
+
+When running the application, API documentation is available at:
+- `/docs` - Interactive Swagger UI (FastAPI)
+- `/redoc` - ReDoc documentation (FastAPI)
 
 ---
 
@@ -473,4 +510,4 @@ MIT License - see LICENSE file
 
 ---
 
-*Last Updated: January 11, 2026*
+*Last Updated: January 11, 2026 (Code Audit Completed)*
