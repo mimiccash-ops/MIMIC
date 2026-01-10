@@ -618,36 +618,36 @@
 <!-- ==================== HERO SECTION ==================== -->
 <section class="tournament-hero">
     <h1>
-        <span class="gradient">Weekly Tournament</span>
+        <span class="gradient" data-i18n="tournament.title">Weekly Tournament</span>
     </h1>
-    <p>Compete with traders worldwide. Join with $10, trade your best, and win a share of the prize pool. TOP-3 by ROI take it all!</p>
+    <p data-i18n="tournament.subtitle">Compete with traders worldwide. Join with $10, trade your best, and win a share of the prize pool. TOP-3 by ROI take it all!</p>
 </section>
 
 <!-- ==================== COUNTDOWN SECTION ==================== -->
 <section class="countdown-section" id="countdown-section">
     <div class="countdown-card">
-        <div class="countdown-label" id="countdown-label">Tournament Ends In</div>
+        <div class="countdown-label" id="countdown-label" data-i18n="tournament.endsIn">Tournament Ends In</div>
         <div class="countdown-timer" id="countdown-timer">
             <div class="countdown-unit">
                 <div class="countdown-value" id="countdown-days">--</div>
-                <div class="countdown-text">Days</div>
+                <div class="countdown-text" data-i18n="tournament.days">Days</div>
             </div>
             <div class="countdown-unit">
                 <div class="countdown-value" id="countdown-hours">--</div>
-                <div class="countdown-text">Hours</div>
+                <div class="countdown-text" data-i18n="tournament.hours">Hours</div>
             </div>
             <div class="countdown-unit">
                 <div class="countdown-value" id="countdown-mins">--</div>
-                <div class="countdown-text">Minutes</div>
+                <div class="countdown-text" data-i18n="tournament.minutes">Minutes</div>
             </div>
             <div class="countdown-unit">
                 <div class="countdown-value" id="countdown-secs">--</div>
-                <div class="countdown-text">Seconds</div>
+                <div class="countdown-text" data-i18n="tournament.seconds">Seconds</div>
             </div>
         </div>
         <div class="tournament-status-badge" id="tournament-status">
             <span class="status-dot"></span>
-            <span id="status-text">Loading...</span>
+            <span id="status-text" data-i18n="common.loading">Loading...</span>
         </div>
     </div>
 </section>
@@ -657,22 +657,22 @@
     <div class="stat-box animate-slide-up">
         <div class="icon"><i class="fas fa-trophy"></i></div>
         <div class="value" id="stat-prize-pool">$0</div>
-        <div class="label">Prize Pool</div>
+        <div class="label" data-i18n="tournament.prizePool">Prize Pool</div>
     </div>
     <div class="stat-box animate-slide-up" style="animation-delay: 0.1s;">
         <div class="icon"><i class="fas fa-users"></i></div>
         <div class="value" id="stat-participants">0</div>
-        <div class="label">Participants</div>
+        <div class="label" data-i18n="tournament.participants">Participants</div>
     </div>
     <div class="stat-box animate-slide-up" style="animation-delay: 0.2s;">
         <div class="icon"><i class="fas fa-ticket-alt"></i></div>
         <div class="value" id="stat-entry-fee">$10</div>
-        <div class="label">Entry Fee</div>
+        <div class="label" data-i18n="tournament.entryFee">Entry Fee</div>
     </div>
     <div class="stat-box animate-slide-up" style="animation-delay: 0.3s;">
         <div class="icon"><i class="fas fa-chart-line"></i></div>
         <div class="value" id="stat-top-roi">0%</div>
-        <div class="label">Top ROI</div>
+        <div class="label" data-i18n="tournament.topRoi">Top ROI</div>
     </div>
 </section>
 
@@ -680,27 +680,27 @@
 <section class="tournament-content" id="main-content">
     <!-- Join Panel -->
     <div class="join-section animate-slide-up" style="animation-delay: 0.4s;">
-        <h3><i class="fas fa-medal"></i> Prize Distribution</h3>
+        <h3><i class="fas fa-medal"></i> <span data-i18n="tournament.prizeDistribution">Prize Distribution</span></h3>
         
         <div class="prize-breakdown">
             <div class="prize-row">
                 <div>
                     <span class="medal">🥇</span>
-                    <span class="rank">1st Place</span>
+                    <span class="rank" data-i18n="tournament.1stPlace">1st Place</span>
                 </div>
                 <span class="amount" id="prize-1st">50%</span>
             </div>
             <div class="prize-row">
                 <div>
                     <span class="medal">🥈</span>
-                    <span class="rank">2nd Place</span>
+                    <span class="rank" data-i18n="tournament.2ndPlace">2nd Place</span>
                 </div>
                 <span class="amount" id="prize-2nd">30%</span>
             </div>
             <div class="prize-row">
                 <div>
                     <span class="medal">🥉</span>
-                    <span class="rank">3rd Place</span>
+                    <span class="rank" data-i18n="tournament.3rdPlace">3rd Place</span>
                 </div>
                 <span class="amount" id="prize-3rd">20%</span>
             </div>
@@ -710,30 +710,30 @@
             <!-- Will be populated by JS -->
             <button class="join-btn" id="join-btn" disabled>
                 <i class="fas fa-rocket"></i>
-                <span>Loading...</span>
+                <span data-i18n="common.loading">Loading...</span>
             </button>
         </div>
         
         <div id="my-participation" style="display: none;">
             <div class="already-joined">
                 <i class="fas fa-check-circle"></i>
-                <span>You're participating!</span>
+                <span data-i18n="tournament.youreParticipating">You're participating!</span>
             </div>
             <div class="my-stats">
                 <div class="stat-line">
-                    <span class="stat-label">Your Rank</span>
+                    <span class="stat-label" data-i18n="tournament.yourRank">Your Rank</span>
                     <span class="stat-value" id="my-rank">#--</span>
                 </div>
                 <div class="stat-line">
-                    <span class="stat-label">Your ROI</span>
+                    <span class="stat-label" data-i18n="tournament.yourRoi">Your ROI</span>
                     <span class="stat-value" id="my-roi">0.00%</span>
                 </div>
                 <div class="stat-line">
-                    <span class="stat-label">Your PnL</span>
+                    <span class="stat-label" data-i18n="tournament.yourPnl">Your PnL</span>
                     <span class="stat-value" id="my-pnl">$0.00</span>
                 </div>
                 <div class="stat-line">
-                    <span class="stat-label">Trades</span>
+                    <span class="stat-label" data-i18n="leaderboard.trades">Trades</span>
                     <span class="stat-value" id="my-trades">0</span>
                 </div>
             </div>
@@ -743,25 +743,25 @@
     <!-- Leaderboard -->
     <div class="leaderboard-section animate-slide-up" style="animation-delay: 0.5s;">
         <div class="section-header">
-            <h2><i class="fas fa-list-ol"></i> Live Leaderboard</h2>
+            <h2><i class="fas fa-list-ol"></i> <span data-i18n="tournament.liveLeaderboard">Live Leaderboard</span></h2>
             <span class="live-badge">
                 <span class="dot"></span>
-                Real-time
+                <span data-i18n="tournament.realTime">Real-time</span>
             </span>
         </div>
         <table class="leaderboard-table">
             <thead>
                 <tr>
-                    <th>Rank</th>
-                    <th>Trader</th>
-                    <th>Trades</th>
-                    <th>ROI</th>
-                    <th>PnL</th>
+                    <th data-i18n="tournament.rank">Rank</th>
+                    <th data-i18n="leaderboard.trader">Trader</th>
+                    <th data-i18n="leaderboard.trades">Trades</th>
+                    <th data-i18n="tournament.roi">ROI</th>
+                    <th data-i18n="tournament.pnl">PnL</th>
                 </tr>
             </thead>
             <tbody id="leaderboard-tbody">
                 <tr>
-                    <td colspan="5" class="no-data-row loading-shimmer">Loading leaderboard...</td>
+                    <td colspan="5" class="no-data-row loading-shimmer" data-i18n="leaderboard.loadingLeaderboard">Loading leaderboard...</td>
                 </tr>
             </tbody>
         </table>
@@ -771,11 +771,11 @@
 <!-- ==================== NO TOURNAMENT STATE ==================== -->
 <section class="no-tournament" id="no-tournament" style="display: none;">
     <div class="icon-big">🏆</div>
-    <h2>No Active Tournament</h2>
-    <p>The next weekly tournament is being prepared. Check back soon or register to get notified when it starts!</p>
+    <h2 data-i18n="tournament.noActiveTournament">No Active Tournament</h2>
+    <p data-i18n="tournament.noActiveTournamentDesc">The next weekly tournament is being prepared. Check back soon or register to get notified when it starts!</p>
     <a href="{{ url_for('register') }}" class="cyber-btn cyber-btn-green cyber-btn-lg" style="margin-top: 32px;">
         <i class="fas fa-user-plus"></i>
-        <span>Create Account</span>
+        <span data-i18n="tournament.createAccount">Create Account</span>
     </a>
 </section>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Terminal{% endblock %}
+{% block title %}{{ _('Terminal') if _ else 'Terminal' }}{% endblock %}
 
 {% block mobile_sections %}
 <div class="mobile-divider"></div>
@@ -1361,7 +1361,7 @@
              hx-swap="innerHTML">
             <div class="empty-positions">
                 <div class="icon"><i class="fas fa-satellite-dish"></i></div>
-                <div class="text">Scanning for positions...</div>
+                <div class="text" data-i18n="dash.scanningPositions">Scanning for positions...</div>
             </div>
         </div>
     </div>
@@ -1390,22 +1390,22 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="stat-card-cyber">
             <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-            <div class="stat-label">Period P&L</div>
+            <div class="stat-label" data-i18n="dash.periodPnl">Period P&L</div>
             <div class="stat-value text-green-400" id="stats-pnl">+$0</div>
         </div>
         <div class="stat-card-cyber">
             <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
-            <div class="stat-label">Trades</div>
+            <div class="stat-label" data-i18n="dash.trades">Trades</div>
             <div class="stat-value text-cyan-400" id="stats-trades">0</div>
         </div>
         <div class="stat-card-cyber">
             <div class="stat-icon yellow"><i class="fas fa-trophy"></i></div>
-            <div class="stat-label">Win Rate</div>
+            <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
             <div class="stat-value text-yellow-400" id="stats-winrate">0%</div>
         </div>
         <div class="stat-card-cyber">
             <div class="stat-icon red"><i class="fas fa-percent"></i></div>
-            <div class="stat-label">Avg ROI</div>
+            <div class="stat-label" data-i18n="dash.avgRoi">Avg ROI</div>
             <div class="stat-value" id="stats-avgroi">0%</div>
         </div>
     </div>
@@ -1459,7 +1459,7 @@
         <div class="section-body" id="exchanges-container">
             <div class="empty-positions" id="exchanges-loading">
                 <div class="icon"><i class="fas fa-spinner fa-spin"></i></div>
-                <div class="text">Loading connections...</div>
+                <div class="text" data-i18n="dash.loadingConnections">Loading connections...</div>
             </div>
         </div>
     </div>
@@ -1492,7 +1492,7 @@
                 <div class="flex items-center gap-4">
                     <label class="flex-1 flex items-center gap-3 p-3 bg-black/30 border border-white/5 rounded-lg cursor-pointer hover:border-green-500/30 transition-all">
                         <input type="checkbox" name="telegram_enabled" {{ 'checked' if user_settings.telegram_enabled else '' }} class="w-5 h-5 accent-green-400">
-                        <span class="text-sm text-white/70">Enable notifications</span>
+                        <span class="text-sm text-white/70" data-i18n="dash.enableNotifications">Enable notifications</span>
                     </label>
                     <button type="submit" class="btn-cyber btn-cyber-sm">
                         <i class="fas fa-save"></i>

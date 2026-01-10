@@ -534,9 +534,9 @@
 <!-- ==================== HERO SECTION ==================== -->
 <section class="leaderboard-hero">
     <h1>
-        <span class="gradient">Leaderboard</span>
+        <span class="gradient" data-i18n="leaderboard.title">Leaderboard</span>
     </h1>
-    <p>Real-time performance tracking of our top copy traders. See who's leading the pack.</p>
+    <p data-i18n="leaderboard.subtitle">Real-time performance tracking of our top copy traders. See who's leading the pack.</p>
 </section>
 
 <!-- ==================== GLOBAL STATS ==================== -->
@@ -546,7 +546,7 @@
             <i class="fas fa-users"></i>
         </div>
         <div class="value" id="stat-users">-</div>
-        <div class="label">Total Users</div>
+        <div class="label" data-i18n="leaderboard.totalUsers">Total Users</div>
     </div>
     
     <div class="stat-card animate-slide-up" style="animation-delay: 0.1s;">
@@ -554,7 +554,7 @@
             <i class="fas fa-chart-bar"></i>
         </div>
         <div class="value" id="stat-volume">-</div>
-        <div class="label">Total Volume</div>
+        <div class="label" data-i18n="leaderboard.totalVolume">Total Volume</div>
     </div>
     
     <div class="stat-card animate-slide-up" style="animation-delay: 0.2s;">
@@ -562,7 +562,7 @@
             <i class="fas fa-coins"></i>
         </div>
         <div class="value" id="stat-profit">-</div>
-        <div class="label">Total Profit</div>
+        <div class="label" data-i18n="leaderboard.totalProfit">Total Profit</div>
     </div>
     
     <div class="stat-card animate-slide-up" style="animation-delay: 0.3s;">
@@ -570,7 +570,7 @@
             <i class="fas fa-exchange-alt"></i>
         </div>
         <div class="value" id="stat-trades">-</div>
-        <div class="label">Total Trades</div>
+        <div class="label" data-i18n="leaderboard.totalTrades">Total Trades</div>
     </div>
 </section>
 
@@ -579,22 +579,22 @@
     <!-- Top Copiers Table -->
     <div class="copiers-section animate-slide-up" style="animation-delay: 0.4s;">
         <div class="section-header">
-            <h2><i class="fas fa-trophy"></i> Top Copiers</h2>
-            <span class="section-badge" id="copiers-badge">Today</span>
+            <h2><i class="fas fa-trophy"></i> <span data-i18n="leaderboard.topCopiers">Top Copiers</span></h2>
+            <span class="section-badge" id="copiers-badge" data-i18n="leaderboard.today">Today</span>
         </div>
         <table class="copiers-table">
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Trader</th>
-                    <th>Trades</th>
+                    <th data-i18n="leaderboard.trader">Trader</th>
+                    <th data-i18n="leaderboard.trades">Trades</th>
                     <th>ROE%</th>
                     <th>PnL</th>
                 </tr>
             </thead>
             <tbody id="copiers-tbody">
                 <tr>
-                    <td colspan="5" class="no-data-row loading-pulse">Loading leaderboard...</td>
+                    <td colspan="5" class="no-data-row loading-pulse" data-i18n="leaderboard.loadingLeaderboard">Loading leaderboard...</td>
                 </tr>
             </tbody>
         </table>
@@ -603,14 +603,14 @@
     <!-- Master Trader Section -->
     <div class="master-section animate-slide-up" style="animation-delay: 0.5s;">
         <div class="section-header">
-            <h2><i class="fas fa-crown"></i> Master Trader</h2>
-            <span class="section-badge">30 Day Performance</span>
+            <h2><i class="fas fa-crown"></i> <span data-i18n="leaderboard.masterTrader">Master Trader</span></h2>
+            <span class="section-badge" data-i18n="leaderboard.30DayPerformance">30 Day Performance</span>
         </div>
         
         <div class="master-stats-grid">
             <div class="master-stat">
                 <div class="value green" id="master-pnl">-</div>
-                <div class="label">Total PnL</div>
+                <div class="label" data-i18n="leaderboard.totalPnl">Total PnL</div>
             </div>
             <div class="master-stat">
                 <div class="value pink" id="master-roe">-</div>
@@ -618,11 +618,11 @@
             </div>
             <div class="master-stat">
                 <div class="value cyan" id="master-winrate">-</div>
-                <div class="label">Win Rate</div>
+                <div class="label" data-i18n="leaderboard.winRate">Win Rate</div>
             </div>
             <div class="master-stat">
                 <div class="value purple" id="master-trades">-</div>
-                <div class="label">Trades</div>
+                <div class="label" data-i18n="leaderboard.trades">Trades</div>
             </div>
         </div>
         
@@ -635,11 +635,11 @@
 <!-- ==================== CTA SECTION ==================== -->
 <section class="leaderboard-cta">
     <div class="cta-box animate-slide-up" style="animation-delay: 0.6s;">
-        <h3>Ready to Join the Winners?</h3>
-        <p>Start copy trading today and automatically mirror the trades of our top performers. No experience required.</p>
+        <h3 data-i18n="leaderboard.readyToJoin">Ready to Join the Winners?</h3>
+        <p data-i18n="leaderboard.readyToJoinSubtitle">Start copy trading today and automatically mirror the trades of our top performers. No experience required.</p>
         <a href="{{ url_for('register') }}" class="cyber-btn cyber-btn-green cyber-btn-lg">
             <i class="fas fa-rocket"></i>
-            <span>Copy Now — Start Free</span>
+            <span data-i18n="leaderboard.copyNow">Copy Now — Start Free</span>
         </a>
     </div>
 </section>

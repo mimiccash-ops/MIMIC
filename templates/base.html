@@ -265,11 +265,11 @@
                     <!-- Community & Features -->
                     <a href="{{ url_for('leaderboard') }}" class="dropdown-item">
                         <i class="fas fa-trophy"></i>
-                        <span>Leaderboard</span>
+                        <span data-i18n="nav.leaderboard">Leaderboard</span>
                     </a>
                     <a href="{{ url_for('tournament_page') }}" class="dropdown-item">
                         <i class="fas fa-medal"></i>
-                        <span>Tournaments</span>
+                        <span data-i18n="nav.tournaments">Tournaments</span>
                     </a>
                     <a href="{{ url_for('governance_page') }}" class="dropdown-item">
                         <i class="fas fa-vote-yea"></i>
@@ -294,7 +294,7 @@
                     <!-- Admin Tools -->
                     <a href="{{ url_for('admin_payouts') }}" class="dropdown-item">
                         <i class="fas fa-wallet"></i>
-                        <span>Payouts</span>
+                        <span data-i18n="nav.payouts">Payouts</span>
                     </a>
                     <a href="#" class="dropdown-item" onclick="if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); closeUserMenu(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
                         <i class="fas fa-tools"></i>
@@ -364,14 +364,14 @@
             </a>
             
             <div class="mobile-divider"></div>
-            <div class="mobile-nav-label">Community</div>
+            <div class="mobile-nav-label" data-i18n="nav.community">Community</div>
             <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-trophy"></i>
-                <span>Leaderboard</span>
+                <span data-i18n="nav.leaderboard">Leaderboard</span>
             </a>
             <a href="{{ url_for('tournament_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-medal"></i>
-                <span>Tournaments</span>
+                <span data-i18n="nav.tournaments">Tournaments</span>
             </a>
             <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-vote-yea"></i>
@@ -379,7 +379,7 @@
             </a>
             
             <div class="mobile-divider"></div>
-            <div class="mobile-nav-label">Account</div>
+            <div class="mobile-nav-label" data-i18n="nav.account">Account</div>
             <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-envelope"></i>
                 <span data-i18n="nav.messages">Messages</span>
@@ -400,10 +400,10 @@
             
             {% if current_user.role == 'admin' %}
             <div class="mobile-divider"></div>
-            <div class="mobile-nav-label">Admin</div>
+            <div class="mobile-nav-label" data-i18n="nav.admin">Admin</div>
             <a href="{{ url_for('admin_payouts') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-wallet"></i>
-                <span>Payouts</span>
+                <span data-i18n="nav.payouts">Payouts</span>
             </a>
             <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
                 <i class="fas fa-plug"></i>
@@ -505,8 +505,8 @@
                     <h4 data-i18n="footer.platform">Platform</h4>
                     <ul>
                         <li><a href="{{ url_for('index') }}" data-i18n="footer.home">Home</a></li>
-                        <li><a href="{{ url_for('leaderboard') }}">Leaderboard</a></li>
-                        <li><a href="{{ url_for('governance_page') }}">Governance</a></li>
+                        <li><a href="{{ url_for('leaderboard') }}" data-i18n="nav.leaderboard">Leaderboard</a></li>
+                        <li><a href="{{ url_for('governance_page') }}" data-i18n="nav.governance">Governance</a></li>
                         <li><a href="{{ url_for('login') }}" data-i18n="footer.signIn">Sign In</a></li>
                         <li><a href="{{ url_for('register') }}" data-i18n="footer.getStarted">Get Started</a></li>
                     </ul>
