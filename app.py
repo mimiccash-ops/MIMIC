@@ -3702,7 +3702,7 @@ def admin_referral_stats():
             .filter(ReferralCommission.is_paid == False).scalar()
         
         # Pending payout requests
-        pending_requests = PayoutRequest.query.filter_by(status='pending').count() if PayoutRequest else 0
+        pending_requests = PayoutRequest.query.filter_by(status='pending').count()
         
         return jsonify({
             'success': True,

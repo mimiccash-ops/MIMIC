@@ -79,8 +79,6 @@ TimeoutStopSec=30
 # Always restart on failure, exit, or signal
 Restart=always
 RestartSec=5
-# Wait for service to be ready before marking as started
-RestartPreventExitStatus=0
 
 # ============ WATCHDOG (Health Monitoring) ============
 # Service must ping systemd every 30 seconds or it will be restarted
