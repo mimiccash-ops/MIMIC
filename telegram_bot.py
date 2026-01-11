@@ -226,29 +226,8 @@ class TelegramBotHandler:
             logger.warning("⚠️ Telegram bot token not provided")
             return
         
-        try:
-            self._setup_bot()
-            logger.info("✅ Telegram Bot Handler initialized")
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize Telegram bot: {e}")
-    
-    def _setup_bot(self):
-        """Set up the bot application with command handlers"""
-        self.application = Application.builder().token(self.bot_token).build()
-        self.bot = self.application.bot
-        
-        # Add command handlers
-        self.application.add_handler(CommandHandler("start", self._cmd_start))
-        self.application.add_handler(CommandHandler("help", self._cmd_help))
-        self.application.add_handler(CommandHandler("status", self._cmd_status))
-        self.application.add_handler(CommandHandler("support", self._cmd_support))  # AI Support Bot
-        self.application.add_handler(CommandHandler("ask", self._cmd_support))  # Alias for support
-        self.application.add_handler(CommandHandler("panic_close_all", self._cmd_panic_close_all))
-        self.application.add_handler(CommandHandler("panic", self._cmd_panic_close_all))  # Alias
-        self.application.add_handler(CommandHandler("otp_setup", self._cmd_otp_setup))
-        
-        # Handle unknown commands
-        self.application.add_handler(MessageHandler(filters.COMMAND, self._cmd_unknown))
+        # Note: Application is now created in the background thread to avoid event loop issues
+        logger.info("✅ Telegram Bot Handler initialized (application will be created on start)")
     
     def _is_authorized(self, user_id: int) -> bool:
         """Check if user is authorized for panic commands"""
@@ -634,8 +613,12 @@ class TelegramBotHandler:
     
     def start(self):
         """Start the bot in a background thread"""
-        if not self.application:
-            logger.warning("Cannot start bot - not initialized")
+        if not TELEGRAM_BOT_AVAILABLE:
+            logger.warning("Cannot start bot - telegram dependencies not available")
+            return
+        
+        if not self.bot_token:
+            logger.warning("Cannot start bot - no bot token provided")
             return
         
         if self._running:
@@ -645,65 +628,49 @@ class TelegramBotHandler:
         def run_bot():
             import asyncio
             
-            # Create a completely new event loop for this thread
-            # First, try to close any existing loop in this thread
-            try:
-                old_loop = asyncio.get_event_loop()
-                if old_loop.is_running():
-                    old_loop.stop()
-            except RuntimeError:
-                pass  # No event loop in this thread
-            
-            # Create fresh event loop
+            # Create a fresh event loop for this thread
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
-            # Try to use nest_asyncio if available (allows nested event loops)
-            try:
-                import nest_asyncio
-                nest_asyncio.apply(loop)
-            except ImportError:
-                pass  # nest_asyncio not installed, continue without it
-            
             try:
                 self._running = True
+                logger.info("🤖 Creating Telegram bot application...")
+                
+                # Create the Application in this thread to avoid event loop issues
+                # This is crucial - the Application must be created in the same thread/loop where it runs
+                self.application = Application.builder().token(self.bot_token).build()
+                self.bot = self.application.bot
+                
+                # Add command handlers
+                self.application.add_handler(CommandHandler("start", self._cmd_start))
+                self.application.add_handler(CommandHandler("help", self._cmd_help))
+                self.application.add_handler(CommandHandler("status", self._cmd_status))
+                self.application.add_handler(CommandHandler("support", self._cmd_support))
+                self.application.add_handler(CommandHandler("ask", self._cmd_support))
+                self.application.add_handler(CommandHandler("panic_close_all", self._cmd_panic_close_all))
+                self.application.add_handler(CommandHandler("panic", self._cmd_panic_close_all))
+                self.application.add_handler(CommandHandler("otp_setup", self._cmd_otp_setup))
+                self.application.add_handler(MessageHandler(filters.COMMAND, self._cmd_unknown))
+                
                 logger.info("🤖 Starting Telegram bot polling...")
                 
-                # Run initialization
-                loop.run_until_complete(self.application.initialize())
-                loop.run_until_complete(self.application.start())
-                loop.run_until_complete(self.application.updater.start_polling(
-                    drop_pending_updates=True,  # Don't process old messages
-                    allowed_updates=['message', 'callback_query']
-                ))
+                # Use run_polling which properly manages the event loop
+                # This is the recommended way to run the bot
+                self.application.run_polling(
+                    drop_pending_updates=True,
+                    allowed_updates=['message', 'callback_query'],
+                    close_loop=False
+                )
                 
-                # Keep the loop running
-                loop.run_forever()
-                
-            except RuntimeError as e:
-                if "cannot run the event loop while another loop is running" in str(e).lower():
-                    # Fallback: use Application.run_polling() which handles its own loop
-                    logger.warning("Event loop conflict detected, trying alternative start method...")
-                    try:
-                        # Reset the loop
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        
-                        # Use the simpler run_polling which manages its own loop
-                        self.application.run_polling(
-                            drop_pending_updates=True,
-                            close_loop=False
-                        )
-                    except Exception as e2:
-                        logger.error(f"Bot fallback start failed: {e2}")
-                else:
-                    logger.error(f"Bot runtime error: {e}")
             except Exception as e:
                 logger.error(f"Bot error: {e}")
+                import traceback
+                logger.debug(f"Traceback: {traceback.format_exc()}")
             finally:
                 self._running = False
                 try:
-                    loop.close()
+                    if not loop.is_closed():
+                        loop.close()
                 except:
                     pass
         
@@ -714,21 +681,37 @@ class TelegramBotHandler:
     def stop(self):
         """Stop the bot"""
         if self.application and self._running:
-            import asyncio
-            
-            async def shutdown():
-                await self.application.updater.stop()
-                await self.application.stop()
-                await self.application.shutdown()
-            
             try:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(shutdown())
+                # Signal the application to stop
+                # The run_polling() method will handle cleanup
+                if self.application.updater and self.application.updater.running:
+                    # Schedule stop in the application's event loop
+                    import asyncio
+                    
+                    async def shutdown():
+                        try:
+                            await self.application.updater.stop()
+                            await self.application.stop()
+                            await self.application.shutdown()
+                        except Exception as e:
+                            logger.debug(f"Shutdown error (may be expected): {e}")
+                    
+                    # Try to get the running loop from the application
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(shutdown())
+                    except RuntimeError:
+                        # No running loop, try to run in new loop
+                        try:
+                            asyncio.run(shutdown())
+                        except Exception as e:
+                            logger.debug(f"Alternative shutdown error: {e}")
+                
+                self._running = False
+                logger.info("🤖 Telegram bot stopped")
             except Exception as e:
                 logger.error(f"Error stopping bot: {e}")
-            
-            self._running = False
-            logger.info("🤖 Telegram bot stopped")
+                self._running = False
 
 
 # Global instance
