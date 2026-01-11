@@ -174,7 +174,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form id="approveForm" method="POST" action="#" onsubmit="return validateFormAction(this)">
+        <form id="approveForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
                 <p class="text-white/60 mb-4">Are you sure you want to approve this payout request?</p>
                 <div class="mb-4">
@@ -204,7 +204,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form id="rejectForm" method="POST" action="#" onsubmit="return validateFormAction(this)">
+        <form id="rejectForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
                 <p class="text-white/60 mb-4">Please provide a reason for rejection:</p>
                 <div class="mb-4">
@@ -234,7 +234,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form id="payForm" method="POST" action="#" onsubmit="return validateFormAction(this)">
+        <form id="payForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
                 <p class="text-white/60 mb-4">Confirm that payment has been sent:</p>
                 <div class="mb-4">
@@ -287,8 +287,9 @@ function closeModal(id) {
 
 function validateFormAction(form) {
     // Prevent submission if action wasn't set properly
-    if (!form.action || form.action === '#' || form.action.endsWith('/admin/payouts')) {
-        console.error('Form action not set properly');
+    const action = form.getAttribute('action');
+    if (!action || action === '#' || action === 'javascript:void(0)' || action.endsWith('/admin/payouts')) {
+        console.error('Form action not set properly:', action);
         alert('Error: Please try again');
         return false;
     }
