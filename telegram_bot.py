@@ -134,6 +134,8 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         )
     
     async def main():
+        import httpx
+        
         proc_logger.info("🤖 Starting Telegram bot in isolated process...")
         
         # Wait before starting to allow any previous instance to fully terminate
@@ -141,6 +143,47 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         if startup_delay > 0:
             proc_logger.info(f"⏳ Waiting {startup_delay}s before starting polling (prevents 409 conflicts)...")
             await asyncio.sleep(startup_delay)
+        
+        # CRITICAL: Force invalidate any existing polling session by calling getUpdates 
+        # with a very high offset. This tells Telegram to "forget" about any previous 
+        # polling sessions and gives us exclusive control.
+        proc_logger.info("🔄 Invalidating any existing Telegram polling sessions...")
+        try:
+            async with httpx.AsyncClient() as client:
+                # First, delete any webhook (just in case)
+                await client.post(
+                    f"https://api.telegram.org/bot{bot_token}/deleteWebhook",
+                    json={"drop_pending_updates": True},
+                    timeout=10.0
+                )
+                
+                # Get the latest update_id by fetching recent updates
+                response = await client.post(
+                    f"https://api.telegram.org/bot{bot_token}/getUpdates",
+                    json={"limit": 1, "timeout": 0},
+                    timeout=10.0
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("ok") and data.get("result"):
+                        # Mark all updates as read by using offset = latest_update_id + 1
+                        latest_id = data["result"][-1]["update_id"]
+                        await client.post(
+                            f"https://api.telegram.org/bot{bot_token}/getUpdates",
+                            json={"offset": latest_id + 1, "limit": 1, "timeout": 0},
+                            timeout=10.0
+                        )
+                        proc_logger.info(f"✅ Cleared updates up to ID {latest_id}")
+                    else:
+                        proc_logger.info("✅ No pending updates to clear")
+                elif response.status_code == 409:
+                    # Another bot is polling - wait and try to take over
+                    proc_logger.warning("⚠️ Another bot is polling - waiting for it to release...")
+                    await asyncio.sleep(10)
+                    
+        except Exception as e:
+            proc_logger.warning(f"⚠️ Could not invalidate existing session (non-fatal): {e}")
         
         app = Application.builder().token(bot_token).build()
         
@@ -156,7 +199,7 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         
         # Start polling with retry logic for 409 conflicts
         max_retries = 5
-        retry_delay = 5
+        retry_delay = 10  # Increased base delay
         
         for attempt in range(max_retries):
             try:
@@ -169,11 +212,15 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
             except Conflict as e:
                 proc_logger.warning(f"⚠️ 409 Conflict (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
-                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff: 5, 10, 20, 40, 80s
-                    proc_logger.info(f"⏳ Waiting {wait_time}s before retry...")
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff: 10, 20, 40, 80, 160s
+                    proc_logger.info(f"⏳ Waiting {wait_time}s before retry (another bot may be running elsewhere)...")
                     await asyncio.sleep(wait_time)
                 else:
-                    proc_logger.error("❌ Failed to start polling after max retries. Another instance may be running.")
+                    proc_logger.error("❌ Failed to start polling after max retries.")
+                    proc_logger.error("❌ IMPORTANT: Check if another bot instance is running:")
+                    proc_logger.error("❌   - On another server using the same bot token")
+                    proc_logger.error("❌   - On a developer's local machine")
+                    proc_logger.error("❌   - In a Docker container or other process")
                     await app.stop()
                     await app.shutdown()
                     return
