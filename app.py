@@ -676,6 +676,14 @@ def manifest_json():
     """Serve PWA manifest"""
     return send_from_directory(app.static_folder, 'manifest.json', mimetype='application/json')
 
+@app.route('/service-worker.js')
+def service_worker():
+    """Serve service worker from root for proper scope"""
+    response = send_from_directory(app.static_folder, 'service-worker.js', mimetype='application/javascript')
+    # Allow service worker to control the whole site
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
 
 # ==================== ROUTES ====================
 

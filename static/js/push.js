@@ -61,14 +61,25 @@ const PushManager = {
             const response = await fetch('/api/push/vapid-key');
             if (response.ok) {
                 const data = await response.json();
-                this.vapidPublicKey = data.publicKey;
-                console.log('[Push] VAPID public key fetched');
+                if (data.success && data.publicKey) {
+                    this.vapidPublicKey = data.publicKey;
+                    console.log('[Push] VAPID public key fetched');
+                } else {
+                    console.info('[Push] Push notifications not configured on server');
+                    this.isSupported = false;
+                    return;
+                }
+            } else if (response.status === 503) {
+                // Push notifications not configured - this is OK, just disable push
+                console.info('[Push] Push notifications not configured (503)');
+                this.isSupported = false;
+                return;
             } else {
                 throw new Error('Failed to fetch VAPID key');
             }
         } catch (error) {
-            console.error('[Push] VAPID key fetch failed:', error);
-            throw error;
+            console.warn('[Push] VAPID key fetch failed - push disabled:', error.message);
+            this.isSupported = false;
         }
     },
     
@@ -553,7 +564,7 @@ const ServiceWorkerManager = {
         }
         
         try {
-            this.registration = await navigator.serviceWorker.register('/static/service-worker.js', {
+            this.registration = await navigator.serviceWorker.register('/service-worker.js', {
                 scope: '/'
             });
             
