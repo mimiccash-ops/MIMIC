@@ -165,6 +165,7 @@ socketio = SocketIO(
 redis_client = None
 arq_pool = None
 signal_queue = Queue()
+ARQ_REDIS_SETTINGS = None  # Initialize to None by default
 
 try:
     import redis
