@@ -4425,15 +4425,17 @@
     });
     
     // Override showSection to load tasks when switching
-    const originalShowSection = window.showSection;
-    window.showSection = function(section) {
-        if (typeof originalShowSection === 'function') {
-            originalShowSection(section);
-        }
-        if (section === 'tasks') {
-            loadAdminTasks();
-            loadPendingReviews();
-        }
-    };
+    (function() {
+        const prevShowSection = window.showSection;
+        window.showSection = function(section) {
+            if (typeof prevShowSection === 'function') {
+                prevShowSection(section);
+            }
+            if (section === 'tasks') {
+                loadAdminTasks();
+                loadPendingReviews();
+            }
+        };
+    })();
 </script>
 {% endblock %}

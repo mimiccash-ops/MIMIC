@@ -558,14 +558,18 @@ def add_security_headers(response):
     # Referrer Policy
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     
-    # Content Security Policy
+    # Content Security Policy - Allow all required CDNs
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.socket.io https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' ws: wss:; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://cdn.socket.io https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+            "https://cdn.tailwindcss.com https://unpkg.com https://static.cloudflareinsights.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
+        "img-src 'self' data: https: blob:; "
+        "media-src 'self' data: blob:; "
+        "connect-src 'self' ws: wss: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; "
+        "worker-src 'self' blob:; "
         "frame-ancestors 'self';"
     )
     
