@@ -981,14 +981,22 @@ def init_telegram_bot(
             admin_chat_id=admin_chat_id or ''
         )
         
-        _bot_handler.start()
+        # Check if polling should be disabled (e.g., when another instance is running)
+        from config import Config
+        disable_polling = getattr(Config, 'TG_DISABLE_POLLING', False)
         
-        if otp_secret and authorized_users:
-            logger.info("✅ Telegram Bot started with panic commands enabled")
+        if disable_polling:
+            logger.info("ℹ️ Telegram Bot polling DISABLED (disable_polling=True in config)")
+            logger.info("   Notifications will still be sent, but commands won't work")
         else:
-            logger.info("✅ Telegram Bot started (basic commands only)")
-            if not otp_secret:
-                logger.info("   ℹ️ Set PANIC_OTP_SECRET to enable panic commands")
+            _bot_handler.start()
+            
+            if otp_secret and authorized_users:
+                logger.info("✅ Telegram Bot started with panic commands enabled")
+            else:
+                logger.info("✅ Telegram Bot started (basic commands only)")
+                if not otp_secret:
+                    logger.info("   ℹ️ Set PANIC_OTP_SECRET to enable panic commands")
         
         return _bot_handler
         

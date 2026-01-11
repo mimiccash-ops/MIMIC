@@ -272,6 +272,7 @@ class Config:
             'TELEGRAM_CHAT_ID'
         )
         TG_ENABLED = config['Telegram'].getboolean('enabled', False)
+        TG_DISABLE_POLLING = config['Telegram'].getboolean('disable_polling', False)
         
         IS_TESTNET = config['Settings'].getboolean('testnet', False)
         GLOBAL_MAX_POSITIONS = int(config['Settings'].get('max_open_positions', 10))
