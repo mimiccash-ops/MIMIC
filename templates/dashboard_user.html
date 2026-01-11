@@ -1566,7 +1566,7 @@
                     <input type="text" name="telegram_chat_id" value="{{ user_settings.telegram_chat_id or '' }}" 
                            class="input-cyber font-mono" 
                            placeholder="123456789"
-                           pattern="[0-9-]+"
+                           pattern="[0-9\-]+"
                            title="Chat ID should be numbers only">
                     <p class="text-xs text-white/40 mt-1">
                         <i class="fas fa-question-circle"></i>
@@ -2207,9 +2207,9 @@
                 </select>
                 <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Label (optional)">
                 <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Key" required>
-                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Secret" required>
+                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Secret" required autocomplete="new-password">
                 <div id="passphrase-field" class="hidden">
-                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Passphrase">
+                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Passphrase" autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn-cyber w-full" id="submit-exchange-btn">
                     <i class="fas fa-paper-plane"></i>
