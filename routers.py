@@ -406,6 +406,7 @@ async def toggle_exchange(
             )
         
         user_exchange.is_active = request.is_active
+        user_exchange.trading_enabled = request.is_active  # Must set both for trading to work
         db_session.commit()
         db_session.refresh(user_exchange)
         

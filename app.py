@@ -7167,6 +7167,7 @@ def toggle_user_exchange(exchange_id):
             }), 400
         
         exchange.is_active = is_active
+        exchange.trading_enabled = is_active  # Must set both for trading to work
         db.session.commit()
         
         logger.info(f"User {current_user.id} toggled exchange {exchange_id} to {'active' if is_active else 'inactive'}")
