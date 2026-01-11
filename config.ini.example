@@ -13,8 +13,8 @@
 [MasterAccount]
 # Your Binance Futures API credentials
 # RECOMMENDED: Set via BINANCE_MASTER_API_KEY and BINANCE_MASTER_API_SECRET env vars
-api_key = 952g8yPO5RI7DR46BpgOMvjvmXkct2pHBABctz1TVQz8UGvsbn0w3R8J9Md2R4Ub
-api_secret = 6R9fcOCdknnnpMXZfUeBzEvSwvDNKnZaFtD0YHeRN2UthAIEjeOY5FH2Z75m7WaG
+api_key = geY93DZUK5ARN7x5EvbpR5jR8aA53gT0C4h6TcPR9INHgzBCVrsbrRFJrYUbwylm
+api_secret = yqrgLFFqeId0070Hc2nlV5DyHzY2NLDKZADUkwNVM57PneTfNA25Gl0PhQjjcMg4
 
 [Webhook]
 # Secret passphrase for TradingView webhooks
