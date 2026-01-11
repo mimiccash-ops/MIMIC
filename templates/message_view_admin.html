@@ -438,8 +438,15 @@
 
 {% block extra_scripts %}
 <script>
-    const socket = io();
-    
+    const socket = io({
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 30000,
+        timeout: 20000,
+        transports: ['websocket', 'polling']
+    });
+
     socket.on('new_message', (msg) => {
         if (msg.parent_id === {{ message.id }} && !msg.is_from_admin) {
             showToast('📩 New reply from user', 'info');

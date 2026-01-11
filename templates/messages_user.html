@@ -493,8 +493,15 @@
     
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeComposeModal(); });
 
-    const socket = io();
-    
+    const socket = io({
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 30000,
+        timeout: 20000,
+        transports: ['websocket', 'polling']
+    });
+
     socket.on('new_message', (msg) => {
         if (msg.is_from_admin) {
             showToast('📩 New message from administrator', 'info');

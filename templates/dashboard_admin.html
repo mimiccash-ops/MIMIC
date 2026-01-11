@@ -1605,8 +1605,19 @@
             setTimeout(initSocket, 100);
             return;
         }
-        socket = io();
+        // Configure Socket.IO with reconnection throttling to prevent spam
+        socket = io({
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,      // Start with 1 second
+            reconnectionDelayMax: 30000,  // Max 30 seconds between attempts
+            randomizationFactor: 0.5,     // Add randomness
+            timeout: 20000,
+            transports: ['websocket', 'polling']
+        });
         socket.on('connect', () => { console.log('Admin connected'); showToast('Connected', 'success', 2000); });
+        socket.on('connect_error', (err) => { console.warn('Socket error:', err.message); });
+        socket.on('disconnect', (reason) => { console.log('Disconnected:', reason); });
         socket.on('master_data', (data) => {
             document.getElementById('master-balance').textContent = '$' + data.balance;
             if (data.positions) renderMasterPositions(data.positions);

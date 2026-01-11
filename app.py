@@ -119,11 +119,14 @@ if os.environ.get('ALLOWED_ORIGINS'):
 
 socketio = SocketIO(
     app, 
-    async_mode='threading', 
-    ping_timeout=60, 
+    async_mode='eventlet',  # MUST match gunicorn --worker-class eventlet
+    ping_timeout=60,
+    ping_interval=25,  # Keep connections alive
     cors_allowed_origins=SOCKETIO_ALLOWED_ORIGINS,
     cookie='io',  # Fixed: must be string cookie name, not boolean
-    manage_session=False
+    manage_session=False,
+    logger=False,  # Reduce logging overhead
+    engineio_logger=False
 )
 
 # Initialize Redis (optional) and ARQ for task queue

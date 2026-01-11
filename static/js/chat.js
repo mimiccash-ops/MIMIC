@@ -353,7 +353,15 @@ class MimicChat {
         if (typeof socket !== 'undefined' && socket.connected) {
             this.socket = socket;
         } else {
-            this.socket = io();
+            // Create new socket with reconnection throttling
+            this.socket = io({
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 30000,
+                timeout: 20000,
+                transports: ['websocket', 'polling']
+            });
         }
         
         this.isConnected = true;

@@ -56,16 +56,18 @@ EnvironmentFile=-/var/www/mimic/.env
 ExecStart=/var/www/mimic/venv/bin/gunicorn \
     --worker-class eventlet \
     --workers 1 \
-    --bind 0.0.0.0:5000 \
+    --threads 100 \
+    --worker-connections 1000 \
+    --bind 127.0.0.1:8000 \
     --timeout 120 \
-    --keep-alive 5 \
+    --keep-alive 65 \
     --max-requests 10000 \
     --max-requests-jitter 1000 \
     --graceful-timeout 30 \
+    --backlog 2048 \
     --access-logfile /var/www/mimic/logs/access.log \
     --error-logfile /var/www/mimic/logs/error.log \
     --capture-output \
-    --preload \
     app:app
 
 # Graceful stop/reload
