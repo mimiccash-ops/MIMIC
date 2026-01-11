@@ -177,6 +177,18 @@ async def startup(ctx: dict):
         telegram = init_notifier(Config.TG_TOKEN, Config.TG_CHAT_ID, True)
         if telegram and telegram.enabled:
             logger.info("✅ Telegram notifications enabled in worker")
+            
+            # Initialize error logging to Telegram for worker
+            try:
+                from telegram_notifier import setup_comprehensive_error_logging
+                setup_comprehensive_error_logging(
+                    telegram_notifier=telegram,
+                    log_dir="logs",
+                    include_warnings=True
+                )
+                logger.info("✅ Worker error notifications to Telegram enabled")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not setup Telegram error logging in worker: {e}")
     ctx['telegram'] = telegram
     
     # Initialize Trading Engine (no socketio needed in worker)

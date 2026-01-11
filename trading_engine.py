@@ -798,7 +798,7 @@ class TradingEngine:
                             'is_paused': False,
                             'is_ccxt': True,
                             'is_async': True,  # Flag for async client
-                            'lock': asyncio.Lock()
+                            'lock': None  # Will be created on demand in async context
                         })
                         logger.info(f"✅ Master {exchange_name.upper()} connected (async)")
                 
@@ -1357,6 +1357,15 @@ class TradingEngine:
         
         return balances
 
+    def _run_async_balances_in_thread(self) -> list:
+        """Helper to run async balances in a separate thread with its own event loop"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(self.get_all_master_balances_async())
+        finally:
+            loop.close()
+
     def get_all_master_balances(self) -> list:
         """Get balances from ALL master exchanges - SYNC WRAPPER"""
         has_async = any(m.get('is_async') for m in self.master_clients)
@@ -1365,8 +1374,11 @@ class TradingEngine:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # Cannot block, return empty
-                    return []
+                    # Event loop is running - use thread pool to run async code
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(self._run_async_balances_in_thread)
+                        return future.result(timeout=15)
                 return loop.run_until_complete(self.get_all_master_balances_async())
             except RuntimeError:
                 loop = asyncio.new_event_loop()
@@ -1374,6 +1386,9 @@ class TradingEngine:
                     return loop.run_until_complete(self.get_all_master_balances_async())
                 finally:
                     loop.close()
+            except Exception as e:
+                logger.warning(f"Error fetching async balances: {e}")
+                return []
         
         # Legacy sync implementation for non-async clients
         balances = []
@@ -1465,9 +1480,17 @@ class TradingEngine:
             
             if self.socketio:
                 if is_master:
+                    # Build exchange_balances for single master
+                    exchange_balances = [{
+                        'id': 'master',
+                        'exchange': exchange_name or 'Binance',
+                        'balance': float(usdt_bal.replace(',', '')),
+                        'error': None
+                    }]
                     self.socketio.emit('master_data', {
                         'balance': usdt_bal,
-                        'positions': positions_data
+                        'positions': positions_data,
+                        'exchange_balances': exchange_balances
                     }, room="admin_room")
                 else:
                     self.socketio.emit('update_data', {
@@ -3691,8 +3714,14 @@ class TradingEngine:
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                # Schedule as a task if loop is already running
-                asyncio.create_task(self.process_signal_async(signal))
+                # Event loop is running - use thread pool to run async code
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self._run_async_signal_in_thread, signal)
+                    try:
+                        future.result(timeout=60)  # 60 second timeout for signal processing
+                    except concurrent.futures.TimeoutError:
+                        logger.error(f"Signal processing timed out for {signal.get('symbol', 'UNKNOWN')}")
             else:
                 loop.run_until_complete(self.process_signal_async(signal))
         except RuntimeError:
@@ -3703,6 +3732,15 @@ class TradingEngine:
                 loop.run_until_complete(self.process_signal_async(signal))
             finally:
                 loop.close()
+    
+    def _run_async_signal_in_thread(self, signal: dict):
+        """Helper to run async signal processing in a separate thread with its own event loop"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(self.process_signal_async(signal))
+        finally:
+            loop.close()
     
     async def get_global_master_position_count_async(self) -> tuple:
         """

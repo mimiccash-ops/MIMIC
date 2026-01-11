@@ -28,6 +28,7 @@ import logging
 import re
 import time
 import os
+import sys
 import json
 import secrets
 
@@ -37,6 +38,33 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("BrainCapital")
+
+# Create logs directory
+import os
+os.makedirs('logs', exist_ok=True)
+
+# Add file handler for all logs
+_file_handler = logging.FileHandler('logs/app.log', encoding='utf-8')
+_file_handler.setLevel(logging.INFO)
+_file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s'
+))
+logging.getLogger().addHandler(_file_handler)
+
+# Global exception hook to catch unhandled exceptions
+def _global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Global exception handler that logs unhandled exceptions"""
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Don't log keyboard interrupt
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    
+    logger.critical(
+        "Unhandled exception",
+        exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+sys.excepthook = _global_exception_handler
 
 # ==================== SENTRY ERROR TRACKING ====================
 # Optional: Set SENTRY_DSN environment variable to enable error tracking
@@ -182,6 +210,18 @@ if hasattr(Config, 'TG_ENABLED') and Config.TG_ENABLED:
     telegram = init_notifier(Config.TG_TOKEN, Config.TG_CHAT_ID, True)
     if telegram and telegram.enabled:
         logger.info("✅ Telegram notifications enabled")
+        
+        # Initialize comprehensive error logging to Telegram
+        try:
+            from telegram_notifier import setup_comprehensive_error_logging
+            error_log_handler = setup_comprehensive_error_logging(
+                telegram_notifier=telegram,
+                log_dir="logs",
+                include_warnings=True  # Send all warnings and errors to admin
+            )
+            logger.info("✅ Error notifications to Telegram enabled - admin will receive all errors")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not setup Telegram error logging: {e}")
     else:
         logger.warning("⚠️ Telegram notifications NOT active (check bot token/chat_id)")
 
@@ -2718,15 +2758,22 @@ def dashboard():
         users = User.query.all()
         
         # Get master balance
-        m_bal = "Connecting..."
-        if engine.master_client:
+        m_bal = "N/A"  # Default when no exchanges configured
+        
+        # Check if any master exchanges are configured
+        has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+        
+        if not has_master_exchanges:
+            m_bal = "No exchanges configured"
+        elif engine.master_client:
             try:
                 balances = engine.master_client.futures_account_balance()
                 for b in balances:
                     if b['asset'] == 'USDT':
                         m_bal = f"{float(b['balance']):,.2f}"
                         break
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Failed to fetch master balance: {e}")
                 m_bal = "Error"
         
         # Get user balances for admin view - from all connected exchanges
@@ -2780,15 +2827,21 @@ def dashboard():
         # Get master positions from ALL exchanges for initial load
         master_positions = []
         master_exchange_balances = []
-        try:
-            master_positions = engine.get_all_master_positions()
-            master_exchange_balances = engine.get_all_master_balances()
-            # Update m_bal with total from all exchanges
-            total_balance = sum(b['balance'] for b in master_exchange_balances if b['balance'] is not None)
-            if total_balance > 0:
-                m_bal = f"{total_balance:,.2f}"
-        except Exception as e:
-            logger.warning(f"Failed to fetch master data: {e}")
+        
+        if has_master_exchanges:
+            try:
+                master_positions = engine.get_all_master_positions()
+                master_exchange_balances = engine.get_all_master_balances()
+                # Update m_bal with total from all exchanges
+                total_balance = sum(b['balance'] for b in master_exchange_balances if b['balance'] is not None)
+                if total_balance > 0:
+                    m_bal = f"{total_balance:,.2f}"
+                elif master_exchange_balances:
+                    # Exchanges connected but balance is 0
+                    m_bal = "0.00"
+            except Exception as e:
+                logger.warning(f"Failed to fetch master data: {e}")
+                m_bal = "Error fetching data"
         
         return render_template('dashboard_admin.html',
                              users=users,

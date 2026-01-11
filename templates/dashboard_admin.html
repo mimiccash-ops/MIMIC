@@ -165,7 +165,7 @@
                             <span class="live-text" data-i18n="dash.live">LIVE</span>
                     </div>
                     </div>
-                    <p id="master-balance" class="balance-amount">${{ master_balance }}</p>
+                    <p id="master-balance" class="balance-amount">{% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A'] %}${{ master_balance }}{% else %}<span class="text-muted">{{ master_balance or 'No exchanges configured' }}</span>{% endif %}</p>
                     <!-- Exchange Balances -->
                     <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2">
                         {% if master_exchange_balances %}
@@ -178,7 +178,10 @@
                             </div>
                             {% endfor %}
                         {% else %}
-                            <span class="text-muted text-xs" data-i18n="admin.loadingExchangeBalances">Loading exchange balances...</span>
+                            <a href="#" onclick="showSection('exchange'); return false;" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-plus-circle"></i>
+                                <span data-i18n="admin.configureExchanges">Configure Master Exchanges</span>
+                            </a>
                         {% endif %}
                     </div>
                 </div>
@@ -1619,7 +1622,17 @@
         socket.on('connect_error', (err) => { console.warn('Socket error:', err.message); });
         socket.on('disconnect', (reason) => { console.log('Disconnected:', reason); });
         socket.on('master_data', (data) => {
-            document.getElementById('master-balance').textContent = '$' + data.balance;
+            const balanceEl = document.getElementById('master-balance');
+            if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
+                balanceEl.innerHTML = '$' + data.balance;
+                balanceEl.classList.remove('text-muted');
+            } else if (data.exchange_balances && data.exchange_balances.length > 0) {
+                // Calculate total from exchange balances
+                const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
+                balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
+            } else {
+                balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
+            }
             if (data.positions) renderMasterPositions(data.positions);
             if (data.exchange_balances) renderExchangeBalances(data.exchange_balances);
         });
@@ -1674,7 +1687,7 @@
         if (!container) return;
         
         if (!balances || balances.length === 0) {
-            container.innerHTML = '<span class="text-muted text-xs">' + t('dash.noExchangesConnected') + '</span>';
+            container.innerHTML = '<a href="#" onclick="showSection(\'exchange\'); return false;" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-plus-circle"></i><span>' + t('admin.configureExchanges') + '</span></a>';
             return;
         }
         

@@ -612,3 +612,311 @@ def get_email_sender() -> EmailSender:
     """Get global email sender instance"""
     return email_sender
 
+
+# ==================== TELEGRAM LOGGING HANDLER ====================
+
+class TelegramLoggingHandler(logging.Handler):
+    """
+    Custom logging handler that sends log messages to Telegram.
+    
+    Features:
+    - Batches messages to avoid Telegram rate limits
+    - Filters duplicate messages within a time window
+    - Categorizes by severity (ERROR, WARNING, CRITICAL)
+    - Includes traceback for exceptions
+    - Logs to file as backup
+    
+    Usage:
+        handler = TelegramLoggingHandler(notifier, min_level=logging.WARNING)
+        logging.getLogger().addHandler(handler)
+    """
+    
+    def __init__(self, telegram_notifier: TelegramNotifier, min_level: int = logging.WARNING,
+                 error_log_file: str = None, rate_limit_seconds: int = 5):
+        """
+        Initialize the Telegram logging handler.
+        
+        Args:
+            telegram_notifier: TelegramNotifier instance for sending messages
+            min_level: Minimum logging level to send (default: WARNING)
+            error_log_file: Path to error log file (optional, for backup)
+            rate_limit_seconds: Minimum seconds between duplicate messages
+        """
+        super().__init__(level=min_level)
+        self.telegram_notifier = telegram_notifier
+        self.error_log_file = error_log_file
+        self.rate_limit_seconds = rate_limit_seconds
+        
+        # Rate limiting - track recent messages
+        self._recent_messages = {}  # message_hash -> timestamp
+        self._lock = threading.Lock()
+        
+        # Setup file handler if path provided
+        self._file_handler = None
+        if error_log_file:
+            import os
+            os.makedirs(os.path.dirname(error_log_file) if os.path.dirname(error_log_file) else '.', exist_ok=True)
+            self._file_handler = logging.FileHandler(error_log_file, encoding='utf-8')
+            self._file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+            ))
+    
+    def _get_message_hash(self, record: logging.LogRecord) -> str:
+        """Create a hash for deduplication"""
+        import hashlib
+        key = f"{record.name}:{record.levelno}:{record.getMessage()[:100]}"
+        return hashlib.md5(key.encode()).hexdigest()[:16]
+    
+    def _should_send(self, record: logging.LogRecord) -> bool:
+        """Check if message should be sent (rate limiting)"""
+        msg_hash = self._get_message_hash(record)
+        now = datetime.now().timestamp()
+        
+        with self._lock:
+            if msg_hash in self._recent_messages:
+                last_sent = self._recent_messages[msg_hash]
+                if now - last_sent < self.rate_limit_seconds:
+                    return False
+            
+            # Cleanup old entries (older than 60 seconds)
+            self._recent_messages = {
+                k: v for k, v in self._recent_messages.items()
+                if now - v < 60
+            }
+            
+            self._recent_messages[msg_hash] = now
+            return True
+    
+    def _get_level_emoji(self, level: int) -> str:
+        """Get emoji for log level"""
+        if level >= logging.CRITICAL:
+            return "🚨🚨🚨"
+        elif level >= logging.ERROR:
+            return "❌"
+        elif level >= logging.WARNING:
+            return "⚠️"
+        elif level >= logging.INFO:
+            return "ℹ️"
+        else:
+            return "🔍"
+    
+    def _get_level_name(self, level: int) -> str:
+        """Get display name for log level"""
+        if level >= logging.CRITICAL:
+            return "CRITICAL"
+        elif level >= logging.ERROR:
+            return "ERROR"
+        elif level >= logging.WARNING:
+            return "WARNING"
+        elif level >= logging.INFO:
+            return "INFO"
+        else:
+            return "DEBUG"
+    
+    def emit(self, record: logging.LogRecord):
+        """Emit a log record to Telegram and file"""
+        try:
+            # Always log to file if configured
+            if self._file_handler:
+                self._file_handler.emit(record)
+            
+            # Check rate limiting before sending to Telegram
+            if not self._should_send(record):
+                return
+            
+            # Don't send if notifier is not available
+            if not self.telegram_notifier or not self.telegram_notifier.enabled:
+                return
+            
+            # Format the message
+            emoji = self._get_level_emoji(record.levelno)
+            level_name = self._get_level_name(record.levelno)
+            
+            # Get message and truncate if too long
+            message = record.getMessage()
+            if len(message) > 500:
+                message = message[:500] + "..."
+            
+            # Build Telegram message
+            msg = f"""
+{emoji} <b>SYSTEM {level_name}</b>
+
+📁 <b>Source:</b> <code>{record.name}</code>
+📍 <b>Location:</b> <code>{record.filename}:{record.lineno}</code>
+⏰ <b>Time:</b> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
+
+📝 <b>Message:</b>
+<code>{self._escape_html(message)}</code>
+"""
+            
+            # Add traceback if present
+            if record.exc_info:
+                import traceback
+                tb = ''.join(traceback.format_exception(*record.exc_info))
+                # Truncate traceback if too long
+                if len(tb) > 1000:
+                    tb = tb[:1000] + "\n... (truncated)"
+                msg += f"\n🔍 <b>Traceback:</b>\n<code>{self._escape_html(tb)}</code>"
+            
+            # Send to Telegram
+            self.telegram_notifier.send(msg.strip())
+            
+        except Exception as e:
+            # Don't raise exceptions in logging handler
+            print(f"TelegramLoggingHandler error: {e}")
+    
+    def _escape_html(self, text: str) -> str:
+        """Escape HTML special characters"""
+        return (text
+                .replace('&', '&amp;')
+                .replace('<', '&lt;')
+                .replace('>', '&gt;'))
+    
+    def close(self):
+        """Close the handler"""
+        if self._file_handler:
+            self._file_handler.close()
+        super().close()
+
+
+def init_telegram_error_logging(
+    telegram_notifier: TelegramNotifier,
+    min_level: int = logging.WARNING,
+    error_log_file: str = "logs/errors.log",
+    loggers: list = None
+) -> TelegramLoggingHandler:
+    """
+    Initialize Telegram error logging for the application.
+    
+    Adds a TelegramLoggingHandler to specified loggers that will:
+    - Send all WARNING, ERROR, and CRITICAL messages to Telegram
+    - Log all errors to a file for backup
+    - Rate-limit duplicate messages
+    
+    Args:
+        telegram_notifier: TelegramNotifier instance
+        min_level: Minimum level to log (default: WARNING)
+        error_log_file: Path to error log file
+        loggers: List of logger names to add handler to (default: root logger + common loggers)
+    
+    Returns:
+        TelegramLoggingHandler instance
+    
+    Usage:
+        from telegram_notifier import init_telegram_error_logging, get_notifier
+        handler = init_telegram_error_logging(get_notifier())
+    """
+    import os
+    
+    # Create logs directory if needed
+    if error_log_file:
+        log_dir = os.path.dirname(error_log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+    
+    # Create the handler
+    handler = TelegramLoggingHandler(
+        telegram_notifier=telegram_notifier,
+        min_level=min_level,
+        error_log_file=error_log_file,
+        rate_limit_seconds=10  # Don't send same error more than once per 10 seconds
+    )
+    
+    # Default loggers to add handler to
+    if loggers is None:
+        loggers = [
+            '',  # Root logger
+            'BrainCapital',
+            'TradingEngine',
+            'TelegramNotifier',
+            'ARQ.Worker',
+            'ARQ.Tasks',
+            'werkzeug',
+            'flask',
+            'sqlalchemy',
+        ]
+    
+    # Add handler to each logger
+    for logger_name in loggers:
+        log = logging.getLogger(logger_name)
+        log.addHandler(handler)
+    
+    logger.info(f"✅ Telegram error logging initialized (min_level={logging.getLevelName(min_level)}, file={error_log_file})")
+    
+    return handler
+
+
+def setup_comprehensive_error_logging(
+    telegram_notifier: TelegramNotifier,
+    log_dir: str = "logs",
+    include_warnings: bool = True
+):
+    """
+    Set up comprehensive error logging with file backup and Telegram notifications.
+    
+    Creates:
+    - logs/errors.log - All errors and warnings (rotated)
+    - logs/critical.log - Only critical errors
+    - Telegram notifications for all errors
+    
+    Args:
+        telegram_notifier: TelegramNotifier instance
+        log_dir: Directory for log files
+        include_warnings: Whether to include WARNING level (default: True)
+    """
+    import os
+    from logging.handlers import RotatingFileHandler
+    
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # 1. Error log file (rotating, max 10MB, keep 5 backups)
+    error_file_handler = RotatingFileHandler(
+        os.path.join(log_dir, 'errors.log'),
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    error_file_handler.setLevel(logging.WARNING if include_warnings else logging.ERROR)
+    error_file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s'
+    ))
+    
+    # 2. Critical log file (for severe errors only)
+    critical_file_handler = RotatingFileHandler(
+        os.path.join(log_dir, 'critical.log'),
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=3,
+        encoding='utf-8'
+    )
+    critical_file_handler.setLevel(logging.ERROR)
+    critical_file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s | %(levelname)s | %(name)s | %(filename)s:%(lineno)d | %(message)s\n%(exc_info)s'
+    ))
+    
+    # 3. Telegram handler
+    telegram_handler = TelegramLoggingHandler(
+        telegram_notifier=telegram_notifier,
+        min_level=logging.WARNING if include_warnings else logging.ERROR,
+        error_log_file=None,  # Already logging to files above
+        rate_limit_seconds=10
+    )
+    
+    # Add to root logger
+    root_logger = logging.getLogger()
+    root_logger.addHandler(error_file_handler)
+    root_logger.addHandler(critical_file_handler)
+    root_logger.addHandler(telegram_handler)
+    
+    # Also add to specific loggers that might not propagate
+    for logger_name in ['BrainCapital', 'TradingEngine', 'ARQ.Worker', 'ARQ.Tasks']:
+        log = logging.getLogger(logger_name)
+        if not any(isinstance(h, TelegramLoggingHandler) for h in log.handlers):
+            log.addHandler(telegram_handler)
+    
+    logger.info(f"✅ Comprehensive error logging configured:")
+    logger.info(f"   📁 Error log: {os.path.join(log_dir, 'errors.log')}")
+    logger.info(f"   📁 Critical log: {os.path.join(log_dir, 'critical.log')}")
+    logger.info(f"   📱 Telegram notifications: {'enabled' if telegram_notifier and telegram_notifier.enabled else 'disabled'}")
+    
+    return telegram_handler
+
