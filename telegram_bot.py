@@ -37,7 +37,7 @@ except ImportError:
     logger.warning("⚠️ python-telegram-bot[ext] not installed. Telegram bot commands disabled.")
 
 
-def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str, startup_delay: int = 15):
+def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str, startup_delay: int = 30):
     """
     Main function that runs the Telegram bot in a separate process.
     This function MUST be at module level to be picklable by multiprocessing.
@@ -56,7 +56,10 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     import signal
     import sys
     import time
+    import os
+    import fcntl
     from datetime import datetime
+    from pathlib import Path
     
     # Set up logging for this process
     logging.basicConfig(
@@ -65,17 +68,36 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     )
     proc_logger = logging.getLogger("TelegramBotProcess")
     
+    # ============ FILE-BASED LOCK TO PREVENT MULTIPLE INSTANCES ============
+    # This ensures only ONE bot process can run at a time
+    lock_file_path = "/tmp/mimic_telegram_bot.lock"
+    lock_file = None
+    
+    try:
+        lock_file = open(lock_file_path, 'w')
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+        proc_logger.info(f"🔒 Acquired bot lock (PID: {os.getpid()})")
+    except (IOError, OSError) as e:
+        proc_logger.error(f"❌ Another Telegram bot instance is already running! Cannot acquire lock.")
+        proc_logger.error(f"   Lock file: {lock_file_path}")
+        proc_logger.error(f"   Error: {e}")
+        proc_logger.error(f"   To fix: Check for existing bot processes or delete {lock_file_path}")
+        if lock_file:
+            lock_file.close()
+        return
+    except Exception as e:
+        # On Windows or if fcntl isn't available, continue without lock
+        proc_logger.warning(f"⚠️ Could not acquire file lock (non-fatal on Windows): {e}")
+    
     # Handle termination signals gracefully
-    shutdown_event = asyncio.Event() if hasattr(asyncio, 'Event') else None
+    shutdown_requested = False
     
     def handle_signal(signum, frame):
+        nonlocal shutdown_requested
         proc_logger.info(f"🤖 Received signal {signum}, initiating graceful shutdown...")
-        if shutdown_event:
-            try:
-                shutdown_event.set()
-            except:
-                pass
-        sys.exit(0)
+        shutdown_requested = True
     
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
@@ -86,6 +108,13 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         from telegram.error import Conflict, NetworkError, TimedOut
     except ImportError:
         proc_logger.error("python-telegram-bot not installed")
+        if lock_file:
+            try:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                lock_file.close()
+                os.remove(lock_file_path)
+            except:
+                pass
         return
     
     # Initialize OTP if available
@@ -133,6 +162,59 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
             parse_mode='HTML'
         )
     
+    async def force_invalidate_telegram_session(client, token: str, max_attempts: int = 5) -> bool:
+        """
+        Forcefully invalidate any existing Telegram polling session.
+        Uses multiple short getUpdates calls to take over from any other instance.
+        
+        Returns True if successfully took over, False if persistent conflict.
+        """
+        for attempt in range(max_attempts):
+            try:
+                # Delete webhook first
+                await client.post(
+                    f"https://api.telegram.org/bot{token}/deleteWebhook",
+                    json={"drop_pending_updates": True},
+                    timeout=10.0
+                )
+                
+                # Short timeout getUpdates to invalidate other sessions
+                # The key is to use timeout=0 which returns immediately
+                # and tells Telegram we want to take over polling
+                response = await client.post(
+                    f"https://api.telegram.org/bot{token}/getUpdates",
+                    json={"limit": 1, "timeout": 0, "offset": -1},
+                    timeout=10.0
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("ok"):
+                        # Success! Clear any pending updates
+                        if data.get("result"):
+                            latest_id = data["result"][-1]["update_id"]
+                            await client.post(
+                                f"https://api.telegram.org/bot{token}/getUpdates",
+                                json={"offset": latest_id + 1, "limit": 1, "timeout": 0},
+                                timeout=10.0
+                            )
+                            proc_logger.info(f"✅ Cleared updates up to ID {latest_id}")
+                        else:
+                            proc_logger.info("✅ Session invalidated, no pending updates")
+                        return True
+                        
+                elif response.status_code == 409:
+                    proc_logger.warning(f"⚠️ 409 Conflict during invalidation (attempt {attempt + 1}/{max_attempts})")
+                    # Wait a bit and try again - other bot should stop soon
+                    await asyncio.sleep(3)
+                    continue
+                    
+            except Exception as e:
+                proc_logger.warning(f"⚠️ Invalidation attempt {attempt + 1} failed: {e}")
+                await asyncio.sleep(2)
+        
+        return False
+    
     async def main():
         import httpx
         
@@ -144,47 +226,19 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
             proc_logger.info(f"⏳ Waiting {startup_delay}s before starting polling (prevents 409 conflicts)...")
             await asyncio.sleep(startup_delay)
         
-        # CRITICAL: Force invalidate any existing polling session by calling getUpdates 
-        # with a very high offset. This tells Telegram to "forget" about any previous 
-        # polling sessions and gives us exclusive control.
+        # ============ AGGRESSIVE SESSION INVALIDATION ============
+        # This is critical for avoiding 409 conflicts
         proc_logger.info("🔄 Invalidating any existing Telegram polling sessions...")
-        try:
-            async with httpx.AsyncClient() as client:
-                # First, delete any webhook (just in case)
-                await client.post(
-                    f"https://api.telegram.org/bot{bot_token}/deleteWebhook",
-                    json={"drop_pending_updates": True},
-                    timeout=10.0
-                )
-                
-                # Get the latest update_id by fetching recent updates
-                response = await client.post(
-                    f"https://api.telegram.org/bot{bot_token}/getUpdates",
-                    json={"limit": 1, "timeout": 0},
-                    timeout=10.0
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get("ok") and data.get("result"):
-                        # Mark all updates as read by using offset = latest_update_id + 1
-                        latest_id = data["result"][-1]["update_id"]
-                        await client.post(
-                            f"https://api.telegram.org/bot{bot_token}/getUpdates",
-                            json={"offset": latest_id + 1, "limit": 1, "timeout": 0},
-                            timeout=10.0
-                        )
-                        proc_logger.info(f"✅ Cleared updates up to ID {latest_id}")
-                    else:
-                        proc_logger.info("✅ No pending updates to clear")
-                elif response.status_code == 409:
-                    # Another bot is polling - wait and try to take over
-                    proc_logger.warning("⚠️ Another bot is polling - waiting for it to release...")
-                    await asyncio.sleep(10)
-                    
-        except Exception as e:
-            proc_logger.warning(f"⚠️ Could not invalidate existing session (non-fatal): {e}")
         
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            session_ok = await force_invalidate_telegram_session(client, bot_token, max_attempts=5)
+            
+            if not session_ok:
+                proc_logger.warning("⚠️ Could not cleanly invalidate session, will try to start anyway...")
+                # Extra wait before proceeding
+                await asyncio.sleep(5)
+        
+        # Build the application with custom error handling
         app = Application.builder().token(bot_token).build()
         
         app.add_handler(CommandHandler("start", cmd_start))
@@ -197,47 +251,105 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         await app.initialize()
         await app.start()
         
-        # Start polling with retry logic for 409 conflicts
-        max_retries = 5
-        retry_delay = 10  # Increased base delay
+        # ============ START POLLING WITH ADVANCED RETRY LOGIC ============
+        max_retries = 10
+        base_delay = 5
         
         for attempt in range(max_retries):
             try:
+                # Use shorter poll_interval to detect conflicts faster
                 await app.updater.start_polling(
                     drop_pending_updates=True,
-                    allowed_updates=['message', 'callback_query']
+                    allowed_updates=['message', 'callback_query'],
+                    poll_interval=1.0,  # Check every 1 second initially
+                    read_timeout=10,    # Shorter read timeout
+                    write_timeout=10,
+                    connect_timeout=10,
                 )
-                proc_logger.info("🤖 Telegram bot is now running")
-                break
+                proc_logger.info("🤖 Telegram bot is now running and polling for updates")
+                
+                # If we got here, polling started. Now wait a few seconds to see if conflicts appear
+                await asyncio.sleep(5)
+                
+                # Check if the updater is still running (no 409 errors killed it)
+                if app.updater.running:
+                    proc_logger.info("✅ Telegram bot polling confirmed stable")
+                    break
+                else:
+                    proc_logger.warning("⚠️ Updater stopped unexpectedly, retrying...")
+                    raise Conflict("Updater stopped unexpectedly")
+                    
             except Conflict as e:
                 proc_logger.warning(f"⚠️ 409 Conflict (attempt {attempt + 1}/{max_retries}): {e}")
+                
+                # Stop the updater if it's running
+                try:
+                    if app.updater.running:
+                        await app.updater.stop()
+                except:
+                    pass
+                
                 if attempt < max_retries - 1:
-                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff: 10, 20, 40, 80, 160s
-                    proc_logger.info(f"⏳ Waiting {wait_time}s before retry (another bot may be running elsewhere)...")
+                    # Exponential backoff with jitter
+                    import random
+                    wait_time = base_delay * (2 ** min(attempt, 5)) + random.uniform(0, 5)
+                    proc_logger.info(f"⏳ Waiting {wait_time:.1f}s before retry...")
                     await asyncio.sleep(wait_time)
+                    
+                    # Try to invalidate the session again before retrying
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        await force_invalidate_telegram_session(client, bot_token, max_attempts=3)
                 else:
-                    proc_logger.error("❌ Failed to start polling after max retries.")
-                    proc_logger.error("❌ IMPORTANT: Check if another bot instance is running:")
-                    proc_logger.error("❌   - On another server using the same bot token")
-                    proc_logger.error("❌   - On a developer's local machine")
-                    proc_logger.error("❌   - In a Docker container or other process")
+                    proc_logger.error("=" * 60)
+                    proc_logger.error("❌ FAILED TO START TELEGRAM BOT AFTER MAX RETRIES")
+                    proc_logger.error("=" * 60)
+                    proc_logger.error("❌ CRITICAL: Another bot instance is blocking polling!")
+                    proc_logger.error("❌ Check for:")
+                    proc_logger.error("❌   - Another server using the same bot token")
+                    proc_logger.error("❌   - A developer's local machine running the bot")
+                    proc_logger.error("❌   - Docker container with the bot")
+                    proc_logger.error("❌   - Orphaned processes on this server")
+                    proc_logger.error("=" * 60)
                     await app.stop()
                     await app.shutdown()
                     return
+                    
             except Exception as e:
                 proc_logger.error(f"❌ Unexpected error starting polling: {e}")
+                import traceback
+                proc_logger.error(traceback.format_exc())
                 raise
         
         # Keep running until interrupted
+        proc_logger.info("🤖 Bot is running. Press Ctrl+C to stop.")
+        
         try:
-            while True:
+            while not shutdown_requested:
                 await asyncio.sleep(1)
+                
+                # Periodically check if updater is still running
+                if not app.updater.running:
+                    proc_logger.warning("⚠️ Updater stopped unexpectedly, attempting restart...")
+                    try:
+                        await app.updater.start_polling(
+                            drop_pending_updates=False,
+                            allowed_updates=['message', 'callback_query']
+                        )
+                        proc_logger.info("✅ Updater restarted")
+                    except Conflict:
+                        proc_logger.error("❌ 409 Conflict on restart - another bot took over")
+                        break
+                    except Exception as e:
+                        proc_logger.error(f"❌ Failed to restart updater: {e}")
+                        break
+                        
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         finally:
             proc_logger.info("🤖 Telegram bot shutting down...")
             try:
-                await app.updater.stop()
+                if app.updater.running:
+                    await app.updater.stop()
                 await app.stop()
                 await app.shutdown()
             except Exception as e:
@@ -250,6 +362,18 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         pass
     except Exception as e:
         proc_logger.error(f"Bot process error: {e}")
+        import traceback
+        proc_logger.error(traceback.format_exc())
+    finally:
+        # Release the file lock
+        if lock_file:
+            try:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                lock_file.close()
+                os.remove(lock_file_path)
+                proc_logger.info("🔓 Released bot lock")
+            except Exception as e:
+                proc_logger.debug(f"Lock cleanup error: {e}")
 
 
 class OTPVerifier:
@@ -840,12 +964,13 @@ class TelegramBotHandler:
             logger.warning("Bot is already running")
             return
         
-        # Get startup delay from config (default 15 seconds to prevent 409 conflicts on restart)
+        # Get startup delay from config (default 30 seconds to prevent 409 conflicts on restart)
+        # Increased from 15s to 30s for more reliable conflict avoidance
         try:
             from config import Config
-            startup_delay = getattr(Config, 'TG_POLLING_STARTUP_DELAY', 15)
+            startup_delay = getattr(Config, 'TG_POLLING_STARTUP_DELAY', 30)
         except:
-            startup_delay = 15
+            startup_delay = 30
         
         def run_bot_multiprocess():
             """

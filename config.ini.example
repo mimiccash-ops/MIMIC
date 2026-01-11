@@ -42,7 +42,8 @@ disable_polling = False
 # Delay (seconds) before starting Telegram polling on server restart
 # Helps prevent "409 Conflict" errors when old process hasn't fully terminated
 # Set to 0 to disable delay (not recommended in production)
-polling_startup_delay = 15
+# Recommended: 30+ seconds for production to ensure clean takeover
+polling_startup_delay = 30
 
 [Email]
 # SMTP Settings for password recovery via email
