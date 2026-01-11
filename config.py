@@ -273,6 +273,8 @@ class Config:
         )
         TG_ENABLED = config['Telegram'].getboolean('enabled', False)
         TG_DISABLE_POLLING = config['Telegram'].getboolean('disable_polling', False)
+        # Delay before starting Telegram polling (prevents 409 conflicts on service restart)
+        TG_POLLING_STARTUP_DELAY = int(config['Telegram'].get('polling_startup_delay', 15))
         
         IS_TESTNET = config['Settings'].getboolean('testnet', False)
         GLOBAL_MAX_POSITIONS = int(config['Settings'].get('max_open_positions', 10))

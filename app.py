@@ -278,6 +278,34 @@ if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN:
         import traceback
         logger.debug(f"Telegram Bot traceback: {traceback.format_exc()}")
 
+# Register shutdown handler for clean Telegram bot termination
+def _cleanup_telegram_bot():
+    """Cleanup Telegram bot subprocess on shutdown"""
+    global telegram_bot
+    if telegram_bot:
+        try:
+            logger.info("🔄 Cleaning up Telegram bot on shutdown...")
+            telegram_bot.stop()
+        except Exception as e:
+            logger.debug(f"Telegram bot cleanup error: {e}")
+
+import atexit
+atexit.register(_cleanup_telegram_bot)
+
+# Also handle signals for gunicorn/systemd graceful shutdown
+import signal
+def _signal_handler(signum, frame):
+    """Handle shutdown signals gracefully"""
+    logger.info(f"🛑 Received signal {signum}, initiating graceful shutdown...")
+    _cleanup_telegram_bot()
+
+# Only register signal handlers if we're the main thread
+if threading.current_thread() is threading.main_thread():
+    try:
+        signal.signal(signal.SIGTERM, _signal_handler)
+    except (ValueError, OSError):
+        pass  # Can't set signal handler in non-main thread
+
 # Initialize Compliance Middleware (Geo-blocking + TOS Consent)
 try:
     from compliance import init_compliance

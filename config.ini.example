@@ -36,6 +36,13 @@ bot_token = 8062805313:AAEF0TEzU3hQhDdOPyEx_9YHwZmu967tcF4
 chat_id = 8254483196
 # Enable/disable notifications
 enabled = True
+# Disable polling for Telegram commands (use if running multiple instances)
+# When disabled, notifications still work but /commands won't respond
+disable_polling = False
+# Delay (seconds) before starting Telegram polling on server restart
+# Helps prevent "409 Conflict" errors when old process hasn't fully terminated
+# Set to 0 to disable delay (not recommended in production)
+polling_startup_delay = 15
 
 [Email]
 # SMTP Settings for password recovery via email

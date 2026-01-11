@@ -73,9 +73,11 @@ ExecStart=/var/www/mimic/venv/bin/gunicorn \
 # Graceful stop/reload
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
-KillMode=mixed
+# Use 'control-group' to ensure ALL child processes (including Telegram bot subprocess) are terminated
+KillMode=control-group
 KillSignal=SIGTERM
-TimeoutStopSec=30
+# Increase timeout to allow Telegram bot subprocess to shutdown gracefully
+TimeoutStopSec=45
 
 # ============ ALWAYS RUNNING - RESTART POLICY ============
 # Always restart on failure, exit, or signal

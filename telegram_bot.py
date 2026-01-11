@@ -37,15 +37,25 @@ except ImportError:
     logger.warning("⚠️ python-telegram-bot[ext] not installed. Telegram bot commands disabled.")
 
 
-def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str):
+def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str, startup_delay: int = 15):
     """
     Main function that runs the Telegram bot in a separate process.
     This function MUST be at module level to be picklable by multiprocessing.
     
     Runs a simplified bot with basic commands when eventlet is active.
+    
+    Args:
+        bot_token: Telegram bot token
+        admin_chat_id: Admin chat ID for notifications
+        authorized_users: List of authorized user IDs
+        otp_secret: OTP secret for 2FA
+        startup_delay: Seconds to wait before starting polling (helps avoid 409 conflicts on restart)
     """
     import asyncio
     import logging
+    import signal
+    import sys
+    import time
     from datetime import datetime
     
     # Set up logging for this process
@@ -55,9 +65,25 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     )
     proc_logger = logging.getLogger("TelegramBotProcess")
     
+    # Handle termination signals gracefully
+    shutdown_event = asyncio.Event() if hasattr(asyncio, 'Event') else None
+    
+    def handle_signal(signum, frame):
+        proc_logger.info(f"🤖 Received signal {signum}, initiating graceful shutdown...")
+        if shutdown_event:
+            try:
+                shutdown_event.set()
+            except:
+                pass
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+    
     try:
         from telegram import Update
         from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+        from telegram.error import Conflict, NetworkError, TimedOut
     except ImportError:
         proc_logger.error("python-telegram-bot not installed")
         return
@@ -110,6 +136,12 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     async def main():
         proc_logger.info("🤖 Starting Telegram bot in isolated process...")
         
+        # Wait before starting to allow any previous instance to fully terminate
+        # This prevents 409 Conflict errors on service restart
+        if startup_delay > 0:
+            proc_logger.info(f"⏳ Waiting {startup_delay}s before starting polling (prevents 409 conflicts)...")
+            await asyncio.sleep(startup_delay)
+        
         app = Application.builder().token(bot_token).build()
         
         app.add_handler(CommandHandler("start", cmd_start))
@@ -121,9 +153,33 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         
         await app.initialize()
         await app.start()
-        await app.updater.start_polling(drop_pending_updates=True)
         
-        proc_logger.info("🤖 Telegram bot is now running")
+        # Start polling with retry logic for 409 conflicts
+        max_retries = 5
+        retry_delay = 5
+        
+        for attempt in range(max_retries):
+            try:
+                await app.updater.start_polling(
+                    drop_pending_updates=True,
+                    allowed_updates=['message', 'callback_query']
+                )
+                proc_logger.info("🤖 Telegram bot is now running")
+                break
+            except Conflict as e:
+                proc_logger.warning(f"⚠️ 409 Conflict (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff: 5, 10, 20, 40, 80s
+                    proc_logger.info(f"⏳ Waiting {wait_time}s before retry...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    proc_logger.error("❌ Failed to start polling after max retries. Another instance may be running.")
+                    await app.stop()
+                    await app.shutdown()
+                    return
+            except Exception as e:
+                proc_logger.error(f"❌ Unexpected error starting polling: {e}")
+                raise
         
         # Keep running until interrupted
         try:
@@ -133,9 +189,12 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
             pass
         finally:
             proc_logger.info("🤖 Telegram bot shutting down...")
-            await app.updater.stop()
-            await app.stop()
-            await app.shutdown()
+            try:
+                await app.updater.stop()
+                await app.stop()
+                await app.shutdown()
+            except Exception as e:
+                proc_logger.debug(f"Shutdown error (can be ignored): {e}")
     
     # Run the async main function
     try:
@@ -734,6 +793,13 @@ class TelegramBotHandler:
             logger.warning("Bot is already running")
             return
         
+        # Get startup delay from config (default 15 seconds to prevent 409 conflicts on restart)
+        try:
+            from config import Config
+            startup_delay = getattr(Config, 'TG_POLLING_STARTUP_DELAY', 15)
+        except:
+            startup_delay = 15
+        
         def run_bot_multiprocess():
             """
             Run the bot in a separate process to completely isolate from eventlet.
@@ -741,6 +807,8 @@ class TelegramBotHandler:
             Uses multiprocessing.Process with spawn context for clean isolation.
             """
             import multiprocessing
+            import signal
+            import atexit
             
             # Use 'spawn' context to get a completely fresh Python interpreter
             # This ensures eventlet's patches are NOT inherited
@@ -757,15 +825,29 @@ class TelegramBotHandler:
                         self.bot_token,
                         self.admin_chat_id or '',
                         list(self.authorized_users) if self.authorized_users else [],
-                        self.otp_verifier.secret if self.otp_verifier else ''
+                        self.otp_verifier.secret if self.otp_verifier else '',
+                        startup_delay  # Pass startup delay to subprocess
                     ),
-                    daemon=True,
+                    daemon=False,  # Don't use daemon - we'll manage cleanup ourselves
                     name="TelegramBotProcess"
                 )
                 process.start()
                 self._bot_process = process
                 
                 logger.info(f"🤖 Telegram bot process started (PID: {process.pid})")
+                
+                # Register cleanup function to terminate subprocess on exit
+                def cleanup_subprocess():
+                    if process.is_alive():
+                        logger.info(f"🤖 Terminating Telegram bot subprocess (PID: {process.pid})...")
+                        process.terminate()
+                        process.join(timeout=5)
+                        if process.is_alive():
+                            logger.warning("🤖 Subprocess didn't terminate, killing...")
+                            process.kill()
+                            process.join(timeout=2)
+                
+                atexit.register(cleanup_subprocess)
                 
                 # Wait for the process (it runs until stopped)
                 process.join()
@@ -868,18 +950,32 @@ class TelegramBotHandler:
         logger.info("🤖 Telegram bot started")
     
     def stop(self):
-        """Stop the bot"""
+        """Stop the bot gracefully"""
         if not self._running:
             return
         
         self._running = False
+        logger.info("🤖 Stopping Telegram bot...")
         
-        # If running as subprocess, terminate it
+        # If running as subprocess, terminate it with proper signal handling
         if hasattr(self, '_bot_process') and self._bot_process:
             try:
-                self._bot_process.terminate()
-                self._bot_process.wait(timeout=5)
-                logger.info("🤖 Telegram bot subprocess stopped")
+                if self._bot_process.is_alive():
+                    # Send SIGTERM first for graceful shutdown
+                    self._bot_process.terminate()
+                    
+                    # Wait for graceful shutdown (up to 10 seconds)
+                    self._bot_process.join(timeout=10)
+                    
+                    if self._bot_process.is_alive():
+                        # Force kill if graceful shutdown failed
+                        logger.warning("🤖 Subprocess didn't terminate gracefully, killing...")
+                        self._bot_process.kill()
+                        self._bot_process.join(timeout=3)
+                    
+                    logger.info("🤖 Telegram bot subprocess stopped")
+                else:
+                    logger.info("🤖 Telegram bot subprocess already stopped")
             except Exception as e:
                 logger.debug(f"Subprocess stop error: {e}")
                 try:
