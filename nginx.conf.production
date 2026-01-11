@@ -183,7 +183,7 @@ http {
     # UPSTREAM - Flask/Gunicorn Backend (Main App)
     # ==========================================================================
     upstream mimic_backend {
-        server 127.0.0.1:8000;
+        server 127.0.0.1:5000;  # FIXED: Changed from 8000 to 5000 to match Docker/Gunicorn
         
         # Connection pooling for better performance
         keepalive 32;
@@ -360,6 +360,36 @@ http {
             proxy_set_header Connection "";
             
             error_page 429 = @rate_limited;
+        }
+
+        # ------------------------------------------------------------------
+        # TRADINGVIEW WEBHOOK (CRITICAL - NO RATE LIMITING)
+        # ------------------------------------------------------------------
+        location = /webhook {
+            # IMPORTANT: No rate limiting for TradingView webhooks
+            # TradingView IPs: 52.89.214.238, 34.212.75.30, 54.218.53.128, 52.32.178.7
+            # Allow webhook endpoint to be accessed without strict limits
+            
+            proxy_pass http://mimic_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            
+            # Generous timeouts for webhook processing
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 120s;
+            proxy_send_timeout 60s;
+            
+            # Ensure body is forwarded correctly
+            proxy_request_buffering off;
+            proxy_buffering off;
+            
+            # Log webhook access for debugging
+            access_log /var/log/nginx/webhook_access.log cloudflare;
+            error_log /var/log/nginx/webhook_error.log warn;
         }
 
         # ------------------------------------------------------------------
