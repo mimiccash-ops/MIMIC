@@ -3368,6 +3368,17 @@ class TradingEngine:
                 # Calculate quantity from notional value
                 qty = self.round_step(notional / price, prec['stepSize'])
                 qty = max(qty, prec['minQty'])
+                
+                # CRITICAL: Check if rounded quantity still meets minimum notional
+                # If rounding DOWN caused notional to fall below minimum, round UP instead
+                actual_notional = qty * price
+                if actual_notional < min_notional and prec['stepSize'] > 0:
+                    # Round up to next step to meet minimum notional
+                    qty = math.ceil((notional / price) / prec['stepSize']) * prec['stepSize']
+                    qty = round(qty, prec['qty_prec'])
+                    actual_notional = qty * price
+                    logger.info(f"[{node_name}] {symbol}: Rounded qty UP to {qty} to meet min notional (${actual_notional:.2f} >= ${min_notional:.2f})")
+                
                 qty_str = f"{qty:.{prec['qty_prec']}f}"
                 
                 if qty <= 0:
