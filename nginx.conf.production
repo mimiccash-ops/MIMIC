@@ -240,7 +240,7 @@ http {
     server {
         listen 443 ssl http2;
         listen [::]:443 ssl http2;
-        server_name mimic.cash www.mimic.cash;
+        server_name mimic.cash www.mimic.cash mimiccash.com www.mimiccash.com;
 
         # ------------------------------------------------------------------
         # SSL CONFIGURATION
