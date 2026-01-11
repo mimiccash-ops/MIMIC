@@ -563,7 +563,7 @@ def add_security_headers(response):
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
             "https://cdn.socket.io https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
-            "https://cdn.tailwindcss.com https://unpkg.com https://static.cloudflareinsights.com; "
+            "https://unpkg.com https://static.cloudflareinsights.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: https: blob:; "

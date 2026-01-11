@@ -1,0 +1,13 @@
+{
+  "name": "mimic-frontend",
+  "version": "1.0.0",
+  "description": "MIMIC Copy Trading Platform - Frontend Assets",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/tailwind.input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/tailwind.input.css -o ./static/css/tailwind.css --watch",
+    "build": "npm run build:css"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

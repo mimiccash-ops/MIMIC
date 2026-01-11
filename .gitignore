@@ -15,6 +15,10 @@ venv/
 env/
 .venv/
 
+# Node.js
+node_modules/
+package-lock.json
+
 # SQLite database (has user data)
 *.db
 *.db.backup
