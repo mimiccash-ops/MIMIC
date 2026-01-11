@@ -2288,7 +2288,14 @@ class TradingEngine:
                 async with self._async_pending_lock:
                     pending_key = f"{symbol}_{exchange_type}"
                     if pending_key in self.pending_trades[user_id]:
-                        self.log_event(user_id, symbol, f"({exchange_type.upper()}) Trade already in progress", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) Trade already in progress"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification about skipped trade
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                 
                 try:
@@ -2306,7 +2313,14 @@ class TradingEngine:
                     
                     # Don't open if already have position on this symbol on THIS exchange
                     if has_position_on_symbol:
-                        self.log_event(user_id, symbol, f"({exchange_type.upper()}) Already have position on this exchange", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) Already have position on this symbol"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification about skipped trade
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
                     # For master accounts with skip_position_check, skip the max position check
@@ -2323,14 +2337,27 @@ class TradingEngine:
                             total_positions = open_cnt + pending_count
                             
                             if total_positions >= max_pos:
-                                self.log_event(user_id, symbol, 
-                                    f"({exchange_type.upper()}) Max positions reached ({open_cnt} open + {pending_count} pending >= {max_pos})", is_error=True)
+                                error_msg = f"({exchange_type.upper()}) Max positions reached ({open_cnt} open + {pending_count} pending >= {max_pos})"
+                                self.log_event(user_id, symbol, error_msg, is_error=True)
+                                # Send Telegram notification about skipped trade
+                                if self.telegram:
+                                    self.telegram.notify_error(node_name, symbol, error_msg)
+                                    chat_id = client_data.get('telegram_chat_id')
+                                    if chat_id:
+                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
                                 return
                             
                             self.pending_trades[user_id].add(pending_key)
                 
                 except Exception as e:
-                    logger.error(f"[{node_name}] ({exchange_type.upper()}) Position check failed: {e}")
+                    error_msg = f"({exchange_type.upper()}) Position check failed: {str(e)[:100]}"
+                    logger.error(f"[{node_name}] {error_msg}")
+                    # Send Telegram notification about error
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     return
                 
                 # === OPEN POSITION ===
@@ -2381,7 +2408,14 @@ class TradingEngine:
                     logger.info(f"[{node_name}] ({exchange_type.upper()}) Available balance: ${available_balance:.2f}")
                     
                     if available_balance <= 0:
-                        self.log_event(user_id, symbol, f"({exchange_type.upper()}) No funds", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) No funds available"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
                         return
@@ -2389,8 +2423,14 @@ class TradingEngine:
                     # Check minimum balance
                     min_balance_required = self.get_min_balance_required()
                     if min_balance_required > 0 and available_balance < min_balance_required:
-                        self.log_event(user_id, symbol, 
-                            f"({exchange_type.upper()}) Balance ${available_balance:.2f} below min ${min_balance_required:.2f}", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) Balance ${available_balance:.2f} below min ${min_balance_required:.2f}"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
                         return
@@ -2492,11 +2532,18 @@ class TradingEngine:
                         qty = round(qty, 4)
                     
                     if qty <= 0:
-                        self.log_event(user_id, symbol, f"({exchange_type.upper()}) Quantity is 0", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) Quantity is 0 - trade skipped"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
                         return
-                    
+
                     # Place order (async)
                     side = 'buy' if action == 'long' else 'sell'
                     
@@ -2664,8 +2711,17 @@ class TradingEngine:
                         exchange=exchange_type, symbol=symbol, action=action, error_type=error_type
                     ).inc()
                     
-                    logger.error(f"❌ [{node_name}] ({exchange_type.upper()}) Order failed: {e}")
-                    self.log_event(user_id, symbol, f"({exchange_type.upper()}) Order failed: {str(e)[:50]}", is_error=True)
+                    error_msg = f"({exchange_type.upper()}) Order failed: {str(e)[:100]}"
+                    logger.error(f"❌ [{node_name}] {error_msg}")
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    
+                    # Send Telegram notification about order failure
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                    
                     async with self._async_pending_lock:
                         self.pending_trades.get(user_id, set()).discard(pending_key)
                     
@@ -2680,7 +2736,15 @@ class TradingEngine:
                 exchange=exchange_type, symbol=symbol, action=action, error_type=error_type
             ).inc()
             
-            logger.error(f"❌ [{node_name}] ({exchange_type.upper()}) Trade error: {e}")
+            error_msg = f"({exchange_type.upper()}) Trade error: {str(e)[:100]}"
+            logger.error(f"❌ [{node_name}] {error_msg}")
+            
+            # Send Telegram notification about trade error
+            if self.telegram:
+                self.telegram.notify_error(node_name, symbol, error_msg)
+                chat_id = client_data.get('telegram_chat_id')
+                if chat_id:
+                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
     
     async def _get_user_equity_async(self, client_data: dict) -> float:
         """
@@ -2762,6 +2826,8 @@ class TradingEngine:
         """Execute trade for a single account - ASYNC VERSION routes to appropriate handler"""
         user_id = client_data['id']
         exchange_name = client_data.get('exchange_name', 'Unknown')
+        node_name = client_data.get('fullname', str(user_id))
+        symbol = signal.get('symbol', 'UNKNOWN')
         
         if client_data.get('is_paused', False):
             return
@@ -2775,7 +2841,14 @@ class TradingEngine:
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
             if now >= subscription_expires:
-                logger.warning(f"⏰ [{client_data.get('fullname', user_id)}] Subscription expired - skipping trade")
+                error_msg = "Subscription expired - trade skipped"
+                logger.warning(f"⏰ [{node_name}] {error_msg}")
+                # Send Telegram notification
+                if self.telegram:
+                    self.telegram.notify_error(node_name, symbol, error_msg)
+                    chat_id = client_data.get('telegram_chat_id')
+                    if chat_id:
+                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
                 return
         
         # RISK GUARDRAILS CHECK: Only for opening positions, not closing
@@ -2797,8 +2870,16 @@ class TradingEngine:
                     )
                     
                     if should_pause:
-                        node_name = client_data.get('fullname', str(user_id))
-                        logger.warning(f"🛡️ RISK GUARDRAILS: {node_name} triggered {reason} - P&L: {stats.get('pnl_pct', 0):.2f}%")
+                        pnl_pct = stats.get('pnl_pct', 0)
+                        error_msg = f"Risk guardrails: {reason} (P&L: {pnl_pct:.2f}%)"
+                        logger.warning(f"🛡️ [{node_name}] {error_msg}")
+                        
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         
                         # Pause user and optionally panic close (only for drawdown)
                         if isinstance(user_id, int):
@@ -2850,6 +2931,8 @@ class TradingEngine:
         """Execute trade for a single account - routes to appropriate handler (SYNC WRAPPER)"""
         user_id = client_data['id']
         exchange_name = client_data.get('exchange_name', 'Unknown')
+        node_name = client_data.get('fullname', str(user_id))
+        symbol = signal.get('symbol', 'UNKNOWN')
         
         if client_data.get('is_paused', False):
             return
@@ -2863,10 +2946,17 @@ class TradingEngine:
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
             if now >= subscription_expires:
-                logger.warning(f"⏰ [{client_data.get('fullname', user_id)}] Subscription expired - skipping trade")
+                error_msg = "Subscription expired - trade skipped"
+                logger.warning(f"⏰ [{node_name}] {error_msg}")
+                # Send Telegram notification
+                if self.telegram:
+                    self.telegram.notify_error(node_name, symbol, error_msg)
+                    chat_id = client_data.get('telegram_chat_id')
+                    if chat_id:
+                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
                 return
         
-        logger.info(f"🔄 execute_trade called for {client_data.get('fullname', user_id)} ({exchange_name})")
+        logger.info(f"🔄 execute_trade called for {node_name} ({exchange_name})")
         
         # For async clients, run in event loop
         if client_data.get('is_async'):
@@ -3016,8 +3106,14 @@ class TradingEngine:
                 # Check if already pending for this symbol FIRST (before any API calls)
                 with self.pending_lock:
                     if symbol in self.pending_trades[user_id]:
-                        self.log_event(user_id, symbol, 
-                                      f"Trade already in progress for {symbol}", is_error=True)
+                        error_msg = f"Trade already in progress for {symbol}"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                 
                 # For master accounts with global check already done, only check if we have position on THIS exchange
@@ -3037,8 +3133,14 @@ class TradingEngine:
                     
                     # Don't open if already have position on this symbol on THIS exchange
                     if has_position_on_symbol:
-                        self.log_event(user_id, symbol, 
-                                      f"Already have position on {symbol} on this exchange", is_error=True)
+                        error_msg = f"Already have position on {symbol}"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
                     # For master accounts with skip_position_check, skip the max position check
@@ -3060,8 +3162,14 @@ class TradingEngine:
                             # Enforce max positions strictly: if max_pos is 1, only allow 1 total position
                             # Use strict comparison: if we're at or above max, reject
                             if total_positions >= max_pos:
-                                self.log_event(user_id, symbol, 
-                                              f"Max positions reached ({open_cnt} open + {pending_count} pending = {total_positions} >= {max_pos})", is_error=True)
+                                error_msg = f"Max positions reached ({open_cnt} open + {pending_count} pending >= {max_pos})"
+                                self.log_event(user_id, symbol, error_msg, is_error=True)
+                                # Send Telegram notification
+                                if self.telegram:
+                                    self.telegram.notify_error(node_name, symbol, error_msg)
+                                    chat_id = client_data.get('telegram_chat_id')
+                                    if chat_id:
+                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
                                 return
                             
                             # All checks passed - mark as pending IMMEDIATELY to prevent concurrent signals
@@ -3075,13 +3183,26 @@ class TradingEngine:
                         if final_total > max_pos:
                             # We exceeded the limit - remove from pending and reject
                             self.pending_trades[user_id].discard(symbol)
-                            self.log_event(user_id, symbol, 
-                                          f"Max positions exceeded after marking pending ({open_cnt} open + {final_pending_count} pending = {final_total} > {max_pos})", is_error=True)
+                            error_msg = f"Max positions exceeded ({open_cnt} open + {final_pending_count} pending > {max_pos})"
+                            self.log_event(user_id, symbol, error_msg, is_error=True)
+                            # Send Telegram notification
+                            if self.telegram:
+                                self.telegram.notify_error(node_name, symbol, error_msg)
+                                chat_id = client_data.get('telegram_chat_id')
+                                if chat_id:
+                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
                             return
                         
                 except Exception as e:
-                    logger.warning(f"Position check failed for {user_id}: {e}")
-                    self.log_event(user_id, symbol, f"Position check failed: {e}", is_error=True)
+                    error_msg = f"Position check failed: {str(e)[:100]}"
+                    logger.warning(f"[{node_name}] {error_msg}")
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    # Send Telegram notification
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     return
 
                 # === OPEN POSITION ===
@@ -3090,7 +3211,14 @@ class TradingEngine:
                 # Check slippage for slaves
                 if user_id != 'master':
                     if not self.check_slippage(client, symbol, side, master_entry_price):
-                        self.log_event(user_id, symbol, "Slippage too high, skipped", is_error=True)
+                        error_msg = "Slippage too high, trade skipped"
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         # Clear pending trade
                         with self.pending_lock:
                             self.pending_trades.get(user_id, set()).discard(symbol)
@@ -3113,7 +3241,14 @@ class TradingEngine:
                         break
                 
                 if available_balance <= 0:
-                    self.log_event(user_id, symbol, f"No funds ({available_balance:.2f}$)", is_error=True)
+                    error_msg = f"No funds available ({available_balance:.2f}$)"
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    # Send Telegram notification
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
                         self.pending_trades.get(user_id, set()).discard(symbol)
@@ -3122,9 +3257,14 @@ class TradingEngine:
                 # Check minimum balance requirement (set by admin)
                 min_balance_required = self.get_min_balance_required()
                 if min_balance_required > 0 and available_balance < min_balance_required:
-                    self.log_event(user_id, symbol, 
-                                  f"Balance ${available_balance:.2f} is below minimum ${min_balance_required:.2f} required for trading", 
-                                  is_error=True)
+                    error_msg = f"Balance ${available_balance:.2f} is below minimum ${min_balance_required:.2f}"
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    # Send Telegram notification
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
                         self.pending_trades.get(user_id, set()).discard(symbol)
@@ -3231,7 +3371,14 @@ class TradingEngine:
                 qty_str = f"{qty:.{prec['qty_prec']}f}"
                 
                 if qty <= 0:
-                    self.log_event(user_id, symbol, "Quantity is 0", is_error=True)
+                    error_msg = "Quantity is 0 - trade skipped"
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    # Send Telegram notification
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
                         self.pending_trades.get(user_id, set()).discard(symbol)
@@ -3450,17 +3597,25 @@ class TradingEngine:
                     # Clear pending trade on error
                     with self.pending_lock:
                         self.pending_trades.get(user_id, set()).discard(symbol)
-                    self.log_event(user_id, symbol, f"Binance Error: {e.message}", is_error=True)
+                    error_msg = f"Binance Error: {e.message}"
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
                     if self.telegram:
-                        self.telegram.notify_error(node_name, symbol, e.message)
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                 
         except Exception as e:
             # Clear pending trade on error
             with self.pending_lock:
                 self.pending_trades.get(user_id, set()).discard(symbol)
-            self.log_event(user_id, symbol, f"Engine Error: {str(e)}", is_error=True)
+            error_msg = f"Engine Error: {str(e)[:100]}"
+            self.log_event(user_id, symbol, error_msg, is_error=True)
             if self.telegram:
-                self.telegram.notify_error(node_name, symbol, str(e))
+                self.telegram.notify_error(node_name, symbol, error_msg)
+                chat_id = client_data.get('telegram_chat_id')
+                if chat_id:
+                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
 
     def get_global_master_position_count(self) -> tuple:
         """
@@ -3533,11 +3688,19 @@ class TradingEngine:
         # Execute all trades concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Log any exceptions
+        # Log any exceptions and send Telegram notifications
+        symbol = signal.get('symbol', 'UNKNOWN')
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 user_name = users[i].get('fullname', users[i].get('name', 'Unknown'))
-                logger.error(f"Trade execution error for {user_name}: {result}")
+                error_msg = f"Trade execution error: {str(result)[:100]}"
+                logger.error(f"[{user_name}] {error_msg}")
+                # Send Telegram notification
+                if self.telegram:
+                    self.telegram.notify_error(user_name, symbol, error_msg)
+                    chat_id = users[i].get('telegram_chat_id')
+                    if chat_id:
+                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
         
         return results
 
@@ -3547,7 +3710,11 @@ class TradingEngine:
         Instrumented with Prometheus metrics for signal tracking.
         """
         if self.is_paused:
-            logger.info("⏸️ Engine paused, signal ignored")
+            symbol = signal.get('symbol', 'UNKNOWN')
+            error_msg = "Engine paused - signal ignored"
+            logger.info(f"⏸️ {error_msg}")
+            if self.telegram:
+                self.telegram.notify_error("SYSTEM", symbol, error_msg)
             return
             
         # Clean symbol
@@ -3586,12 +3753,16 @@ class TradingEngine:
                 logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, symbols={open_symbols}")
                 
                 if clean_symbol in open_symbols:
-                    logger.warning(f"⚠️ {clean_symbol}: Already have position on this symbol across master exchanges")
-                elif global_pos_count >= max_pos_master:
-                    logger.error(f"❌ {clean_symbol}: GLOBAL max positions reached ({global_pos_count} >= {max_pos_master}). Open symbols: {open_symbols}")
+                    error_msg = f"Already have position on {clean_symbol}"
+                    logger.warning(f"⚠️ MASTER: {error_msg}")
                     if self.telegram:
-                        self.telegram.notify_error("MASTER", clean_symbol, 
-                            f"Max positions reached ({global_pos_count}/{max_pos_master})")
+                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                    # Continue with slaves, don't return - slaves may need this signal
+                elif global_pos_count >= max_pos_master:
+                    error_msg = f"Max positions reached ({global_pos_count}/{max_pos_master})"
+                    logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}")
+                    if self.telegram:
+                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
                     return
 
         # Get master's current state (from primary Binance if available)
@@ -3706,8 +3877,12 @@ class TradingEngine:
 
     def process_signal(self, signal: dict):
         """Process incoming trading signal - SYNC WRAPPER"""
+        symbol = signal.get('symbol', 'UNKNOWN')
         if self.is_paused:
-            logger.info("⏸️ Engine paused, signal ignored")
+            error_msg = "Engine paused - signal ignored"
+            logger.info(f"⏸️ {error_msg}")
+            if self.telegram:
+                self.telegram.notify_error("SYSTEM", symbol, error_msg)
             return
         
         # Try to run async version in event loop
@@ -3721,7 +3896,10 @@ class TradingEngine:
                     try:
                         future.result(timeout=60)  # 60 second timeout for signal processing
                     except concurrent.futures.TimeoutError:
-                        logger.error(f"Signal processing timed out for {signal.get('symbol', 'UNKNOWN')}")
+                        error_msg = f"Signal processing timed out for {symbol}"
+                        logger.error(error_msg)
+                        if self.telegram:
+                            self.telegram.notify_error("SYSTEM", symbol, error_msg)
             else:
                 loop.run_until_complete(self.process_signal_async(signal))
         except RuntimeError:
