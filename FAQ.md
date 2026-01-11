@@ -1,152 +1,129 @@
-# MIMIC (Brain Capital) - Frequently Asked Questions
-
-## General Questions
-
-### What is MIMIC?
-
-MIMIC (Brain Capital) is an automated copy trading platform for cryptocurrency exchanges. It enables users to automatically copy trades from a master trading account across multiple exchanges (primarily Binance Futures). The platform receives trading signals via TradingView webhooks and executes them across all connected user accounts.
-
-### How does copy trading work?
-
-1. A master trader executes trades on their account
-2. MIMIC receives trading signals via TradingView webhooks
-3. The platform automatically replicates these trades on all connected user accounts
-4. Users can customize their risk settings (leverage, position size, stop-loss, take-profit)
-
-### What exchanges are supported?
-
-MIMIC supports 30+ cryptocurrency exchanges via the CCXT library:
-
-- **Tier 1 (Major):** Binance, Coinbase, Bybit, OKX, Upbit
-- **Tier 2 (Large):** Bitget, Gate, KuCoin, Kraken, HTX
-- **Tier 3 (Mid-size):** MEXC, Crypto.com, Bitstamp, Bitfinex, Bithumb
-- **Tier 4+:** WhiteBit, Poloniex, Gemini, BingX, Phemex, and more
-
----
+# Frequently Asked Questions
 
 ## Getting Started
 
-### How do I create an account?
+### What is MIMIC?
 
-1. Visit the registration page at `/register`
-2. Enter your username, email, and password
-3. Optionally enter a referral code if you have one
-4. Complete the registration form
-5. Log in with your credentials
+MIMIC is an automated copy trading platform for cryptocurrency. When our master trader makes a trade, the same trade is automatically copied to your connected exchange account. You set your risk level, and we handle the rest.
 
-### How do I connect my exchange account?
+### How does copy trading work?
 
-1. Log in to your MIMIC dashboard
-2. Go to "API Keys" or "Exchanges" section
-3. Select your exchange from the dropdown
-4. Enter your API key and API secret from your exchange
-5. For some exchanges (like OKX, KuCoin), you'll also need a passphrase
-6. Submit for admin approval
+1. Connect your exchange account using API keys
+2. Configure your risk settings (how much to risk per trade)
+3. Our system automatically copies trades to your account
+4. You can monitor everything from your dashboard
 
-**Important API Key Settings for Binance:**
-- ✅ Enable `Futures Trading`
-- ❌ **Disable** `Enable Withdrawals` (for security)
-- ✅ Enable `Restrict access to trusted IPs only` (recommended)
+### What exchanges are supported?
 
-### What API permissions do I need?
+We support 30+ major exchanges including:
+- **Binance** (most popular)
+- **Bybit**
+- **OKX**
+- **KuCoin**
+- **Bitget**
+- **Gate.io**
+- And many more
 
-For Binance Futures:
-- Enable Futures trading permission
-- Do NOT enable withdrawal permissions
-- Optionally restrict to your server's IP for extra security
+---
+
+## Account Setup
+
+### How do I connect my exchange?
+
+1. Log in to your exchange (e.g., Binance)
+2. Create a new API key with **Futures trading** enabled
+3. **Important:** Do NOT enable withdrawals for security
+4. Copy your API Key and Secret
+5. Paste them in your MIMIC dashboard under "Exchanges"
+6. Wait for admin approval (usually within 24 hours)
+
+### What permissions should my API key have?
+
+| Permission | Required? |
+|------------|-----------|
+| Futures Trading | ✅ Yes |
+| Spot Trading | ❌ No |
+| Withdrawals | ❌ **Never enable this** |
+| IP Restriction | ✅ Recommended |
 
 ---
 
 ## Trading Settings
 
-### What is risk percentage?
+### What is Risk Percentage?
 
-Risk percentage determines how much of your account balance is risked on each trade. For example, with 3% risk and a $10,000 account, each trade would risk $300.
+This is how much of your account you're willing to risk on each trade. 
 
-### What is leverage?
+**Example:** With 3% risk and a $10,000 account, each trade risks about $300.
 
-Leverage multiplies your trading position. With 20x leverage and $100, you control a $2,000 position. Higher leverage means higher potential profits AND losses.
+**Recommendation:** Start with 1-3% if you're new to trading.
 
-**Warning:** Higher leverage significantly increases risk. Start with lower leverage until you understand the platform.
+### What is Leverage?
 
-### What are Take Profit (TP) and Stop Loss (SL)?
+Leverage multiplies your position size. With 20x leverage and $100, you control a $2,000 position.
 
-- **Take Profit (TP):** Automatically closes your position when profit reaches a certain percentage
-- **Stop Loss (SL):** Automatically closes your position to limit losses at a certain percentage
+⚠️ **Warning:** Higher leverage = higher risk. Start with lower leverage (5-10x) until you're comfortable.
 
-For example, with 5% TP and 2% SL:
-- Position closes automatically when profit reaches 5%
-- Position closes automatically when loss reaches 2%
+### What are Take Profit and Stop Loss?
+
+- **Take Profit (TP):** Automatically closes your trade when you reach a target profit
+- **Stop Loss (SL):** Automatically closes your trade to limit losses
+
+**Example:** With 5% TP and 2% SL:
+- Your trade closes when profit hits 5%
+- Your trade closes if loss reaches 2%
 
 ### What is DCA (Dollar Cost Averaging)?
 
-DCA automatically adds to your position when the price moves against you. This can lower your average entry price.
+DCA adds to your position when the price moves against you, lowering your average entry price.
 
-Settings:
-- **DCA Threshold:** When to trigger DCA (e.g., -2% means trigger when position is down 2%)
-- **DCA Multiplier:** Size of DCA order relative to original (e.g., 1.0 means same size)
-- **Max DCA Orders:** Maximum number of DCA orders per position
+- **DCA Threshold:** How far the price must drop before adding (e.g., -2%)
+- **DCA Multiplier:** How much to add relative to original position
+- **Max DCA Orders:** Maximum times to add to a position
 
 ### What is Trailing Stop-Loss?
 
-Trailing Stop-Loss dynamically adjusts your stop-loss as the price moves in your favor, locking in profits.
-
-Settings:
-- **Activation:** When to activate trailing (e.g., 1% profit)
-- **Callback:** How far the price can pull back before closing (e.g., 0.5%)
+A smart stop-loss that follows the price as it moves in your favor, locking in profits while giving room for the trade to run.
 
 ---
 
 ## Subscription & Payments
 
-### What subscription plans are available?
+### What plans are available?
 
-| Plan | Price | Features |
-|------|-------|----------|
-| Basic | $29.99/mo | 3 exchanges, email support |
-| Pro | $79.99/mo | 10 exchanges, priority support, analytics |
-| Enterprise | $199.99/mo | Unlimited exchanges, API access |
+| Plan | Price | Exchanges |
+|------|-------|-----------|
+| Basic | $29.99/month | Up to 3 |
+| Pro | $79.99/month | Up to 10 |
+| Enterprise | $199.99/month | Unlimited |
 
-### What payment methods are accepted?
+### How do I pay?
 
-MIMIC accepts cryptocurrency payments via Plisio:
-- USDT (TRC20 and ERC20)
+We accept cryptocurrency payments:
+- USDT (TRC20 or ERC20)
 - Bitcoin (BTC)
 - Ethereum (ETH)
 - Litecoin (LTC)
 
-### How do I upgrade my subscription?
-
-1. Go to your dashboard
-2. Click "Upgrade" or "Subscription"
-3. Select your desired plan
-4. Complete the crypto payment
-5. Your subscription activates automatically upon payment confirmation
+Your subscription activates automatically after payment confirmation.
 
 ---
 
 ## Notifications
 
-### How do I enable Telegram notifications?
+### How do I set up Telegram notifications?
 
-1. Start a chat with `@BrainCapitalBot` (or your platform's bot)
-2. Get your Chat ID by sending `/start` to the bot
-3. Enter your Telegram Chat ID in your profile settings
+1. Open Telegram and search for `@BrainCapitalBot`
+2. Send `/start` to get your Chat ID
+3. Enter this Chat ID in your MIMIC profile settings
 4. Enable Telegram notifications
 
 ### What notifications will I receive?
 
-- 📥 New trading signals received
-- ✅ Trades opened successfully
-- 💰 Trades closed with profit/loss
-- ⚠️ Error notifications
-- 🚨 Emergency closures (panic mode)
-
-### What is the Panic Kill Switch?
-
-The Panic Kill Switch is an emergency feature that closes ALL positions across ALL accounts instantly. It requires 2FA (OTP) verification via Telegram for security.
-
-To use: Send `/panic <OTP_CODE>` to the Telegram bot
+- ✅ Trade opened
+- 💰 Trade closed (with profit/loss)
+- ⚠️ Errors or issues
+- 🚨 Emergency alerts
 
 ---
 
@@ -154,169 +131,71 @@ To use: Send `/panic <OTP_CODE>` to the Telegram bot
 
 ### What are Risk Guardrails?
 
-Risk Guardrails protect your account from excessive losses in a single day:
+Safety features that automatically pause trading when:
+- **Daily losses** exceed your limit (e.g., stop after losing 10%)
+- **Daily profits** hit your target (optional)
 
-- **Daily Drawdown Limit:** Pauses trading if daily losses exceed a threshold (e.g., 10%)
-- **Daily Profit Lock:** Optionally pauses trading after reaching a profit target (e.g., 20%)
+This prevents emotional overtrading and protects your account.
 
-### How do I set up risk guardrails?
+### What is the Panic Kill Switch?
 
-1. Go to your profile settings
-2. Enable Risk Guardrails
-3. Set your Daily Drawdown Limit (e.g., 10%)
-4. Optionally set a Daily Profit Target
-
-### What happens when guardrails trigger?
-
-- Trading is automatically paused for your account
-- You receive a notification
-- Trading resumes the next day (or you can manually resume)
+An emergency button that closes ALL your positions instantly. Use it if you need to exit everything quickly. Requires verification via Telegram for security.
 
 ---
 
 ## Troubleshooting
 
-### I'm getting "Database migration error"
-
-Run the migration script:
-```bash
-python migrate_all.py
-```
-
 ### My trades aren't being copied
 
-Check the following:
-1. Is your account active? (Check dashboard status)
-2. Are your API keys valid and approved?
-3. Is trading enabled for your exchange connection?
-4. Check if you have sufficient balance on your exchange
-5. Verify your leverage and margin settings on the exchange
+Check these common issues:
+1. Is your account status "Active" in the dashboard?
+2. Are your API keys approved?
+3. Do you have enough balance on your exchange?
+4. Is trading enabled for your connected exchange?
 
 ### I can't connect my API keys
 
-Common issues:
-1. **Wrong permissions:** Ensure Futures trading is enabled
-2. **IP restriction:** Add your server IP to the exchange whitelist
-3. **Expired keys:** Regenerate API keys if they've expired
-4. **Wrong exchange:** Make sure you're using Futures API keys, not Spot
-
-### Port 80 is already in use
-
-On Windows, run:
-```batch
-fix_port.bat
-```
-
-Or manually:
-```bash
-netstat -ano | findstr :80
-taskkill /PID <pid> /F
-```
-
-### Encryption error
-
-Regenerate encryption keys:
-```bash
-python setup_env.py --force
-```
-
-**Warning:** This will invalidate all existing encrypted data (API keys)!
+Common causes:
+1. **Missing permissions:** Make sure Futures trading is enabled
+2. **Wrong key type:** Use Futures API keys, not Spot
+3. **IP restrictions:** Add your server's IP to the exchange whitelist
+4. **Expired keys:** Generate new API keys and try again
 
 ---
 
 ## Security
 
-### How are my API keys stored?
+### Are my API keys safe?
 
-API keys are encrypted using Fernet symmetric encryption before being stored in the database. The encryption key is stored securely and never committed to version control.
+Yes. Your API keys are encrypted before storage and never stored in plain text.
 
-### Is my data safe?
+### Security Best Practices
 
-MIMIC implements multiple security measures:
-- Password hashing (scrypt algorithm)
-- API key encryption (Fernet)
-- Rate limiting
-- CSRF protection
-- Session fingerprinting
-- Security headers
-
-### What should I NEVER do?
-
-- ❌ Never enable withdrawal permissions on your exchange API keys
-- ❌ Never share your API keys with anyone
-- ❌ Never use weak passwords
-- ❌ Never commit `.env` or `config.ini` files to Git
+- ✅ **Never** enable withdrawal permissions on your API keys
+- ✅ Use a strong, unique password
+- ✅ Enable IP restrictions on your exchange API keys
+- ✅ Set up Telegram notifications to monitor activity
 
 ---
 
-## Referral System
+## Referrals
 
-### How does the referral system work?
+### How do referrals work?
 
-1. Get your unique referral code from your profile
+1. Get your referral code from your profile
 2. Share it with friends
-3. When they sign up and trade, you earn commission on their profitable trades
-4. Commission rate is 5% of profits
-
-### How do I get my referral code?
-
-Go to your profile page - your referral code is displayed there. If you don't have one, click "Generate Referral Code".
-
-### When do I receive commissions?
-
-Commissions are credited when your referred users make profitable trades. View your commission history in your profile.
+3. Earn 5% commission on their profitable trades
 
 ---
 
-## Technical Questions
+## Need Help?
 
-### What technologies does MIMIC use?
-
-- **Backend:** Flask 3.0 + FastAPI
-- **Database:** SQLite (dev) / PostgreSQL (prod)
-- **Real-time:** Flask-SocketIO (WebSocket)
-- **Exchange API:** CCXT (multi-exchange support)
-- **Task Queue:** ARQ + Redis
-- **Encryption:** Fernet (cryptography)
-
-### Can I run MIMIC on Docker?
-
-Yes! Use Docker Compose for production deployment:
-```bash
-docker-compose up -d
-```
-
-This starts all services: app, Redis, PostgreSQL, Prometheus, and Grafana.
-
-### What ports does MIMIC use?
-
-| Service | Port |
-|---------|------|
-| Web App | 80 (prod) / 5000 (dev) |
-| Redis | 6379 |
-| PostgreSQL | 5432 |
-| Prometheus | 9090 |
-| Grafana | 3000 |
+- **AI Support Bot:** Click the chat icon in the bottom right corner
+- **Messages:** Send a message through your dashboard
+- **Telegram:** Contact our support bot
 
 ---
 
-## Contact & Support
+**Disclaimer:** Cryptocurrency trading involves significant risk. Past performance does not guarantee future results. Only trade with money you can afford to lose.
 
-### How do I contact support?
-
-1. Use the AI Support Bot in the chat widget
-2. Send a message via the internal messaging system
-3. Contact admin through Telegram
-
-### Where can I find more documentation?
-
-- `README.md` - Quick start guide
-- `DEV_MANUAL.md` - Complete developer documentation
-- `SECURITY.md` - Security guidelines
-- `SECURITY_HARDENING.md` - Production hardening guide
-
----
-
-**Disclaimer:** Cryptocurrency trading involves significant risk. Use this software at your own risk. The developers are not responsible for any financial losses.
-
-*Last Updated: January 8, 2026*
+*Last Updated: January 2026*
