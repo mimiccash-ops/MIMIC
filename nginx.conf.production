@@ -214,7 +214,7 @@ http {
     server {
         listen 80;
         listen [::]:80;
-        server_name mimic.cash www.mimic.cash api.mimic.cash;
+        server_name mimiccash.com www.mimiccash.com api.mimiccash.com;
         
         # Allow Cloudflare health checks
         location /health {
@@ -245,9 +245,9 @@ http {
         # ------------------------------------------------------------------
         # SSL CONFIGURATION
         # ------------------------------------------------------------------
-        ssl_certificate /etc/letsencrypt/live/mimic.cash/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/mimic.cash/privkey.pem;
-        ssl_trusted_certificate /etc/letsencrypt/live/mimic.cash/chain.pem;
+        ssl_certificate /etc/letsencrypt/live/mimiccash.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/mimiccash.com/privkey.pem;
+        ssl_trusted_certificate /etc/letsencrypt/live/mimiccash.com/chain.pem;
         
         # Modern SSL settings (TLS 1.2+ only)
         ssl_protocols TLSv1.2 TLSv1.3;
@@ -538,9 +538,9 @@ http {
         server_name api.mimic.cash;
 
         # SSL Configuration (same as main site)
-        ssl_certificate /etc/letsencrypt/live/mimic.cash/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/mimic.cash/privkey.pem;
-        ssl_trusted_certificate /etc/letsencrypt/live/mimic.cash/chain.pem;
+        ssl_certificate /etc/letsencrypt/live/mimiccash.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/mimiccash.com/privkey.pem;
+        ssl_trusted_certificate /etc/letsencrypt/live/mimiccash.com/chain.pem;
         
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_prefer_server_ciphers off;
