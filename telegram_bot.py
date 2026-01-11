@@ -254,9 +254,21 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         # ============ START POLLING WITH ADVANCED RETRY LOGIC ============
         max_retries = 10
         base_delay = 5
+        conflict_detected = False
+        
+        # Custom error handler to detect 409 conflicts early
+        async def error_handler(update, context):
+            nonlocal conflict_detected
+            if isinstance(context.error, Conflict):
+                conflict_detected = True
+                proc_logger.warning(f"⚠️ Conflict detected in error handler: {context.error}")
+        
+        app.add_error_handler(error_handler)
         
         for attempt in range(max_retries):
             try:
+                conflict_detected = False
+                
                 # Start polling with drop_pending_updates to avoid processing old messages
                 await app.updater.start_polling(
                     drop_pending_updates=True,
@@ -264,16 +276,31 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                 )
                 proc_logger.info("🤖 Telegram bot is now running and polling for updates")
                 
-                # If we got here, polling started. Now wait a few seconds to see if conflicts appear
-                await asyncio.sleep(5)
+                # Wait and actively check for conflicts over multiple intervals
+                # This is more reliable than a single check
+                stable_checks = 0
+                required_stable_checks = 5  # Need 5 consecutive stable checks (10 seconds total)
                 
-                # Check if the updater is still running (no 409 errors killed it)
-                if app.updater.running:
-                    proc_logger.info("✅ Telegram bot polling confirmed stable")
-                    break
+                for check_num in range(10):  # Check for up to 20 seconds
+                    await asyncio.sleep(2)
+                    
+                    if conflict_detected:
+                        proc_logger.warning(f"⚠️ Conflict detected during stability check {check_num + 1}")
+                        raise Conflict("409 Conflict detected during polling")
+                    
+                    if not app.updater.running:
+                        proc_logger.warning(f"⚠️ Updater stopped during stability check {check_num + 1}")
+                        raise Conflict("Updater stopped unexpectedly")
+                    
+                    stable_checks += 1
+                    if stable_checks >= required_stable_checks:
+                        proc_logger.info(f"✅ Telegram bot polling confirmed stable after {stable_checks} checks ({stable_checks * 2}s)")
+                        break
+                
+                if stable_checks >= required_stable_checks:
+                    break  # Exit retry loop - we're stable
                 else:
-                    proc_logger.warning("⚠️ Updater stopped unexpectedly, retrying...")
-                    raise Conflict("Updater stopped unexpectedly")
+                    raise Conflict("Failed to achieve stable polling")
                     
             except Conflict as e:
                 proc_logger.warning(f"⚠️ 409 Conflict (attempt {attempt + 1}/{max_retries}): {e}")
@@ -319,14 +346,55 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         # Keep running until interrupted
         proc_logger.info("🤖 Bot is running. Press Ctrl+C to stop.")
         
+        # Track consecutive 409 errors for smart backoff
+        consecutive_conflicts = 0
+        last_conflict_time = None
+        
         try:
             while not shutdown_requested:
                 await asyncio.sleep(1)
+                
+                # Check if conflict was detected by error handler
+                if conflict_detected:
+                    consecutive_conflicts += 1
+                    last_conflict_time = datetime.now()
+                    proc_logger.warning(f"⚠️ 409 Conflict detected (#{consecutive_conflicts})")
+                    
+                    if consecutive_conflicts >= 3:
+                        proc_logger.error("=" * 60)
+                        proc_logger.error("❌ PERSISTENT 409 CONFLICT - ANOTHER BOT IS RUNNING!")
+                        proc_logger.error("=" * 60)
+                        proc_logger.error("This usually means:")
+                        proc_logger.error("  1. Another server is using the SAME bot token")
+                        proc_logger.error("  2. A developer's machine has the bot running")
+                        proc_logger.error("  3. A Docker container or staging server")
+                        proc_logger.error("  4. BotFather shows your token - REGENERATE it!")
+                        proc_logger.error("")
+                        proc_logger.error("To fix:")
+                        proc_logger.error("  1. Stop ALL other instances using this token")
+                        proc_logger.error("  2. Or regenerate token: @BotFather → /mybots → API Token")
+                        proc_logger.error("=" * 60)
+                        
+                        # Stop this bot to prevent infinite 409 spam
+                        break
+                    
+                    # Wait before next check
+                    await asyncio.sleep(10)
+                    conflict_detected = False  # Reset for next check
+                    continue
+                else:
+                    # Reset counter if stable for a while
+                    if last_conflict_time and (datetime.now() - last_conflict_time).seconds > 60:
+                        if consecutive_conflicts > 0:
+                            proc_logger.info(f"✅ No conflicts for 60s, resetting counter (was {consecutive_conflicts})")
+                        consecutive_conflicts = 0
                 
                 # Periodically check if updater is still running
                 if not app.updater.running:
                     proc_logger.warning("⚠️ Updater stopped unexpectedly, attempting restart...")
                     try:
+                        # Wait before attempting restart to avoid rapid loops
+                        await asyncio.sleep(5)
                         await app.updater.start_polling(
                             drop_pending_updates=False,
                             allowed_updates=['message', 'callback_query']
@@ -334,7 +402,9 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                         proc_logger.info("✅ Updater restarted")
                     except Conflict:
                         proc_logger.error("❌ 409 Conflict on restart - another bot took over")
-                        break
+                        consecutive_conflicts += 1
+                        if consecutive_conflicts >= 3:
+                            break
                     except Exception as e:
                         proc_logger.error(f"❌ Failed to restart updater: {e}")
                         break
@@ -1287,4 +1357,181 @@ def generate_otp_secret() -> str:
         raise ImportError("pyotp is required. Install with: pip install pyotp")
     
     return pyotp.random_base32()
+
+
+def diagnose_telegram_conflict(bot_token: str) -> dict:
+    """
+    Diagnose 409 Conflict issues by testing Telegram API directly.
+    
+    This function makes a series of getUpdates calls to determine if
+    another bot instance is actively polling.
+    
+    Args:
+        bot_token: Telegram bot token to test
+        
+    Returns:
+        dict with diagnosis results:
+        - has_conflict: bool - True if another instance is polling
+        - bot_info: dict - Bot username, ID if available
+        - recommendation: str - What to do next
+        - details: str - Technical details
+    """
+    import requests
+    import time
+    
+    result = {
+        'has_conflict': False,
+        'bot_info': {},
+        'recommendation': '',
+        'details': '',
+        'checks': []
+    }
+    
+    base_url = f"https://api.telegram.org/bot{bot_token}"
+    
+    # 1. Get bot info
+    try:
+        resp = requests.get(f"{base_url}/getMe", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('ok'):
+                result['bot_info'] = {
+                    'username': data['result'].get('username'),
+                    'id': data['result'].get('id'),
+                    'first_name': data['result'].get('first_name')
+                }
+                result['checks'].append(f"✅ Bot valid: @{data['result'].get('username')}")
+        else:
+            result['checks'].append(f"❌ Bot token invalid: {resp.status_code}")
+            result['recommendation'] = "Check your bot token with @BotFather"
+            return result
+    except Exception as e:
+        result['checks'].append(f"❌ Could not connect: {e}")
+        result['recommendation'] = "Check network connectivity"
+        return result
+    
+    # 2. Delete webhook first (in case it's set)
+    try:
+        resp = requests.post(f"{base_url}/deleteWebhook", timeout=10)
+        if resp.status_code == 200:
+            result['checks'].append("✅ Webhook deleted/not set")
+    except Exception as e:
+        result['checks'].append(f"⚠️ Webhook check failed: {e}")
+    
+    # 3. Make multiple rapid getUpdates calls to detect conflicts
+    conflict_count = 0
+    success_count = 0
+    
+    for i in range(5):
+        try:
+            resp = requests.post(
+                f"{base_url}/getUpdates",
+                json={"limit": 1, "timeout": 0},
+                timeout=10
+            )
+            
+            if resp.status_code == 200:
+                success_count += 1
+                result['checks'].append(f"✅ Poll #{i+1}: OK")
+            elif resp.status_code == 409:
+                conflict_count += 1
+                result['checks'].append(f"❌ Poll #{i+1}: 409 CONFLICT!")
+            else:
+                result['checks'].append(f"⚠️ Poll #{i+1}: {resp.status_code}")
+            
+            time.sleep(0.5)  # Small delay between checks
+            
+        except Exception as e:
+            result['checks'].append(f"❌ Poll #{i+1} error: {e}")
+    
+    # 4. Analyze results
+    if conflict_count > 0:
+        result['has_conflict'] = True
+        result['details'] = f"Detected {conflict_count} conflicts out of 5 polling attempts"
+        result['recommendation'] = """
+ANOTHER BOT INSTANCE IS ACTIVELY POLLING!
+
+To fix this:
+1. Find and stop the other instance:
+   - Check other servers/VPS using same token
+   - Check developer machines running the bot
+   - Check Docker containers: docker ps | grep mimic
+   - Check screen/tmux sessions: screen -ls
+   
+2. On this server, run:
+   pkill -f "telegram_bot"
+   pkill -f "python.*mimic"
+   rm -f /tmp/mimic_telegram_bot.lock
+   
+3. If you can't find the other instance:
+   - Go to @BotFather on Telegram
+   - Send /mybots
+   - Select your bot
+   - Choose "API Token" → "Revoke token"
+   - Update your .env with the new token
+   
+4. Then restart:
+   sudo systemctl restart mimic
+"""
+    else:
+        result['has_conflict'] = False
+        result['details'] = f"No conflicts detected ({success_count}/5 successful polls)"
+        result['recommendation'] = "Bot token is clear. You can start the bot now."
+    
+    return result
+
+
+def print_conflict_diagnosis(bot_token: str = None):
+    """
+    Print a formatted conflict diagnosis to console.
+    
+    Usage from command line:
+        python -c "from telegram_bot import print_conflict_diagnosis; print_conflict_diagnosis()"
+    
+    Or with specific token:
+        python -c "from telegram_bot import print_conflict_diagnosis; print_conflict_diagnosis('your-token')"
+    """
+    if not bot_token:
+        try:
+            from config import Config
+            bot_token = getattr(Config, 'TG_TOKEN', None)
+        except ImportError:
+            print("❌ Could not load config. Please provide bot token as argument.")
+            return
+    
+    if not bot_token:
+        print("❌ No bot token configured. Check TG_TOKEN in .env")
+        return
+    
+    print("\n" + "=" * 60)
+    print("🔍 TELEGRAM BOT CONFLICT DIAGNOSIS")
+    print("=" * 60 + "\n")
+    
+    result = diagnose_telegram_conflict(bot_token)
+    
+    # Print bot info
+    if result['bot_info']:
+        print(f"🤖 Bot: @{result['bot_info'].get('username', 'unknown')}")
+        print(f"   ID: {result['bot_info'].get('id', 'unknown')}\n")
+    
+    # Print checks
+    print("Checks:")
+    for check in result['checks']:
+        print(f"  {check}")
+    print()
+    
+    # Print result
+    if result['has_conflict']:
+        print("❌ CONFLICT DETECTED!")
+        print(f"   {result['details']}")
+    else:
+        print("✅ NO CONFLICT DETECTED")
+        print(f"   {result['details']}")
+    
+    # Print recommendation
+    print("\n" + "-" * 60)
+    print("RECOMMENDATION:")
+    print("-" * 60)
+    print(result['recommendation'])
+    print("=" * 60 + "\n")
 
