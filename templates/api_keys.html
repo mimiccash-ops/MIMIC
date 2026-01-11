@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}API Keys{% endblock %}
+{% block title %}API Ключі{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -568,22 +568,21 @@
 <div class="api-container">
     <!-- Header -->
     <div class="api-header">
-        <h1><i class="fas fa-key"></i> API Keys</h1>
+        <h1><i class="fas fa-key"></i> <span data-i18n="apiKeys.title">API Ключі</span></h1>
         <button class="btn-create" onclick="openCreateModal()">
-            <i class="fas fa-plus"></i> Create API Key
+            <i class="fas fa-plus"></i> <span data-i18n="apiKeys.createApiKey">Створити API Ключ</span>
         </button>
     </div>
 
     <!-- Info box -->
     <div class="api-info">
-        <h3><i class="fas fa-info-circle"></i> Public Developer API</h3>
-        <p>
-            Create API keys to programmatically interact with MIMIC. Use the API to send trading signals 
-            or execute orders on your connected exchanges via <code>api.mimic.cash</code>.
+        <h3><i class="fas fa-info-circle"></i> <span data-i18n="apiKeys.publicDevApi">Публічний API для розробників</span></h3>
+        <p data-i18n="apiKeys.publicDevApiDesc">
+            Створіть API ключі для програмної взаємодії з MIMIC. Використовуйте API для відправки торгових сигналів або виконання ордерів на ваших підключених біржах через <code>api.mimic.cash</code>.
         </p>
         <p>
-            <strong>Base URL:</strong> <code>https://api.mimic.cash/v1</code> &nbsp;|&nbsp;
-            <strong>Docs:</strong> <a href="https://api.mimic.cash/docs" target="_blank" style="color: var(--neon-cyan);">api.mimic.cash/docs</a>
+            <strong data-i18n="apiKeys.baseUrl">Базовий URL:</strong> <code>https://api.mimic.cash/v1</code> &nbsp;|&nbsp;
+            <strong data-i18n="apiKeys.docs">Документація:</strong> <a href="https://api.mimic.cash/docs" target="_blank" style="color: var(--neon-cyan);">api.mimic.cash/docs</a>
         </p>
     </div>
 
@@ -599,38 +598,38 @@
                 
                 <div class="api-key-body">
                     <div class="api-key-field">
-                        <label>API Key</label>
+                        <label data-i18n="apiKeys.apiKey">API Ключ</label>
                         <div class="value">
                             <span id="key-{{ key.id }}">{{ key.key }}</span>
-                            <button class="copy-btn" onclick="copyToClipboard('key-{{ key.id }}')" title="Copy">
+                            <button class="copy-btn" onclick="copyToClipboard('key-{{ key.id }}')" title="Копіювати">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
                     </div>
                     
                     <div class="api-key-field">
-                        <label>Rate Limit</label>
-                        <div class="value">{{ key.rate_limit }} req/min</div>
+                        <label data-i18n="apiKeys.rateLimit">Ліміт запитів</label>
+                        <div class="value">{{ key.rate_limit }} <span data-i18n="apiKeys.reqPerMin">запитів/хв</span></div>
                     </div>
                     
                     <div class="api-key-field">
-                        <label>Permissions</label>
+                        <label data-i18n="apiKeys.permissions">Дозволи</label>
                         <div class="permissions">
                             <span class="permission-badge {% if key.can_read() %}active{% else %}inactive{% endif %}">
-                                <i class="fas fa-eye"></i> Read
+                                <i class="fas fa-eye"></i> <span data-i18n="apiKeys.read">Читання</span>
                             </span>
                             <span class="permission-badge {% if key.can_signal() %}active{% else %}inactive{% endif %}">
-                                <i class="fas fa-broadcast-tower"></i> Signal
+                                <i class="fas fa-broadcast-tower"></i> <span data-i18n="apiKeys.signal">Сигнали</span>
                             </span>
                             <span class="permission-badge {% if key.can_trade() %}active{% else %}inactive{% endif %}">
-                                <i class="fas fa-exchange-alt"></i> Trade
+                                <i class="fas fa-exchange-alt"></i> <span data-i18n="apiKeys.trade">Торгівля</span>
                             </span>
                         </div>
                     </div>
                     
                     {% if key.ip_whitelist %}
                     <div class="api-key-field">
-                        <label>IP Whitelist</label>
+                        <label data-i18n="apiKeys.ipWhitelist">Білий список IP</label>
                         <div class="value masked">{{ key.ip_whitelist | join(', ') }}</div>
                     </div>
                     {% endif %}
@@ -638,20 +637,20 @@
                 
                 <div class="api-key-stats">
                     <div class="stat-item">
-                        <label>Created</label>
+                        <label data-i18n="apiKeys.created">Створено</label>
                         <span class="value">{{ key.created_at.strftime('%Y-%m-%d %H:%M') if key.created_at else 'N/A' }}</span>
                     </div>
                     <div class="stat-item">
-                        <label>Last Used</label>
-                        <span class="value">{{ key.last_used_at.strftime('%Y-%m-%d %H:%M') if key.last_used_at else 'Never' }}</span>
+                        <label data-i18n="apiKeys.lastUsed">Останнє використання</label>
+                        <span class="value">{{ key.last_used_at.strftime('%Y-%m-%d %H:%M') if key.last_used_at else 'Ніколи' }}</span>
                     </div>
                     <div class="stat-item">
-                        <label>Total Requests</label>
+                        <label data-i18n="apiKeys.totalRequests">Всього запитів</label>
                         <span class="value">{{ key.total_requests or 0 }}</span>
                     </div>
                     {% if key.expires_at %}
                     <div class="stat-item">
-                        <label>Expires</label>
+                        <label data-i18n="apiKeys.expires">Закінчується</label>
                         <span class="value" style="color: {% if key.is_valid() %}var(--neon-green){% else %}var(--neon-red){% endif %}">
                             {{ key.expires_at.strftime('%Y-%m-%d') }}
                         </span>
@@ -661,10 +660,10 @@
                 
                 <div class="api-key-actions" style="margin-top: 16px;">
                     <button class="btn-action btn-edit" onclick="editKey({{ key.id }}, '{{ key.label }}', {{ key.rate_limit }}, {{ key.can_read()|tojson }}, {{ key.can_signal()|tojson }}, {{ key.can_trade()|tojson }}, '{{ key.ip_whitelist | join(', ') if key.ip_whitelist else '' }}')">
-                        <i class="fas fa-edit"></i> Edit
+                        <i class="fas fa-edit"></i> <span data-i18n="apiKeys.edit">Редагувати</span>
                     </button>
                     <button class="btn-action btn-revoke" onclick="revokeKey({{ key.id }}, '{{ key.label }}')">
-                        <i class="fas fa-trash-alt"></i> Revoke
+                        <i class="fas fa-trash-alt"></i> <span data-i18n="apiKeys.revoke">Відкликати</span>
                     </button>
                 </div>
             </div>
@@ -672,10 +671,10 @@
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-key"></i>
-                <h3>No API Keys</h3>
-                <p>Create your first API key to start using the MIMIC Public API.</p>
+                <h3 data-i18n="apiKeys.noApiKeys">Немає API Ключів</h3>
+                <p data-i18n="apiKeys.createFirstKey">Створіть свій перший API ключ, щоб почати використовувати MIMIC Public API.</p>
                 <button class="btn-create" onclick="openCreateModal()">
-                    <i class="fas fa-plus"></i> Create API Key
+                    <i class="fas fa-plus"></i> <span data-i18n="apiKeys.createApiKey">Створити API Ключ</span>
                 </button>
             </div>
         {% endif %}
@@ -683,20 +682,20 @@
 
     <!-- Documentation -->
     <div class="docs-section">
-        <h3><i class="fas fa-book"></i> Quick Start</h3>
-        <p style="color: #aaa; margin-bottom: 16px;">
-            Authenticate by including these headers in your requests:
+        <h3><i class="fas fa-book"></i> <span data-i18n="apiKeys.quickStart">Швидкий старт</span></h3>
+        <p style="color: #aaa; margin-bottom: 16px;" data-i18n="apiKeys.authHeaders">
+            Автентифікуйтеся, включивши ці заголовки у ваші запити:
         </p>
         
         <div class="code-block">
-            <pre><span class="comment"># Required Headers</span>
+            <pre><span class="comment"># Обов'язкові заголовки</span>
 <span class="keyword">X-API-Key</span>: <span class="string">mk_your_api_key_here</span>
-<span class="keyword">X-Timestamp</span>: <span class="string">1704067200</span>  <span class="comment"># Unix timestamp</span>
+<span class="keyword">X-Timestamp</span>: <span class="string">1704067200</span>  <span class="comment"># Unix мітка часу</span>
 <span class="keyword">X-Signature</span>: <span class="string">hmac_sha256_signature</span></pre>
         </div>
         
-        <p style="color: #aaa; margin-bottom: 16px;">
-            Example: Submit a trading signal
+        <p style="color: #aaa; margin-bottom: 16px;" data-i18n="apiKeys.exampleSignal">
+            Приклад: Надіслати торговий сигнал
         </p>
         
         <div class="code-block">
@@ -718,7 +717,7 @@
 <div class="modal-overlay" id="createModal">
     <div class="modal">
         <div class="modal-header">
-            <h2 id="modalTitle">Create API Key</h2>
+            <h2 id="modalTitle" data-i18n="apiKeys.createApiKey">Створити API Ключ</h2>
             <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body">
@@ -726,67 +725,67 @@
                 <input type="hidden" id="editKeyId" value="">
                 
                 <div class="form-group">
-                    <label for="keyLabel">Label</label>
-                    <input type="text" id="keyLabel" name="label" placeholder="My Trading Bot" maxlength="100" required>
-                    <small>A friendly name to identify this key</small>
+                    <label for="keyLabel" data-i18n="apiKeys.label">Назва</label>
+                    <input type="text" id="keyLabel" name="label" placeholder="Мій торговий бот" maxlength="100" required>
+                    <small data-i18n="apiKeys.friendlyName">Зрозуміла назва для ідентифікації цього ключа</small>
                 </div>
                 
                 <div class="form-group">
-                    <label>Permissions</label>
+                    <label data-i18n="apiKeys.permissions">Дозволи</label>
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" name="permission_read" id="permRead" checked>
-                            <span><i class="fas fa-eye"></i> Read</span>
+                            <span><i class="fas fa-eye"></i> <span data-i18n="apiKeys.read">Читання</span></span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" name="permission_signal" id="permSignal" checked>
-                            <span><i class="fas fa-broadcast-tower"></i> Signal</span>
+                            <span><i class="fas fa-broadcast-tower"></i> <span data-i18n="apiKeys.signal">Сигнали</span></span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" name="permission_trade" id="permTrade">
-                            <span><i class="fas fa-exchange-alt"></i> Trade</span>
+                            <span><i class="fas fa-exchange-alt"></i> <span data-i18n="apiKeys.trade">Торгівля</span></span>
                         </label>
                     </div>
-                    <small>Read: view account. Signal: send signals. Trade: execute orders.</small>
+                    <small data-i18n="apiKeys.permissionsDesc">Читання: перегляд акаунту. Сигнали: відправка сигналів. Торгівля: виконання ордерів.</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="rateLimit">Rate Limit (requests/minute)</label>
+                    <label for="rateLimit" data-i18n="apiKeys.rateLimitLabel">Ліміт запитів (запитів/хвилину)</label>
                     <input type="number" id="rateLimit" name="rate_limit" value="60" min="10" max="120">
-                    <small>10-120 requests per minute (default: 60)</small>
+                    <small data-i18n="apiKeys.rateLimitDesc">10-120 запитів на хвилину (за замовчуванням: 60)</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="ipWhitelist">IP Whitelist (optional)</label>
+                    <label for="ipWhitelist" data-i18n="apiKeys.ipWhitelistLabel">Білий список IP (необов'язково)</label>
                     <input type="text" id="ipWhitelist" name="ip_whitelist" placeholder="1.2.3.4, 5.6.7.8">
-                    <small>Comma-separated IPs. Leave empty to allow all.</small>
+                    <small data-i18n="apiKeys.ipWhitelistDesc">IP через кому. Залиште порожнім для доступу з усіх.</small>
                 </div>
                 
                 <div class="form-group" id="expiresGroup">
-                    <label for="expires">Expiration</label>
+                    <label for="expires" data-i18n="apiKeys.expiration">Термін дії</label>
                     <select id="expires" name="expires">
-                        <option value="never">Never expires</option>
-                        <option value="30">30 days</option>
-                        <option value="90">90 days</option>
-                        <option value="365">1 year</option>
+                        <option value="never" data-i18n="apiKeys.neverExpires">Безстроковий</option>
+                        <option value="30" data-i18n="apiKeys.30days">30 днів</option>
+                        <option value="90" data-i18n="apiKeys.90days">90 днів</option>
+                        <option value="365" data-i18n="apiKeys.1year">1 рік</option>
                     </select>
                 </div>
                 
                 <!-- Secret display (shown after creation) -->
                 <div class="secret-display" id="secretDisplay" style="display: none;">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Save Your API Secret!</h4>
+                    <h4><i class="fas fa-exclamation-triangle"></i> <span data-i18n="apiKeys.saveSecret">Збережіть свій API Секрет!</span></h4>
                     <div class="secret-value" id="secretValue"></div>
                     <button type="button" class="btn-action btn-edit" onclick="copyToClipboard('secretValue')" style="margin-bottom: 12px;">
-                        <i class="fas fa-copy"></i> Copy Secret
+                        <i class="fas fa-copy"></i> <span data-i18n="apiKeys.copySecret">Копіювати секрет</span>
                     </button>
-                    <p><i class="fas fa-warning"></i> This secret will NOT be shown again. Store it securely!</p>
+                    <p><i class="fas fa-warning"></i> <span data-i18n="apiKeys.secretNotShown">Цей секрет більше НЕ буде показано. Збережіть його надійно!</span></p>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-cancel" onclick="closeModal()" data-i18n="apiKeys.cancel">Скасувати</button>
             <button class="btn-submit" id="submitBtn" onclick="submitForm(event)">
-                <i class="fas fa-plus"></i> Create Key
+                <i class="fas fa-plus"></i> <span data-i18n="apiKeys.createKey">Створити ключ</span>
             </button>
         </div>
     </div>
@@ -797,8 +796,8 @@
     
     function openCreateModal() {
         isEditMode = false;
-        document.getElementById('modalTitle').textContent = 'Create API Key';
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> Create Key';
+        document.getElementById('modalTitle').textContent = typeof t === 'function' ? t('apiKeys.createApiKey') : 'Створити API Ключ';
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> ' + (typeof t === 'function' ? t('apiKeys.createKey') : 'Створити ключ');
         document.getElementById('apiKeyForm').reset();
         document.getElementById('editKeyId').value = '';
         document.getElementById('secretDisplay').style.display = 'none';
@@ -808,8 +807,8 @@
     
     function editKey(id, label, rateLimit, canRead, canSignal, canTrade, ipWhitelist) {
         isEditMode = true;
-        document.getElementById('modalTitle').textContent = 'Edit API Key';
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        document.getElementById('modalTitle').textContent = typeof t === 'function' ? t('apiKeys.editApiKey') : 'Редагувати API Ключ';
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> ' + (typeof t === 'function' ? t('apiKeys.saveChanges') : 'Зберегти зміни');
         document.getElementById('editKeyId').value = id;
         document.getElementById('keyLabel').value = label;
         document.getElementById('rateLimit').value = rateLimit;
@@ -842,7 +841,7 @@
         
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (typeof t === 'function' ? t('apiKeys.processing') : 'Обробка...');
         
         try {
             let response;
@@ -868,25 +867,26 @@
                     document.getElementById('secretValue').textContent = result.secret;
                     document.getElementById('secretDisplay').style.display = 'block';
                     submitBtn.style.display = 'none';
-                    document.querySelector('.btn-cancel').textContent = 'Done';
+                    document.querySelector('.btn-cancel').textContent = typeof t === 'function' ? t('apiKeys.done') : 'Готово';
                 } else {
                     closeModal();
                     location.reload();
                 }
             } else {
-                alert(result.error || 'Failed to save API key');
+                alert(result.error || 'Не вдалося зберегти API ключ');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = isEditMode ? '<i class="fas fa-save"></i> Save Changes' : '<i class="fas fa-plus"></i> Create Key';
+                submitBtn.innerHTML = isEditMode ? '<i class="fas fa-save"></i> ' + (typeof t === 'function' ? t('apiKeys.saveChanges') : 'Зберегти зміни') : '<i class="fas fa-plus"></i> ' + (typeof t === 'function' ? t('apiKeys.createKey') : 'Створити ключ');
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            alert('Помилка: ' + error.message);
             submitBtn.disabled = false;
-            submitBtn.innerHTML = isEditMode ? '<i class="fas fa-save"></i> Save Changes' : '<i class="fas fa-plus"></i> Create Key';
+            submitBtn.innerHTML = isEditMode ? '<i class="fas fa-save"></i> ' + (typeof t === 'function' ? t('apiKeys.saveChanges') : 'Зберегти зміни') : '<i class="fas fa-plus"></i> ' + (typeof t === 'function' ? t('apiKeys.createKey') : 'Створити ключ');
         }
     }
     
     async function revokeKey(id, label) {
-        if (!confirm(`Are you sure you want to revoke the API key "${label}"?\n\nThis action cannot be undone.`)) {
+        const confirmMsg = (typeof t === 'function' ? t('apiKeys.revokeConfirm') : 'Ви впевнені, що хочете відкликати API ключ') + ` "${label}"?\n\n` + (typeof t === 'function' ? t('apiKeys.revokeWarning') : 'Цю дію неможливо скасувати.');
+        if (!confirm(confirmMsg)) {
             return;
         }
         
@@ -900,10 +900,10 @@
             if (result.success) {
                 location.reload();
             } else {
-                alert(result.error || 'Failed to revoke API key');
+                alert(result.error || 'Не вдалося відкликати API ключ');
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            alert('Помилка: ' + error.message);
         }
     }
     

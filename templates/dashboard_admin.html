@@ -1171,7 +1171,7 @@
             <div id="admin-tasks-list" class="space-y-3">
                 <div class="text-center py-8 text-muted">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading tasks...</p>
+                    <p data-i18n="dash.loadingData">Завантаження завдань...</p>
                 </div>
             </div>
         </div>
@@ -1201,11 +1201,11 @@
                 </div>
                 <div>
                     <label class="text-xs text-muted mb-1 block">Description</label>
-                    <textarea id="task-description" class="input" rows="2" placeholder="Brief description of the task"></textarea>
+                    <textarea id="task-description" class="input" rows="2" placeholder="Короткий опис завдання"></textarea>
                 </div>
                 <div>
                     <label class="text-xs text-muted mb-1 block">Instructions (what users need to do)</label>
-                    <textarea id="task-instructions" class="input" rows="3" placeholder="Step-by-step instructions for completing the task"></textarea>
+                    <textarea id="task-instructions" class="input" rows="3" placeholder="Покрокові інструкції для виконання завдання"></textarea>
                 </div>
             </div>
 
@@ -1258,7 +1258,7 @@
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
                     <label class="text-xs text-muted mb-1 block">Max Participants (empty = unlimited)</label>
-                    <input type="number" id="task-max-participants" class="input" placeholder="Unlimited" min="1">
+                    <input type="number" id="task-max-participants" class="input" placeholder="Без обмежень" min="1">
                 </div>
                 <div>
                     <label class="text-xs text-muted mb-1 block">Max Completions Per User</label>
@@ -1347,12 +1347,12 @@
             
             <div class="mb-4">
                 <label class="text-xs text-muted mb-1 block">Admin Notes (optional)</label>
-                <textarea id="review-notes" class="input" rows="2" placeholder="Notes for internal tracking"></textarea>
+                <textarea id="review-notes" class="input" rows="2" placeholder="Нотатки для внутрішнього відстеження"></textarea>
             </div>
             
             <div id="rejection-reason-field" class="mb-4" style="display: none;">
                 <label class="text-xs text-muted mb-1 block">Rejection Reason</label>
-                <input type="text" id="review-rejection-reason" class="input" placeholder="Why is this being rejected?">
+                <input type="text" id="review-rejection-reason" class="input" placeholder="Чому це відхиляється?">
             </div>
             
             <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
@@ -1384,7 +1384,7 @@
         <div class="modal-body" id="userDetailsContent">
             <div class="empty-state">
                 <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
-                <p>Loading...</p>
+                <p data-i18n="dash.loadingData">Завантаження...</p>
             </div>
         </div>
     </div>
@@ -1427,7 +1427,7 @@
                 
                 <button type="submit" class="cyber-btn w-full">
                     <i class="fas fa-save"></i>
-                    <span>Save Avatar</span>
+                    <span data-i18n="btn.save">Зберегти аватар</span>
                 </button>
             </form>
         </div>
@@ -1498,31 +1498,31 @@
                 <div class="space-y-3">
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">USDT (TRC20)</label>
-                        <input type="text" id="wallet-usdt-trc20" placeholder="TRON wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-usdt-trc20" placeholder="Адреса TRON гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">USDT (ERC20)</label>
-                        <input type="text" id="wallet-usdt-erc20" placeholder="Ethereum wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-usdt-erc20" placeholder="Адреса Ethereum гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">USDT (BEP20)</label>
-                        <input type="text" id="wallet-usdt-bep20" placeholder="BSC wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-usdt-bep20" placeholder="Адреса BSC гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Bitcoin (BTC)</label>
-                        <input type="text" id="wallet-btc" placeholder="Bitcoin wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-btc" placeholder="Адреса Bitcoin гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Ethereum (ETH)</label>
-                        <input type="text" id="wallet-eth" placeholder="Ethereum wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-eth" placeholder="Адреса ETH гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Litecoin (LTC)</label>
-                        <input type="text" id="wallet-ltc" placeholder="Litecoin wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-ltc" placeholder="Адреса Litecoin гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Solana (SOL)</label>
-                        <input type="text" id="wallet-sol" placeholder="Solana wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="wallet-sol" placeholder="Адреса Solana гаманця" class="input flex-1 font-mono text-sm">
                     </div>
                 </div>
             </div>
@@ -1538,7 +1538,7 @@
                 <div class="space-y-3">
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Wallet Address</label>
-                        <input type="text" id="insurance-wallet" placeholder="Insurance fund wallet address" class="input flex-1 font-mono text-sm">
+                        <input type="text" id="insurance-wallet" placeholder="Адреса гаманця страхового фонду" class="input flex-1 font-mono text-sm">
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="text-xs text-muted w-28">Network</label>
@@ -1579,7 +1579,7 @@
             <div class="flex gap-3">
                 <button onclick="saveWalletSettings()" class="cyber-btn cyber-btn-gradient-purple flex-1">
                     <i class="fas fa-save"></i>
-                    <span>Save All Settings</span>
+                    <span data-i18n="settings.saveAll">Зберегти всі налаштування</span>
                 </button>
                 <button onclick="closeWalletSettingsModal()" class="cyber-btn cyber-btn-outline">
                     <span>Cancel</span>
@@ -1615,7 +1615,7 @@
             timeout: 20000,
             transports: ['websocket', 'polling']
         });
-        socket.on('connect', () => { console.log('Admin connected'); showToast('Connected', 'success', 2000); });
+        socket.on('connect', () => { console.log('Admin connected'); showToast(t('admin.connected'), 'success', 2000); });
         socket.on('connect_error', (err) => { console.warn('Socket error:', err.message); });
         socket.on('disconnect', (reason) => { console.log('Disconnected:', reason); });
         socket.on('master_data', (data) => {
@@ -1652,7 +1652,7 @@
         const countEl = document.getElementById('master-positions-count');
         if (countEl) countEl.textContent = positions?.length || 0;
         if (!positions || positions.length === 0) {
-            container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">No positions</p></div>`;
+            container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">${t('admin.noPositions')}</p></div>`;
             return;
         }
         container.innerHTML = positions.map(pos => `
@@ -1674,7 +1674,7 @@
         if (!container) return;
         
         if (!balances || balances.length === 0) {
-            container.innerHTML = '<span class="text-muted text-xs">No exchanges connected</span>';
+            container.innerHTML = '<span class="text-muted text-xs">' + t('dash.noExchangesConnected') + '</span>';
             return;
         }
         
@@ -1695,7 +1695,7 @@
             fetch('/api/admin/panic', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(r => r.json())
                 .then(data => { if (data.success) { showToast(`Closed: Master=${data.master_closed}, Slaves=${data.slaves_closed}`, 'success'); setTimeout(() => location.reload(), 2000); } else showToast('Error: ' + (data.error || 'Unknown'), 'error'); })
-                .catch(() => showToast('Network error!', 'error'));
+                .catch(() => showToast(t('dash.networkError'), 'error'));
         }
     }
     function clearLogs() { document.getElementById('log-container').innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1">Logs cleared</span></div>`; }
@@ -1791,14 +1791,14 @@
             
         } catch (err) {
             console.error('Failed to refresh bans:', err);
-            showToast('Failed to load bans', 'error');
+            showToast(t('dash.error'), 'error');
         }
     }
     
     async function muteSelectedUser(duration) {
         const userId = document.getElementById('chatModerateUser').value;
         if (!userId) {
-            showToast('Please select a user first', 'warning');
+            showToast(t('admin.selectUser'), 'warning');
             return;
         }
         
@@ -1831,7 +1831,7 @@
     async function banSelectedUser() {
         const userId = document.getElementById('chatModerateUser').value;
         if (!userId) {
-            showToast('Please select a user first', 'warning');
+            showToast(t('admin.selectUser'), 'warning');
             return;
         }
         
@@ -2003,7 +2003,7 @@
             
             // Show all exchanges with their status
             if (!configs || configs.length === 0) { 
-                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs">No exchanges configured</p></div>`; 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs">${t('admin.noExchangesConfigured')}</p></div>`; 
                 return; 
             }
             
@@ -2057,7 +2057,7 @@
             
             const verifiedConfigs = configs.filter(c => c.is_verified);
             if (verifiedConfigs.length === 0) { 
-                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><i class="fas fa-check-circle text-lg mb-1 opacity-30"></i><p class="text-xxs">No verified exchanges yet. Connect above first!</p></div>`; 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><i class="fas fa-check-circle text-lg mb-1 opacity-30"></i><p class="text-xxs">${t('admin.noVerifiedExchanges')}</p></div>`; 
                     return;
                 }
                 
@@ -2093,7 +2093,7 @@
             else showToast(result.error || 'Error', 'error'); 
                 loadExchangeConfigs();
             loadAllExchangeConfigs();
-        }).catch(() => { showToast('Network error', 'error'); loadExchangeConfigs(); }); 
+        }).catch(() => { showToast(t('dash.networkError'), 'error'); loadExchangeConfigs(); }); 
     }
     
     function disconnectExchange(name) {
@@ -2127,13 +2127,13 @@
                             </button>
                         </div>
                         <div class="modal-body">
-                            <p class="text-sm text-muted mb-4">Connect with YOUR admin API keys. Once verified, users can add their own keys to this exchange.</p>
+                            <p class="text-sm text-muted mb-4">Підключіться з ВАШИМИ адмін API ключами. Після перевірки користувачі зможуть додати свої власні ключі до цієї біржі.</p>
                             
                             <form id="admin-exchange-form" onsubmit="submitAdminExchange(event)" class="flex flex-col gap-4">
                                 <div class="flex flex-col gap-2">
                                     <label class="text-sm text-muted">Exchange</label>
                                     <select id="admin-exchange-select" name="exchange_name" class="cyber-select" required onchange="handleAdminExchangeChange(this)">
-                                        <option value="">Loading exchanges...</option>
+                                        <option value="">Завантаження бірж...</option>
                                     </select>
                                 </div>
                                 
@@ -2142,15 +2142,15 @@
                                 <div id="admin-exchange-fields" class="flex flex-col gap-4 hidden">
                                     <div class="flex flex-col gap-2">
                                         <label class="text-sm text-muted">Admin API Key</label>
-                                        <input type="text" id="admin-api-key" name="api_key" class="input font-mono" placeholder="Your admin API Key" required minlength="10">
+                                        <input type="text" id="admin-api-key" name="api_key" class="input font-mono" placeholder="Ваш адмін API ключ" required minlength="10">
                                     </div>
                                     <div class="flex flex-col gap-2">
                                         <label class="text-sm text-muted">Admin API Secret</label>
-                                        <input type="password" id="admin-api-secret" name="api_secret" class="input font-mono" placeholder="Your admin API Secret" required minlength="10">
+                                        <input type="password" id="admin-api-secret" name="api_secret" class="input font-mono" placeholder="Ваш адмін API секрет" required minlength="10">
                                     </div>
                                     <div id="admin-passphrase-field" class="flex flex-col gap-2 hidden">
                                         <label class="text-sm text-muted">Passphrase</label>
-                                        <input type="password" id="admin-passphrase" name="passphrase" class="input font-mono" placeholder="Passphrase (required for this exchange)">
+                                        <input type="password" id="admin-passphrase" name="passphrase" class="input font-mono" placeholder="Парольна фраза (обов'язкова для цієї біржі)">
                                     </div>
                                     
                                     <button type="submit" class="cyber-btn w-full" id="admin-exchange-submit-btn">
@@ -2261,7 +2261,7 @@
             statusContainer.className = 'p-2 rounded-lg border border-[rgba(0,255,136,0.25)] bg-[rgba(0,255,136,0.05)] text-xxs';
             statusContainer.classList.remove('hidden');
         } else {
-            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-info-circle text-yellow"></i><span class="text-yellow">Not connected yet</span></div><p class="text-muted mt-1">Enter your admin API keys to verify this exchange.</p>`;
+            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-info-circle text-yellow"></i><span class="text-yellow">${t('admin.notConnectedYet')}</span></div><p class="text-muted mt-1">${t('admin.enterAdminKeys')}</p>`;
             statusContainer.className = 'p-2 rounded-lg border border-[rgba(255,200,0,0.25)] bg-[rgba(255,200,0,0.05)] text-xxs';
             statusContainer.classList.remove('hidden');
         }
@@ -2297,23 +2297,23 @@
         const passphrase = isPassphraseVisible && passphraseInput ? passphraseInput.value.trim() : null;
         
         if (!exchangeName) {
-            showToast('Please select an exchange', 'error');
+            showToast(t('admin.selectExchange'), 'error');
             return;
         }
         
         if (!apiKey || apiKey.length < 10) {
-            showToast('Please enter a valid API Key (minimum 10 characters)', 'error');
+            showToast(t('admin.invalidApiKey'), 'error');
             return;
         }
         
         if (!apiSecret || apiSecret.length < 10) {
-            showToast('Please enter a valid API Secret (minimum 10 characters)', 'error');
+            showToast(t('admin.invalidApiSecret'), 'error');
             return;
         }
         
         // Validate passphrase if field is visible
         if (isPassphraseVisible && (!passphrase || passphrase.length === 0)) {
-            showToast('Passphrase is required for this exchange', 'error');
+            showToast(t('admin.passphraseRequired'), 'error');
             return;
         }
         
@@ -2346,7 +2346,7 @@
         })
         .then(result => {
             if (result.success) {
-                showToast(result.message || 'Exchange verified!', 'success');
+                showToast(result.message || t('admin.exchangeVerified'), 'success');
                 closeAdminExchangeModal();
                 // Delay reload to ensure modal is closed first
                 setTimeout(() => {
@@ -2384,7 +2384,7 @@
             const tradingCount = exchanges.filter(ex => ex.trading_enabled && ex.status === 'APPROVED').length;
             countEl.textContent = tradingCount;
             if (!exchanges || exchanges.length === 0) { 
-                container.innerHTML = `<div class="text-center py-4 text-muted"><p class="text-xxs">No user exchanges</p></div>`; 
+                container.innerHTML = `<div class="text-center py-4 text-muted"><p class="text-xxs">${t('admin.noUserExchanges')}</p></div>`; 
                 return; 
             }
             container.innerHTML = exchanges.map(ex => `
@@ -2452,12 +2452,12 @@
         const countEl = document.getElementById('pending-exchanges-count');
         fetch('/api/admin/exchanges/pending').then(r => r.json()).then(exchanges => {
                 countEl.textContent = exchanges.length;
-            if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs">No pending</p></div>`; return; }
+            if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs">${t('admin.noPending')}</p></div>`; return; }
             container.innerHTML = exchanges.map(ex => `<div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[rgba(255,200,0,0.25)]"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class="min-w-0"><p class="font-bold text-xxs text-bright truncate">${ex.username}</p><p class="text-xxs text-muted truncate">${ex.display_name}</p></div></div><div class="flex items-center gap-1"><button onclick="approveExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-success"><i class="fas fa-check"></i></button><button onclick="rejectExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-danger"><i class="fas fa-times"></i></button></div></div></div>`).join('');
         }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error</p></div>`);
     }
-    function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast('Approved!', 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast('Error', 'error')); }
-    function rejectExchange(id) { if (!confirm('Reject this exchange?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast('Rejected', 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Error', 'error')); }
+    function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.approved'), 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast('Error', 'error')); }
+    function rejectExchange(id) { if (!confirm('Reject this exchange?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.rejected'), 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Error', 'error')); }
 
     document.addEventListener('keydown', e => { 
         if (e.key === 'Escape') { 
@@ -2475,7 +2475,7 @@
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         
-        content.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin: 0 auto 16px;"></div><p>Loading...</p></div>`;
+        content.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin: 0 auto 16px;"></div><p data-i18n="dash.loadingData">Завантаження...</p></div>`;
         
         fetch(`/api/admin/user/${userId}/details`)
             .then(r => r.json())
@@ -2706,7 +2706,7 @@
         formData.append('avatar_file', input.files[0]);
         formData.append('avatar_type', 'image');
         
-        showToast('Uploading avatar...', 'info');
+        showToast(t('admin.uploadingAvatar'), 'info');
         
         fetch(`/admin/update_user_avatar/${userId}`, {
             method: 'POST',
@@ -2715,7 +2715,7 @@
         .then(r => r.json())
         .then(result => {
             if (result.success) {
-                showToast('Avatar updated!', 'success');
+                showToast(t('admin.avatarUpdated'), 'success');
                 // Refresh modal
                 openUserDetailsModal(userId);
                 // Refresh page after delay
@@ -2726,7 +2726,7 @@
         })
         .catch(err => {
             console.error(err);
-            showToast('Failed to upload', 'error');
+            showToast(t('dash.error'), 'error');
         });
     }
     
@@ -2820,14 +2820,14 @@
                         }
                     });
                     
-                    showToast('Balances refreshed!', 'success');
+                    showToast(t('admin.balancesRefreshed'), 'success');
                 } else {
-                    showToast('Failed to refresh balances', 'error');
+                    showToast(t('admin.failedRefreshBalances'), 'error');
                 }
             })
             .catch(err => {
                 console.error('Error refreshing balances:', err);
-                showToast('Network error', 'error');
+                showToast(t('dash.networkError'), 'error');
             })
             .finally(() => {
                 btn.disabled = false;
@@ -2844,7 +2844,7 @@
         // Double confirmation for safety
         const confirmText = prompt(`Type "${username}" to confirm deletion:`);
         if (confirmText !== username) {
-            showToast('Deletion cancelled - username did not match', 'warning');
+            showToast(t('admin.deletionCancelled'), 'warning');
             return;
         }
         
@@ -2852,7 +2852,7 @@
     }
     
     function deleteUser(userId, username) {
-        showToast('Deleting user...', 'info');
+        showToast(t('admin.deletingUser'), 'info');
         
         fetch(`/api/admin/user/${userId}/delete`, {
             method: 'DELETE',
@@ -2917,7 +2917,7 @@
             container.innerHTML = `
                 <div class="text-center py-6 text-muted">
                     <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
-                    <p>No strategies created yet</p>
+                    <p data-i18n="admin.noStrategies">Стратегії ще не створені</p>
                 </div>`;
             return;
         }
@@ -2975,7 +2975,7 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs text-muted">Description</label>
-                                <textarea id="strategy-description" class="input" rows="2" placeholder="Strategy description..."></textarea>
+                                <textarea id="strategy-description" class="input" rows="2" placeholder="Опис стратегії..."></textarea>
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs text-muted">Risk Level</label>
@@ -2988,15 +2988,15 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xxs text-muted">Risk % Override</label>
-                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Use global" step="0.1" min="0.1" max="100">
+                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Глобальний" step="0.1" min="0.1" max="100">
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xxs text-muted">Leverage Override</label>
-                                    <input type="number" id="strategy-leverage" class="input" placeholder="Use global" min="1" max="125">
+                                    <input type="number" id="strategy-leverage" class="input" placeholder="Глобальний" min="1" max="125">
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xxs text-muted">Max Positions</label>
-                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Use global" min="1" max="50">
+                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Глобальний" min="1" max="50">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -3084,7 +3084,7 @@
             }
         } catch (err) {
             console.error('Error saving strategy:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<i class="fas fa-save"></i> <span>${isEdit ? 'Update' : 'Create'} Strategy</span>`;
@@ -3109,7 +3109,7 @@
             }
         } catch (err) {
             console.error('Error toggling strategy:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -3131,7 +3131,7 @@
             }
         } catch (err) {
             console.error('Error deleting strategy:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -3154,7 +3154,7 @@
             }
         } catch (err) {
             console.error('Error loading services:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             if (icon) icon.classList.remove('fa-spin');
         }
@@ -3166,7 +3166,7 @@
             container.innerHTML = `
                 <div class="col-span-full text-center py-6 text-muted">
                     <i class="fas fa-plug text-3xl opacity-30 mb-2"></i>
-                    <p class="text-sm">No services configured</p>
+                    <p class="text-sm" data-i18n="admin.noServicesConfigured">Сервіси не налаштовані</p>
                 </div>
             `;
             return;
@@ -3389,7 +3389,7 @@
                     </button>
                     <button type="submit" class="cyber-btn flex-1" id="save-service-btn">
                         <i class="fas fa-save"></i>
-                        <span>Save Changes</span>
+                        <span data-i18n="btn.save">Зберегти зміни</span>
                     </button>
                 </div>
                 
@@ -3518,7 +3518,7 @@
             }
         } catch (err) {
             console.error('Error saving settings:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -3739,7 +3739,7 @@
             container.innerHTML = `
                 <div class="text-center py-6 text-muted">
                     <i class="fas fa-check-circle text-2xl mb-2 text-green"></i>
-                    <p>No pending payments</p>
+                    <p data-i18n="admin.noPendingPayments">Очікуючих платежів немає</p>
                 </div>
             `;
             return;
@@ -3794,14 +3794,14 @@
             
             if (data.success) {
                 if (label) label.textContent = enabled ? 'ON' : 'OFF';
-                showToast(enabled ? 'Subscription system enabled' : 'Free access mode enabled', 'success');
+                showToast(enabled ? t('admin.subscriptionEnabled') : t('admin.freeAccessEnabled'), 'success');
             } else {
                 checkbox.checked = !enabled;
                 showToast(data.error || 'Failed to update', 'error');
             }
         } catch (err) {
             checkbox.checked = !enabled;
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -3817,14 +3817,14 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast('Payment confirmed!', 'success');
+                showToast(t('admin.paymentConfirmed'), 'success');
                 loadPendingPayments();
                 loadTotalRevenue();
             } else {
                 showToast(data.error || 'Failed to confirm', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -3842,13 +3842,13 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast('Payment rejected', 'info');
+                showToast(t('admin.paymentRejected'), 'info');
                 loadPendingPayments();
             } else {
                 showToast(data.error || 'Failed to reject', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -3940,14 +3940,14 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast('Settings saved successfully!', 'success');
+                showToast(t('admin.settingsSaved'), 'success');
                 closeWalletSettingsModal();
                 loadSubscriptionSettings();
             } else {
                 showToast(data.error || 'Failed to save', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -4020,7 +4020,7 @@
             container.innerHTML = `
                 <div class="text-center py-8 text-muted">
                     <i class="fas fa-tasks text-3xl mb-3 opacity-50"></i>
-                    <p>No tasks found</p>
+                    <p data-i18n="admin.noTasks">Завдань не знайдено</p>
                     <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary cyber-btn-sm mt-3">
                         <i class="fas fa-plus"></i> Create First Task
                     </button>
@@ -4082,7 +4082,7 @@
         const container = document.getElementById('pending-reviews-list');
         
         if (pendingReviews.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted">No pending reviews</div>';
+            container.innerHTML = '<div class="text-center py-4 text-muted">' + t('admin.noPendingReviews') + '</div>';
             return;
         }
         
@@ -4228,7 +4228,7 @@
         };
         
         if (!payload.title) {
-            showToast('Title is required', 'error');
+            showToast(t('admin.titleRequired'), 'error');
             btn.disabled = false;
             btn.innerHTML = originalHtml;
             return;
@@ -4247,14 +4247,14 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast(data.message || 'Task saved successfully!', 'success');
+                showToast(data.message || t('admin.taskSaved'), 'success');
                 closeCreateTaskModal();
                 loadAdminTasks();
             } else {
                 showToast(data.error || 'Failed to save task', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -4272,13 +4272,13 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast(data.message || 'Task deleted', 'success');
+                showToast(data.message || t('admin.taskDeleted'), 'success');
                 loadAdminTasks();
             } else {
                 showToast(data.error || 'Failed to delete', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -4359,7 +4359,7 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast(data.message || 'Submission approved!', 'success');
+                showToast(data.message || t('admin.submissionApproved'), 'success');
                 closeReviewModal();
                 loadPendingReviews();
                 loadAdminTasks();
@@ -4367,7 +4367,7 @@
                 showToast(data.error || 'Failed to approve', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -4392,14 +4392,14 @@
             const data = await response.json();
             
             if (data.success) {
-                showToast('Submission rejected', 'info');
+                showToast(t('admin.submissionRejected'), 'info');
                 closeReviewModal();
                 loadPendingReviews();
             } else {
                 showToast(data.error || 'Failed to reject', 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     

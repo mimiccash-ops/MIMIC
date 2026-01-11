@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ message.subject or 'Message' }}{% endblock %}
+{% block title %}{{ message.subject or 'Повідомлення' }}{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -185,7 +185,7 @@
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="flex-grow">
-            <h1>{{ message.subject or 'No subject' }}</h1>
+            <h1>{{ message.subject or 'Без теми' }}</h1>
             <div class="meta">
                 <i class="fas fa-clock"></i>
                 <span>{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
@@ -201,8 +201,8 @@
                     <i class="fas {{ 'fa-user-shield text-magenta' if message.is_from_admin else 'fa-user text-cyan' }}"></i>
                 </div>
                 <div class="bubble-info">
-                    <span class="name">
-                        {% if message.is_from_admin %}Administrator{% else %}You{% endif %}
+                    <span class="name" data-i18n="{% if message.is_from_admin %}messages.administrator{% else %}messages.you{% endif %}">
+                        {% if message.is_from_admin %}Адміністратор{% else %}Ви{% endif %}
                     </span>
                     <span class="time">{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
                 </div>
@@ -216,7 +216,7 @@
     <div class="replies-section animate-fade-in" style="animation-delay: 0.2s;">
         <h3 class="replies-title">
             <i class="fas fa-reply"></i>
-            <span>Replies ({{ replies|length }})</span>
+            <span><span data-i18n="messages.replies">Відповіді</span> ({{ replies|length }})</span>
         </h3>
         
         <div class="replies-list">
@@ -228,7 +228,7 @@
                     </div>
                     <div class="bubble-info">
                         <span class="name">
-                            {% if reply.is_from_admin %}Administrator{% else %}You{% endif %}
+                            {% if reply.is_from_admin %}Адміністратор{% else %}Ви{% endif %}
                         </span>
                         <span class="time">{{ reply.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
                     </div>
@@ -244,16 +244,16 @@
     <div class="reply-form-card animate-fade-in" style="animation-delay: 0.3s;">
         <h3 class="reply-form-title">
             <i class="fas fa-reply"></i>
-            <span>Write Reply</span>
+            <span data-i18n="messages.writeReply">Написати відповідь</span>
         </h3>
         
         <form method="POST" action="{{ url_for('reply_message', message_id=message.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Enter your reply..." required maxlength="2000"></textarea>
+            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Введіть вашу відповідь..." data-i18n-placeholder="messages.enterReply" required maxlength="2000"></textarea>
             <div class="form-actions">
                 <button type="submit" class="cyber-btn">
                     <i class="fas fa-paper-plane"></i>
-                    <span>Send</span>
+                    <span data-i18n="messages.send">Надіслати</span>
                 </button>
             </div>
         </form>
@@ -274,7 +274,7 @@
 
     socket.on('new_message', (msg) => {
         if (msg.parent_id === {{ message.id }} && msg.is_from_admin) {
-            showToast('📩 New reply from administrator', 'info');
+            showToast('📩 ' + (typeof t === 'function' ? t('messages.newReplyFromAdmin') : 'Нова відповідь від адміністратора'), 'info');
             if (typeof playSound === 'function') playSound('notification');
             setTimeout(() => location.reload(), 1500);
         }

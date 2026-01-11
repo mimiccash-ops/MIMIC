@@ -1068,7 +1068,7 @@
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
                               id="sentiment-status-badge"
                               style="background: rgba(255, 196, 0, 0.1); color: #ffc400; border: 1px solid rgba(255, 196, 0, 0.3);">
-                            <span id="sentiment-label">Loading...</span>
+                            <span id="sentiment-label" data-i18n="dash.loadingData">Завантаження...</span>
                         </span>
                     </div>
                     <div class="flex items-center gap-4 mt-2">
@@ -1093,7 +1093,7 @@
                 </div>
                 <div id="ai-risk-normal" class="inline-flex items-center gap-2 text-xs text-white/40">
                     <i class="fas fa-check-circle text-green-400"></i>
-                    <span>No adjustments active</span>
+                    <span data-i18n="dash.noAdjustments">Коригування не активні</span>
                 </div>
             </div>
         </div>
@@ -1614,7 +1614,7 @@
             </div>
             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" id="sub-status-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
                 <i class="fas fa-circle text-xs"></i>
-                <span id="sub-status-text">Loading...</span>
+                <span id="sub-status-text" data-i18n="dash.loadingData">Завантаження...</span>
             </span>
         </div>
         <div class="section-body">
@@ -1714,7 +1714,7 @@
                         <div>
                             <label class="block text-xs text-white/50 mb-2">Select Network</label>
                             <select id="payment-network" class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none">
-                                <option value="">Loading networks...</option>
+                                <option value="">Завантаження мереж...</option>
                             </select>
                         </div>
                     </div>
@@ -1744,7 +1744,7 @@
                     <!-- TX Hash Input -->
                     <div id="tx-hash-section" class="hidden mb-4">
                         <label class="block text-xs text-white/50 mb-2">Transaction Hash (Optional)</label>
-                        <input type="text" id="tx-hash-input" placeholder="Enter your transaction hash for faster verification" 
+                        <input type="text" id="tx-hash-input" placeholder="Введіть хеш транзакції для швидшої перевірки" 
                                class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none font-mono text-sm">
                     </div>
                     
@@ -1783,7 +1783,7 @@
             <div id="payment-history-container">
                 <div class="text-center py-8 text-white/40">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading payment history...</p>
+                    <p data-i18n="dash.loadingData">Завантаження історії платежів...</p>
                 </div>
             </div>
         </div>
@@ -1895,7 +1895,7 @@
             <div id="available-tasks-list" class="space-y-4">
                 <div class="text-center py-8 text-white/40">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading tasks...</p>
+                    <p data-i18n="dash.loadingData">Завантаження завдань...</p>
                 </div>
             </div>
         </div>
@@ -1912,7 +1912,7 @@
         <div class="section-body">
             <div id="completed-tasks-list" class="space-y-3">
                 <div class="text-center py-4 text-white/40">
-                    <p>No completed tasks yet</p>
+                    <p data-i18n="dash.noCompletedTasks">Виконаних завдань ще немає</p>
                 </div>
             </div>
         </div>
@@ -1942,7 +1942,7 @@
             <div id="task-submission-form" style="display: none;">
                 <div class="mb-4">
                     <label class="text-xs text-white/50 mb-1 block">Proof / Notes (optional)</label>
-                    <textarea id="task-submission-text" class="input" rows="3" placeholder="Add any notes or proof of completion"></textarea>
+                    <textarea id="task-submission-text" class="input" rows="3" placeholder="Додайте примітки або підтвердження виконання"></textarea>
                 </div>
                 <div class="mb-4">
                     <label class="text-xs text-white/50 mb-1 block">Proof URL (optional)</label>
@@ -2048,7 +2048,7 @@
         <div class="section-body">
             <form method="POST" action="{{ url_for('update_target') }}" class="flex gap-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="number" name="target_amount" value="{{ target }}" class="input-cyber flex-1" placeholder="Target Amount" step="100" min="100">
+                <input type="number" name="target_amount" value="{{ target }}" class="input-cyber flex-1" placeholder="Цільова сума" step="100" min="100">
                 <button type="submit" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-save"></i>
                     Set
@@ -2203,13 +2203,13 @@
         <div class="modal-body">
             <form id="add-exchange-form" onsubmit="submitAddExchange(event)" class="space-y-4">
                 <select id="exchange-select" name="exchange_name" class="input-cyber" required>
-                    <option value="">Loading...</option>
+                    <option value="">Завантаження...</option>
                 </select>
-                <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Label (optional)">
-                <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Key" required>
-                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Secret" required autocomplete="off">
+                <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Назва (необов'язково)">
+                <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Ключ" required>
+                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Секрет" required autocomplete="off">
                 <div id="passphrase-field" class="hidden">
-                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Passphrase" autocomplete="off">
+                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Парольна фраза" autocomplete="off">
                 </div>
                 <button type="submit" class="btn-cyber w-full" id="submit-exchange-btn">
                     <i class="fas fa-paper-plane"></i>
@@ -2483,7 +2483,7 @@
 
         socket.on('connect', () => {
             console.log('🔌 Connected to trading server');
-            showToast('Connected to live feed', 'success', 2000);
+            showToast(t('dash.connectedToFeed'), 'success', 2000);
         });
 
         socket.on('connect_error', (error) => {
@@ -2550,7 +2550,7 @@
                     container.innerHTML = `
                         <div class="empty-positions">
                             <div class="icon"><i class="fas fa-link"></i></div>
-                            <div class="text">No exchanges connected</div>
+                            <div class="text" data-i18n="dash.noExchangesConnected">Біржі не підключені</div>
                             <button onclick="openAddExchangeModal()" class="btn-cyber btn-cyber-sm mt-4">
                                 <i class="fas fa-plus"></i> Connect
                             </button>
@@ -2637,7 +2637,7 @@
         const select = document.getElementById('exchange-select');
         if (!select) return;
 
-        select.innerHTML = '<option value="">Loading...</option>';
+        select.innerHTML = '<option value="">Завантаження...</option>';
 
         fetch('/api/exchanges/available')
             .then(r => r.ok ? r.json() : Promise.reject(r))
@@ -2663,7 +2663,7 @@
                         select.appendChild(opt);
                     });
                 } else {
-                    select.innerHTML = '<option value="">No exchanges configured</option>';
+                    select.innerHTML = '<option value="">Біржі не налаштовані</option>';
                 }
             })
             .catch(err => {
@@ -2702,7 +2702,7 @@
         event.preventDefault();
         const form = document.getElementById('add-exchange-form');
         if (!form.exchange_name.value) {
-            showToast('Select an exchange first', 'error');
+            showToast(t('dash.selectExchange'), 'error');
             return;
         }
 
@@ -2730,15 +2730,15 @@
         .then(r => r.ok ? r.json() : r.json().then(err => Promise.reject(err)))
         .then(result => {
             if (result.success) {
-                showToast(result.message || 'Request sent!', 'success');
+                showToast(result.message || t('dash.requestSent'), 'success');
                 closeAddExchangeModal();
                 loadExchanges();
             } else {
-                showToast(result.error || 'Error adding exchange', 'error');
+                showToast(result.error || t('dash.errorAddingExchange'), 'error');
             }
         })
         .catch(err => {
-            showToast(err.error || err.message || 'Network error', 'error');
+            showToast(err.error || err.message || t('dash.networkError'), 'error');
         })
         .finally(() => {
             btn.disabled = false;
@@ -2757,7 +2757,7 @@
             if (result.success) showToast(result.message, 'success');
             else { showToast(result.error, 'error'); loadExchanges(); }
         })
-        .catch(() => { showToast('Error', 'error'); loadExchanges(); });
+        .catch(() => { showToast(t('dash.error'), 'error'); loadExchanges(); });
     }
 
     function deleteExchange(id) {
@@ -2765,10 +2765,10 @@
         fetch(`/api/exchanges/${id}`, { method: 'DELETE' })
             .then(r => r.json())
             .then(result => {
-                if (result.success) { showToast('Deleted', 'success'); loadExchanges(); }
+                if (result.success) { showToast(t('dash.deleted'), 'success'); loadExchanges(); }
                 else showToast(result.error, 'error');
             })
-            .catch(() => showToast('Error', 'error'));
+            .catch(() => showToast(t('dash.error'), 'error'));
     }
 
     // ==================== AVATAR ====================
@@ -2810,7 +2810,7 @@
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(link).then(() => {
-                showToast('Referral link copied to clipboard!', 'success');
+                showToast(t('dash.referralLinkCopied'), 'success');
             }).catch(() => {
                 // Fallback
                 const temp = document.createElement('input');
@@ -2819,7 +2819,7 @@
                 temp.select();
                 document.execCommand('copy');
                 document.body.removeChild(temp);
-                showToast('Referral link copied!', 'success');
+                showToast(t('dash.referralLinkCopied'), 'success');
             });
         } else {
             // Fallback for older browsers
@@ -2829,7 +2829,7 @@
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
-            showToast('Referral link copied!', 'success');
+            showToast(t('dash.referralLinkCopied'), 'success');
         }
     }
     
@@ -2973,7 +2973,7 @@
             container.innerHTML = `
                 <div class="text-center py-8 text-white/40">
                     <i class="fas fa-receipt text-3xl mb-2"></i>
-                    <p>No payment history yet</p>
+                    <p data-i18n="dash.noPaymentHistory">Історії платежів ще немає</p>
                 </div>
             `;
             return;
@@ -3020,7 +3020,7 @@
         const container = document.getElementById('plans-container');
         
         if (!plans || plans.length === 0) {
-            container.innerHTML = '<div class="col-span-3 text-center text-white/50">No plans available</div>';
+            container.innerHTML = '<div class="col-span-3 text-center text-white/50">' + t('dash.noPlansAvailable') + '</div>';
             return;
         }
         
@@ -3069,7 +3069,7 @@
         const select = document.getElementById('payment-network');
         
         if (!networks || networks.length === 0) {
-            select.innerHTML = '<option value="">No payment methods configured</option>';
+            select.innerHTML = '<option value="">' + t('dash.noPaymentMethods') + '</option>';
             return;
         }
         
@@ -3082,13 +3082,13 @@
     
     function createPayment() {
         if (!selectedPlan) {
-            showToast('Please select a plan first', 'warning');
+            showToast(t('dash.selectPlanFirst'), 'warning');
             return;
         }
         
         const network = document.getElementById('payment-network').value;
         if (!network) {
-            showToast('Please select a payment network', 'warning');
+            showToast(t('dash.selectPaymentNetwork'), 'warning');
             return;
         }
         
@@ -3124,10 +3124,10 @@
             btn.classList.add('hidden');
             document.getElementById('btn-mark-paid').classList.remove('hidden');
             
-            showToast('Payment address generated! Send crypto to the address shown.', 'success');
+            showToast(t('dash.paymentAddressGenerated'), 'success');
         })
         .catch(err => {
-            showToast('Error creating payment', 'error');
+            showToast(t('dash.errorCreatingPayment'), 'error');
             console.error(err);
         })
         .finally(() => {
@@ -3138,7 +3138,7 @@
     
     function markAsPaid() {
         if (!currentPaymentId) {
-            showToast('No active payment found', 'error');
+            showToast(t('dash.noActivePayment'), 'error');
             return;
         }
         
@@ -3161,9 +3161,9 @@
             }
             
             if (data.auto_confirmed) {
-                showToast('Payment confirmed! Your subscription is now active.', 'success');
+                showToast(t('dash.paymentConfirmed'), 'success');
             } else {
-                showToast('Payment marked as sent. Awaiting admin confirmation.', 'info');
+                showToast(t('dash.paymentMarkedSent'), 'info');
             }
             
             // Reset form and reload status
@@ -3171,7 +3171,7 @@
             loadSubscriptionStatus();
         })
         .catch(err => {
-            showToast('Error processing payment', 'error');
+            showToast(t('dash.error'), 'error');
             console.error(err);
         })
         .finally(() => {
@@ -3195,9 +3195,9 @@
     function copyWalletAddress() {
         const address = document.getElementById('payment-wallet-address').textContent;
         navigator.clipboard.writeText(address).then(() => {
-            showToast('Wallet address copied!', 'success');
+            showToast(t('dash.walletCopied'), 'success');
         }).catch(() => {
-            showToast('Failed to copy', 'error');
+            showToast(t('dash.failedToCopy'), 'error');
         });
     }
     
@@ -3359,7 +3359,7 @@
             container.innerHTML = `
                 <div class="text-center py-6 text-white/50">
                     <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
-                    <p>No strategies available</p>
+                    <p>${t('dash.noStrategies')}</p>
                 </div>`;
             return;
         }
@@ -3508,7 +3508,7 @@
                     const result = await response.json();
 
                     if (result.success) {
-                        showToast('Unsubscribed from strategy', 'success');
+                        showToast(t('dash.unsubscribedFromStrategy'), 'success');
                         loadStrategies();
                     } else {
                         checkbox.checked = true;
@@ -3519,7 +3519,7 @@
         } catch (err) {
             console.error('Error toggling subscription:', err);
             checkbox.checked = !isSubscribed;
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
 
         // Toggle slider visibility
@@ -3532,7 +3532,7 @@
         const newAllocation = parseFloat(input.value);
 
         if (!subscriptionId) {
-            showToast('Please subscribe first', 'warning');
+            showToast(t('dash.pleaseSubscribeFirst'), 'warning');
             return;
         }
 
@@ -3556,7 +3556,7 @@
             }
         } catch (err) {
             console.error('Error updating allocation:', err);
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
             loadStrategies();
         }
     }
@@ -4012,8 +4012,8 @@
             container.innerHTML = `
                 <div class="text-center py-8 text-white/40">
                     <i class="fas fa-check-circle text-3xl mb-3 text-green-400"></i>
-                    <p>No new tasks available right now</p>
-                    <p class="text-sm mt-1">Check back later for new challenges!</p>
+                    <p>${t('dash.noTasks')}</p>
+                    <p class="text-sm mt-1">${t('dash.checkBackLater')}</p>
                 </div>
             `;
             return;
@@ -4151,7 +4151,7 @@
             
             completedContainer.innerHTML = html;
         } else {
-            completedContainer.innerHTML = '<div class="text-center py-4 text-white/40"><p>No completed tasks yet</p></div>';
+            completedContainer.innerHTML = '<div class="text-center py-4 text-white/40"><p>' + t('dash.noCompletedTasks') + '</p></div>';
         }
     }
     
@@ -4205,7 +4205,7 @@
             // Show submission form
             submissionForm.style.display = 'block';
             actionBtn.style.display = 'flex';
-            actionBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit Completion</span>';
+            actionBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>' + t('dash.submitCompletion') + '</span>';
             currentTaskAction = 'submit';
         } else if (task.can_participate) {
             // Show join button
@@ -4248,7 +4248,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast(data.message || 'Joined task successfully!', 'success');
+                    showToast(data.message || t('dash.joinedTask'), 'success');
                     closeTaskDetailsModal();
                     refreshUserTasks();
                 } else {
@@ -4267,7 +4267,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast(data.message || 'Task submitted for review!', 'success');
+                    showToast(data.message || t('dash.taskSubmitted'), 'success');
                     closeTaskDetailsModal();
                     refreshUserTasks();
                 } else {
@@ -4275,7 +4275,7 @@
                 }
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Payout Management{% endblock %}
+{% block title %}Управління виплатами{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-dark py-8">
@@ -10,13 +10,13 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
             <div>
                 <h1 class="text-3xl font-display font-bold text-gradient mb-2">
-                    <i class="fas fa-money-check-alt mr-2"></i>Payout Management
+                    <i class="fas fa-money-check-alt mr-2"></i><span data-i18n="payouts.title">Управління виплатами</span>
                 </h1>
-                <p class="text-white/60">Review and process commission payout requests</p>
+                <p class="text-white/60" data-i18n="payouts.subtitle">Перегляд та обробка запитів на виплату комісій</p>
             </div>
             <div class="mt-4 md:mt-0">
                 <a href="{{ url_for('dashboard') }}" class="btn-cyber btn-cyber-sm">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    <i class="fas fa-arrow-left mr-2"></i><span data-i18n="payouts.backToDashboard">Назад до панелі</span>
                 </a>
             </div>
         </div>
@@ -25,27 +25,27 @@
         <div class="flex flex-wrap gap-2 mb-6">
             <a href="{{ url_for('admin_payouts', status='pending') }}" 
                class="px-4 py-2 rounded-lg border transition-all {{ 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' if status_filter == 'pending' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
-                <i class="fas fa-clock mr-2"></i>Pending
+                <i class="fas fa-clock mr-2"></i><span data-i18n="payouts.pending">Очікує</span>
                 <span class="ml-2 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">{{ pending_count }}</span>
             </a>
             <a href="{{ url_for('admin_payouts', status='approved') }}" 
                class="px-4 py-2 rounded-lg border transition-all {{ 'bg-blue-500/20 border-blue-500/50 text-blue-400' if status_filter == 'approved' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
-                <i class="fas fa-thumbs-up mr-2"></i>Approved
+                <i class="fas fa-thumbs-up mr-2"></i><span data-i18n="payouts.approved">Схвалено</span>
                 <span class="ml-2 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs">{{ approved_count }}</span>
             </a>
             <a href="{{ url_for('admin_payouts', status='paid') }}" 
                class="px-4 py-2 rounded-lg border transition-all {{ 'bg-green-500/20 border-green-500/50 text-green-400' if status_filter == 'paid' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
-                <i class="fas fa-check-circle mr-2"></i>Paid
+                <i class="fas fa-check-circle mr-2"></i><span data-i18n="payouts.paid">Виплачено</span>
                 <span class="ml-2 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-xs">{{ paid_count }}</span>
             </a>
             <a href="{{ url_for('admin_payouts', status='rejected') }}" 
                class="px-4 py-2 rounded-lg border transition-all {{ 'bg-red-500/20 border-red-500/50 text-red-400' if status_filter == 'rejected' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
-                <i class="fas fa-times-circle mr-2"></i>Rejected
+                <i class="fas fa-times-circle mr-2"></i><span data-i18n="payouts.rejected">Відхилено</span>
                 <span class="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-xs">{{ rejected_count }}</span>
             </a>
             <a href="{{ url_for('admin_payouts', status='all') }}" 
                class="px-4 py-2 rounded-lg border transition-all {{ 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' if status_filter == 'all' else 'bg-dark-lighter border-white/10 text-white/60 hover:border-white/20' }}">
-                <i class="fas fa-list mr-2"></i>All
+                <i class="fas fa-list mr-2"></i><span data-i18n="payouts.all">Всі</span>
             </a>
         </div>
 
@@ -57,14 +57,14 @@
                     <table class="w-full">
                         <thead>
                             <tr class="text-left text-xs text-white/40 border-b border-white/10">
-                                <th class="pb-3 font-medium">ID</th>
-                                <th class="pb-3 font-medium">User</th>
-                                <th class="pb-3 font-medium">Amount</th>
-                                <th class="pb-3 font-medium">Method</th>
-                                <th class="pb-3 font-medium">Address</th>
-                                <th class="pb-3 font-medium">Status</th>
-                                <th class="pb-3 font-medium">Date</th>
-                                <th class="pb-3 font-medium text-right">Actions</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.id">ID</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.user">Користувач</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.amount">Сума</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.method">Метод</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.address">Адреса</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.status">Статус</th>
+                                <th class="pb-3 font-medium" data-i18n="payouts.date">Дата</th>
+                                <th class="pb-3 font-medium text-right" data-i18n="payouts.actions">Дії</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/5">
@@ -73,7 +73,7 @@
                                 <td class="py-4 font-mono text-sm text-white/60">#{{ payout.id }}</td>
                                 <td class="py-4">
                                     <div class="font-semibold text-white">{{ payout.user.username }}</div>
-                                    <div class="text-xs text-white/40">{{ payout.user.email or 'No email' }}</div>
+                                    <div class="text-xs text-white/40">{{ payout.user.email or 'Немає email' }}</div>
                                 </td>
                                 <td class="py-4 font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
                                 <td class="py-4 text-sm text-white/60">
@@ -94,25 +94,25 @@
                                         {{ payout.payment_address[:30] }}...
                                     </div>
                                     <button onclick="copyAddress('{{ payout.payment_address }}')" class="text-xs text-cyan-400 hover:text-cyan-300">
-                                        <i class="fas fa-copy"></i> Copy
+                                        <i class="fas fa-copy"></i> <span data-i18n="payouts.copy">Копіювати</span>
                                     </button>
                                 </td>
                                 <td class="py-4">
                                     {% if payout.status == 'paid' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
-                                        <i class="fas fa-check"></i> Paid
+                                        <i class="fas fa-check"></i> <span data-i18n="payouts.paid">Виплачено</span>
                                     </span>
                                     {% elif payout.status == 'approved' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400">
-                                        <i class="fas fa-thumbs-up"></i> Approved
+                                        <i class="fas fa-thumbs-up"></i> <span data-i18n="payouts.approved">Схвалено</span>
                                     </span>
                                     {% elif payout.status == 'pending' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400">
-                                        <i class="fas fa-clock"></i> Pending
+                                        <i class="fas fa-clock"></i> <span data-i18n="payouts.pending">Очікує</span>
                                     </span>
                                     {% elif payout.status == 'rejected' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400">
-                                        <i class="fas fa-times"></i> Rejected
+                                        <i class="fas fa-times"></i> <span data-i18n="payouts.rejected">Відхилено</span>
                                     </span>
                                     {% endif %}
                                 </td>
@@ -126,22 +126,22 @@
                                     <div class="flex gap-2 justify-end">
                                         <button onclick="openApproveModal({{ payout.id }})" 
                                                 class="px-3 py-1 rounded bg-green-500/10 border border-green-500/30 text-green-400 text-xs hover:bg-green-500/20">
-                                            <i class="fas fa-check mr-1"></i>Approve
+                                            <i class="fas fa-check mr-1"></i><span data-i18n="payouts.approve">Схвалити</span>
                                         </button>
                                         <button onclick="openRejectModal({{ payout.id }})" 
                                                 class="px-3 py-1 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs hover:bg-red-500/20">
-                                            <i class="fas fa-times mr-1"></i>Reject
+                                            <i class="fas fa-times mr-1"></i><span data-i18n="payouts.reject">Відхилити</span>
                                         </button>
                                     </div>
                                     {% elif payout.status == 'approved' %}
                                     <button onclick="openPayModal({{ payout.id }})" 
                                             class="px-3 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs hover:bg-cyan-500/20">
-                                        <i class="fas fa-money-bill mr-1"></i>Mark Paid
+                                        <i class="fas fa-money-bill mr-1"></i><span data-i18n="payouts.markPaid">Позначити виплаченим</span>
                                     </button>
                                     {% else %}
                                     <button onclick="viewDetails({{ payout.id }})" 
                                             class="px-3 py-1 rounded bg-white/5 border border-white/10 text-white/60 text-xs hover:bg-white/10">
-                                        <i class="fas fa-eye mr-1"></i>View
+                                        <i class="fas fa-eye mr-1"></i><span data-i18n="payouts.view">Переглянути</span>
                                     </button>
                                     {% endif %}
                                 </td>
@@ -153,7 +153,7 @@
                 {% else %}
                 <div class="text-center py-12 text-white/40">
                     <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                    <p>No {{ status_filter }} payout requests</p>
+                    <p data-i18n="payouts.noRequests">Немає запитів на виплату</p>
                 </div>
                 {% endif %}
             </div>
@@ -168,7 +168,7 @@
         <div class="modal-head">
             <div class="modal-title text-green-400">
                 <i class="fas fa-check-circle"></i>
-                Approve Payout
+                <span data-i18n="payouts.approvePayout">Схвалити виплату</span>
             </div>
             <button onclick="closeModal('approveModal')" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -176,16 +176,16 @@
         </div>
         <form id="approveForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
-                <p class="text-white/60 mb-4">Are you sure you want to approve this payout request?</p>
+                <p class="text-white/60 mb-4" data-i18n="payouts.approveConfirm">Ви впевнені, що хочете схвалити цей запит на виплату?</p>
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Notes (optional)</label>
-                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Add notes for reference..."></textarea>
+                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.notes">Примітки (необов'язково)</label>
+                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
                 </div>
             </div>
             <div class="modal-foot">
-                <button type="button" onclick="closeModal('approveModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="button" onclick="closeModal('approveModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
                 <button type="submit" class="btn-cyber btn-cyber-sm bg-green-500/10 border-green-500/30 text-green-400">
-                    <i class="fas fa-check mr-1"></i>Approve
+                    <i class="fas fa-check mr-1"></i><span data-i18n="payouts.approve">Схвалити</span>
                 </button>
             </div>
         </form>
@@ -198,7 +198,7 @@
         <div class="modal-head">
             <div class="modal-title text-red-400">
                 <i class="fas fa-times-circle"></i>
-                Reject Payout
+                <span data-i18n="payouts.rejectPayout">Відхилити виплату</span>
             </div>
             <button onclick="closeModal('rejectModal')" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -206,16 +206,16 @@
         </div>
         <form id="rejectForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
-                <p class="text-white/60 mb-4">Please provide a reason for rejection:</p>
+                <p class="text-white/60 mb-4" data-i18n="payouts.provideReason">Будь ласка, вкажіть причину відхилення:</p>
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Reason *</label>
-                    <textarea name="reason" class="input-cyber" rows="3" placeholder="Enter rejection reason..." required></textarea>
+                    <label class="text-xs text-white/40 block mb-2"><span data-i18n="payouts.reason">Причина</span> *</label>
+                    <textarea name="reason" class="input-cyber" rows="3" placeholder="Введіть причину відхилення..." data-i18n-placeholder="payouts.enterReason" required></textarea>
                 </div>
             </div>
             <div class="modal-foot">
-                <button type="button" onclick="closeModal('rejectModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="button" onclick="closeModal('rejectModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
                 <button type="submit" class="btn-cyber btn-cyber-sm bg-red-500/10 border-red-500/30 text-red-400">
-                    <i class="fas fa-times mr-1"></i>Reject
+                    <i class="fas fa-times mr-1"></i><span data-i18n="payouts.reject">Відхилити</span>
                 </button>
             </div>
         </form>
@@ -228,7 +228,7 @@
         <div class="modal-head">
             <div class="modal-title text-cyan-400">
                 <i class="fas fa-money-bill-wave"></i>
-                Mark as Paid
+                <span data-i18n="payouts.markAsPaid">Позначити як виплачено</span>
             </div>
             <button onclick="closeModal('payModal')" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -236,20 +236,20 @@
         </div>
         <form id="payForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
             <div class="modal-body">
-                <p class="text-white/60 mb-4">Confirm that payment has been sent:</p>
+                <p class="text-white/60 mb-4" data-i18n="payouts.confirmPayment">Підтвердіть, що платіж надіслано:</p>
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Transaction ID</label>
-                    <input type="text" name="txn_id" class="input-cyber" placeholder="Blockchain transaction ID or reference">
+                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.transactionId">ID транзакції</label>
+                    <input type="text" name="txn_id" class="input-cyber" placeholder="ID транзакції в блокчейні або довідка" data-i18n-placeholder="payouts.txnPlaceholder">
                 </div>
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Notes (optional)</label>
-                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Add notes for reference..."></textarea>
+                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.notes">Примітки (необов'язково)</label>
+                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
                 </div>
             </div>
             <div class="modal-foot">
-                <button type="button" onclick="closeModal('payModal')" class="btn-cyber btn-cyber-sm">Cancel</button>
+                <button type="button" onclick="closeModal('payModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
                 <button type="submit" class="btn-cyber btn-cyber-sm bg-cyan-500/10 border-cyan-500/30 text-cyan-400">
-                    <i class="fas fa-check mr-1"></i>Confirm Paid
+                    <i class="fas fa-check mr-1"></i><span data-i18n="payouts.confirmPaid">Підтвердити виплату</span>
                 </button>
             </div>
         </form>
@@ -262,7 +262,7 @@
         <div class="modal-head">
             <div class="modal-title">
                 <i class="fas fa-info-circle"></i>
-                Payout Details
+                <span data-i18n="payouts.payoutDetails">Деталі виплати</span>
             </div>
             <button onclick="closeModal('detailsModal')" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -322,45 +322,56 @@ function viewDetails(payoutId) {
             if (data.success) {
                 const p = data.payout;
                 const u = data.user;
+                const userLabel = typeof t === 'function' ? t('payouts.user') : 'Користувач';
+                const emailLabel = typeof t === 'function' ? t('payouts.email') : 'Email';
+                const amountLabel = typeof t === 'function' ? t('payouts.amount') : 'Сума';
+                const statusLabel = typeof t === 'function' ? t('payouts.status') : 'Статус';
+                const methodLabel = typeof t === 'function' ? t('payouts.paymentMethod') : 'Метод оплати';
+                const addressLabel = typeof t === 'function' ? t('payouts.paymentAddress') : 'Адреса для оплати';
+                const txnLabel = typeof t === 'function' ? t('payouts.transactionId') : 'ID транзакції';
+                const notesLabel = typeof t === 'function' ? t('payouts.adminNotes') : 'Примітки адміна';
+                const createdLabel = typeof t === 'function' ? t('payouts.created') : 'Створено';
+                const processedLabel = typeof t === 'function' ? t('payouts.processed') : 'Оброблено';
+                
                 content.innerHTML = `
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <div class="text-xs text-white/40">User</div>
+                                <div class="text-xs text-white/40">${userLabel}</div>
                                 <div class="font-semibold">${u.username}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-white/40">Email</div>
+                                <div class="text-xs text-white/40">${emailLabel}</div>
                                 <div>${u.email || 'N/A'}</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <div class="text-xs text-white/40">Amount</div>
+                                <div class="text-xs text-white/40">${amountLabel}</div>
                                 <div class="font-mono font-bold text-green-400">$${p.amount.toFixed(2)}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-white/40">Status</div>
+                                <div class="text-xs text-white/40">${statusLabel}</div>
                                 <div class="capitalize">${p.status}</div>
                             </div>
                         </div>
                         <div>
-                            <div class="text-xs text-white/40">Payment Method</div>
+                            <div class="text-xs text-white/40">${methodLabel}</div>
                             <div>${p.payment_method_label}</div>
                         </div>
                         <div>
-                            <div class="text-xs text-white/40">Payment Address</div>
+                            <div class="text-xs text-white/40">${addressLabel}</div>
                             <div class="font-mono text-sm break-all bg-dark-lighter p-2 rounded">${p.payment_address || 'N/A'}</div>
                         </div>
-                        ${p.txn_id ? `<div><div class="text-xs text-white/40">Transaction ID</div><div class="font-mono text-sm">${p.txn_id}</div></div>` : ''}
-                        ${p.admin_notes ? `<div><div class="text-xs text-white/40">Admin Notes</div><div>${p.admin_notes}</div></div>` : ''}
+                        ${p.txn_id ? `<div><div class="text-xs text-white/40">${txnLabel}</div><div class="font-mono text-sm">${p.txn_id}</div></div>` : ''}
+                        ${p.admin_notes ? `<div><div class="text-xs text-white/40">${notesLabel}</div><div>${p.admin_notes}</div></div>` : ''}
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <div class="text-xs text-white/40">Created</div>
+                                <div class="text-xs text-white/40">${createdLabel}</div>
                                 <div>${p.created_at || 'N/A'}</div>
                             </div>
                             <div>
-                                <div class="text-xs text-white/40">Processed</div>
+                                <div class="text-xs text-white/40">${processedLabel}</div>
                                 <div>${p.paid_at || p.reviewed_at || 'N/A'}</div>
                             </div>
                         </div>
@@ -369,7 +380,8 @@ function viewDetails(payoutId) {
             }
         })
         .catch(err => {
-            content.innerHTML = '<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>Failed to load details</div>';
+            const failedMsg = typeof t === 'function' ? t('payouts.failedToLoad') : 'Не вдалося завантажити деталі';
+            content.innerHTML = `<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>${failedMsg}</div>`;
         });
 }
 
@@ -377,8 +389,9 @@ function copyAddress(address) {
     navigator.clipboard.writeText(address);
     // Show brief notification
     const toast = document.createElement('div');
+    const copiedMsg = typeof t === 'function' ? t('payouts.addressCopied') : 'Адресу скопійовано!';
     toast.className = 'fixed bottom-4 right-4 bg-green-500/20 border border-green-500/30 text-green-400 px-4 py-2 rounded-lg text-sm z-50';
-    toast.innerHTML = '<i class="fas fa-check mr-2"></i>Address copied!';
+    toast.innerHTML = `<i class="fas fa-check mr-2"></i>${copiedMsg}`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
 }

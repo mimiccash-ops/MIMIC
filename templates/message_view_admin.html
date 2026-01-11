@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ message.subject or 'Message' }}{% endblock %}
+{% block title %}{{ message.subject or 'Повідомлення' }}{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -294,14 +294,14 @@
             <i class="fas fa-arrow-left"></i>
         </a>
         <div class="flex-grow">
-            <h1>{{ message.subject or 'No subject' }}</h1>
+            <h1>{{ message.subject or 'Без теми' }}</h1>
             <div class="meta">
                 <i class="fas fa-clock"></i>
                 <span>{{ message.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
             </div>
         </div>
         {% if not message.is_read %}
-        <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+        <span class="badge badge-primary" style="animation: pulse 2s ease infinite;" data-i18n="messages.new">НОВЕ</span>
         {% endif %}
     </div>
 
@@ -323,13 +323,13 @@
                 <span><i class="fas fa-at"></i> {{ message.sender.username }}</span>
                 <span class="status-indicator">
                     <span class="status-dot {{ 'online' if not message.sender.is_paused else 'paused' }}"></span>
-                    {{ 'Active' if not message.sender.is_paused else 'Paused' }}
+                    {{ 'Активний' if not message.sender.is_paused else 'Призупинено' }}
                 </span>
             </div>
         </div>
         <a href="{{ url_for('dashboard') }}#user-{{ message.sender.id }}" class="cyber-btn cyber-btn-sm cyber-btn-outline">
             <i class="fas fa-user"></i>
-            <span>Profile</span>
+            <span data-i18n="messages.profile">Профіль</span>
         </a>
     </div>
 
@@ -358,7 +358,7 @@
     <div class="replies-section animate-fade-in" style="animation-delay: 0.2s;">
         <h3 class="replies-title">
             <i class="fas fa-comments"></i>
-            <span>Conversation ({{ replies|length }} replies)</span>
+            <span><span data-i18n="messages.conversation">Переписка</span> ({{ replies|length }} <span data-i18n="messages.repliesCount">відповідей</span>)</span>
         </h3>
         
         <div class="replies-list">
@@ -382,7 +382,7 @@
                     </div>
                     <div class="bubble-info">
                         <span class="name">
-                            {% if reply.is_from_admin %}You (Admin){% else %}{{ reply.sender.first_name or reply.sender.username }}{% endif %}
+                            {% if reply.is_from_admin %}Ви (Адмін){% else %}{{ reply.sender.first_name or reply.sender.username }}{% endif %}
                         </span>
                         <span class="time">{{ reply.created_at.strftime("%d.%m.%Y %H:%M") }}</span>
                     </div>
@@ -398,20 +398,20 @@
     <div class="reply-form-card animate-fade-in" style="animation-delay: 0.3s;">
         <h3 class="reply-form-title">
             <i class="fas fa-reply"></i>
-            <span>Reply to User</span>
+            <span data-i18n="messages.replyToUser">Відповісти користувачу</span>
         </h3>
         
         <form method="POST" action="{{ url_for('reply_message', message_id=message.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Enter your reply to {{ message.sender.first_name or message.sender.username }}..." required maxlength="2000"></textarea>
+            <textarea name="content" rows="4" class="cyber-input w-full" style="resize: none; min-height: 100px;" placeholder="Введіть вашу відповідь для {{ message.sender.first_name or message.sender.username }}..." required maxlength="2000"></textarea>
             <div class="form-actions">
                 <p class="form-hint">
                     <i class="fas fa-info-circle"></i>
-                    <span>User will receive the message instantly</span>
+                    <span data-i18n="messages.userReceiveInstantly">Користувач отримає повідомлення миттєво</span>
                 </p>
                 <button type="submit" class="cyber-btn" style="background: linear-gradient(135deg, var(--neon-magenta), #ff2d92);">
                     <i class="fas fa-paper-plane"></i>
-                    <span>Send</span>
+                    <span data-i18n="messages.send">Надіслати</span>
                 </button>
             </div>
         </form>
@@ -421,14 +421,14 @@
     <div class="action-buttons animate-fade-in" style="animation-delay: 0.4s;">
         <a href="{{ url_for('messages') }}" class="cyber-btn cyber-btn-outline">
             <i class="fas fa-arrow-left"></i>
-            <span>Back to List</span>
+            <span data-i18n="messages.backToList">До списку</span>
         </a>
         {% if message.sender.is_paused %}
         <form method="POST" action="{{ url_for('approve_user', user_id=message.sender.id) }}" style="display: inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="cyber-btn" style="background: linear-gradient(135deg, var(--neon-green), #00cc88);">
                 <i class="fas fa-check"></i>
-                <span>Activate User</span>
+                <span data-i18n="messages.activateUser">Активувати користувача</span>
             </button>
         </form>
         {% endif %}
@@ -449,7 +449,7 @@
 
     socket.on('new_message', (msg) => {
         if (msg.parent_id === {{ message.id }} && !msg.is_from_admin) {
-            showToast('📩 New reply from user', 'info');
+            showToast('📩 ' + (typeof t === 'function' ? t('messages.newReplyFromUser') : 'Нова відповідь від користувача'), 'info');
             if (typeof playSound === 'function') playSound('notification');
             setTimeout(() => location.reload(), 1500);
         }

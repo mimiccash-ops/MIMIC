@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Partner Dashboard{% endblock %}
-{% block meta_description %}MIMIC Partner Dashboard - Track your referral performance, earnings, and download promotional materials.{% endblock %}
+{% block title %}Панель партнера{% endblock %}
+{% block meta_description %}Панель партнера MIMIC - Відстежуйте результати рефералів, заробіток та завантажуйте промо-матеріали.{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -604,15 +604,15 @@
             <div>
                 <div class="hero-badge">
                     <i class="fas fa-crown"></i>
-                    <span>Partner Program</span>
+                    <span>Партнерська програма</span>
                 </div>
-                <h1 class="hero-title">Partner Dashboard</h1>
-                <p class="hero-subtitle">Track your referral performance, earnings, and grow your network</p>
+                <h1 class="hero-title">Панель партнера</h1>
+                <p class="hero-subtitle">Відстежуйте результати рефералів, заробіток та розвивайте свою мережу</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ url_for('dashboard') }}" class="btn-cyber">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Back to Dashboard</span>
+                    <span>Назад до панелі</span>
                 </a>
             </div>
         </div>
@@ -627,11 +627,11 @@
             <!-- Code -->
             <div>
                 <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
-                    <i class="fas fa-qrcode mr-2"></i>Your Referral Code
+                    <i class="fas fa-qrcode mr-2"></i>Ваш реферальний код
                 </label>
                 <div class="flex items-center gap-4">
                     <div class="referral-code-display">{{ referral_code }}</div>
-                    <button onclick="copyCode()" class="btn-cyber copy-btn" id="copy-code-btn" title="Copy Code">
+                    <button onclick="copyCode()" class="btn-cyber copy-btn" id="copy-code-btn" title="Копіювати код">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -640,13 +640,13 @@
             <!-- Link -->
             <div>
                 <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
-                    <i class="fas fa-link mr-2"></i>Your Invite Link
+                    <i class="fas fa-link mr-2"></i>Ваше посилання для запрошення
                 </label>
                 <div class="flex gap-3">
                     <input type="text" value="{{ referral_link }}" id="referral-link" class="referral-link-input flex-1" readonly>
                     <button onclick="copyLink()" class="btn-cyber copy-btn" id="copy-link-btn">
                         <i class="fas fa-copy mr-2"></i>
-                        <span>Copy</span>
+                        <span>Копіювати</span>
                     </button>
                 </div>
             </div>
@@ -655,7 +655,7 @@
         <!-- Share Buttons -->
         <div class="mt-6 pt-6 border-t border-white/10">
             <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
-                <i class="fas fa-share-alt mr-2"></i>Quick Share
+                <i class="fas fa-share-alt mr-2"></i>Швидке поширення
             </label>
             <div class="flex flex-wrap gap-3">
                 <a href="https://t.me/share/url?url={{ referral_link }}&text=Join%20MIMIC%20Copy%20Trading!" 
@@ -688,10 +688,10 @@
                 <i class="fas fa-mouse-pointer"></i>
             </div>
             <div class="stat-value-cyber" style="color: #3b82f6;">{{ click_stats.total_clicks }}</div>
-            <div class="stat-label-cyber">Total Clicks</div>
+            <div class="stat-label-cyber">Всього кліків</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-users text-blue-400"></i>
-                <span>{{ click_stats.unique_visitors }} unique visitors</span>
+                <span>{{ click_stats.unique_visitors }} унікальних відвідувачів</span>
             </div>
         </div>
         
@@ -701,10 +701,10 @@
                 <i class="fas fa-user-plus"></i>
             </div>
             <div class="stat-value-cyber" style="color: #8b5cf6;">{{ referral_stats.referral_count }}</div>
-            <div class="stat-label-cyber">Registrations</div>
+            <div class="stat-label-cyber">Реєстрацій</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-chart-line text-purple-400"></i>
-                <span>{{ click_stats.click_to_registration_rate }}% conversion</span>
+                <span>{{ click_stats.click_to_registration_rate }}% конверсія</span>
             </div>
         </div>
         
@@ -714,10 +714,10 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div class="stat-value-cyber" style="color: #f59e0b;">{{ click_stats.deposits }}</div>
-            <div class="stat-label-cyber">Active Deposits</div>
+            <div class="stat-label-cyber">Активних депозитів</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-coins text-yellow-400"></i>
-                <span>${{ "%.2f"|format(click_stats.total_deposit_amount) }} total</span>
+                <span>${{ "%.2f"|format(click_stats.total_deposit_amount) }} всього</span>
             </div>
         </div>
         
@@ -727,10 +727,10 @@
                 <i class="fas fa-dollar-sign"></i>
             </div>
             <div class="stat-value-cyber" style="color: #22c55e;">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
-            <div class="stat-label-cyber">Total Earned</div>
+            <div class="stat-label-cyber">Всього зароблено</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-clock text-green-400"></i>
-                <span>${{ "%.2f"|format(referral_stats.pending_commission) }} pending</span>
+                <span>${{ "%.2f"|format(referral_stats.pending_commission) }} очікує</span>
             </div>
         </div>
     </div>
@@ -744,13 +744,13 @@
                     <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
                         <i class="fas fa-chart-area"></i>
                     </i>
-                    <span>Earnings Over Time</span>
+                    <span>Заробіток за час</span>
                 </div>
                 <select id="chart-period" class="input-cyber text-sm" style="width: auto;" onchange="loadEarningsChart()">
-                    <option value="7">Last 7 Days</option>
-                    <option value="30" selected>Last 30 Days</option>
-                    <option value="90">Last 90 Days</option>
-                    <option value="365">Last Year</option>
+                    <option value="7">Останні 7 днів</option>
+                    <option value="30" selected>Останні 30 днів</option>
+                    <option value="90">Останні 90 днів</option>
+                    <option value="365">Останній рік</option>
                 </select>
             </div>
             <div class="inf-section-body">
@@ -769,15 +769,15 @@
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 240, 255, 0.2)); color: #22c55e;">
                         <i class="fas fa-money-bill-wave"></i>
                     </i>
-                    <span>Request Payout</span>
+                    <span>Запросити виплату</span>
                 </div>
             </div>
             <div class="inf-section-body">
                 <!-- Balance -->
                 <div class="payout-balance">
-                    <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Available Balance</div>
+                    <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Доступний баланс</div>
                     <div class="payout-balance-value">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
-                    <div class="text-xs text-white/40 mt-2">Minimum payout: $50.00</div>
+                    <div class="text-xs text-white/40 mt-2">Мінімальна виплата: $50.00</div>
                 </div>
                 
                 {% if pending_payout %}
@@ -785,44 +785,44 @@
                 <div class="p-4 rounded-xl" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25);">
                     <div class="flex items-center gap-2 text-yellow-400 font-semibold mb-2">
                         <i class="fas fa-clock"></i>
-                        <span>Pending Request</span>
+                        <span>Очікуючий запит</span>
                     </div>
                     <div class="text-sm text-white/60">
-                        Request for <strong class="text-yellow-400">${{ "%.2f"|format(pending_payout.amount) }}</strong>
-                        <br><span class="text-xs">Submitted: {{ pending_payout.created_at.strftime('%d %b %Y') }}</span>
+                        Запит на <strong class="text-yellow-400">${{ "%.2f"|format(pending_payout.amount) }}</strong>
+                        <br><span class="text-xs">Надіслано: {{ pending_payout.created_at.strftime('%d %b %Y') }}</span>
                     </div>
                 </div>
                 {% else %}
                 <!-- Payout Form -->
                 <form id="payout-form" onsubmit="submitPayoutRequest(event)" class="space-y-4">
                     <div>
-                        <label class="text-xs text-white/40 block mb-2">Amount (USD)</label>
+                        <label class="text-xs text-white/40 block mb-2">Сума (USD)</label>
                         <input type="number" name="amount" id="payout-amount" class="input-cyber w-full" 
-                               placeholder="Enter amount" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
+                               placeholder="Введіть суму" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
                     </div>
                     <div>
-                        <label class="text-xs text-white/40 block mb-2">Payment Method</label>
+                        <label class="text-xs text-white/40 block mb-2">Метод оплати</label>
                         <select name="payment_method" id="payout-method" class="input-cyber w-full" required>
-                            <option value="">Select method...</option>
+                            <option value="">Виберіть метод...</option>
                             <option value="usdt_trc20">USDT (TRC20)</option>
                             <option value="usdt_erc20">USDT (ERC20)</option>
                             <option value="usdt_bep20">USDT (BEP20)</option>
                             <option value="btc">Bitcoin</option>
-                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="bank_transfer">Банківський переказ</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs text-white/40 block mb-2">Wallet / Bank Details</label>
+                        <label class="text-xs text-white/40 block mb-2">Гаманець / Банківські дані</label>
                         <input type="text" name="payment_address" id="payout-address" class="input-cyber w-full" 
-                               placeholder="Enter wallet address or bank details" required>
+                               placeholder="Введіть адресу гаманця або банківські дані" required>
                     </div>
                     <button type="submit" class="btn-cyber w-full" id="payout-submit-btn"
                             {% if referral_stats.pending_commission < 50 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
                         <i class="fas fa-paper-plane"></i>
-                        <span>Request Payout</span>
+                        <span>Запросити виплату</span>
                     </button>
                     {% if referral_stats.pending_commission < 50 %}
-                    <p class="text-xs text-red-400 text-center">Minimum $50 required for payout</p>
+                    <p class="text-xs text-red-400 text-center">Мінімум $50 для виплати</p>
                     {% endif %}
                 </form>
                 {% endif %}
@@ -837,9 +837,9 @@
                 <i style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(236, 72, 153, 0.2)); color: #fb923c;">
                     <i class="fas fa-palette"></i>
                 </i>
-                <span>Marketing Assets</span>
+                <span>Маркетингові матеріали</span>
             </div>
-            <span class="text-xs text-white/40">Download banners with your referral code embedded</span>
+            <span class="text-xs text-white/40">Завантажуйте банери з вашим реферальним кодом</span>
         </div>
         <div class="inf-section-body">
             <div class="asset-grid">
@@ -876,10 +876,10 @@
                         <div class="asset-size">{{ config.size }} • {{ config.description }}</div>
                         <div class="asset-actions">
                             <button onclick="previewBanner('{{ type }}')" class="asset-btn asset-btn-preview">
-                                <i class="fas fa-eye"></i> Preview
+                                <i class="fas fa-eye"></i> Перегляд
                             </button>
                             <a href="{{ url_for('get_banner', banner_type=type) }}" download="mimic-{{ type }}.png" class="asset-btn asset-btn-download">
-                                <i class="fas fa-download"></i> Download
+                                <i class="fas fa-download"></i> Завантажити
                             </a>
                         </div>
                     </div>
@@ -898,9 +898,9 @@
                     <i style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)); color: #8b5cf6;">
                         <i class="fas fa-users"></i>
                     </i>
-                    <span>Recent Referrals</span>
+                    <span>Останні реферали</span>
                 </div>
-                <span class="status-badge status-approved">{{ referral_stats.referral_count }} total</span>
+                <span class="status-badge status-approved">{{ referral_stats.referral_count }} всього</span>
             </div>
             <div class="inf-section-body" style="max-height: 400px; overflow-y: auto;">
                 {% if referrals %}
@@ -912,15 +912,15 @@
                             </div>
                             <div>
                                 <div class="font-semibold text-white">{{ ref.username }}</div>
-                                <div class="text-xs text-white/40">Joined {{ ref.joined }}</div>
+                                <div class="text-xs text-white/40">Приєднався {{ ref.joined }}</div>
                             </div>
                         </div>
                         <div>
                             {% if ref.is_active %}
-                            <span class="status-badge status-paid"><i class="fas fa-circle text-[6px]"></i> Active</span>
+                            <span class="status-badge status-paid"><i class="fas fa-circle text-[6px]"></i> Активний</span>
                             {% else %}
                             <span class="status-badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1);">
-                                <i class="fas fa-circle text-[6px]"></i> Inactive
+                                <i class="fas fa-circle text-[6px]"></i> Неактивний
                             </span>
                             {% endif %}
                         </div>
@@ -929,8 +929,8 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-user-friends"></i>
-                    <p class="font-semibold mb-1">No referrals yet</p>
-                    <p class="text-sm">Share your link to start earning!</p>
+                    <p class="font-semibold mb-1">Рефералів ще немає</p>
+                    <p class="text-sm">Поділіться посиланням, щоб почати заробляти!</p>
                 </div>
                 {% endif %}
             </div>
@@ -943,7 +943,7 @@
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(251, 191, 36, 0.2)); color: #22c55e;">
                         <i class="fas fa-coins"></i>
                     </i>
-                    <span>Recent Commissions</span>
+                    <span>Останні комісії</span>
                 </div>
             </div>
             <div class="inf-section-body" style="max-height: 400px; overflow-y: auto;">
@@ -963,8 +963,8 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-coins"></i>
-                    <p class="font-semibold mb-1">No commissions yet</p>
-                    <p class="text-sm">You'll earn when your referrals profit!</p>
+                    <p class="font-semibold mb-1">Комісій ще немає</p>
+                    <p class="text-sm">Ви заробите, коли ваші реферали отримають прибуток!</p>
                 </div>
                 {% endif %}
             </div>
@@ -978,54 +978,54 @@
                 <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
                     <i class="fas fa-history"></i>
                 </i>
-                <span>Payout History</span>
+                    <span>Історія виплат</span>
+                </div>
             </div>
-        </div>
-        <div class="inf-section-body">
-            {% if payout_history %}
-            <div class="overflow-x-auto">
-                <table class="inf-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Method</th>
-                            <th>Status</th>
-                            <th>Transaction ID</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for payout in payout_history %}
-                        <tr>
-                            <td class="text-white/70">{{ payout.created_at[:10] }}</td>
-                            <td class="font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
-                            <td class="text-white/60">{{ payout.payment_method_label }}</td>
-                            <td>
-                                {% if payout.status == 'paid' %}
-                                <span class="status-badge status-paid"><i class="fas fa-check"></i> Paid</span>
-                                {% elif payout.status == 'approved' %}
-                                <span class="status-badge status-approved"><i class="fas fa-thumbs-up"></i> Approved</span>
-                                {% elif payout.status == 'pending' %}
-                                <span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span>
-                                {% elif payout.status == 'rejected' %}
-                                <span class="status-badge status-rejected"><i class="fas fa-times"></i> Rejected</span>
-                                {% endif %}
-                            </td>
-                            <td class="font-mono text-sm text-white/40">
-                                {{ payout.txn_id[:20] + '...' if payout.txn_id and payout.txn_id|length > 20 else (payout.txn_id or '-') }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-receipt"></i>
-                <p class="font-semibold mb-1">No payout history</p>
-                <p class="text-sm">Your payouts will appear here</p>
-            </div>
-            {% endif %}
+            <div class="inf-section-body">
+                {% if payout_history %}
+                <div class="overflow-x-auto">
+                    <table class="inf-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Сума</th>
+                                <th>Метод</th>
+                                <th>Статус</th>
+                                <th>ID транзакції</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payout in payout_history %}
+                            <tr>
+                                <td class="text-white/70">{{ payout.created_at[:10] }}</td>
+                                <td class="font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
+                                <td class="text-white/60">{{ payout.payment_method_label }}</td>
+                                <td>
+                                    {% if payout.status == 'paid' %}
+                                    <span class="status-badge status-paid"><i class="fas fa-check"></i> Виплачено</span>
+                                    {% elif payout.status == 'approved' %}
+                                    <span class="status-badge status-approved"><i class="fas fa-thumbs-up"></i> Схвалено</span>
+                                    {% elif payout.status == 'pending' %}
+                                    <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує</span>
+                                    {% elif payout.status == 'rejected' %}
+                                    <span class="status-badge status-rejected"><i class="fas fa-times"></i> Відхилено</span>
+                                    {% endif %}
+                                </td>
+                                <td class="font-mono text-sm text-white/40">
+                                    {{ payout.txn_id[:20] + '...' if payout.txn_id and payout.txn_id|length > 20 else (payout.txn_id or '-') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <p class="font-semibold mb-1">Історії виплат немає</p>
+                    <p class="text-sm">Ваші виплати з'являться тут</p>
+                </div>
+                {% endif %}
         </div>
     </div>
 
@@ -1037,7 +1037,7 @@
         <div class="flex items-center justify-between p-5" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
             <div class="flex items-center gap-3">
                 <i class="fas fa-image text-cyan-400"></i>
-                <span class="font-semibold text-white">Banner Preview</span>
+                <span class="font-semibold text-white">Перегляд банера</span>
             </div>
             <button onclick="closeBannerPreview()" class="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style="border: 1px solid rgba(255,255,255,0.1);">
                 <i class="fas fa-times text-white/60"></i>
@@ -1048,7 +1048,7 @@
             <div class="mt-6">
                 <a id="banner-download-link" href="" download="" class="btn-cyber inline-flex" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)); border-color: rgba(34, 197, 94, 0.4); color: #22c55e;">
                     <i class="fas fa-download"></i>
-                    <span>Download Banner</span>
+                    <span>Завантажити банер</span>
                 </a>
             </div>
         </div>
@@ -1156,7 +1156,7 @@ function copyCode() {
     const btn = document.getElementById('copy-code-btn');
     btn.classList.add('copied');
     btn.innerHTML = '<i class="fas fa-check"></i>';
-    showToast('Referral code copied!', 'success');
+    showToast('Реферальний код скопійовано!', 'success');
     setTimeout(() => {
         btn.classList.remove('copied');
         btn.innerHTML = '<i class="fas fa-copy"></i>';
@@ -1168,11 +1168,11 @@ function copyLink() {
     navigator.clipboard.writeText(input.value);
     const btn = document.getElementById('copy-link-btn');
     btn.classList.add('copied');
-    btn.innerHTML = '<i class="fas fa-check mr-2"></i><span>Copied!</span>';
-    showToast('Referral link copied!', 'success');
+    btn.innerHTML = '<i class="fas fa-check mr-2"></i><span>Скопійовано!</span>';
+    showToast('Реферальне посилання скопійовано!', 'success');
     setTimeout(() => {
         btn.classList.remove('copied');
-        btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Copy</span>';
+        btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Копіювати</span>';
     }, 2000);
 }
 
@@ -1185,7 +1185,7 @@ function submitPayoutRequest(event) {
     const originalBtnText = submitBtn.innerHTML;
     
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Обробка...</span>';
     
     const formData = new FormData(form);
     
@@ -1201,17 +1201,17 @@ function submitPayoutRequest(event) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showToast('Payout request submitted successfully!', 'success');
+            showToast('Запит на виплату успішно надіслано!', 'success');
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            showToast('Error: ' + (data.error || 'Failed to submit payout request'), 'error');
+            showToast('Помилка: ' + (data.error || 'Не вдалося надіслати запит на виплату'), 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalBtnText;
         }
     })
     .catch(err => {
         console.error('Payout error:', err);
-        showToast('Network error. Please try again.', 'error');
+        showToast('Помилка мережі. Спробуйте ще раз.', 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
     });
