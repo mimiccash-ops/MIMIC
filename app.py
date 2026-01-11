@@ -111,6 +111,10 @@ else:
         "https://mimic.cash",
         "http://www.mimic.cash",
         "https://www.mimic.cash",
+        "http://mimiccash.com",
+        "https://mimiccash.com",
+        "http://www.mimiccash.com",
+        "https://www.mimiccash.com",
     ]
 
 # Add custom origins from environment if set (for additional origins)
