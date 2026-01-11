@@ -625,19 +625,162 @@ class TelegramBotHandler:
             logger.warning("Bot is already running")
             return
         
-        def run_bot():
+        def run_bot_multiprocess():
+            """
+            Run the bot in a separate process to completely isolate from eventlet.
+            This is necessary because eventlet monkey-patches asyncio globally.
+            Uses multiprocessing.Process with spawn context for clean isolation.
+            """
+            import multiprocessing
+            import sys
+            import os
+            
+            # Use 'spawn' context to get a completely fresh Python interpreter
+            # This ensures eventlet's patches are NOT inherited
+            ctx = multiprocessing.get_context('spawn')
+            
+            def bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str):
+                """Main function that runs in the separate process"""
+                import asyncio
+                import logging
+                from datetime import datetime
+                
+                # Set up logging
+                logging.basicConfig(
+                    level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+                proc_logger = logging.getLogger("TelegramBotProcess")
+                
+                try:
+                    from telegram import Update
+                    from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+                except ImportError:
+                    proc_logger.error("python-telegram-bot not installed")
+                    return
+                
+                # Initialize OTP if available
+                otp_verifier = None
+                try:
+                    import pyotp
+                    if otp_secret:
+                        otp_verifier = pyotp.TOTP(otp_secret)
+                except ImportError:
+                    pass
+                
+                async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+                    user = update.effective_user
+                    is_authorized = user.id in authorized_users
+                    await update.message.reply_text(
+                        f"🧠 <b>BRAIN CAPITAL Bot</b>\n\n"
+                        f"👋 Вітаю, <b>{user.first_name}</b>!\n"
+                        f"🆔 Ваш Telegram ID: <code>{user.id}</code>\n\n"
+                        f"{'✅ <b>Ви авторизовані</b>' if is_authorized else '⚠️ Ви не авторизовані'}\n\n"
+                        f"Команди:\n/help - Довідка\n/status - Статус",
+                        parse_mode='HTML'
+                    )
+                
+                async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+                    await update.message.reply_text(
+                        "📖 <b>BRAIN CAPITAL - Команди</b>\n\n"
+                        "/start - Початок\n"
+                        "/help - Довідка\n"
+                        "/status - Статус системи\n"
+                        "/support <питання> - AI Support",
+                        parse_mode='HTML'
+                    )
+                
+                async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+                    await update.message.reply_text(
+                        f"📊 <b>BRAIN CAPITAL - Статус</b>\n\n"
+                        f"🟢 <b>Бот:</b> Активний\n"
+                        f"🕐 <b>Час:</b> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>\n"
+                        f"🔐 <b>OTP:</b> {'Налаштовано ✅' if otp_verifier else 'Не налаштовано ⚠️'}",
+                        parse_mode='HTML'
+                    )
+                
+                async def cmd_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+                    await update.message.reply_text(
+                        "❓ Невідома команда.\n\nВведіть /help для списку команд.",
+                        parse_mode='HTML'
+                    )
+                
+                async def main():
+                    proc_logger.info("🤖 Starting Telegram bot in isolated process...")
+                    
+                    app = Application.builder().token(bot_token).build()
+                    
+                    app.add_handler(CommandHandler("start", cmd_start))
+                    app.add_handler(CommandHandler("help", cmd_help))
+                    app.add_handler(CommandHandler("status", cmd_status))
+                    app.add_handler(MessageHandler(filters.COMMAND, cmd_unknown))
+                    
+                    proc_logger.info("🤖 Telegram bot initializing...")
+                    
+                    await app.initialize()
+                    await app.start()
+                    await app.updater.start_polling(drop_pending_updates=True)
+                    
+                    proc_logger.info("🤖 Telegram bot is now running")
+                    
+                    # Keep running
+                    try:
+                        while True:
+                            await asyncio.sleep(1)
+                    except (asyncio.CancelledError, KeyboardInterrupt):
+                        pass
+                    finally:
+                        proc_logger.info("🤖 Telegram bot shutting down...")
+                        await app.updater.stop()
+                        await app.stop()
+                        await app.shutdown()
+                
+                asyncio.run(main())
+            
+            logger.info("🤖 Starting Telegram bot in separate process (spawn)...")
+            
+            try:
+                # Start the bot in a completely separate process
+                process = ctx.Process(
+                    target=bot_process_main,
+                    args=(
+                        self.bot_token,
+                        self.admin_chat_id or '',
+                        self.authorized_users or [],
+                        self.otp_verifier.secret if self.otp_verifier else ''
+                    ),
+                    daemon=True,
+                    name="TelegramBotProcess"
+                )
+                process.start()
+                self._bot_process = process
+                
+                logger.info(f"🤖 Telegram bot process started (PID: {process.pid})")
+                
+                # Wait for the process (it runs until stopped)
+                process.join()
+                
+            except Exception as e:
+                logger.error(f"Bot process error: {e}")
+                import traceback
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+        
+        def run_bot_async():
+            """
+            Run the bot using asyncio directly.
+            Works when NOT running under eventlet.
+            """
             import asyncio
             
-            # Create a fresh event loop for this thread
+            # Create a brand new event loop for this thread
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
-            try:
-                self._running = True
+            async def _start_bot():
+                """Initialize and start the bot"""
                 logger.info("🤖 Creating Telegram bot application...")
                 
-                # Create the Application in this thread to avoid event loop issues
-                # This is crucial - the Application must be created in the same thread/loop where it runs
+                # Create the Application in this thread
                 self.application = Application.builder().token(self.bot_token).build()
                 self.bot = self.application.bot
                 
@@ -654,64 +797,114 @@ class TelegramBotHandler:
                 
                 logger.info("🤖 Starting Telegram bot polling...")
                 
-                # Use run_polling which properly manages the event loop
-                # This is the recommended way to run the bot
-                self.application.run_polling(
+                await self.application.initialize()
+                await self.application.start()
+                await self.application.updater.start_polling(
                     drop_pending_updates=True,
-                    allowed_updates=['message', 'callback_query'],
-                    close_loop=False
+                    allowed_updates=['message', 'callback_query']
                 )
                 
+                logger.info("🤖 Telegram bot is now running")
+            
+            async def _stop_bot():
+                """Stop the bot gracefully"""
+                try:
+                    if self.application:
+                        if self.application.updater and self.application.updater.running:
+                            await self.application.updater.stop()
+                        if self.application.running:
+                            await self.application.stop()
+                        await self.application.shutdown()
+                except Exception as e:
+                    logger.debug(f"Bot cleanup error: {e}")
+            
+            try:
+                loop.run_until_complete(_start_bot())
+                loop.run_forever()
             except Exception as e:
                 logger.error(f"Bot error: {e}")
                 import traceback
                 logger.debug(f"Traceback: {traceback.format_exc()}")
             finally:
-                self._running = False
                 try:
-                    if not loop.is_closed():
-                        loop.close()
+                    loop.run_until_complete(_stop_bot())
+                except:
+                    pass
+                try:
+                    loop.close()
                 except:
                     pass
         
-        bot_thread = threading.Thread(target=run_bot, daemon=True, name="TelegramBot")
+        # Check if eventlet is monkey-patching (causes asyncio issues)
+        self._running = True
+        self._bot_process = None
+        
+        try:
+            import eventlet
+            eventlet_active = eventlet.patcher.is_monkey_patched('socket')
+        except ImportError:
+            eventlet_active = False
+        
+        if eventlet_active:
+            # Eventlet is active - use multiprocessing with 'spawn' for complete isolation
+            logger.info("🤖 Eventlet detected - starting Telegram bot in isolated process")
+            bot_thread = threading.Thread(target=run_bot_multiprocess, daemon=True, name="TelegramBotLauncher")
+        else:
+            # No eventlet - use regular asyncio thread
+            logger.info("🤖 Starting Telegram bot in async thread")
+            bot_thread = threading.Thread(target=run_bot_async, daemon=True, name="TelegramBot")
+        
         bot_thread.start()
-        logger.info("🤖 Telegram bot started in background thread")
+        logger.info("🤖 Telegram bot started")
     
     def stop(self):
         """Stop the bot"""
-        if self.application and self._running:
+        if not self._running:
+            return
+        
+        self._running = False
+        
+        # If running as subprocess, terminate it
+        if hasattr(self, '_bot_process') and self._bot_process:
             try:
-                # Signal the application to stop
-                # The run_polling() method will handle cleanup
-                if self.application.updater and self.application.updater.running:
-                    # Schedule stop in the application's event loop
-                    import asyncio
-                    
-                    async def shutdown():
-                        try:
-                            await self.application.updater.stop()
-                            await self.application.stop()
-                            await self.application.shutdown()
-                        except Exception as e:
-                            logger.debug(f"Shutdown error (may be expected): {e}")
-                    
-                    # Try to get the running loop from the application
-                    try:
-                        loop = asyncio.get_running_loop()
-                        loop.create_task(shutdown())
-                    except RuntimeError:
-                        # No running loop, try to run in new loop
-                        try:
-                            asyncio.run(shutdown())
-                        except Exception as e:
-                            logger.debug(f"Alternative shutdown error: {e}")
+                self._bot_process.terminate()
+                self._bot_process.wait(timeout=5)
+                logger.info("🤖 Telegram bot subprocess stopped")
+            except Exception as e:
+                logger.debug(f"Subprocess stop error: {e}")
+                try:
+                    self._bot_process.kill()
+                except:
+                    pass
+            return
+        
+        # If running as async application, try to stop it
+        if self.application:
+            try:
+                import asyncio
                 
-                self._running = False
+                async def shutdown():
+                    try:
+                        if self.application.updater and self.application.updater.running:
+                            await self.application.updater.stop()
+                        if self.application.running:
+                            await self.application.stop()
+                        await self.application.shutdown()
+                    except Exception as e:
+                        logger.debug(f"Shutdown error: {e}")
+                
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(shutdown())
+                except RuntimeError:
+                    try:
+                        asyncio.run(shutdown())
+                    except:
+                        pass
+                
                 logger.info("🤖 Telegram bot stopped")
             except Exception as e:
                 logger.error(f"Error stopping bot: {e}")
-                self._running = False
 
 
 # Global instance
