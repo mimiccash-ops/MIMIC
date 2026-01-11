@@ -37,6 +37,115 @@ except ImportError:
     logger.warning("⚠️ python-telegram-bot[ext] not installed. Telegram bot commands disabled.")
 
 
+def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str):
+    """
+    Main function that runs the Telegram bot in a separate process.
+    This function MUST be at module level to be picklable by multiprocessing.
+    
+    Runs a simplified bot with basic commands when eventlet is active.
+    """
+    import asyncio
+    import logging
+    from datetime import datetime
+    
+    # Set up logging for this process
+    logging.basicConfig(
+        level=logging.INFO, 
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    proc_logger = logging.getLogger("TelegramBotProcess")
+    
+    try:
+        from telegram import Update
+        from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+    except ImportError:
+        proc_logger.error("python-telegram-bot not installed")
+        return
+    
+    # Initialize OTP if available
+    otp_verifier = None
+    try:
+        import pyotp
+        if otp_secret:
+            otp_verifier = pyotp.TOTP(otp_secret)
+    except ImportError:
+        pass
+    
+    async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        is_authorized = user.id in authorized_users
+        await update.message.reply_text(
+            f"🧠 <b>BRAIN CAPITAL Bot</b>\n\n"
+            f"👋 Вітаю, <b>{user.first_name}</b>!\n"
+            f"🆔 Ваш Telegram ID: <code>{user.id}</code>\n\n"
+            f"{'✅ <b>Ви авторизовані</b>' if is_authorized else '⚠️ Ви не авторизовані'}\n\n"
+            f"Команди:\n/help - Довідка\n/status - Статус",
+            parse_mode='HTML'
+        )
+    
+    async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text(
+            "📖 <b>BRAIN CAPITAL - Команди</b>\n\n"
+            "/start - Початок\n"
+            "/help - Довідка\n"
+            "/status - Статус системи",
+            parse_mode='HTML'
+        )
+    
+    async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text(
+            f"📊 <b>BRAIN CAPITAL - Статус</b>\n\n"
+            f"🟢 <b>Бот:</b> Активний\n"
+            f"🕐 <b>Час:</b> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>\n"
+            f"🔐 <b>OTP:</b> {'Налаштовано ✅' if otp_verifier else 'Не налаштовано ⚠️'}",
+            parse_mode='HTML'
+        )
+    
+    async def cmd_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await update.message.reply_text(
+            "❓ Невідома команда.\n\nВведіть /help для списку команд.",
+            parse_mode='HTML'
+        )
+    
+    async def main():
+        proc_logger.info("🤖 Starting Telegram bot in isolated process...")
+        
+        app = Application.builder().token(bot_token).build()
+        
+        app.add_handler(CommandHandler("start", cmd_start))
+        app.add_handler(CommandHandler("help", cmd_help))
+        app.add_handler(CommandHandler("status", cmd_status))
+        app.add_handler(MessageHandler(filters.COMMAND, cmd_unknown))
+        
+        proc_logger.info("🤖 Telegram bot initializing...")
+        
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling(drop_pending_updates=True)
+        
+        proc_logger.info("🤖 Telegram bot is now running")
+        
+        # Keep running until interrupted
+        try:
+            while True:
+                await asyncio.sleep(1)
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            pass
+        finally:
+            proc_logger.info("🤖 Telegram bot shutting down...")
+            await app.updater.stop()
+            await app.stop()
+            await app.shutdown()
+    
+    # Run the async main function
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        proc_logger.error(f"Bot process error: {e}")
+
+
 class OTPVerifier:
     """
     TOTP (Time-based One-Time Password) verifier for 2FA
@@ -632,121 +741,22 @@ class TelegramBotHandler:
             Uses multiprocessing.Process with spawn context for clean isolation.
             """
             import multiprocessing
-            import sys
-            import os
             
             # Use 'spawn' context to get a completely fresh Python interpreter
             # This ensures eventlet's patches are NOT inherited
             ctx = multiprocessing.get_context('spawn')
             
-            def bot_process_main(bot_token: str, admin_chat_id: str, authorized_users: list, otp_secret: str):
-                """Main function that runs in the separate process"""
-                import asyncio
-                import logging
-                from datetime import datetime
-                
-                # Set up logging
-                logging.basicConfig(
-                    level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-                )
-                proc_logger = logging.getLogger("TelegramBotProcess")
-                
-                try:
-                    from telegram import Update
-                    from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-                except ImportError:
-                    proc_logger.error("python-telegram-bot not installed")
-                    return
-                
-                # Initialize OTP if available
-                otp_verifier = None
-                try:
-                    import pyotp
-                    if otp_secret:
-                        otp_verifier = pyotp.TOTP(otp_secret)
-                except ImportError:
-                    pass
-                
-                async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                    user = update.effective_user
-                    is_authorized = user.id in authorized_users
-                    await update.message.reply_text(
-                        f"🧠 <b>BRAIN CAPITAL Bot</b>\n\n"
-                        f"👋 Вітаю, <b>{user.first_name}</b>!\n"
-                        f"🆔 Ваш Telegram ID: <code>{user.id}</code>\n\n"
-                        f"{'✅ <b>Ви авторизовані</b>' if is_authorized else '⚠️ Ви не авторизовані'}\n\n"
-                        f"Команди:\n/help - Довідка\n/status - Статус",
-                        parse_mode='HTML'
-                    )
-                
-                async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                    await update.message.reply_text(
-                        "📖 <b>BRAIN CAPITAL - Команди</b>\n\n"
-                        "/start - Початок\n"
-                        "/help - Довідка\n"
-                        "/status - Статус системи\n"
-                        "/support <питання> - AI Support",
-                        parse_mode='HTML'
-                    )
-                
-                async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                    await update.message.reply_text(
-                        f"📊 <b>BRAIN CAPITAL - Статус</b>\n\n"
-                        f"🟢 <b>Бот:</b> Активний\n"
-                        f"🕐 <b>Час:</b> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>\n"
-                        f"🔐 <b>OTP:</b> {'Налаштовано ✅' if otp_verifier else 'Не налаштовано ⚠️'}",
-                        parse_mode='HTML'
-                    )
-                
-                async def cmd_unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                    await update.message.reply_text(
-                        "❓ Невідома команда.\n\nВведіть /help для списку команд.",
-                        parse_mode='HTML'
-                    )
-                
-                async def main():
-                    proc_logger.info("🤖 Starting Telegram bot in isolated process...")
-                    
-                    app = Application.builder().token(bot_token).build()
-                    
-                    app.add_handler(CommandHandler("start", cmd_start))
-                    app.add_handler(CommandHandler("help", cmd_help))
-                    app.add_handler(CommandHandler("status", cmd_status))
-                    app.add_handler(MessageHandler(filters.COMMAND, cmd_unknown))
-                    
-                    proc_logger.info("🤖 Telegram bot initializing...")
-                    
-                    await app.initialize()
-                    await app.start()
-                    await app.updater.start_polling(drop_pending_updates=True)
-                    
-                    proc_logger.info("🤖 Telegram bot is now running")
-                    
-                    # Keep running
-                    try:
-                        while True:
-                            await asyncio.sleep(1)
-                    except (asyncio.CancelledError, KeyboardInterrupt):
-                        pass
-                    finally:
-                        proc_logger.info("🤖 Telegram bot shutting down...")
-                        await app.updater.stop()
-                        await app.stop()
-                        await app.shutdown()
-                
-                asyncio.run(main())
-            
             logger.info("🤖 Starting Telegram bot in separate process (spawn)...")
             
             try:
                 # Start the bot in a completely separate process
+                # Uses module-level function _telegram_bot_process_main which is picklable
                 process = ctx.Process(
-                    target=bot_process_main,
+                    target=_telegram_bot_process_main,
                     args=(
                         self.bot_token,
                         self.admin_chat_id or '',
-                        self.authorized_users or [],
+                        list(self.authorized_users) if self.authorized_users else [],
                         self.otp_verifier.secret if self.otp_verifier else ''
                     ),
                     daemon=True,
