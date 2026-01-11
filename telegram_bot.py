@@ -257,14 +257,10 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         
         for attempt in range(max_retries):
             try:
-                # Use shorter poll_interval to detect conflicts faster
+                # Start polling with drop_pending_updates to avoid processing old messages
                 await app.updater.start_polling(
                     drop_pending_updates=True,
                     allowed_updates=['message', 'callback_query'],
-                    poll_interval=1.0,  # Check every 1 second initially
-                    read_timeout=10,    # Shorter read timeout
-                    write_timeout=10,
-                    connect_timeout=10,
                 )
                 proc_logger.info("🤖 Telegram bot is now running and polling for updates")
                 
