@@ -565,7 +565,8 @@ const ServiceWorkerManager = {
         
         try {
             this.registration = await navigator.serviceWorker.register('/service-worker.js', {
-                scope: '/'
+                scope: '/',
+                updateViaCache: 'none'
             });
             
             console.log('[SW] Service Worker registered:', this.registration);

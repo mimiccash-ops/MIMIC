@@ -3,8 +3,8 @@
  * Handles caching, offline functionality, and push notifications
  */
 
-const CACHE_NAME = 'mimic-cache-v1';
-const DYNAMIC_CACHE = 'mimic-dynamic-v1';
+const CACHE_NAME = 'mimic-cache-v2';
+const DYNAMIC_CACHE = 'mimic-dynamic-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install
@@ -17,8 +17,10 @@ const STATIC_ASSETS = [
     '/static/js/push.js',
     '/static/mimic-logo.svg',
     '/static/manifest.json',
+    '/static/icons/icon-144x144.png',
     '/static/icons/icon-192x192.png',
     '/static/icons/icon-512x512.png',
+    '/static/icons/badge-72x72.png',
     // External resources (optional - can fail gracefully)
     'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'

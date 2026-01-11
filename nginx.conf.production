@@ -430,11 +430,20 @@ http {
             access_log off;
         }
 
-        # PWA Service Worker (no cache)
+        # PWA Service Worker (served from root with proper scope)
+        location = /service-worker.js {
+            alias /var/www/mimic/static/service-worker.js;
+            expires -1;
+            add_header Cache-Control "no-store, no-cache, must-revalidate";
+            add_header Service-Worker-Allowed "/";
+        }
+
+        # Also serve from /static/ path for backwards compatibility
         location = /static/service-worker.js {
             alias /var/www/mimic/static/service-worker.js;
             expires -1;
             add_header Cache-Control "no-store, no-cache, must-revalidate";
+            add_header Service-Worker-Allowed "/";
         }
 
         # PWA Manifest
