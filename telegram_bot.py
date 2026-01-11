@@ -57,7 +57,7 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     import sys
     import time
     import os
-    import fcntl
+    import tempfile
     from datetime import datetime
     from pathlib import Path
     
@@ -68,28 +68,54 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     )
     proc_logger = logging.getLogger("TelegramBotProcess")
     
-    # ============ FILE-BASED LOCK TO PREVENT MULTIPLE INSTANCES ============
+    # ============ CROSS-PLATFORM FILE LOCK TO PREVENT MULTIPLE INSTANCES ============
     # This ensures only ONE bot process can run at a time
-    lock_file_path = "/tmp/mimic_telegram_bot.lock"
+    # Use tempfile for cross-platform temp directory
+    lock_file_path = os.path.join(tempfile.gettempdir(), "mimic_telegram_bot.lock")
     lock_file = None
+    has_lock = False
     
-    try:
-        lock_file = open(lock_file_path, 'w')
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        lock_file.write(str(os.getpid()))
-        lock_file.flush()
-        proc_logger.info(f"🔒 Acquired bot lock (PID: {os.getpid()})")
-    except (IOError, OSError) as e:
-        proc_logger.error(f"❌ Another Telegram bot instance is already running! Cannot acquire lock.")
-        proc_logger.error(f"   Lock file: {lock_file_path}")
-        proc_logger.error(f"   Error: {e}")
-        proc_logger.error(f"   To fix: Check for existing bot processes or delete {lock_file_path}")
-        if lock_file:
-            lock_file.close()
-        return
-    except Exception as e:
-        # On Windows or if fcntl isn't available, continue without lock
-        proc_logger.warning(f"⚠️ Could not acquire file lock (non-fatal on Windows): {e}")
+    # Platform-specific locking
+    if sys.platform == 'win32':
+        # Windows: use msvcrt for file locking
+        try:
+            import msvcrt
+            lock_file = open(lock_file_path, 'w')
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+            lock_file.write(str(os.getpid()))
+            lock_file.flush()
+            has_lock = True
+            proc_logger.info(f"🔒 Acquired bot lock (PID: {os.getpid()})")
+        except (IOError, OSError) as e:
+            proc_logger.error(f"❌ Another Telegram bot instance is already running! Cannot acquire lock.")
+            proc_logger.error(f"   Lock file: {lock_file_path}")
+            proc_logger.error(f"   Error: {e}")
+            proc_logger.error(f"   To fix: Check for existing bot processes or delete {lock_file_path}")
+            if lock_file:
+                lock_file.close()
+            return
+        except Exception as e:
+            proc_logger.warning(f"⚠️ Could not acquire file lock (non-fatal): {e}")
+    else:
+        # Unix: use fcntl for file locking
+        try:
+            import fcntl
+            lock_file = open(lock_file_path, 'w')
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_file.write(str(os.getpid()))
+            lock_file.flush()
+            has_lock = True
+            proc_logger.info(f"🔒 Acquired bot lock (PID: {os.getpid()})")
+        except (IOError, OSError) as e:
+            proc_logger.error(f"❌ Another Telegram bot instance is already running! Cannot acquire lock.")
+            proc_logger.error(f"   Lock file: {lock_file_path}")
+            proc_logger.error(f"   Error: {e}")
+            proc_logger.error(f"   To fix: Check for existing bot processes or delete {lock_file_path}")
+            if lock_file:
+                lock_file.close()
+            return
+        except Exception as e:
+            proc_logger.warning(f"⚠️ Could not acquire file lock (non-fatal): {e}")
     
     # Handle termination signals gracefully
     shutdown_requested = False
@@ -99,8 +125,36 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         proc_logger.info(f"🤖 Received signal {signum}, initiating graceful shutdown...")
         shutdown_requested = True
     
-    signal.signal(signal.SIGTERM, handle_signal)
+    # SIGINT works on all platforms
     signal.signal(signal.SIGINT, handle_signal)
+    
+    # SIGTERM is Unix-only, skip on Windows
+    if sys.platform != 'win32':
+        signal.signal(signal.SIGTERM, handle_signal)
+    
+    def release_lock():
+        """Release the file lock (cross-platform)"""
+        nonlocal lock_file, has_lock
+        if lock_file:
+            try:
+                if has_lock:
+                    if sys.platform == 'win32':
+                        import msvcrt
+                        try:
+                            msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                        except:
+                            pass
+                    else:
+                        import fcntl
+                        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                lock_file.close()
+                try:
+                    os.remove(lock_file_path)
+                except:
+                    pass
+                proc_logger.info("🔓 Released bot lock")
+            except Exception as e:
+                proc_logger.debug(f"Lock cleanup error: {e}")
     
     try:
         from telegram import Update
@@ -108,13 +162,7 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         from telegram.error import Conflict, NetworkError, TimedOut
     except ImportError:
         proc_logger.error("python-telegram-bot not installed")
-        if lock_file:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                lock_file.close()
-                os.remove(lock_file_path)
-            except:
-                pass
+        release_lock()
         return
     
     # Initialize OTP if available
@@ -238,8 +286,19 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                 # Extra wait before proceeding
                 await asyncio.sleep(5)
         
-        # Build the application with custom error handling
-        app = Application.builder().token(bot_token).build()
+        # Build the application with custom error handling and network resilience
+        from telegram.request import HTTPXRequest
+        
+        # Create a request with increased timeouts and connection pool
+        request = HTTPXRequest(
+            connection_pool_size=8,
+            read_timeout=30.0,
+            write_timeout=30.0,
+            connect_timeout=30.0,
+            pool_timeout=30.0,
+        )
+        
+        app = Application.builder().token(bot_token).request(request).build()
         
         app.add_handler(CommandHandler("start", cmd_start))
         app.add_handler(CommandHandler("help", cmd_help))
@@ -256,12 +315,25 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         base_delay = 5
         conflict_detected = False
         
-        # Custom error handler to detect 409 conflicts early
+        # Custom error handler to detect 409 conflicts and handle other errors gracefully
         async def error_handler(update, context):
             nonlocal conflict_detected
-            if isinstance(context.error, Conflict):
+            error = context.error
+            
+            if isinstance(error, Conflict):
                 conflict_detected = True
-                proc_logger.warning(f"⚠️ Conflict detected in error handler: {context.error}")
+                proc_logger.warning(f"⚠️ Conflict detected in error handler: {error}")
+            elif isinstance(error, NetworkError):
+                # Network errors are common and recoverable - don't crash
+                proc_logger.warning(f"⚠️ Network error (will retry): {error}")
+            elif isinstance(error, TimedOut):
+                # Timeout errors are normal during long polling
+                proc_logger.debug(f"⏱️ Polling timeout (normal): {error}")
+            else:
+                # Log other errors but don't crash
+                proc_logger.error(f"❌ Bot error: {type(error).__name__}: {error}")
+                import traceback
+                proc_logger.debug(f"Traceback: {traceback.format_exc()}")
         
         app.add_error_handler(error_handler)
         
@@ -270,9 +342,14 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                 conflict_detected = False
                 
                 # Start polling with drop_pending_updates to avoid processing old messages
+                # Add read_timeout and connect_timeout for network resilience
                 await app.updater.start_polling(
                     drop_pending_updates=True,
                     allowed_updates=['message', 'callback_query'],
+                    read_timeout=30,
+                    write_timeout=30,
+                    connect_timeout=30,
+                    pool_timeout=30,
                 )
                 proc_logger.info("🤖 Telegram bot is now running and polling for updates")
                 
@@ -397,7 +474,11 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                         await asyncio.sleep(5)
                         await app.updater.start_polling(
                             drop_pending_updates=False,
-                            allowed_updates=['message', 'callback_query']
+                            allowed_updates=['message', 'callback_query'],
+                            read_timeout=30,
+                            write_timeout=30,
+                            connect_timeout=30,
+                            pool_timeout=30,
                         )
                         proc_logger.info("✅ Updater restarted")
                     except Conflict:
@@ -431,15 +512,8 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
         import traceback
         proc_logger.error(traceback.format_exc())
     finally:
-        # Release the file lock
-        if lock_file:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-                lock_file.close()
-                os.remove(lock_file_path)
-                proc_logger.info("🔓 Released bot lock")
-            except Exception as e:
-                proc_logger.debug(f"Lock cleanup error: {e}")
+        # Release the file lock (cross-platform)
+        release_lock()
 
 
 class OTPVerifier:
