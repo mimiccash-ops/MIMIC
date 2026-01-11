@@ -420,6 +420,10 @@ class TradingEngine:
         self._background_tasks = []
         self._event_loop = None
         
+        # Thread pool executor for background tasks
+        from concurrent.futures import ThreadPoolExecutor
+        self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="TradingEngine")
+        
         # Start background threads (will be migrated to async tasks when event loop is available)
         threading.Thread(target=self.monitor_balances, daemon=True).start()
         threading.Thread(target=self.monitor_position_closes, daemon=True).start()
@@ -2793,8 +2797,9 @@ class TradingEngine:
         
         logger.info(f"🔄 execute_trade_async called for {client_data.get('fullname', user_id)} ({exchange_name})")
         
-        # Route to async CCXT handler for non-Binance exchanges
+        # Route to appropriate handler based on client type
         if client_data.get('is_ccxt') and client_data.get('is_async'):
+            # Async CCXT exchanges (OKX, Bybit, etc.)
             logger.info(f"   ➡️ Routing to async CCXT handler for {exchange_name}")
             return await self.execute_trade_ccxt_async(client_data, signal, master_entry_price, 
                                                        master_balance, master_trade_amount)
@@ -2805,6 +2810,15 @@ class TradingEngine:
             return await loop.run_in_executor(
                 None, 
                 self._execute_trade_binance_sync, 
+                client_data, signal, master_entry_price, master_balance, master_trade_amount
+            )
+        else:
+            # Binance (python-binance) clients - run sync method in executor to avoid blocking
+            logger.info(f"   ➡️ Routing to Binance sync handler for {exchange_name}")
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                None,
+                self._execute_trade_binance_sync,
                 client_data, signal, master_entry_price, master_balance, master_trade_amount
             )
     

@@ -25,7 +25,7 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 from arq import create_pool, cron
 from arq.connections import RedisSettings
@@ -48,7 +48,7 @@ class LokiJsonFormatter(jsonlogger.JsonFormatter):
         super().add_fields(log_record, record, message_dict)
         
         # Add standard fields for Loki
-        log_record['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+        log_record['timestamp'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         log_record['level'] = record.levelname
         log_record['logger'] = record.name
         log_record['service'] = 'brain_capital_worker'
