@@ -32,6 +32,7 @@ httpx>=0.25.0  # Async HTTP client for payment gateway
 # Real-time Communication
 eventlet>=0.34.2
 gevent>=23.9.1
+nest_asyncio>=1.5.8  # Allows nested event loops
 
 # Production Server (Windows)
 waitress>=2.1.2

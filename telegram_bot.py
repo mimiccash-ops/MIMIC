@@ -644,20 +644,68 @@ class TelegramBotHandler:
         
         def run_bot():
             import asyncio
+            
+            # Create a completely new event loop for this thread
+            # First, try to close any existing loop in this thread
+            try:
+                old_loop = asyncio.get_event_loop()
+                if old_loop.is_running():
+                    old_loop.stop()
+            except RuntimeError:
+                pass  # No event loop in this thread
+            
+            # Create fresh event loop
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            
+            # Try to use nest_asyncio if available (allows nested event loops)
+            try:
+                import nest_asyncio
+                nest_asyncio.apply(loop)
+            except ImportError:
+                pass  # nest_asyncio not installed, continue without it
             
             try:
                 self._running = True
                 logger.info("🤖 Starting Telegram bot polling...")
+                
+                # Run initialization
                 loop.run_until_complete(self.application.initialize())
                 loop.run_until_complete(self.application.start())
-                loop.run_until_complete(self.application.updater.start_polling())
+                loop.run_until_complete(self.application.updater.start_polling(
+                    drop_pending_updates=True,  # Don't process old messages
+                    allowed_updates=['message', 'callback_query']
+                ))
+                
+                # Keep the loop running
                 loop.run_forever()
+                
+            except RuntimeError as e:
+                if "cannot run the event loop while another loop is running" in str(e).lower():
+                    # Fallback: use Application.run_polling() which handles its own loop
+                    logger.warning("Event loop conflict detected, trying alternative start method...")
+                    try:
+                        # Reset the loop
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        
+                        # Use the simpler run_polling which manages its own loop
+                        self.application.run_polling(
+                            drop_pending_updates=True,
+                            close_loop=False
+                        )
+                    except Exception as e2:
+                        logger.error(f"Bot fallback start failed: {e2}")
+                else:
+                    logger.error(f"Bot runtime error: {e}")
             except Exception as e:
                 logger.error(f"Bot error: {e}")
             finally:
                 self._running = False
+                try:
+                    loop.close()
+                except:
+                    pass
         
         bot_thread = threading.Thread(target=run_bot, daemon=True, name="TelegramBot")
         bot_thread.start()
