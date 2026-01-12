@@ -1084,6 +1084,14 @@ class TelegramBotHandler:
     
     def start(self):
         """Start the bot in a background thread"""
+        import sys
+        
+        # Skip Telegram bot in Gunicorn (web server) - only Worker should run the bot
+        # This prevents 409 Conflict errors from multiple bot instances
+        if any("gunicorn" in arg.lower() for arg in sys.argv):
+            logger.info("🤖 Skipping Telegram bot start in Gunicorn (will run in Worker only)")
+            return
+        
         if not TELEGRAM_BOT_AVAILABLE:
             logger.warning("Cannot start bot - telegram dependencies not available")
             return

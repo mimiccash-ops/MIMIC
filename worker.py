@@ -191,6 +191,30 @@ async def startup(ctx: dict):
                 logger.warning(f"⚠️ Could not setup Telegram error logging in worker: {e}")
     ctx['telegram'] = telegram
     
+    # Initialize Telegram Bot (commands/polling) - ONLY in Worker to avoid 409 conflicts
+    # Gunicorn is configured to skip bot startup, so Worker is the sole owner
+    telegram_bot = None
+    if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN:
+        try:
+            from telegram_bot import init_telegram_bot
+            otp_secret = getattr(Config, 'PANIC_OTP_SECRET', '') or ''
+            authorized_users = getattr(Config, 'PANIC_AUTHORIZED_USERS', [])
+            
+            telegram_bot = init_telegram_bot(
+                bot_token=Config.TG_TOKEN,
+                otp_secret=otp_secret,
+                authorized_users=authorized_users,
+                panic_callback=None,  # Will set after engine is created
+                admin_chat_id=Config.TG_CHAT_ID
+            )
+            if telegram_bot:
+                logger.info("✅ Telegram Bot started in Worker (sole instance)")
+            else:
+                logger.warning("⚠️ Telegram Bot not started in Worker")
+        except Exception as e:
+            logger.warning(f"⚠️ Telegram Bot failed to start in Worker: {e}")
+    ctx['telegram_bot'] = telegram_bot
+    
     # Initialize Trading Engine (no socketio needed in worker)
     engine = TradingEngine(app, socketio_instance=None, telegram_notifier=telegram)
     
@@ -216,6 +240,12 @@ async def startup(ctx: dict):
     
     ctx['engine'] = engine
     
+    # Set panic callback for Telegram bot (now that engine is initialized)
+    telegram_bot = ctx.get('telegram_bot')
+    if telegram_bot and hasattr(telegram_bot, 'panic_callback'):
+        telegram_bot.panic_callback = engine.close_all_positions_all_accounts
+        logger.info("✅ Telegram bot panic callback connected to trading engine")
+
     # Initialize Smart Features (Trailing SL, DCA) with Redis
     try:
         import redis.asyncio as aioredis
@@ -310,6 +340,16 @@ async def shutdown(ctx: dict):
                     logger.info(f"Closed slave exchange: {slave_data.get('name', 'Unknown')}")
                 except Exception as e:
                     logger.error(f"Error closing slave exchange: {e}")
+    
+    # Stop Telegram Bot (polling)
+    telegram_bot = ctx.get('telegram_bot')
+    if telegram_bot:
+        try:
+            logger.info("🛑 Stopping Telegram bot...")
+            telegram_bot.stop()
+            logger.info("✅ Telegram bot stopped")
+        except Exception as e:
+            logger.warning(f"⚠️ Error stopping Telegram bot: {e}")
     
     # Notify via Telegram
     if telegram:
