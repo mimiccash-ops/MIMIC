@@ -891,7 +891,7 @@
                 <label class="text-xs text-muted mb-2 block">Currently Banned/Muted Users:</label>
                 <div id="chatBansList" class="space-y-2 max-h-48 overflow-y-auto">
                     <div class="text-center py-4 text-muted text-sm">
-                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                        <i class="fas fa-spinner fa-spin"></i> Завантаження...
                     </div>
                 </div>
             </div>
@@ -1030,7 +1030,7 @@
                 </h3>
                 <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto">
                     <div class="text-center py-4 text-muted text-sm">
-                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                        <i class="fas fa-spinner fa-spin"></i> Завантаження...
                     </div>
                 </div>
             </div>
@@ -1602,6 +1602,40 @@
     let currentStatsMode = 'pnl';
     let currentEditingCategory = null;
 
+    // Status Translation Helper - Maps database status codes to Ukrainian
+    const statusTranslations = {
+        // Exchange statuses
+        'PENDING': 'Очікує',
+        'APPROVED': 'Схвалено',
+        'REJECTED': 'Відхилено',
+        'ACTIVE': 'Активний',
+        'INACTIVE': 'Неактивний',
+        'VERIFIED': 'Верифіковано',
+        'NOT_CONNECTED': 'Не підключено',
+        
+        // Payment statuses
+        'pending': 'Очікує',
+        'completed': 'Завершено',
+        'rejected': 'Відхилено',
+        'processing': 'В обробці',
+        
+        // User statuses
+        'BANNED': 'Заблокований',
+        'active': 'Активний',
+        'inactive': 'Неактивний',
+        
+        // Generic statuses
+        'enabled': 'Увімкнено',
+        'disabled': 'Вімкнено',
+        'configured': 'Налаштовано',
+        'unconfigured': 'Не налаштовано'
+    };
+    
+    // Helper function to translate status codes
+    function translateStatus(status) {
+        return statusTranslations[status] || status;
+    }
+
     // Wait for Socket.io to load
     function initSocket() {
         if (typeof io === 'undefined') {
@@ -1892,11 +1926,11 @@
                 showToast(data.message, 'success');
                 refreshChatBans();
             } else {
-                showToast(data.error || 'Failed to unban user', 'error');
+                showToast(data.error || 'Не вдалося розблокувати користувача', 'error');
             }
         } catch (err) {
             console.error('Unban error:', err);
-            showToast('Failed to unban user', 'error');
+            showToast('Не вдалося розблокувати користувача', 'error');
         }
     }
 
@@ -1962,14 +1996,14 @@
                         tournamentEl.textContent = data.tournament.name;
                         tournamentEl.style.color = '#eab308';
                     } else {
-                        tournamentEl.textContent = 'None active';
+                        tournamentEl.textContent = 'Немає активних';
                         tournamentEl.style.color = 'rgba(255,255,255,0.5)';
                     }
                 }
             })
             .catch(() => {
                 const tournamentEl = document.getElementById('admin-active-tournament');
-                if (tournamentEl) tournamentEl.textContent = 'None';
+                if (tournamentEl) tournamentEl.textContent = 'Немає';
             });
     }
     
@@ -2023,7 +2057,7 @@
             container.innerHTML = configs.map(c => {
                 const statusClass = c.is_verified ? (c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.08)] border-[rgba(0,245,255,0.25)]') : 'bg-[rgba(255,200,0,0.04)] border-[rgba(255,200,0,0.15)]';
                 const iconClass = c.is_verified ? (c.is_enabled ? 'text-green' : 'text-cyan') : 'text-yellow';
-                const statusText = c.is_verified ? (c.is_enabled ? 'Active' : 'Verified') : 'Not Connected';
+                const statusText = c.is_verified ? (c.is_enabled ? 'Активна' : 'Верифікована') : 'Не підключена';
                 const statusBadge = c.is_verified ? 
                     `<span class="badge badge-success" style="font-size: 0.35rem;">✓</span>` : 
                     `<button onclick="selectExchangeForConnect('${c.exchange_name}')" class="cyber-btn cyber-btn-xs" style="font-size: 0.35rem; padding: 2px 4px;"><i class="fas fa-plug"></i></button>`;
@@ -2372,12 +2406,12 @@
         })
         .catch((error) => {
             console.error('Error submitting exchange:', error);
-            const errorMsg = error.error || error.message || 'Network error. Please try again.';
+            const errorMsg = error.error || error.message || 'Помилка мережі. Спробуй ще раз.';
             showToast(errorMsg, 'error');
         })
         .finally(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-plug"></i> <span>Verify & Connect</span>';
+            btn.innerHTML = '<i class="fas fa-plug"></i> <span>Верифікувати та підключити</span>';
         });
     }
     
@@ -2467,10 +2501,10 @@
                 countEl.textContent = exchanges.length;
             if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs">${t('admin.noPending')}</p></div>`; return; }
             container.innerHTML = exchanges.map(ex => `<div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[rgba(255,200,0,0.25)]"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class="min-w-0"><p class="font-bold text-xxs text-bright truncate">${ex.username}</p><p class="text-xxs text-muted truncate">${ex.display_name}</p></div></div><div class="flex items-center gap-1"><button onclick="approveExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-success"><i class="fas fa-check"></i></button><button onclick="rejectExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-danger"><i class="fas fa-times"></i></button></div></div></div>`).join('');
-        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error</p></div>`);
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Помилка</p></div>`);
     }
     function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.approved'), 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast('Error', 'error')); }
-    function rejectExchange(id) { if (!confirm('Reject this exchange?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.rejected'), 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Error', 'error')); }
+    function rejectExchange(id) { if (!confirm('Відхилити цю біржу?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.rejected'), 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Помилка', 'error')); }
 
     document.addEventListener('keydown', e => { 
         if (e.key === 'Escape') { 
@@ -2799,7 +2833,7 @@
                             let html = '<div class="flex flex-col gap-1">';
                             user.exchanges.forEach(ex => {
                                 const statusClass = ex.trading_enabled ? 'bg-green' : 'bg-yellow';
-                                const statusTitle = ex.trading_enabled ? 'Trading enabled' : 'Trading disabled';
+                                const statusTitle = ex.trading_enabled ? 'Трейдинг увімкнено' : 'Трейдинг вимкнено';
                                 let balanceHtml = '';
                                 
                                 if (ex.balance !== null) {
@@ -3192,8 +3226,8 @@
                 unconfigured: 'var(--text-muted)'
             };
             const statusColor = statusColors[service.status] || statusColors.unconfigured;
-            const statusLabel = service.status === 'active' ? 'Active' : 
-                              service.status === 'configured' ? 'Ready' : 'Not Set';
+            const statusLabel = service.status === 'active' ? 'Активний' : 
+                              service.status === 'configured' ? 'Готовий' : 'Не налаштовано';
             
             return `
                 <div class="p-3 bg-[var(--color-surface-2)] border rounded-lg cursor-pointer transition-all duration-200 hover:border-[var(--neon-cyan)] hover:scale-[1.02]"
@@ -3281,8 +3315,8 @@
                     
                     const statusColor = isEnabled && isConfigured ? 'var(--neon-green)' : 
                                        isConfigured ? 'var(--neon-yellow)' : 'var(--text-muted)';
-                    const statusText = isEnabled && isConfigured ? 'Active' : 
-                                      isConfigured ? 'Configured (off)' : 'Not Configured';
+                    const statusText = isEnabled && isConfigured ? 'Активна' : 
+                                      isConfigured ? 'Налаштована (вимкнено)' : 'Не налаштована';
                     
                     return `
                         <div class="p-4 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
@@ -4393,7 +4427,7 @@
         
         const participationId = document.getElementById('review-participation-id').value;
         const notes = document.getElementById('review-notes').value.trim();
-        const reason = document.getElementById('review-rejection-reason').value.trim() || 'Submission did not meet requirements';
+        const reason = document.getElementById('review-rejection-reason').value.trim() || 'Подання не відповідає вимогам';
         
         try {
             const response = await fetch(`/api/admin/tasks/participation/${participationId}/reject`, {

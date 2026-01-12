@@ -3,6 +3,44 @@
  * Innovative UI/UX JavaScript System
  */
 
+// ==================== STATUS TRANSLATION HELPER ====================
+// Maps database status codes to Ukrainian
+const statusTranslations = {
+    // Exchange statuses
+    'PENDING': 'Очікує',
+    'APPROVED': 'Схвалено',
+    'REJECTED': 'Відхилено',
+    'ACTIVE': 'Активний',
+    'INACTIVE': 'Неактивний',
+    'VERIFIED': 'Верифіковано',
+    'NOT_CONNECTED': 'Не підключено',
+    
+    // Payment statuses
+    'pending': 'Очікує',
+    'completed': 'Завершено',
+    'rejected': 'Відхилено',
+    'processing': 'В обробці',
+    'cancelled': 'Скасовано',
+    
+    // User statuses
+    'BANNED': 'Заблокований',
+    'active': 'Активний',
+    'inactive': 'Неактивний',
+    
+    // Generic statuses
+    'enabled': 'Увімкнено',
+    'disabled': 'Вимкнено',
+    'configured': 'Налаштовано',
+    'unconfigured': 'Не налаштовано',
+    'verified': 'Верифіковано',
+    'unverified': 'Не верифіковано'
+};
+
+// Helper function to translate status codes (available globally)
+window.translateStatus = function(status) {
+    return statusTranslations[status] || status;
+};
+
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     initLanguage();

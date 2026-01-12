@@ -290,7 +290,7 @@ function validateFormAction(form) {
     const action = form.getAttribute('action');
     if (!action || action === '#' || action === 'javascript:void(0)' || action.endsWith('/admin/payouts')) {
         console.error('Form action not set properly:', action);
-        alert('Error: Please try again');
+        alert('Помилка: Спробуй ще раз');
         return false;
     }
     return true;
@@ -323,7 +323,7 @@ function viewDetails(payoutId) {
                 const p = data.payout;
                 const u = data.user;
                 const userLabel = typeof t === 'function' ? t('payouts.user') : 'Користувач';
-                const emailLabel = typeof t === 'function' ? t('payouts.email') : 'Email';
+                const emailLabel = typeof t === 'function' ? t('payouts.email') : 'Електронна пошта';
                 const amountLabel = typeof t === 'function' ? t('payouts.amount') : 'Сума';
                 const statusLabel = typeof t === 'function' ? t('payouts.status') : 'Статус';
                 const methodLabel = typeof t === 'function' ? t('payouts.paymentMethod') : 'Метод оплати';

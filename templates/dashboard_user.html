@@ -2565,7 +2565,7 @@
                 container.innerHTML = `
                     <div class="empty-positions">
                         <div class="icon"><i class="fas fa-exclamation-triangle text-red-400"></i></div>
-                        <div class="text text-red-400">Error loading exchanges</div>
+                        <div class="text text-red-400">Помилка завантаження бірж</div>
                         <button onclick="loadExchanges()" class="btn-cyber btn-cyber-sm mt-4">
                             <i class="fas fa-sync"></i> Retry
                         </button>
@@ -2613,7 +2613,7 @@
                                 balanceEl.className = `font-mono text-sm ${ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40'}`;
                                 balanceEl.textContent = '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                             } else if (ex.error) {
-                                balanceEl.innerHTML = `<span class="text-red-400 text-xs">⚠️ Error</span>`;
+                                balanceEl.innerHTML = `<span class="text-red-400 text-xs">⚠️ Помилка</span>`;
                             }
                         }
                     });
@@ -2668,7 +2668,7 @@
             })
             .catch(err => {
                 console.error('Error loading supported exchanges:', err);
-                select.innerHTML = '<option value="">Error loading</option>';
+                select.innerHTML = '<option value="">Помилка завантаження</option>';
             });
     }
 

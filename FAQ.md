@@ -1,201 +1,201 @@
-# Frequently Asked Questions
+# Часті запитання
 
-## Getting Started
+## Початок роботи
 
-### What is MIMIC?
+### Що таке MIMIC?
 
-MIMIC is an automated copy trading platform for cryptocurrency. When our master trader makes a trade, the same trade is automatically copied to your connected exchange account. You set your risk level, and we handle the rest.
+MIMIC — це автоматизована платформа копі-трейдингу криптовалют. Коли наш майстер-трейдер робить угоду, така сама угода автоматично копіюється на твій підключений біржовий акаунт. Ти встановлюєш свій рівень ризику, а ми робимо всю решту.
 
-### How does copy trading work?
+### Як працює копі-трейдинг?
 
-1. Connect your exchange account using API keys
-2. Configure your risk settings (how much to risk per trade)
-3. Our system automatically copies trades to your account
-4. You can monitor everything from your dashboard
+1. Підключи свій біржовий акаунт через API ключі
+2. Налаштуй параметри ризику (скільки ризикувати на угоду)
+3. Наша система автоматично копіює угоди на твій акаунт
+4. Відстежуй усе зі свого пульта керування
 
-### What exchanges are supported?
+### Які біржі підтримуються?
 
-We support 30+ major exchanges including:
-- **Binance** (most popular)
+Ми підтримуємо 30+ великих бірж, зокрема:
+- **Binance** (найпопулярніша)
 - **Bybit**
 - **OKX**
 - **KuCoin**
 - **Bitget**
 - **Gate.io**
-- And many more
+- Та багато інших
 
 ---
 
-## Account Setup
+## Налаштування акаунта
 
-### How do I connect my exchange?
+### Як підключити мою біржу?
 
-1. Log in to your exchange (e.g., Binance)
-2. Create a new API key with **Futures trading** enabled
-3. **Important:** Do NOT enable withdrawals for security
-4. Copy your API Key and Secret
-5. Paste them in your MIMIC dashboard under "Exchanges"
-6. Wait for admin approval (usually within 24 hours)
+1. Увійди на свою біржу (наприклад, Binance)
+2. Створи новий API ключ із увімкненою **ф'ючерсною торгівлею**
+3. **Важливо:** НЕ вмикай виведення коштів для безпеки
+4. Скопіюй свій API Key і Secret
+5. Встав їх у свій MIMIC пульт у розділі "Біржі"
+6. Зачекай схвалення адміністратора (зазвичай протягом 24 годин)
 
-### What permissions should my API key have?
+### Які дозволи повинен мати мій API ключ?
 
-| Permission | Required? |
+| Дозвіл | Потрібен? |
 |------------|-----------|
-| Futures Trading | ✅ Yes |
-| Spot Trading | ❌ No |
-| Withdrawals | ❌ **Never enable this** |
-| IP Restriction | ✅ Recommended |
+| Ф'ючерсна торгівля | ✅ Так |
+| Спотова торгівля | ❌ Ні |
+| Виведення | ❌ **Ніколи не вмикай** |
+| IP обмеження | ✅ Рекомендовано |
 
 ---
 
-## Trading Settings
+## Налаштування торгівлі
 
-### What is Risk Percentage?
+### Що таке процент ризику?
 
-This is how much of your account you're willing to risk on each trade. 
+Це скільки від свого акаунта ти готовий ризикувати на кожній угоді.
 
-**Example:** With 3% risk and a $10,000 account, each trade risks about $300.
+**Приклад:** При 3% ризику і акаунті $10,000, кожна угода ризикує близько $300.
 
-**Recommendation:** Start with 1-3% if you're new to trading.
+**Рекомендація:** Почни з 1-3%, якщо ти новачок у торгівлі.
 
-### What is Leverage?
+### Що таке плече (leverage)?
 
-Leverage multiplies your position size. With 20x leverage and $100, you control a $2,000 position.
+Плече множить розмір твоєї позиції. З плечем 20x і $100, ти контролюєш позицію на $2,000.
 
-⚠️ **Warning:** Higher leverage = higher risk. Start with lower leverage (5-10x) until you're comfortable.
+⚠️ **Увага:** Більше плече = більший ризик. Почни з меншого плеча (5-10x), поки не звикнеш.
 
-### What are Take Profit and Stop Loss?
+### Що таке Take Profit і Stop Loss?
 
-- **Take Profit (TP):** Automatically closes your trade when you reach a target profit
-- **Stop Loss (SL):** Automatically closes your trade to limit losses
+- **Take Profit (TP):** Автоматично закриває твою угоду, коли досягнеш цільового прибутку
+- **Stop Loss (SL):** Автоматично закриває твою угоду для обмеження збитків
 
-**Example:** With 5% TP and 2% SL:
-- Your trade closes when profit hits 5%
-- Your trade closes if loss reaches 2%
+**Приклад:** З 5% TP і 2% SL:
+- Твоя угода закриється, коли прибуток досягне 5%
+- Твоя угода закриється, якщо збиток досягне 2%
 
-### What is DCA (Dollar Cost Averaging)?
+### Що таке DCA (Dollar Cost Averaging)?
 
-DCA adds to your position when the price moves against you, lowering your average entry price.
+DCA додає до твоєї позиції, коли ціна йде проти тебе, знижуючи середню ціну входу.
 
-- **DCA Threshold:** How far the price must drop before adding (e.g., -2%)
-- **DCA Multiplier:** How much to add relative to original position
-- **Max DCA Orders:** Maximum times to add to a position
+- **DCA поріг:** Наскільки ціна повинна впасти перед додаванням (наприклад, -2%)
+- **DCA множник:** Скільки додати відносно початкової позиції
+- **Макс DCA ордерів:** Максимум разів додавання до позиції
 
-### What is Trailing Stop-Loss?
+### Що таке трейлінг стоп-лосс?
 
-A smart stop-loss that follows the price as it moves in your favor, locking in profits while giving room for the trade to run.
+Розумний стоп-лосс, який слідує за ціною, коли вона рухається на твою користь, фіксуючи прибутки та даючи простір для зростання угоди.
 
 ---
 
-## Subscription & Payments
+## Підписка і платежі
 
-### What plans are available?
+### Які плани доступні?
 
-| Plan | Price | Exchanges |
+| План | Ціна | Біржі |
 |------|-------|-----------|
-| Basic | $29.99/month | Up to 3 |
-| Pro | $79.99/month | Up to 10 |
-| Enterprise | $199.99/month | Unlimited |
+| Basic | $29.99/міс | До 3 |
+| Pro | $79.99/міс | До 10 |
+| Enterprise | $199.99/міс | Необмежено |
 
-### How do I pay?
+### Як оплатити?
 
-We accept cryptocurrency payments:
-- USDT (TRC20 or ERC20)
+Ми приймаємо криптовалютні платежі:
+- USDT (TRC20 або ERC20)
 - Bitcoin (BTC)
 - Ethereum (ETH)
 - Litecoin (LTC)
 
-Your subscription activates automatically after payment confirmation.
+Твоя підписка активується автоматично після підтвердження платежу.
 
 ---
 
-## Notifications
+## Сповіщення
 
-### How do I set up Telegram notifications?
+### Як налаштувати Telegram сповіщення?
 
-1. Open Telegram and search for `@BrainCapitalBot`
-2. Send `/start` to get your Chat ID
-3. Enter this Chat ID in your MIMIC profile settings
-4. Enable Telegram notifications
+1. Відкрий Telegram і знайди `@BrainCapitalBot`
+2. Надішли `/start`, щоб отримати свій Chat ID
+3. Введи цей Chat ID у налаштуваннях свого профілю MIMIC
+4. Увімкни Telegram сповіщення
 
-### What notifications will I receive?
+### Які сповіщення я отримуватиму?
 
-- ✅ Trade opened
-- 💰 Trade closed (with profit/loss)
-- ⚠️ Errors or issues
-- 🚨 Emergency alerts
-
----
-
-## Risk Management
-
-### What are Risk Guardrails?
-
-Safety features that automatically pause trading when:
-- **Daily losses** exceed your limit (e.g., stop after losing 10%)
-- **Daily profits** hit your target (optional)
-
-This prevents emotional overtrading and protects your account.
-
-### What is the Panic Kill Switch?
-
-An emergency button that closes ALL your positions instantly. Use it if you need to exit everything quickly. Requires verification via Telegram for security.
+- ✅ Угода відкрита
+- 💰 Угода закрита (з прибутком/збитком)
+- ⚠️ Помилки або проблеми
+- 🚨 Екстрені сповіщення
 
 ---
 
-## Troubleshooting
+## Управління ризиками
 
-### My trades aren't being copied
+### Що таке захисні обмеження?
 
-Check these common issues:
-1. Is your account status "Active" in the dashboard?
-2. Are your API keys approved?
-3. Do you have enough balance on your exchange?
-4. Is trading enabled for your connected exchange?
+Функції безпеки, які автоматично призупиняють торгівлю, коли:
+- **Денні збитки** перевищують твій ліміт (наприклад, зупинка після втрати 10%)
+- **Денні прибутки** досягають твоєї мети (опціонально)
 
-### I can't connect my API keys
+Це запобігає емоційній надмірній торгівлі та захищає твій акаунт.
 
-Common causes:
-1. **Missing permissions:** Make sure Futures trading is enabled
-2. **Wrong key type:** Use Futures API keys, not Spot
-3. **IP restrictions:** Add your server's IP to the exchange whitelist
-4. **Expired keys:** Generate new API keys and try again
+### Що таке паніка-кнопка?
+
+Екстрена кнопка, яка миттєво закриває УСІ твої позиції. Використовуй її, якщо потрібно терміново вийти з усього. Вимагає верифікації через Telegram для безпеки.
 
 ---
 
-## Security
+## Вирішення проблем
 
-### Are my API keys safe?
+### Мої угоди не копіюються
 
-Yes. Your API keys are encrypted before storage and never stored in plain text.
+Перевір ці поширені проблеми:
+1. Чи статус твого акаунта "Активний" у пульті?
+2. Чи схвалені твої API ключі?
+3. Чи достатньо балансу на твоїй біржі?
+4. Чи увімкнена торгівля для твоєї підключеної біржі?
 
-### Security Best Practices
+### Не можу підключити API ключі
 
-- ✅ **Never** enable withdrawal permissions on your API keys
-- ✅ Use a strong, unique password
-- ✅ Enable IP restrictions on your exchange API keys
-- ✅ Set up Telegram notifications to monitor activity
-
----
-
-## Referrals
-
-### How do referrals work?
-
-1. Get your referral code from your profile
-2. Share it with friends
-3. Earn 5% commission on their profitable trades
+Поширені причини:
+1. **Відсутні дозволи:** Переконайся, що ф'ючерсна торгівля увімкнена
+2. **Неправильний тип ключа:** Використовуй API ключі для ф'ючерсів, не спотові
+3. **IP обмеження:** Додай IP сервера до білого списку біржі
+4. **Протерміновані ключі:** Згенеруй нові API ключі та спробуй знову
 
 ---
 
-## Need Help?
+## Безпека
 
-- **AI Support Bot:** Click the chat icon in the bottom right corner
-- **Messages:** Send a message through your dashboard
-- **Telegram:** Contact our support bot
+### Чи мої API ключі в безпеці?
+
+Так. Твої API ключі шифруються перед збереженням і ніколи не зберігаються у відкритому вигляді.
+
+### Найкращі практики безпеки
+
+- ✅ **Ніколи** не вмикай дозволи на виведення на своїх API ключах
+- ✅ Використовуй сильний, унікальний пароль
+- ✅ Увімкни IP обмеження на своїх біржових API ключах
+- ✅ Налаштуй Telegram сповіщення для моніторингу активності
 
 ---
 
-**Disclaimer:** Cryptocurrency trading involves significant risk. Past performance does not guarantee future results. Only trade with money you can afford to lose.
+## Реферали
 
-*Last Updated: January 2026*
+### Як працюють реферали?
+
+1. Отримай свій реферальний код зі свого профілю
+2. Поділися ним з друзями
+3. Заробляй 5% комісії з їхніх прибуткових угод
+
+---
+
+## Потрібна допомога?
+
+- **AI Бот підтримки:** Натисни на іконку чату в правому нижньому куті
+- **Повідомлення:** Надішли повідомлення через свій пульт
+- **Telegram:** Зв'яжися з нашим ботом підтримки
+
+---
+
+**Дисклеймер:** Торгівля криптовалютами пов'язана зі значним ризиком. Минулі результати не гарантують майбутніх результатів. Торгуй лише тими грошима, які можеш дозволити собі втратити.
+
+*Останнє оновлення: Січень 2026*

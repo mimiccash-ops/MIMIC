@@ -509,7 +509,7 @@ def handle_join_chat(data):
     from models import ChatBan, ChatMessage
     
     if not current_user.is_authenticated:
-        emit('chat_error', {'message': 'Please log in to access chat'})
+        emit('chat_error', {'message': 'Увійдіть, щоб отримати доступ до чату'})
         return
     
     room = data.get('room', 'general')
@@ -577,7 +577,7 @@ def handle_send_message(data):
     from models import ChatBan, ChatMessage
     
     if not current_user.is_authenticated:
-        emit('chat_error', {'message': 'Please log in to send messages'})
+        emit('chat_error', {'message': 'Увійдіть, щоб надсилати повідомлення'})
         return
     
     room = data.get('room', 'general')
@@ -588,7 +588,7 @@ def handle_send_message(data):
         return
     
     if len(message_text) > 500:
-        emit('chat_error', {'message': 'Message too long (max 500 characters)'})
+        emit('chat_error', {'message': 'Повідомлення занадто довге (макс. 500 символів)'})
         return
     
     # Chat is available to all logged-in users (no subscription required)
@@ -629,7 +629,7 @@ def handle_delete_message(data):
         return
     
     if current_user.role != 'admin':
-        emit('chat_error', {'message': 'Admin access required'})
+        emit('chat_error', {'message': 'Потрібен доступ адміністратора'})
         return
     
     message_id = data.get('message_id')
@@ -800,7 +800,7 @@ def faq_page():
         return render_template('faq.html', faq_content=faq_html)
         
     except FileNotFoundError:
-        return render_template('faq.html', faq_content='<p>FAQ content not found.</p>')
+        return render_template('faq.html', faq_content='<p>Вміст FAQ не знайдено.</p>')
 
 
 # ==================== DYNAMIC SITEMAP ====================
@@ -1043,7 +1043,7 @@ def get_leaderboard_stats():
         logger.error(f"Error getting leaderboard stats: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load leaderboard data'
+            'error': 'Не вдалося завантажити дані лідерборду'
         }), 500
 
 
@@ -1088,7 +1088,7 @@ def get_active_tournament():
                 'success': True,
                 'tournament': None,
                 'status': 'none',
-                'message': 'No active tournament. Check back soon!'
+                'message': 'Немає активного турніру. Повертайся пізніше!'
             })
         
         return jsonify({
@@ -1101,7 +1101,7 @@ def get_active_tournament():
         logger.error(f"Error getting active tournament: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load tournament data'
+            'error': 'Не вдалося завантажити дані турніру'
         }), 500
 
 
@@ -1120,7 +1120,7 @@ def get_tournament_by_id(tournament_id):
         if not tournament:
             return jsonify({
                 'success': False,
-                'error': 'Tournament not found'
+                'error': 'Турнір не знайдено'
             }), 404
         
         return jsonify({
@@ -1132,7 +1132,7 @@ def get_tournament_by_id(tournament_id):
         logger.error(f"Error getting tournament {tournament_id}: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load tournament data'
+            'error': 'Не вдалося завантажити дані турніру'
         }), 500
 
 
@@ -1151,7 +1151,7 @@ def get_tournament_leaderboard(tournament_id):
         if not tournament:
             return jsonify({
                 'success': False,
-                'error': 'Tournament not found'
+                'error': 'Турнір не знайдено'
             }), 404
         
         return jsonify({
@@ -1169,7 +1169,7 @@ def get_tournament_leaderboard(tournament_id):
         logger.error(f"Error getting tournament leaderboard: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load leaderboard'
+            'error': 'Не вдалося завантажити лідерборд'
         }), 500
 
 
@@ -1193,14 +1193,14 @@ def join_tournament():
             else:
                 return jsonify({
                     'success': False,
-                    'error': 'No tournament available to join'
+                    'error': 'Немає доступного турніру для приєднання'
                 }), 400
         
         # Check if registration is open
         if not tournament.is_registration_open():
             return jsonify({
                 'success': False,
-                'error': 'Registration is closed for this tournament'
+                'error': 'Реєстрація закрита для цього турніру'
             }), 400
         
         # Check if user already joined
@@ -1212,7 +1212,7 @@ def join_tournament():
         if existing:
             return jsonify({
                 'success': False,
-                'error': 'You have already joined this tournament'
+                'error': 'Ти вже приєднався до цього турніру'
             }), 400
         
         # Add participant
@@ -1236,7 +1236,7 @@ def join_tournament():
         logger.error(f"Error joining tournament: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to join tournament'
+            'error': 'Не вдалося приєднатися до турніру'
         }), 500
 
 
@@ -1262,7 +1262,7 @@ def get_my_tournament_participation():
                     'success': True,
                     'participating': False,
                     'tournament': None,
-                    'message': 'No active tournament'
+                    'message': 'Немає активного турніру'
                 })
         
         # Check if user is participating
@@ -1300,7 +1300,7 @@ def get_my_tournament_participation():
         logger.error(f"Error getting tournament participation: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load participation data'
+            'error': 'Не вдалося завантажити дані участі'
         }), 500
 
 
@@ -1328,7 +1328,7 @@ def get_tournament_history():
         logger.error(f"Error getting tournament history: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load tournament history'
+            'error': 'Не вдалося завантажити історію турнірів'
         }), 500
 
 
@@ -1341,7 +1341,7 @@ def admin_create_tournament():
     Create a new tournament (admin only).
     """
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Tournament
@@ -1398,7 +1398,7 @@ def admin_cancel_tournament(tournament_id):
     Cancel a tournament (admin only).
     """
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Tournament
@@ -1408,13 +1408,13 @@ def admin_cancel_tournament(tournament_id):
         if not tournament:
             return jsonify({
                 'success': False,
-                'error': 'Tournament not found'
+                'error': 'Турнір не знайдено'
             }), 404
         
         if tournament.status == 'completed':
             return jsonify({
                 'success': False,
-                'error': 'Cannot cancel a completed tournament'
+                'error': 'Неможливо скасувати завершений турнір'
             }), 400
         
         tournament.status = 'cancelled'
@@ -1493,7 +1493,7 @@ def get_task(task_id):
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         task_dict = task.to_dict()
         
@@ -1524,7 +1524,7 @@ def join_task(task_id):
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         can_participate, reason = task.can_user_participate(current_user)
         if not can_participate:
@@ -1566,7 +1566,7 @@ def submit_task(task_id):
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         # Find user's active participation
         participation = TaskParticipation.query.filter_by(
@@ -1575,7 +1575,7 @@ def submit_task(task_id):
         ).filter(TaskParticipation.status.in_(['pending', 'in_progress'])).first()
         
         if not participation:
-            return jsonify({'success': False, 'error': 'You have not joined this task'}), 400
+            return jsonify({'success': False, 'error': 'Ти не приєднався до цього завдання'}), 400
         
         data = request.get_json() or {}
         submission_text = data.get('text', '')
@@ -1627,7 +1627,7 @@ def get_my_task_participations():
 def admin_get_tasks():
     """Get all tasks (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Task
@@ -1657,7 +1657,7 @@ def admin_get_tasks():
 def admin_create_task():
     """Create a new task (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Task
@@ -1665,7 +1665,7 @@ def admin_create_task():
         data = request.get_json()
         
         if not data.get('title'):
-            return jsonify({'success': False, 'error': 'Title is required'}), 400
+            return jsonify({'success': False, 'error': 'Потрібен заголовок'}), 400
         
         task = Task(
             title=data.get('title'),
@@ -1718,14 +1718,14 @@ def admin_create_task():
 def admin_update_task(task_id):
     """Update a task (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Task
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         data = request.get_json()
         
@@ -1794,14 +1794,14 @@ def admin_update_task(task_id):
 def admin_delete_task(task_id):
     """Delete a task (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Task
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         title = task.title
         db.session.delete(task)
@@ -1825,7 +1825,7 @@ def admin_delete_task(task_id):
 def admin_get_pending_reviews():
     """Get all task submissions awaiting review (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import TaskParticipation
@@ -1848,17 +1848,17 @@ def admin_get_pending_reviews():
 def admin_approve_participation(participation_id):
     """Approve a task submission (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import TaskParticipation
         
         participation = TaskParticipation.query.get(participation_id)
         if not participation:
-            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+            return jsonify({'success': False, 'error': 'Подання не знайдено'}), 404
         
         if participation.status != 'submitted':
-            return jsonify({'success': False, 'error': 'Submission is not pending review'}), 400
+            return jsonify({'success': False, 'error': 'Подання не очікує перевірки'}), 400
         
         data = request.get_json() or {}
         notes = data.get('notes', '')
@@ -1884,17 +1884,17 @@ def admin_approve_participation(participation_id):
 def admin_reject_participation(participation_id):
     """Reject a task submission (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import TaskParticipation
         
         participation = TaskParticipation.query.get(participation_id)
         if not participation:
-            return jsonify({'success': False, 'error': 'Submission not found'}), 404
+            return jsonify({'success': False, 'error': 'Подання не знайдено'}), 404
         
         if participation.status != 'submitted':
-            return jsonify({'success': False, 'error': 'Submission is not pending review'}), 400
+            return jsonify({'success': False, 'error': 'Подання не очікує перевірки'}), 400
         
         data = request.get_json() or {}
         reason = data.get('reason', 'Submission did not meet requirements')
@@ -1921,14 +1921,14 @@ def admin_reject_participation(participation_id):
 def admin_get_task_participations(task_id):
     """Get all participations for a specific task (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Task, TaskParticipation
         
         task = Task.query.get(task_id)
         if not task:
-            return jsonify({'success': False, 'error': 'Task not found'}), 404
+            return jsonify({'success': False, 'error': 'Завдання не знайдено'}), 404
         
         status = request.args.get('status')
         query = TaskParticipation.query.filter_by(task_id=task_id)
@@ -2065,7 +2065,7 @@ def get_proposals():
         logger.error(f"Error getting proposals: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load proposals'
+            'error': 'Не вдалося завантажити пропозиції'
         }), 500
 
 
@@ -2108,7 +2108,7 @@ def get_proposal(proposal_id):
         logger.error(f"Error getting proposal {proposal_id}: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to load proposal'
+            'error': 'Не вдалося завантажити пропозицію'
         }), 500
 
 
@@ -2184,7 +2184,7 @@ def submit_vote():
         logger.error(f"Error submitting vote: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to submit vote'
+            'error': 'Не вдалося відправити голос'
         }), 500
 
 
@@ -2217,7 +2217,7 @@ def check_vote_eligibility():
         logger.error(f"Error checking vote eligibility: {e}")
         return jsonify({
             'success': False,
-            'error': 'Failed to check eligibility'
+            'error': 'Не вдалося перевірити право голосу'
         }), 500
 
 
@@ -2228,7 +2228,7 @@ def check_vote_eligibility():
 def admin_create_proposal():
     """Create a new proposal (admin only)."""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Proposal
@@ -2251,7 +2251,7 @@ def admin_create_proposal():
         if category not in ['trading_pair', 'risk_management', 'exchange', 'feature', 'other']:
             return jsonify({
                 'success': False,
-                'error': 'Invalid category'
+                'error': 'Невірна категорія'
             }), 400
         
         proposal = Proposal.create_proposal(
@@ -2285,7 +2285,7 @@ def admin_create_proposal():
 def admin_close_proposal(proposal_id):
     """Close voting on a proposal (admin only)."""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Proposal
@@ -2327,7 +2327,7 @@ def admin_close_proposal(proposal_id):
 def admin_implement_proposal(proposal_id):
     """Mark a passed proposal as implemented (admin only)."""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import Proposal
@@ -2770,7 +2770,7 @@ def dashboard():
                         break
             except Exception as e:
                 logger.warning(f"Failed to fetch master balance: {e}")
-                m_bal = "Error"
+                m_bal = "Помилка"
         
         # Get user balances for admin view - from all connected exchanges
         user_balances = {}
@@ -2862,7 +2862,7 @@ def dashboard():
                         u_bal = f"{float(b['balance']):,.2f}"
                         break
             except Exception:
-                u_bal = "Error"
+                u_bal = "Помилка"
         
         user_history = TradeHistory.query.filter_by(user_id=current_user.id)\
             .order_by(TradeHistory.close_time.desc()).limit(50).all()
@@ -3113,11 +3113,11 @@ def get_avatar_emojis():
 def admin_update_user_avatar(user_id):
     """Admin can update any user's avatar"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     user = db.session.get(User, user_id)
     if not user:
-        return jsonify({'success': False, 'error': 'User not found'}), 404
+        return jsonify({'success': False, 'error': 'Користувача не знайдено'}), 404
     
     try:
         avatar_type = request.form.get('avatar_type', 'emoji')
@@ -3128,30 +3128,30 @@ def admin_update_user_avatar(user_id):
                 user.avatar = emoji
                 user.avatar_type = 'emoji'
                 db.session.commit()
-                return jsonify({'success': True, 'message': 'Avatar updated'})
+                return jsonify({'success': True, 'message': 'Аватар оновлено'})
             else:
-                return jsonify({'success': False, 'error': 'Invalid emoji'}), 400
+                return jsonify({'success': False, 'error': 'Невірний емодзі'}), 400
         
         elif avatar_type == 'image':
             if 'avatar_file' not in request.files:
-                return jsonify({'success': False, 'error': 'No file selected'}), 400
+                return jsonify({'success': False, 'error': 'Файл не обрано'}), 400
             
             file = request.files['avatar_file']
             if file.filename == '':
-                return jsonify({'success': False, 'error': 'No file selected'}), 400
+                return jsonify({'success': False, 'error': 'Файл не обрано'}), 400
             
             allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
             
             if file_ext not in allowed_extensions:
-                return jsonify({'success': False, 'error': 'Only PNG, JPG, GIF, WEBP allowed'}), 400
+                return jsonify({'success': False, 'error': 'Дозволено лише PNG, JPG, GIF, WEBP'}), 400
             
             file.seek(0, 2)
             size = file.tell()
             file.seek(0)
             
             if size > 2 * 1024 * 1024:
-                return jsonify({'success': False, 'error': 'Max file size: 2MB'}), 400
+                return jsonify({'success': False, 'error': 'Максимальний розмір: 2МБ'}), 400
             
             filename = f"avatar_{user.id}_{secrets.token_hex(8)}.{file_ext}"
             avatars_dir = os.path.join(app.static_folder, 'avatars')
@@ -3172,9 +3172,9 @@ def admin_update_user_avatar(user_id):
             user.avatar_type = 'image'
             db.session.commit()
             
-            return jsonify({'success': True, 'message': 'Avatar uploaded', 'avatar': filename})
+            return jsonify({'success': True, 'message': 'Аватар завантажено', 'avatar': filename})
         
-        return jsonify({'success': False, 'error': 'Invalid avatar type'}), 400
+        return jsonify({'success': False, 'error': 'Невірний тип аватара'}), 400
         
     except Exception as e:
         logger.error(f"Error updating user avatar: {e}")
@@ -3186,11 +3186,11 @@ def admin_update_user_avatar(user_id):
 def get_user_details(user_id):
     """Get detailed user information for admin panel"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     user = db.session.get(User, user_id)
     if not user:
-        return jsonify({'success': False, 'error': 'User not found'}), 404
+        return jsonify({'success': False, 'error': 'Користувача не знайдено'}), 404
     
     # Get trade statistics
     total_trades = TradeHistory.query.filter_by(user_id=user_id).count()
@@ -3298,19 +3298,19 @@ def get_user_details(user_id):
 def admin_delete_user(user_id):
     """Delete a user and all their data (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     # Prevent admin from deleting themselves
     if user_id == current_user.id:
-        return jsonify({'success': False, 'error': 'Cannot delete yourself'}), 400
+        return jsonify({'success': False, 'error': 'Неможливо видалити себе'}), 400
     
     user = db.session.get(User, user_id)
     if not user:
-        return jsonify({'success': False, 'error': 'User not found'}), 404
+        return jsonify({'success': False, 'error': 'Користувача не знайдено'}), 404
     
     # Prevent deleting other admins
     if user.role == 'admin':
-        return jsonify({'success': False, 'error': 'Cannot delete admin users'}), 400
+        return jsonify({'success': False, 'error': 'Неможливо видалити адміністраторів'}), 400
     
     try:
         username = user.username
@@ -3388,7 +3388,7 @@ def admin_panic():
 def api_admin_panic():
     """API endpoint for admin panic close"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     try:
         results = engine.close_all_positions_all_accounts()
@@ -3463,7 +3463,7 @@ def get_balance_history():
 def get_master_stats():
     """Get master trading statistics for different periods"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'error': 'Доступ заборонено'}), 403
     
     # Get period parameter
     period = request.args.get('period', '24h')
@@ -3520,7 +3520,7 @@ def get_master_stats():
 def get_master_exchange_balances():
     """Get balances from all master exchanges (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'error': 'Доступ заборонено'}), 403
     
     try:
         balances = engine.get_all_master_balances()
@@ -3541,7 +3541,7 @@ def get_master_exchange_balances():
 def get_master_positions():
     """Get positions from all master exchanges (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Access denied'}), 403
+        return jsonify({'error': 'Доступ заборонено'}), 403
     
     try:
         positions = engine.get_all_master_positions()
@@ -3958,7 +3958,7 @@ def get_banner(banner_type):
         response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
         return response
     else:
-        return jsonify({'error': 'Failed to generate banner'}), 500
+        return jsonify({'error': 'Не вдалося згенерувати банер'}), 500
 
 
 @app.route('/api/influencer/payout-request', methods=['POST'])
@@ -3981,7 +3981,7 @@ def request_payout():
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            return jsonify({'success': False, 'error': 'Дані не надано'}), 400
         
         amount = float(data.get('amount', 0))
         payment_method = data.get('payment_method', '').strip()
@@ -3989,10 +3989,10 @@ def request_payout():
         
         # Validate inputs
         if not payment_method:
-            return jsonify({'success': False, 'error': 'Payment method is required'}), 400
+            return jsonify({'success': False, 'error': 'Потрібен метод оплати'}), 400
         
         if not payment_address:
-            return jsonify({'success': False, 'error': 'Payment address is required'}), 400
+            return jsonify({'success': False, 'error': 'Потрібна адреса платежу'}), 400
         
         # Create payout request
         payout = PayoutRequest.create_request(
@@ -4027,7 +4027,7 @@ def request_payout():
         return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
         logger.error(f"Payout request error: {e}")
-        return jsonify({'success': False, 'error': 'Failed to create payout request'}), 500
+        return jsonify({'success': False, 'error': 'Не вдалося створити запит на виплату'}), 500
 
 
 @app.route('/api/influencer/daily-stats', methods=['GET'])
@@ -4269,7 +4269,7 @@ def admin_gamification_stats():
         JSON with level distribution, achievement stats, etc.
     """
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from sqlalchemy import func
@@ -4327,7 +4327,7 @@ def admin_recalculate_xp():
         JSON with recalculation results
     """
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from sqlalchemy import func
@@ -4375,7 +4375,7 @@ def admin_recalculate_xp():
 def admin_referral_stats():
     """Get admin referral and payout statistics"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import ReferralCommission, PayoutRequest
@@ -4411,7 +4411,7 @@ def admin_referral_stats():
 def admin_subscription_stats():
     """Get admin subscription statistics"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from datetime import datetime, timezone
@@ -4453,7 +4453,7 @@ def admin_subscription_stats():
 def get_subscription_settings():
     """Get subscription settings for admin panel"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import SystemSetting
@@ -4507,14 +4507,14 @@ def get_subscription_settings():
 def update_subscription_settings():
     """Update subscription settings from admin panel"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import SystemSetting
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            return jsonify({'success': False, 'error': 'Дані не надано'}), 400
         
         updated = []
         
@@ -4572,7 +4572,7 @@ def update_subscription_settings():
 def get_admin_subscription_payments():
     """Get all pending and recent subscription payments for admin"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         status_filter = request.args.get('status', 'all')
@@ -4620,19 +4620,19 @@ def get_admin_subscription_payments():
 def admin_confirm_payment(payment_id):
     """Manually confirm a pending payment and activate subscription"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         payment = Payment.query.get(payment_id)
         if not payment:
-            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+            return jsonify({'success': False, 'error': 'Платіж не знайдено'}), 404
         
         if payment.status == 'completed':
-            return jsonify({'success': False, 'error': 'Payment already confirmed'}), 400
+            return jsonify({'success': False, 'error': 'Платіж вже підтверджено'}), 400
         
         user = User.query.get(payment.user_id)
         if not user:
-            return jsonify({'success': False, 'error': 'User not found'}), 404
+            return jsonify({'success': False, 'error': 'Користувача не знайдено'}), 404
         
         # Update payment status
         payment.status = 'completed'
@@ -4677,7 +4677,7 @@ Thank you for your payment! Trading is now enabled.
 def admin_reject_payment(payment_id):
     """Reject a pending payment"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         data = request.get_json() or {}
@@ -4685,10 +4685,10 @@ def admin_reject_payment(payment_id):
         
         payment = Payment.query.get(payment_id)
         if not payment:
-            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+            return jsonify({'success': False, 'error': 'Платіж не знайдено'}), 404
         
         if payment.status == 'completed':
-            return jsonify({'success': False, 'error': 'Cannot reject completed payment'}), 400
+            return jsonify({'success': False, 'error': 'Неможливо відхилити завершений платіж'}), 400
         
         user = User.query.get(payment.user_id)
         
@@ -4726,7 +4726,7 @@ Please contact support if you believe this is an error.
 def admin_activate_subscription(user_id):
     """Manually activate subscription for a user without payment"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
         from models import SystemSetting
@@ -4734,7 +4734,7 @@ def admin_activate_subscription(user_id):
         
         user = User.query.get(user_id)
         if not user:
-            return jsonify({'success': False, 'error': 'User not found'}), 404
+            return jsonify({'success': False, 'error': 'Користувача не знайдено'}), 404
         
         plan = data.get('plan', 'basic')
         days = int(data.get('days', SystemSetting.get_setting('subscription', 'default_days', '30') or '30'))
@@ -4782,14 +4782,14 @@ def create_direct_payment():
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            return jsonify({'success': False, 'error': 'Дані не надано'}), 400
         
         plan_id = data.get('plan', 'basic')
         network = data.get('network', 'usdt_trc20')
         
         # Validate plan
         if plan_id not in Config.SUBSCRIPTION_PLANS:
-            return jsonify({'success': False, 'error': f'Invalid plan: {plan_id}'}), 400
+            return jsonify({'success': False, 'error': f'Невірний план: {plan_id}'}), 400
         
         plan = Config.SUBSCRIPTION_PLANS[plan_id]
         
@@ -4871,10 +4871,10 @@ def mark_payment_as_paid(payment_id):
         
         payment = Payment.query.get(payment_id)
         if not payment:
-            return jsonify({'success': False, 'error': 'Payment not found'}), 404
+            return jsonify({'success': False, 'error': 'Платіж не знайдено'}), 404
         
         if payment.user_id != current_user.id:
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+            return jsonify({'success': False, 'error': 'Неавторизовано'}), 403
         
         if payment.status != 'pending':
             return jsonify({'success': False, 'error': f'Payment is already {payment.status}'}), 400
@@ -5265,7 +5265,7 @@ def webhook():
                 except (json.JSONDecodeError, ValueError) as e:
                     logger.warning(f"Webhook: Data received but not valid JSON: {raw_data[:200]}")
                     logger.warning(f"JSON parse error: {str(e)}")
-                    return jsonify({'error': 'Invalid JSON format'}), 400
+                    return jsonify({'error': 'Невірний формат JSON'}), 400
             
             if not data:
                 # Empty request - health check
@@ -5280,17 +5280,17 @@ def webhook():
         if not secrets.compare_digest(str(received_pass), str(expected_pass)):
             audit.log_security_event("WEBHOOK_AUTH_FAIL", f"IP: {ip}", "WARNING")
             logger.warning(f"Webhook: Invalid passphrase from {ip}")
-            return jsonify({'error': 'Unauthorized'}), 401
+            return jsonify({'error': 'Неавторизовано'}), 401
         
         # Parse and validate signal
         raw_symbol = re.sub(r'\.P|\.p|\.S|\.s$', '', str(data.get('symbol', ''))).upper()
         valid, symbol = InputValidator.validate_symbol(raw_symbol)
         if not valid:
-            return jsonify({'error': f'Invalid symbol: {symbol}'}), 400
+            return jsonify({'error': f'Невірний символ: {symbol}'}), 400
         
         action = data.get('action', 'close').lower()
         if action not in ['long', 'short', 'close']:
-            return jsonify({'error': 'Invalid action'}), 400
+            return jsonify({'error': 'Невірна дія'}), 400
         
         # Get TP/SL with proper defaults from global settings
         tp_val = data.get('tp_perc')
@@ -5725,7 +5725,7 @@ def admin_payouts():
 def admin_approve_payout(payout_id):
     """Approve a payout request"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     from models import PayoutRequest
     
@@ -5764,7 +5764,7 @@ def admin_approve_payout(payout_id):
 def admin_reject_payout(payout_id):
     """Reject a payout request"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     from models import PayoutRequest
     
@@ -5803,7 +5803,7 @@ def admin_reject_payout(payout_id):
 def admin_mark_payout_paid(payout_id):
     """Mark a payout as paid (after actual payment)"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     from models import PayoutRequest
     
@@ -5844,7 +5844,7 @@ def admin_mark_payout_paid(payout_id):
 def api_get_payout_details(payout_id):
     """Get payout details for admin modal"""
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
+        return jsonify({'success': False, 'error': 'Доступ заборонено'}), 403
     
     from models import PayoutRequest
     
@@ -6373,7 +6373,7 @@ def mark_message_read(message_id):
 def get_users_list():
     """Get list of users for admin to send messages to"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     users = User.query.filter(User.role != 'admin').all()
     users_data = [{
@@ -6399,7 +6399,7 @@ def get_chat_history():
     
     # Check subscription
     if not current_user.has_active_subscription() and current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Active subscription required'}), 403
+        return jsonify({'success': False, 'error': 'Потрібна активна підписка'}), 403
     
     # Check if user is banned
     is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
@@ -6507,7 +6507,7 @@ def get_chat_bans():
     from models import ChatBan
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     active_only = request.args.get('active_only', 'true').lower() == 'true'
     
@@ -6530,7 +6530,7 @@ def mute_user_chat():
     from models import ChatBan
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     data = request.get_json()
     user_id = data.get('user_id')
@@ -6538,16 +6538,16 @@ def mute_user_chat():
     reason = data.get('reason', 'Chat rule violation')
     
     if not user_id:
-        return jsonify({'error': 'User ID required'}), 400
+        return jsonify({'error': 'Потрібен ID користувача'}), 400
     
     # Check if user exists
     target_user = User.query.get(user_id)
     if not target_user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'Користувача не знайдено'}), 404
     
     # Don't allow muting admins
     if target_user.role == 'admin':
-        return jsonify({'error': 'Cannot mute admin users'}), 400
+        return jsonify({'error': 'Неможливо замʼютити адміністраторів'}), 400
     
     # Create mute
     ban = ChatBan.mute_user(user_id, duration, reason, current_user.id)
@@ -6573,23 +6573,23 @@ def ban_user_chat():
     from models import ChatBan
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     data = request.get_json()
     user_id = data.get('user_id')
     reason = data.get('reason', 'Chat rule violation')
     
     if not user_id:
-        return jsonify({'error': 'User ID required'}), 400
+        return jsonify({'error': 'Потрібен ID користувача'}), 400
     
     # Check if user exists
     target_user = User.query.get(user_id)
     if not target_user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'Користувача не знайдено'}), 404
     
     # Don't allow banning admins
     if target_user.role == 'admin':
-        return jsonify({'error': 'Cannot ban admin users'}), 400
+        return jsonify({'error': 'Неможливо заблокувати адміністраторів'}), 400
     
     # Create ban
     ban = ChatBan.ban_user(user_id, reason, current_user.id)
@@ -6616,18 +6616,18 @@ def unban_user_chat():
     from models import ChatBan
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     data = request.get_json()
     user_id = data.get('user_id')
     
     if not user_id:
-        return jsonify({'error': 'User ID required'}), 400
+        return jsonify({'error': 'Потрібен ID користувача'}), 400
     
     # Check if user exists
     target_user = User.query.get(user_id)
     if not target_user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': 'Користувача не знайдено'}), 404
     
     # Remove all active bans
     ChatBan.unban_user(user_id)
@@ -6650,17 +6650,17 @@ def admin_delete_message():
     from models import ChatMessage
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     data = request.get_json()
     message_id = data.get('message_id')
     
     if not message_id:
-        return jsonify({'error': 'Message ID required'}), 400
+        return jsonify({'error': 'Потрібен ID повідомлення'}), 400
     
     message = ChatMessage.query.get(message_id)
     if not message:
-        return jsonify({'error': 'Message not found'}), 404
+        return jsonify({'error': 'Повідомлення не знайдено'}), 404
     
     room = message.room
     message.is_deleted = True
@@ -6715,14 +6715,14 @@ def support_chat():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'error': 'No data provided'}), 400
+        return jsonify({'success': False, 'error': 'Дані не надано'}), 400
     
     message = data.get('message', '').strip()
     if not message:
-        return jsonify({'success': False, 'error': 'Message is required'}), 400
+        return jsonify({'success': False, 'error': 'Потрібне повідомлення'}), 400
     
     if len(message) > 1000:
-        return jsonify({'success': False, 'error': 'Message too long (max 1000 chars)'}), 400
+        return jsonify({'success': False, 'error': 'Повідомлення задовге (макс. 1000 символів)'}), 400
     
     session_id = data.get('session_id')
     
@@ -6759,7 +6759,7 @@ def support_history():
     
     session_id = request.args.get('session_id')
     if not session_id:
-        return jsonify({'success': False, 'error': 'Session ID required'}), 400
+        return jsonify({'success': False, 'error': 'Потрібен ID сесії'}), 400
     
     bot = get_support_bot()
     history = bot.get_conversation_history(session_id)
@@ -6792,7 +6792,7 @@ def get_support_tickets():
     from models import SupportTicket
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     status = request.args.get('status', 'open')
     limit = min(int(request.args.get('limit', 50)), 100)
@@ -6815,11 +6815,11 @@ def manage_support_ticket(ticket_id):
     from models import SupportTicket
     
     if current_user.role != 'admin':
-        return jsonify({'error': 'Admin access required'}), 403
+        return jsonify({'error': 'Потрібен доступ адміністратора'}), 403
     
     ticket = SupportTicket.query.get(ticket_id)
     if not ticket:
-        return jsonify({'error': 'Ticket not found'}), 404
+        return jsonify({'error': 'Тікет не знайдено'}), 404
     
     if request.method == 'GET':
         return jsonify({
@@ -6832,7 +6832,7 @@ def manage_support_ticket(ticket_id):
     admin_response = data.get('response', '').strip()
     
     if not admin_response:
-        return jsonify({'error': 'Response is required'}), 400
+        return jsonify({'error': 'Потрібна відповідь'}), 400
     
     ticket.resolve(admin_response=admin_response, admin_id=current_user.id)
     
@@ -7221,7 +7221,7 @@ def delete_user_exchange(exchange_id):
 def admin_list_exchange_configs():
     """List all exchange configurations with verification status (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     # Initialize exchanges if they don't exist
     configs = ExchangeConfig.query.all()
@@ -7238,7 +7238,7 @@ def admin_toggle_exchange_config(exchange_name):
     """Enable/disable an exchange for user connections (admin only)
     IMPORTANT: Can only enable if exchange is verified by admin"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json()
@@ -7292,7 +7292,7 @@ def admin_toggle_exchange_config(exchange_name):
 def admin_verify_exchange(exchange_name):
     """Admin connects and verifies exchange with their own API keys"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json()
@@ -7403,7 +7403,7 @@ def admin_verify_exchange(exchange_name):
 def admin_disconnect_exchange(exchange_name):
     """Admin disconnects their API keys from exchange (also disables for users)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         config = ExchangeConfig.query.filter_by(exchange_name=exchange_name).first()
@@ -7447,7 +7447,7 @@ def admin_disconnect_exchange(exchange_name):
 def admin_list_pending_exchanges():
     """List all pending exchange requests (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     pending = UserExchange.query.filter_by(status='PENDING').all()
     configs = {c.exchange_name: c.display_name for c in ExchangeConfig.query.all()}
@@ -7476,7 +7476,7 @@ def admin_list_pending_exchanges():
 def admin_list_all_exchanges():
     """List all user exchanges (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     user_id = request.args.get('user_id', type=int)
     
@@ -7514,7 +7514,7 @@ def admin_list_all_exchanges():
 def admin_approve_exchange(exchange_id):
     """Approve user's exchange connection (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json() or {}
@@ -7567,7 +7567,7 @@ def admin_approve_exchange(exchange_id):
 def admin_reject_exchange(exchange_id):
     """Reject user's exchange connection (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json()
@@ -7618,7 +7618,7 @@ def admin_reject_exchange(exchange_id):
 def admin_test_exchange(exchange_id):
     """Test user's exchange connection (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         exchange = db.session.get(UserExchange, exchange_id)
@@ -7667,7 +7667,7 @@ def admin_test_exchange(exchange_id):
 def admin_pending_exchanges_count():
     """Get count of pending exchanges (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     count = UserExchange.query.filter_by(status='PENDING').count()
     return jsonify({'count': count})
@@ -7680,7 +7680,7 @@ def admin_pending_exchanges_count():
 def admin_start_user_trading(exchange_id):
     """Admin enables trading for a user's exchange"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         exchange = db.session.get(UserExchange, exchange_id)
@@ -7737,7 +7737,7 @@ def admin_start_user_trading(exchange_id):
 def admin_stop_user_trading(exchange_id):
     """Admin disables trading for a user's exchange"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         exchange = db.session.get(UserExchange, exchange_id)
@@ -7780,7 +7780,7 @@ def admin_stop_user_trading(exchange_id):
 def admin_toggle_user_trading(exchange_id):
     """Admin toggles trading for a user's exchange"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -7846,7 +7846,7 @@ def admin_toggle_user_trading(exchange_id):
 def admin_delete_user_exchange(exchange_id):
     """Admin deletes a user's exchange connection"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         exchange = db.session.get(UserExchange, exchange_id)
@@ -7935,7 +7935,7 @@ def create_subscription():
         allocation_percent = float(data.get('allocation_percent', 100.0))
         
         if not strategy_id:
-            return jsonify({'error': 'strategy_id is required'}), 400
+            return jsonify({'error': 'Потрібен strategy_id'}), 400
         
         if allocation_percent <= 0 or allocation_percent > 100:
             return jsonify({'error': 'allocation_percent must be between 0 and 100'}), 400
@@ -7943,7 +7943,7 @@ def create_subscription():
         # Check strategy exists and is active
         strategy = Strategy.query.get(strategy_id)
         if not strategy or not strategy.is_active:
-            return jsonify({'error': 'Strategy not found or inactive'}), 404
+            return jsonify({'error': 'Стратегію не знайдено або вона неактивна'}), 404
         
         # Check if already subscribed
         existing = StrategySubscription.query.filter_by(
@@ -7993,7 +7993,7 @@ def update_subscription(subscription_id):
             return jsonify({'error': 'Subscription not found'}), 404
         
         if subscription.user_id != current_user.id:
-            return jsonify({'error': 'Unauthorized'}), 403
+            return jsonify({'error': 'Неавторизовано'}), 403
         
         data = request.get_json()
         
@@ -8040,7 +8040,7 @@ def delete_subscription(subscription_id):
             return jsonify({'error': 'Subscription not found'}), 404
         
         if subscription.user_id != current_user.id:
-            return jsonify({'error': 'Unauthorized'}), 403
+            return jsonify({'error': 'Неавторизовано'}), 403
         
         strategy_name = subscription.strategy.name if subscription.strategy else 'Unknown'
         
@@ -8065,7 +8065,7 @@ def delete_subscription(subscription_id):
 def admin_get_strategies():
     """Get all strategies (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         strategies = Strategy.query.all()
@@ -8083,7 +8083,7 @@ def admin_get_strategies():
 def admin_create_strategy():
     """Create a new strategy (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         data = request.get_json()
@@ -8128,7 +8128,7 @@ def admin_create_strategy():
 def admin_update_strategy(strategy_id):
     """Update a strategy (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         strategy = Strategy.query.get(strategy_id)
@@ -8180,7 +8180,7 @@ def admin_update_strategy(strategy_id):
 def admin_delete_strategy(strategy_id):
     """Delete a strategy (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         strategy = Strategy.query.get(strategy_id)
@@ -8195,7 +8195,7 @@ def admin_delete_strategy(strategy_id):
         active_subs = strategy.subscriptions.filter_by(is_active=True).count()
         if active_subs > 0:
             return jsonify({
-                'error': f'Cannot delete strategy with {active_subs} active subscribers. Deactivate it instead.'
+                'error': f'Неможливо видалити стратегію з {active_subs} активними підписниками. Спочатку деактивуй її.'
             }), 400
         
         strategy_name = strategy.name
@@ -8218,7 +8218,7 @@ def admin_delete_strategy(strategy_id):
 def admin_get_strategy_subscribers(strategy_id):
     """Get all subscribers of a strategy (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         strategy = Strategy.query.get(strategy_id)
@@ -8256,12 +8256,12 @@ def admin_get_strategy_subscribers(strategy_id):
 def admin_get_user_balances(user_id):
     """Get balances for all connected exchanges of a user (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         user = db.session.get(User, user_id)
         if not user:
-            return jsonify({'error': 'User not found'}), 404
+            return jsonify({'error': 'Користувача не знайдено'}), 404
         
         # Get balances from all exchanges
         balance_data = get_user_exchange_balances(user_id)
@@ -8284,7 +8284,7 @@ def admin_get_user_balances(user_id):
 def admin_get_all_user_balances():
     """Get balances for all users across all exchanges (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         users = User.query.filter(User.role != 'admin').all()
@@ -8317,7 +8317,7 @@ def admin_get_all_user_balances():
 def admin_get_user_exchanges(user_id):
     """Get all exchanges for a specific user (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         user = db.session.get(User, user_id)
@@ -8365,7 +8365,7 @@ def admin_get_user_exchanges(user_id):
 def admin_get_system_settings():
     """Get all system settings grouped by category (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
@@ -8412,7 +8412,7 @@ def admin_get_system_settings():
 def admin_get_category_settings(category):
     """Get settings for a specific category (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
@@ -8447,14 +8447,14 @@ def admin_get_category_settings(category):
 def admin_update_setting(category, key):
     """Update a specific setting (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting
         
         data = request.get_json()
         if not data:
-            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            return jsonify({'success': False, 'error': 'Дані не надано'}), 400
         
         value = data.get('value', '')
         
@@ -8496,7 +8496,7 @@ def admin_update_setting(category, key):
 def admin_update_category_settings(category):
     """Update multiple settings for a category at once (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
@@ -8557,7 +8557,7 @@ def admin_update_category_settings(category):
 def admin_toggle_service(category):
     """Toggle a service category on/off (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting
@@ -8606,7 +8606,7 @@ def admin_toggle_service(category):
 def admin_test_service(category):
     """Test a service connection/configuration (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting
@@ -8635,7 +8635,7 @@ def admin_test_service(category):
                                 'can_read_messages': bot_info.get('can_read_all_group_messages', False)
                             }
                         })
-                return jsonify({'success': False, 'error': 'Invalid bot token or API error'}), 400
+                return jsonify({'success': False, 'error': 'Невірний токен бота або помилка API'}), 400
             except Exception as e:
                 return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
         
@@ -8682,7 +8682,7 @@ def admin_test_service(category):
                             'message': '✅ Connected to Plisio API',
                             'details': {'currencies_available': len(data.get('data', {}))}
                         })
-                return jsonify({'success': False, 'error': 'Invalid API key or API error'}), 400
+                return jsonify({'success': False, 'error': 'Невірний API ключ або помилка API'}), 400
             except Exception as e:
                 return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
         
@@ -8706,7 +8706,7 @@ def admin_test_service(category):
                         'details': {'models_available': True}
                     })
                 elif response.status_code == 401:
-                    return jsonify({'success': False, 'error': 'Invalid OpenAI API key'}), 400
+                    return jsonify({'success': False, 'error': 'Невірний OpenAI API ключ'}), 400
                 return jsonify({'success': False, 'error': f'API error: {response.status_code}'}), 400
             except Exception as e:
                 return jsonify({'success': False, 'error': f'Connection failed: {str(e)}'}), 400
@@ -8751,7 +8751,7 @@ def admin_test_service(category):
             
             # Basic format validation
             if len(api_key) < 10 or len(api_secret) < 10:
-                return jsonify({'success': False, 'error': 'Invalid Twitter API key format'}), 400
+                return jsonify({'success': False, 'error': 'Невірний формат Twitter API ключа'}), 400
             
             return jsonify({
                 'success': True,
@@ -8776,7 +8776,7 @@ def admin_test_service(category):
 def admin_initialize_settings():
     """Initialize default settings if not present (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting
@@ -8805,7 +8805,7 @@ def admin_initialize_settings():
 def admin_export_settings():
     """Export all settings (excluding sensitive values) for backup (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
@@ -8846,7 +8846,7 @@ def admin_export_settings():
 def admin_get_service_status():
     """Get quick status overview of all services (admin only)"""
     if current_user.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
+        return jsonify({'error': 'Неавторизовано'}), 403
     
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
@@ -8949,7 +8949,7 @@ def create_payment():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'error': 'No data provided'}), 400
+        return jsonify({'success': False, 'error': 'Дані не надано'}), 400
     
     plan_id = data.get('plan', 'basic')
     currency = data.get('currency', 'USDT_TRC20')
@@ -9044,7 +9044,7 @@ def create_payment():
         
     except Exception as e:
         logger.error(f"❌ Payment creation failed: {e}")
-        return jsonify({'success': False, 'error': 'Failed to create payment invoice'}), 500
+        return jsonify({'success': False, 'error': 'Не вдалося створити інвойс платежу'}), 500
 
 
 @app.route('/api/payment/webhook', methods=['GET', 'POST'])
@@ -9144,7 +9144,7 @@ def get_payment_status(payment_id):
     payment = Payment.query.filter_by(id=payment_id, user_id=current_user.id).first()
     
     if not payment:
-        return jsonify({'success': False, 'error': 'Payment not found'}), 404
+        return jsonify({'success': False, 'error': 'Платіж не знайдено'}), 404
     
     return jsonify({
         'success': True,
@@ -9208,7 +9208,7 @@ def push_subscribe():
     if not data or 'subscription' not in data:
         return jsonify({
             'success': False,
-            'error': 'Invalid subscription data'
+            'error': 'Невірні дані підписки'
         }), 400
     
     subscription = data['subscription']
@@ -9263,7 +9263,7 @@ def push_subscribe():
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': 'Failed to save subscription'
+            'error': 'Не вдалося зберегти підписку'
         }), 500
 
 
@@ -9303,7 +9303,7 @@ def push_unsubscribe():
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': 'Failed to unsubscribe'
+            'error': 'Не вдалося скасувати підписку'
         }), 500
 
 
@@ -9544,7 +9544,7 @@ def api_keys_create():
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'error': 'No data provided'}), 400
+        return jsonify({'success': False, 'error': 'Дані не надано'}), 400
     
     # Validate label
     label = data.get('label', 'Default API Key')
@@ -9621,7 +9621,7 @@ def api_keys_create():
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': f'Failed to create API key: {str(e)}'
+            'error': f'Не вдалося створити API ключ: {str(e)}'
         }), 500
 
 
@@ -9650,7 +9650,7 @@ def api_keys_revoke(key_id):
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': f'Failed to revoke API key: {str(e)}'
+            'error': f'Не вдалося відкликати API ключ: {str(e)}'
         }), 500
 
 
@@ -9667,7 +9667,7 @@ def api_keys_update(key_id):
     
     data = request.get_json()
     if not data:
-        return jsonify({'success': False, 'error': 'No data provided'}), 400
+        return jsonify({'success': False, 'error': 'Дані не надано'}), 400
     
     try:
         # Update label
@@ -9714,7 +9714,7 @@ def api_keys_update(key_id):
         db.session.rollback()
         return jsonify({
             'success': False,
-            'error': f'Failed to update API key: {str(e)}'
+            'error': f'Не вдалося оновити API ключ: {str(e)}'
         }), 500
 
 

@@ -211,8 +211,8 @@
                 </div>
 
                 <!-- Language -->
-                <button onclick="toggleLanguage()" class="action-btn" aria-label="Language">
-                    <span class="lang-flag">🇺🇸</span>
+                <button onclick="toggleLanguage()" class="action-btn" aria-label="Мова">
+                    <span class="lang-flag">🇺🇦</span>
                 </button>
 
                 {% if current_user.is_authenticated %}
@@ -241,7 +241,7 @@
                         </div>
                         <div class="dropdown-info">
                             <span class="dropdown-name">{{ current_user.first_name or current_user.username }}</span>
-                            <span class="dropdown-role {% if current_user.role == 'admin' %}admin{% endif %}">{{ current_user.role|capitalize }}</span>
+                            <span class="dropdown-role {% if current_user.role == 'admin' %}admin{% endif %}"><span data-i18n="role.{{ current_user.role }}">{{ current_user.role|capitalize }}</span></span>
                         </div>
                     </div>
                     <div class="dropdown-divider"></div>
@@ -356,7 +356,7 @@
             </div>
             <div class="mobile-user-info">
                 <span class="mobile-user-name">{{ current_user.first_name or current_user.username }}</span>
-                <span class="mobile-user-role {% if current_user.role == 'admin' %}admin{% endif %}">{{ current_user.role|capitalize }}</span>
+                <span class="mobile-user-role {% if current_user.role == 'admin' %}admin{% endif %}"><span data-i18n="role.{{ current_user.role }}">{{ current_user.role|capitalize }}</span></span>
             </div>
         </div>
         {% endif %}
@@ -433,8 +433,8 @@
 
         <div class="mobile-settings">
             <button onclick="toggleLanguage()" class="mobile-setting-btn">
-                <span class="lang-flag">🇺🇸</span>
-                <span class="lang-code">EN</span>
+                <span class="lang-flag">🇺🇦</span>
+                <span class="lang-code">UA</span>
             </button>
         </div>
 

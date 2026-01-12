@@ -56,7 +56,7 @@ class MimicChat {
         // Create chat widget HTML
         const widgetHTML = `
             <div class="chat-widget" id="chatWidget">
-                <button class="chat-toggle-btn" id="chatToggleBtn" aria-label="Open Chat">
+                <button class="chat-toggle-btn" id="chatToggleBtn" aria-label="Відкрити чат">
                     <i class="fas fa-comments"></i>
                     <span class="chat-unread-badge" id="chatUnreadBadge" style="display: none;">0</span>
                 </button>
@@ -68,18 +68,18 @@ class MimicChat {
                                 <i class="fas fa-comments"></i>
                             </div>
                             <div>
-                                <div class="chat-header-title" id="chatHeaderTitle">Live Chat</div>
+                                <div class="chat-header-title" id="chatHeaderTitle">Живий чат</div>
                                 <div class="chat-header-subtitle">
                                     <span class="online-dot" id="chatOnlineDot"></span>
-                                    <span id="chatOnlineCount">Connecting...</span>
+                                    <span id="chatOnlineCount">Підключення...</span>
                                 </div>
                             </div>
                         </div>
                         <div class="chat-header-actions">
-                            <button class="chat-mode-btn" id="chatModeBtn" title="Switch to AI Support">
+                            <button class="chat-mode-btn" id="chatModeBtn" title="Перейти до AI підтримки">
                                 <i class="fas fa-robot"></i>
                             </button>
-                            <button class="chat-close-btn" id="chatCloseBtn" aria-label="Close Chat">
+                            <button class="chat-close-btn" id="chatCloseBtn" aria-label="Закрити чат">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -88,17 +88,17 @@ class MimicChat {
                     <!-- Mode tabs -->
                     <div class="chat-mode-tabs" id="chatModeTabs">
                         <button class="chat-mode-tab active" data-mode="chat" id="tabChat">
-                            <i class="fas fa-comments"></i> Live Chat
+                            <i class="fas fa-comments"></i> Живий чат
                         </button>
                         <button class="chat-mode-tab" data-mode="support" id="tabSupport">
-                            <i class="fas fa-robot"></i> AI Support
+                            <i class="fas fa-robot"></i> AI Підтримка
                         </button>
                     </div>
                     
                     <div class="chat-messages" id="chatMessages">
                         <div class="chat-status" id="chatStatus">
                             <div class="chat-status-icon">💬</div>
-                            <div class="chat-status-text">Loading chat...</div>
+                            <div class="chat-status-text">Завантаження чату...</div>
                         </div>
                     </div>
                     
@@ -107,7 +107,7 @@ class MimicChat {
                             <input type="text" 
                                    class="chat-input" 
                                    id="chatInput" 
-                                   placeholder="Type a message..." 
+                                   placeholder="Напиши повідомлення..." 
                                    maxlength="500"
                                    autocomplete="off"
                                    disabled>
@@ -122,16 +122,16 @@ class MimicChat {
             <div class="chat-context-menu" id="chatContextMenu">
                 <div class="chat-context-item" data-action="delete">
                     <i class="fas fa-trash"></i>
-                    <span>Delete Message</span>
+                    <span>Видалити повідомлення</span>
                 </div>
                 <div class="chat-context-divider"></div>
                 <div class="chat-context-item" data-action="mute">
                     <i class="fas fa-volume-mute"></i>
-                    <span>Mute User (1hr)</span>
+                    <span>Заглушити (1 год)</span>
                 </div>
                 <div class="chat-context-item danger" data-action="ban">
                     <i class="fas fa-ban"></i>
-                    <span>Ban User</span>
+                    <span>Заблокувати</span>
                 </div>
             </div>
         `;
@@ -251,12 +251,12 @@ class MimicChat {
         // Update header
         if (newMode === 'support') {
             this.elements.headerIcon.innerHTML = '<i class="fas fa-robot"></i>';
-            this.elements.headerTitle.textContent = 'AI Support';
-            this.elements.onlineCount.textContent = 'Ask me anything!';
+            this.elements.headerTitle.textContent = 'AI Підтримка';
+            this.elements.onlineCount.textContent = 'Запитуй що завгодно!';
             this.elements.onlineDot.style.background = '#9b59b6'; // Purple for AI
             this.elements.modeBtn.innerHTML = '<i class="fas fa-comments"></i>';
-            this.elements.modeBtn.title = 'Switch to Live Chat';
-            this.elements.input.placeholder = 'Ask a question about MIMIC...';
+            this.elements.modeBtn.title = 'Перейти до живого чату';
+            this.elements.input.placeholder = 'Задай питання про MIMIC...';
             
             // Show support messages
             this.renderSupportMessages();
@@ -266,12 +266,12 @@ class MimicChat {
             this.elements.sendBtn.disabled = false;
         } else {
             this.elements.headerIcon.innerHTML = '<i class="fas fa-comments"></i>';
-            this.elements.headerTitle.textContent = 'Live Chat';
-            this.elements.onlineCount.textContent = this.canChat ? 'General Room' : 'Connecting...';
+            this.elements.headerTitle.textContent = 'Живий чат';
+            this.elements.onlineCount.textContent = this.canChat ? 'Загальна кімната' : 'Підключення...';
             this.elements.onlineDot.style.background = '#2ecc71'; // Green for online
             this.elements.modeBtn.innerHTML = '<i class="fas fa-robot"></i>';
-            this.elements.modeBtn.title = 'Switch to AI Support';
-            this.elements.input.placeholder = 'Type a message...';
+            this.elements.modeBtn.title = 'Перейти до AI підтримки';
+            this.elements.input.placeholder = 'Напиши повідомлення...';
             
             // Show chat messages
             this.renderMessages();
@@ -335,10 +335,10 @@ class MimicChat {
         
         // Update header for support mode
         this.elements.headerIcon.innerHTML = '<i class="fas fa-robot"></i>';
-        this.elements.headerTitle.textContent = 'AI Support';
-        this.elements.onlineCount.textContent = 'Ask me anything!';
+        this.elements.headerTitle.textContent = 'AI Підтримка';
+        this.elements.onlineCount.textContent = 'Запитуй що завгодно!';
         this.elements.onlineDot.style.background = '#9b59b6';
-        this.elements.input.placeholder = 'Ask a question about MIMIC...';
+        this.elements.input.placeholder = 'Задай питання про MIMIC...';
         
         // Enable input for AI Support (no auth required)
         this.elements.input.disabled = false;
@@ -381,7 +381,7 @@ class MimicChat {
         
         // Enable input
         this.enableInput();
-        this.elements.onlineCount.textContent = 'General Room';
+        this.elements.onlineCount.textContent = 'Загальна кімната';
     }
     
     toggleChat() {
@@ -460,7 +460,7 @@ class MimicChat {
         const msgEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
         if (msgEl) {
             msgEl.style.opacity = '0.5';
-            msgEl.querySelector('.chat-bubble').innerHTML = '<i>Message deleted</i>';
+            msgEl.querySelector('.chat-bubble').innerHTML = '<i>Повідомлення видалено</i>';
         }
         
         // Remove from local array
@@ -568,7 +568,7 @@ class MimicChat {
                 // Show error message
                 this.appendSupportMessage({
                     role: 'system',
-                    content: data.error || 'Sorry, I encountered an error. Please try again.',
+                    content: data.error || 'Вибачте, сталася помилка. Спробуйте ще раз.',
                     created_at: new Date().toISOString()
                 });
             }
@@ -580,7 +580,7 @@ class MimicChat {
             console.error('Support chat error:', err);
             this.appendSupportMessage({
                 role: 'system',
-                content: 'Failed to connect to AI Support. Please try again later.',
+                content: 'Не вдалося підключитися до AI підтримки. Спробуйте пізніше.',
                 created_at: new Date().toISOString()
             });
             this.scrollToBottom();
@@ -596,13 +596,13 @@ class MimicChat {
                 <div class="chat-status support-welcome">
                     <div class="chat-status-icon">🤖</div>
                     <div class="chat-status-text">
-                        <strong>AI Support Bot</strong><br>
-                        Ask me anything about the MIMIC platform!<br><br>
-                        <small>Try questions like:</small>
+                        <strong>AI Підтримка</strong><br>
+                        Запитуй що завгодно про платформу MIMIC!<br><br>
+                        <small>Спробуй такі питання:</small>
                         <ul class="support-suggestions">
-                            <li onclick="mimicChat.askSuggestion('How do I connect my Binance account?')">How do I connect my Binance account?</li>
-                            <li onclick="mimicChat.askSuggestion('What is DCA?')">What is DCA?</li>
-                            <li onclick="mimicChat.askSuggestion('How does the referral system work?')">How does the referral system work?</li>
+                            <li onclick="mimicChat.askSuggestion('Як підключити мій Binance акаунт?')">Як підключити мій Binance акаунт?</li>
+                            <li onclick="mimicChat.askSuggestion('Що таке DCA?')">Що таке DCA?</li>
+                            <li onclick="mimicChat.askSuggestion('Як працює реферальна система?')">Як працює реферальна система?</li>
                         </ul>
                     </div>
                 </div>
@@ -636,7 +636,7 @@ class MimicChat {
                 confidenceHtml += `
                     <div class="support-review-note">
                         <i class="fas fa-user-clock"></i> 
-                        This has been flagged for human review
+                        Позначено для перевірки людиною
                     </div>
                 `;
             }
@@ -649,7 +649,7 @@ class MimicChat {
                 </div>
                 <div class="chat-message-content">
                     <div class="chat-message-header">
-                        <span class="chat-username">${isUser ? 'You' : isSystem ? 'System' : 'AI Support'}</span>
+                        <span class="chat-username">${isUser ? 'Ти' : isSystem ? 'Система' : 'AI Підтримка'}</span>
                         <span class="chat-timestamp">${this.formatTime(msg.created_at)}</span>
                     </div>
                     <div class="chat-bubble">${this.formatSupportContent(msg.content)}</div>
@@ -726,7 +726,7 @@ class MimicChat {
             this.elements.messages.innerHTML = `
                 <div class="chat-status">
                     <div class="chat-status-icon">💬</div>
-                    <div class="chat-status-text">No messages yet. Start the conversation!</div>
+                    <div class="chat-status-text">Ще немає повідомлень. Розпочни розмову!</div>
                 </div>
             `;
             return;
@@ -758,7 +758,7 @@ class MimicChat {
                     ${!isSystem ? `
                         <div class="chat-message-header">
                             <span class="chat-username ${isAdminMsg ? 'admin' : ''}">${msg.username}</span>
-                            ${isAdminMsg ? '<span class="admin-badge">Admin</span>' : ''}
+                            ${isAdminMsg ? '<span class="admin-badge">Адмін</span>' : ''}
                             <span class="chat-timestamp">${msg.timestamp}</span>
                         </div>
                     ` : ''}
@@ -786,13 +786,13 @@ class MimicChat {
     enableInput() {
         this.elements.input.disabled = false;
         this.elements.sendBtn.disabled = false;
-        this.elements.input.placeholder = 'Type a message...';
+        this.elements.input.placeholder = 'Напиши повідомлення...';
     }
     
     disableInput() {
         this.elements.input.disabled = true;
         this.elements.sendBtn.disabled = true;
-        this.elements.input.placeholder = 'Chat disabled';
+        this.elements.input.placeholder = 'Чат вимкнено';
     }
     
     showSubscriptionRequired() {
@@ -801,10 +801,10 @@ class MimicChat {
         this.elements.status.innerHTML = `
             <div class="chat-status-icon">⚠️</div>
             <div class="chat-status-text">
-                <strong>Connection Error</strong><br>
-                Unable to connect to chat. Please refresh the page.
+                <strong>Помилка підключення</strong><br>
+                Не вдалося підключитися до чату. Оновіть сторінку.
             </div>
-            <button onclick="location.reload()" class="chat-status-btn">Refresh</button>
+            <button onclick="location.reload()" class="chat-status-btn">Оновити</button>
         `;
         this.elements.status.style.display = 'flex';
         this.elements.messages.innerHTML = '';
@@ -814,14 +814,14 @@ class MimicChat {
     
     showBannedStatus(banType, reason, expiresAt) {
         const expireText = expiresAt 
-            ? `<br><small>Expires: ${new Date(expiresAt).toLocaleString()}</small>`
+            ? `<br><small>Закінчується: ${new Date(expiresAt).toLocaleString('uk-UA')}</small>`
             : '';
         
         this.elements.status.innerHTML = `
             <div class="chat-status-icon">🚫</div>
             <div class="chat-status-text">
-                <strong>You are ${banType === 'ban' ? 'banned' : 'muted'}</strong><br>
-                ${reason || 'Chat rule violation'}
+                <strong>Тебе ${banType === 'ban' ? 'заблоковано' : 'заглушено'}</strong><br>
+                ${reason || 'Порушення правил чату'}
                 ${expireText}
             </div>
         `;
@@ -884,7 +884,7 @@ class MimicChat {
             });
             const data = await response.json();
             if (!data.success) {
-                this.showToast(data.error || 'Failed to delete message', 'error');
+                this.showToast(data.error || 'Не вдалося видалити повідомлення', 'error');
             }
         } catch (err) {
             console.error('Delete message error:', err);

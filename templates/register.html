@@ -1361,11 +1361,11 @@ function updateExchangeRegisterLink(exchangeName) {
         'bitget': 'https://www.bitget.com/referral/register?clacCode=MIMIC'
     };
     
-    const exchangeDisplay = selectedExchange?.display_name || 'Exchange';
+    const exchangeDisplay = selectedExchange?.display_name || 'Біржа';
     
     link.href = exchangeLinks[exchangeName] || '#';
-    link.innerHTML = `<i class="fas fa-external-link-alt"></i> <span>${currentLang === 'ua' ? 'Реєстрація на ' + exchangeDisplay : 'Register on ' + exchangeDisplay}</span>`;
-    hint.textContent = currentLang === 'ua' ? `Немає акаунту на ${exchangeDisplay}?` : `Don't have a ${exchangeDisplay} account?`;
+    link.innerHTML = `<i class="fas fa-external-link-alt"></i> <span>Реєстрація на ${exchangeDisplay}</span>`;
+    hint.textContent = `Немає акаунту на ${exchangeDisplay}?`;
 }
 
 document.addEventListener('click', function(e) {
