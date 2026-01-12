@@ -342,14 +342,10 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                 conflict_detected = False
                 
                 # Start polling with drop_pending_updates to avoid processing old messages
-                # Add read_timeout and connect_timeout for network resilience
+                # Note: Timeouts are configured in Application.builder() in v20+
                 await app.updater.start_polling(
                     drop_pending_updates=True,
                     allowed_updates=['message', 'callback_query'],
-                    read_timeout=30,
-                    write_timeout=30,
-                    connect_timeout=30,
-                    pool_timeout=30,
                 )
                 proc_logger.info("🤖 Telegram bot is now running and polling for updates")
                 
@@ -475,10 +471,6 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
                         await app.updater.start_polling(
                             drop_pending_updates=False,
                             allowed_updates=['message', 'callback_query'],
-                            read_timeout=30,
-                            write_timeout=30,
-                            connect_timeout=30,
-                            pool_timeout=30,
                         )
                         proc_logger.info("✅ Updater restarted")
                     except Conflict:
