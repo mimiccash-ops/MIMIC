@@ -14,7 +14,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE', 'mimiccashadministrator')
+WEBHOOK_PASSPHRASE = os.environ.get('WEBHOOK_PASSPHRASE', 'mimiccashadmin')
 
 def test_webhook(base_url, use_https=True):
     """
