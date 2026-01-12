@@ -5288,13 +5288,23 @@ def webhook():
         data = request.get_json(silent=True)
         
         if not data:
-            # Try to parse as plain text if JSON parsing failed
+            # Try to fix common TradingView JSON issues (trailing commas)
             if raw_data:
-                logger.warning(f"Webhook: Data received but not valid JSON: {raw_data[:200]}")
-                return jsonify({'error': 'Invalid JSON format'}), 400
-            # Empty request - health check
-            logger.debug("Webhook: Health check ping")
-            return jsonify({'status': 'ok', 'message': 'Webhook active'}), 200
+                try:
+                    # Remove trailing commas before closing brackets/braces
+                    import re
+                    cleaned_data = re.sub(r',(\s*[}\]])', r'\1', raw_data)
+                    data = json.loads(cleaned_data)
+                    logger.info(f"✅ Webhook: Fixed malformed JSON (trailing commas)")
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.warning(f"Webhook: Data received but not valid JSON: {raw_data[:200]}")
+                    logger.warning(f"JSON parse error: {str(e)}")
+                    return jsonify({'error': 'Invalid JSON format'}), 400
+            
+            if not data:
+                # Empty request - health check
+                logger.debug("Webhook: Health check ping")
+                return jsonify({'status': 'ok', 'message': 'Webhook active'}), 200
         
         logger.info(f"📦 Webhook parsed: {data}")
         
