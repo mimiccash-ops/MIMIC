@@ -1,0 +1,100 @@
+# MIMIC Telegram Bot - Systemd Service File
+# ==============================================
+#
+# This service runs the Telegram bot as a SINGLETON process,
+# completely isolated from the web server and worker.
+#
+# FEATURES:
+#   ✓ Singleton bot instance (no 409 conflicts)
+#   ✓ Automatic restart on failure
+#   ✓ File locking to prevent duplicate instances
+#   ✓ Graceful shutdown handling
+#   ✓ Full command handling (/start, /panic_close_all, etc.)
+#   ✓ Independent scaling from web/worker
+#
+# INSTALLATION:
+#   1. Copy this file to: /etc/systemd/system/mimic-bot.service
+#   2. Edit paths if needed (default: /var/www/mimic)
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable mimic-bot
+#   5. Run: sudo systemctl start mimic-bot
+#
+# COMMANDS:
+#   sudo systemctl start mimic-bot      # Start bot
+#   sudo systemctl stop mimic-bot       # Stop bot
+#   sudo systemctl restart mimic-bot    # Restart bot
+#   sudo systemctl status mimic-bot     # Check status
+#   journalctl -u mimic-bot -f          # View logs (follow)
+#
+# DEPLOYMENT ORDER:
+#   1. Start mimic.service (web server)
+#   2. Start mimic-worker.service (task processor)
+#   3. Start mimic-bot.service (bot polling) ← THIS SERVICE
+#
+
+[Unit]
+Description=MIMIC Telegram Bot (Polling)
+Documentation=https://mimic.cash
+After=network-online.target mimic.service mimic-worker.service
+Wants=network-online.target
+# Start after web and worker are ready
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mimic
+Group=mimic
+WorkingDirectory=/var/www/mimic
+
+# Environment
+Environment="FLASK_ENV=production"
+Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/var/www/mimic/.env
+
+# Run the standalone bot script
+# This script handles:
+#   - File locking (singleton enforcement)
+#   - Session invalidation (prevents 409 conflicts)
+#   - Database connection for commands
+#   - Panic close integration with trading engine
+#   - Graceful shutdown on SIGTERM
+ExecStart=/var/www/mimic/venv/bin/python /var/www/mimic/run_bot.py
+
+# Graceful stop
+ExecStop=/bin/kill -s TERM $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# ============ RESTART POLICY ============
+# Always restart on failure (except clean exit)
+Restart=on-failure
+RestartSec=10
+
+# ============ RESOURCE LIMITS ============
+LimitNOFILE=4096
+LimitNPROC=512
+# Memory limit (bot uses minimal memory)
+MemoryMax=512M
+MemoryHigh=384M
+
+# ============ SECURITY HARDENING ============
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/www/mimic /var/www/mimic/logs /tmp
+
+# ============ LOGGING ============
+StandardOutput=append:/var/www/mimic/logs/bot_stdout.log
+StandardError=append:/var/www/mimic/logs/bot_stderr.log
+SyslogIdentifier=mimic-bot
+
+[Install]
+WantedBy=multi-user.target

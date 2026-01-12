@@ -1,12 +1,21 @@
-# MIMIC (Brain Capital) - Systemd Service File
+# MIMIC Web Server - Systemd Service File
 # ==============================================
+#
+# This service runs the WEB SERVER ONLY (Gunicorn + Flask).
+# It does NOT run the Telegram bot or background worker.
 # 
+# ARCHITECTURE:
+#   ✓ mimic.service          → Web server (THIS SERVICE)
+#   ✓ mimic-worker.service   → Background task processor (ARQ)
+#   ✓ mimic-bot.service      → Telegram bot polling (SEPARATE)
+#
 # FEATURES:
+#   ✓ Gunicorn with eventlet worker (WebSocket support)
+#   ✓ Multiple workers for high concurrency
 #   ✓ Always running with automatic restart
-#   ✓ Watchdog health monitoring
-#   ✓ Auto-restart on failure (max 5 times per 5 minutes)
 #   ✓ Graceful shutdown handling
 #   ✓ Memory and resource limits
+#   ✓ No bot conflicts (bot runs separately)
 #
 # INSTALLATION:
 #   1. Copy this file to: /etc/systemd/system/mimic.service
@@ -16,15 +25,20 @@
 #   5. Run: sudo systemctl start mimic
 #
 # COMMANDS:
-#   sudo systemctl start mimic      # Start service
-#   sudo systemctl stop mimic       # Stop service
-#   sudo systemctl restart mimic    # Restart service
+#   sudo systemctl start mimic      # Start web server
+#   sudo systemctl stop mimic       # Stop web server
+#   sudo systemctl restart mimic    # Restart web server
 #   sudo systemctl status mimic     # Check status
 #   journalctl -u mimic -f          # View logs (follow)
 #
+# DEPLOYMENT ORDER:
+#   1. Start mimic.service (web server) ← THIS SERVICE
+#   2. Start mimic-worker.service (task processor)
+#   3. Start mimic-bot.service (bot polling)
+#
 
 [Unit]
-Description=MIMIC Copy Trading Platform
+Description=MIMIC Web Server (Gunicorn + Flask)
 Documentation=https://mimic.cash
 After=network-online.target postgresql.service redis.service
 Wants=network-online.target postgresql.service redis.service
@@ -44,14 +58,21 @@ Environment="PYTHONUNBUFFERED=1"
 Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=-/var/www/mimic/.env
 
-# Main application process - Gunicorn with eventlet for WebSockets
+# Main web server process - Gunicorn with eventlet for WebSockets
 # 
+# IMPORTANT: This ONLY runs the web server. The Telegram bot runs separately
+# via mimic-bot.service to prevent 409 Conflict errors.
+#
 # BIND ADDRESS OPTIONS:
-#   127.0.0.1:5000 - Localhost only (RECOMMENDED with nginx reverse proxy)
-#   0.0.0.0:5000   - All interfaces (use if no reverse proxy, or Docker)
+#   127.0.0.1:8000 - Localhost only (RECOMMENDED with nginx reverse proxy)
+#   0.0.0.0:8000   - All interfaces (use if no reverse proxy, or Docker)
 #
 # For nginx reverse proxy setup (recommended), use 127.0.0.1
 # For direct access or Docker, change to 0.0.0.0
+#
+# WORKER SCALING:
+#   You can now safely scale workers (e.g., --workers 4) without bot conflicts!
+#   Each worker serves web traffic only. The bot runs independently.
 #
 ExecStart=/var/www/mimic/venv/bin/gunicorn \
     --worker-class eventlet \
@@ -73,11 +94,9 @@ ExecStart=/var/www/mimic/venv/bin/gunicorn \
 # Graceful stop/reload
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
-# Use 'control-group' to ensure ALL child processes (including Telegram bot subprocess) are terminated
-KillMode=control-group
+KillMode=mixed
 KillSignal=SIGTERM
-# Increase timeout to allow Telegram bot subprocess to shutdown gracefully
-TimeoutStopSec=45
+TimeoutStopSec=30
 
 # ============ ALWAYS RUNNING - RESTART POLICY ============
 # Always restart on failure, exit, or signal

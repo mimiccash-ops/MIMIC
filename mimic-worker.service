@@ -1,7 +1,17 @@
-# MIMIC Worker - Systemd Service File
-# =====================================
-# Background worker for processing trading signals
-# 
+# MIMIC ARQ Worker - Systemd Service File
+# ==============================================
+#
+# This service runs the ARQ background task worker,
+# processing trading signals from the Redis queue.
+#
+# FEATURES:
+#   ✓ Async task processing (ARQ)
+#   ✓ Redis queue integration
+#   ✓ Automatic restart on failure
+#   ✓ Prometheus metrics on port 9091
+#   ✓ Smart features (Trailing SL, DCA)
+#   ✓ Graceful shutdown
+#
 # INSTALLATION:
 #   1. Copy this file to: /etc/systemd/system/mimic-worker.service
 #   2. Edit paths if needed (default: /var/www/mimic)
@@ -14,15 +24,20 @@
 #   sudo systemctl stop mimic-worker       # Stop worker
 #   sudo systemctl restart mimic-worker    # Restart worker
 #   sudo systemctl status mimic-worker     # Check status
-#   journalctl -u mimic-worker -f          # View logs
+#   journalctl -u mimic-worker -f          # View logs (follow)
+#
+# DEPLOYMENT ORDER:
+#   1. Start mimic.service (web server)
+#   2. Start mimic-worker.service (task processor) ← THIS SERVICE
+#   3. Start mimic-bot.service (bot polling)
+#
 
 [Unit]
-Description=MIMIC Worker - Trading Signal Processor
+Description=MIMIC ARQ Background Worker
 Documentation=https://mimic.cash
-After=network-online.target postgresql.service redis.service mimic.service
-Wants=network-online.target postgresql.service redis.service
-# Worker depends on main app
-Requires=redis.service
+After=network-online.target redis.service postgresql.service mimic.service
+Wants=network-online.target redis.service postgresql.service
+# Start after web server is ready
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
@@ -38,24 +53,34 @@ Environment="PYTHONUNBUFFERED=1"
 Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=-/var/www/mimic/.env
 
-# Worker process
-ExecStart=/var/www/mimic/venv/bin/python worker.py
+# Run ARQ worker
+# The worker processes:
+#   - Trading signals from webhooks
+#   - Scheduled tasks (cron jobs)
+#   - DCA checks every 5 minutes
+#   - Trailing stop-loss monitoring
+#   - Subscription expiry checks
+#   - Gamification XP calculations
+#   - Tournament updates
+ExecStart=/var/www/mimic/venv/bin/arq worker.WorkerSettings
 
 # Graceful stop
 ExecStop=/bin/kill -s TERM $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
-TimeoutStopSec=30
+TimeoutStopSec=60
 
 # ============ RESTART POLICY ============
-Restart=always
-RestartSec=5
+# Always restart on failure
+Restart=on-failure
+RestartSec=10
 
 # ============ RESOURCE LIMITS ============
-LimitNOFILE=65535
-LimitNPROC=4096
-MemoryMax=1G
-MemoryHigh=750M
+LimitNOFILE=8192
+LimitNPROC=1024
+# Memory limit (worker can use more for async exchanges)
+MemoryMax=1.5G
+MemoryHigh=1.2G
 
 # ============ SECURITY HARDENING ============
 NoNewPrivileges=true
@@ -69,8 +94,8 @@ ProtectControlGroups=true
 ReadWritePaths=/var/www/mimic /var/www/mimic/logs
 
 # ============ LOGGING ============
-StandardOutput=append:/var/www/mimic/logs/worker-stdout.log
-StandardError=append:/var/www/mimic/logs/worker-stderr.log
+StandardOutput=append:/var/www/mimic/logs/worker_stdout.log
+StandardError=append:/var/www/mimic/logs/worker_stderr.log
 SyslogIdentifier=mimic-worker
 
 [Install]

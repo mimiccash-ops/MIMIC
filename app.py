@@ -251,60 +251,27 @@ else:
 # Initialize Trading Engine
 engine = TradingEngine(app, socketio, telegram)
 
-# Initialize Telegram Bot Handler (for commands including panic with OTP)
+# ==================== TELEGRAM BOT (REMOVED FROM WEB SERVER) ====================
+# The Telegram Bot now runs as a SEPARATE SERVICE to prevent 409 Conflict errors.
+# 
+# WHY: When Gunicorn spawns multiple workers, each worker was trying to start the bot,
+# causing "409 Conflict" errors because Telegram only allows ONE polling connection.
+#
+# SOLUTION: Bot runs in complete isolation via run_bot.py
+#   - Start with: sudo systemctl start mimic-bot
+#   - Logs at: /var/www/mimic/logs/bot_stdout.log
+#   - Service file: mimic-bot.service
+#
+# This ensures:
+#   ✓ Only ONE bot instance polls Telegram (no conflicts)
+#   ✓ Gunicorn workers scale independently without affecting the bot
+#   ✓ Bot can restart without affecting web traffic
+#   ✓ Clean separation of concerns
+#
+# NOTE: The bot can still be accessed by other modules via get_telegram_bot() if needed,
+# but it will return None in the web server context since the bot runs separately.
 telegram_bot = None
-if hasattr(Config, 'TG_TOKEN') and Config.TG_TOKEN:
-    try:
-        # Get OTP secret if available (optional for basic commands)
-        otp_secret = getattr(Config, 'PANIC_OTP_SECRET', '') or ''
-        authorized_users = getattr(Config, 'PANIC_AUTHORIZED_USERS', [])
-        
-        telegram_bot = init_telegram_bot(
-            bot_token=Config.TG_TOKEN,
-            otp_secret=otp_secret,
-            authorized_users=authorized_users,
-            panic_callback=engine.close_all_positions_all_accounts,
-            admin_chat_id=Config.TG_CHAT_ID
-        )
-        if telegram_bot:
-            if otp_secret and authorized_users:
-                logger.info("✅ Telegram Bot Handler started (panic commands enabled)")
-            else:
-                logger.info("✅ Telegram Bot Handler started (basic commands only, OTP not configured)")
-        else:
-            logger.warning("⚠️ Telegram Bot Handler not started (initialization failed)")
-    except Exception as e:
-        logger.warning(f"⚠️ Telegram Bot Handler failed to start: {e}")
-        import traceback
-        logger.debug(f"Telegram Bot traceback: {traceback.format_exc()}")
-
-# Register shutdown handler for clean Telegram bot termination
-def _cleanup_telegram_bot():
-    """Cleanup Telegram bot subprocess on shutdown"""
-    global telegram_bot
-    if telegram_bot:
-        try:
-            logger.info("🔄 Cleaning up Telegram bot on shutdown...")
-            telegram_bot.stop()
-        except Exception as e:
-            logger.debug(f"Telegram bot cleanup error: {e}")
-
-import atexit
-atexit.register(_cleanup_telegram_bot)
-
-# Also handle signals for gunicorn/systemd graceful shutdown
-import signal
-def _signal_handler(signum, frame):
-    """Handle shutdown signals gracefully"""
-    logger.info(f"🛑 Received signal {signum}, initiating graceful shutdown...")
-    _cleanup_telegram_bot()
-
-# Only register signal handlers if we're the main thread
-if threading.current_thread() is threading.main_thread():
-    try:
-        signal.signal(signal.SIGTERM, _signal_handler)
-    except (ValueError, OSError):
-        pass  # Can't set signal handler in non-main thread
+logger.info("ℹ️ Telegram Bot runs as separate service (see mimic-bot.service)")
 
 # Initialize Compliance Middleware (Geo-blocking + TOS Consent)
 try:
