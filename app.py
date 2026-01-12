@@ -5292,7 +5292,6 @@ def webhook():
             if raw_data:
                 try:
                     # Remove trailing commas before closing brackets/braces
-                    import re
                     cleaned_data = re.sub(r',(\s*[}\]])', r'\1', raw_data)
                     data = json.loads(cleaned_data)
                     logger.info(f"✅ Webhook: Fixed malformed JSON (trailing commas)")
