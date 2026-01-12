@@ -9,7 +9,7 @@
 #   ✓ Automatic restart on failure
 #   ✓ File locking to prevent duplicate instances
 #   ✓ Graceful shutdown handling
-#   ✓ Full command handling (/start, /panic_close_all, etc.)
+#   ✓ Full command handling (/start, /help, /status, /panic_close_all, etc.)
 #   ✓ Independent scaling from web/worker
 #
 # INSTALLATION:
