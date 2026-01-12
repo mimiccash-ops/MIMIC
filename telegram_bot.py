@@ -1381,6 +1381,15 @@ def init_telegram_bot(
         return None
     
     try:
+        # Skip bot in Gunicorn (web server) - only Worker should run the bot
+        # Check BEFORE creating the handler to avoid any conflicts
+        import sys
+        if any("gunicorn" in arg.lower() for arg in sys.argv):
+            logger.info("🤖 Skipping Telegram bot in Gunicorn (will run in Worker only)")
+            logger.info("   Bot notifications will be handled by Worker process")
+            # Return None so Flask app knows bot is not available
+            return None
+        
         _bot_handler = TelegramBotHandler(
             bot_token=bot_token,
             otp_secret=otp_secret or '',
