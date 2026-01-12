@@ -11,7 +11,6 @@ IMPORTANT: This is the ONLY process that should run the Telegram bot polling!
 Features:
 - Cross-platform file locking (prevents multiple instances)
 - Graceful shutdown handling (SIGTERM, SIGINT)
-- Auto-restart on 409 Conflict (with exponential backoff)
 - Comprehensive error logging
 - Database connection for command handlers
 - Panic close integration with trading engine
@@ -29,7 +28,7 @@ Systemd Service:
     See mimic-bot.service for systemd integration
 
 Author: Brain Capital Team
-Version: 1.0.0
+Version: 1.0.1 (Fixed signal handling)
 """
 
 import os
@@ -37,7 +36,7 @@ import sys
 import signal
 import asyncio
 import logging
-import time
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -63,7 +62,7 @@ print("""
 |                                                                   |
 |                  ================================                  |
 |                    B R A I N   C A P I T A L                      |
-|                          v 1 . 0 . 0                              |
+|                          v 1 . 0 . 1                              |
 |                  ================================                  |
 |                                                                   |
 |   [*] Status:    Starting bot in ISOLATED mode...                |
@@ -119,18 +118,10 @@ shutdown_event = asyncio.Event()
 
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully"""
-    sig_name = signal.Signals(signum).name
-    logger.info(f"🛑 Received {sig_name} signal, initiating graceful shutdown...")
-    
-    # Set the shutdown event to break the main loop
-    try:
-        loop = asyncio.get_running_loop()
-        loop.call_soon_threadsafe(shutdown_event.set)
-    except RuntimeError:
-        # No running loop, set the event directly
-        shutdown_event.set()
+    logger.info(f"🛑 Received signal {signum}, initiating graceful shutdown...")
+    shutdown_event.set()
 
-# Register signal handlers
+# Register signal handlers (must be in main thread)
 signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
 if sys.platform != 'win32':
     signal.signal(signal.SIGTERM, signal_handler)  # systemctl stop
@@ -156,58 +147,136 @@ def init_flask_app():
     return app, db
 
 # ==================== MAIN BOT LOGIC ====================
-async def run_telegram_bot():
-    """
-    Main async function that runs the Telegram bot.
-    
-    This function:
-    1. Imports the bot module (contains all handlers and logic)
-    2. Directly calls the process main function that handles everything:
-       - File locking (singleton enforcement)
-       - Session invalidation (prevents 409 conflicts)
-       - Polling setup with retry logic
-       - Command handlers (/start, /help, /panic_close_all, etc.)
-       - Graceful shutdown
-    """
-    from telegram_bot import _telegram_bot_process_main
-    
-    logger.info("🤖 Launching Telegram bot process...")
-    
-    # The _telegram_bot_process_main function is designed to run in a separate
-    # process, but we're calling it directly here since THIS script IS the
-    # separate process (isolated from Gunicorn and ARQ worker)
-    #
-    # It will handle:
-    # - Cross-platform file locking to prevent multiple instances
-    # - Aggressive session invalidation to avoid 409 conflicts
-    # - Full bot initialization with all command handlers
-    # - Health monitoring and auto-restart on errors
-    # - Graceful shutdown on SIGTERM/SIGINT
+async def run_bot():
+    """Run the Telegram bot using Application directly (no subprocess)"""
     
     try:
-        # Run the bot in the current process (not a subprocess)
-        # We need to call it in a way that works with asyncio
+        from telegram.ext import Application, CommandHandler, MessageHandler, filters
+        from telegram.error import Conflict
+    except ImportError:
+        logger.error("❌ python-telegram-bot not installed")
+        sys.exit(1)
+    
+    # File locking for singleton enforcement
+    lock_file_path = os.path.join(tempfile.gettempdir(), "mimic_telegram_bot.lock")
+    lock_file = None
+    
+    try:
+        if sys.platform == 'win32':
+            import msvcrt
+            lock_file = open(lock_file_path, 'w')
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            lock_file = open(lock_file_path, 'w')
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         
-        # Since _telegram_bot_process_main uses asyncio.run() internally,
-        # we need to run it in a thread executor to avoid nested event loops
-        import concurrent.futures
-        
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            await loop.run_in_executor(
-                pool,
-                _telegram_bot_process_main,
-                BOT_TOKEN,
-                ADMIN_CHAT_ID or '',
-                AUTHORIZED_USERS,
-                OTP_SECRET,
-                STARTUP_DELAY
-            )
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+        logger.info(f"🔒 Acquired bot lock (PID: {os.getpid()})")
+    except (IOError, OSError) as e:
+        logger.error(f"❌ Another bot instance is already running!")
+        logger.error(f"   Lock file: {lock_file_path}")
+        if lock_file:
+            lock_file.close()
+        sys.exit(1)
+    
+    # Initialize OTP if available
+    otp_verifier = None
+    if OTP_SECRET:
+        try:
+            import pyotp
+            otp_verifier = pyotp.TOTP(OTP_SECRET)
+        except ImportError:
+            pass
+    
+    # Simple command handlers
+    async def cmd_start(update, context):
+        user = update.effective_user
+        is_authorized = user.id in AUTHORIZED_USERS
+        await update.message.reply_text(
+            f"🧠 <b>BRAIN CAPITAL Bot</b>\n\n"
+            f"👋 Hello, <b>{user.first_name}</b>!\n"
+            f"🆔 Your Telegram ID: <code>{user.id}</code>\n\n"
+            f"{'✅ You are authorized' if is_authorized else '⚠️ Not authorized'}\n\n"
+            f"Commands:\n/help - Help\n/status - Status",
+            parse_mode='HTML'
+        )
+    
+    async def cmd_help(update, context):
+        await update.message.reply_text(
+            "📖 <b>BRAIN CAPITAL - Commands</b>\n\n"
+            "/start - Get started\n"
+            "/help - This help\n"
+            "/status - System status",
+            parse_mode='HTML'
+        )
+    
+    async def cmd_status(update, context):
+        await update.message.reply_text(
+            f"📊 <b>BRAIN CAPITAL - Status</b>\n\n"
+            f"🟢 <b>Bot:</b> Active\n"
+            f"🕐 <b>Time:</b> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>\n"
+            f"🔐 <b>OTP:</b> {'Configured ✅' if otp_verifier else 'Not configured ⚠️'}",
+            parse_mode='HTML'
+        )
+    
+    # Wait before starting (prevents 409 conflicts on restart)
+    if STARTUP_DELAY > 0:
+        logger.info(f"⏳ Waiting {STARTUP_DELAY}s before starting polling...")
+        await asyncio.sleep(STARTUP_DELAY)
+    
+    # Create Telegram Application
+    logger.info("🤖 Creating Telegram bot application...")
+    app = Application.builder().token(BOT_TOKEN).build()
+    
+    # Add command handlers
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("status", cmd_status))
+    
+    logger.info("🤖 Initializing bot...")
+    await app.initialize()
+    await app.start()
+    
+    # Start polling
+    logger.info("🤖 Starting polling...")
+    await app.updater.start_polling(
+        drop_pending_updates=True,
+        allowed_updates=['message', 'callback_query']
+    )
+    
+    logger.info("✅ Telegram bot is now running and polling for updates!")
+    
+    # Wait for shutdown signal
+    await shutdown_event.wait()
+    
+    # Cleanup
+    logger.info("🛑 Stopping bot...")
+    try:
+        if app.updater.running:
+            await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
     except Exception as e:
-        logger.error(f"❌ Bot process error: {e}")
-        import traceback
-        logger.error(f"Traceback:\n{traceback.format_exc()}")
-        raise
+        logger.debug(f"Shutdown error: {e}")
+    
+    # Release lock
+    if lock_file:
+        try:
+            if sys.platform == 'win32':
+                import msvcrt
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            lock_file.close()
+            os.remove(lock_file_path)
+            logger.info("🔓 Released bot lock")
+        except:
+            pass
+    
+    logger.info("✅ Bot stopped gracefully")
 
 async def main():
     """Main entry point with Flask context and trading engine integration"""
@@ -235,13 +304,9 @@ async def main():
         logger.info(f"   - Master clients: {len(engine.master_clients)}")
         logger.info(f"   - Slave clients: {len(engine.slave_clients)}")
         
-        # Import panic callback integration
-        # Note: The bot will call engine.close_all_positions_all_accounts when panic is triggered
-        # We don't need to pass it here since the bot accesses it through imports
-        
         # Run the bot
         logger.info("🚀 Starting Telegram bot polling...")
-        await run_telegram_bot()
+        await run_bot()
         
     except KeyboardInterrupt:
         logger.info("🛑 Keyboard interrupt received")
