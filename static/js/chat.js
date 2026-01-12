@@ -868,7 +868,7 @@ class MimicChat {
                 this.muteUser(this.selectedUserId, 60); // 60 minutes
                 break;
             case 'ban':
-                if (confirm('Are you sure you want to ban this user from chat?')) {
+                if (confirm('Ти впевнений, що хочеш заблокувати цього користувача в чаті?')) {
                     this.banUser(this.selectedUserId);
                 }
                 break;

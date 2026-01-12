@@ -976,7 +976,7 @@
             </div>
             
             <!-- Panic Button -->
-            <a href="{{ url_for('user_panic') }}" onclick="return confirm('⚠️ EMERGENCY: Close all positions immediately?')" class="panic-button flex-shrink-0">
+            <a href="{{ url_for('user_panic') }}" onclick="return confirm('⚠️ АВАРІЯ: Закрити всі позиції негайно?')" class="panic-button flex-shrink-0">
                 <i class="fas fa-power-off"></i>
                 <span data-i18n="dash.emergencyExit">EXIT ALL</span>
             </a>
@@ -2761,7 +2761,7 @@
     }
 
     function deleteExchange(id) {
-        if (!confirm('Delete this exchange connection?')) return;
+        if (!confirm('Видалити це підключення біржі?')) return;
         fetch(`/api/exchanges/${id}`, { method: 'DELETE' })
             .then(r => r.json())
             .then(result => {

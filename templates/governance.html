@@ -1107,7 +1107,7 @@ function escapeHtml(text) {
 // Submit vote
 async function submitVote(proposalId, voteType) {
     if (!canVote) {
-        alert('You are not eligible to vote. Reach Elite level to unlock voting.');
+        alert('Ти не можеш голосувати. Досягни Elite рівня, щоб розблокувати голосування.');
         return;
     }
     
@@ -1142,11 +1142,11 @@ async function submitVote(proposalId, voteType) {
                 showToast(`Vote recorded: ${voteType.toUpperCase()}`, 'success');
             }
         } else {
-            alert(data.error || 'Failed to submit vote');
+            alert(data.error || 'Не вдалося відправити голос');
         }
     } catch (error) {
         console.error('Error submitting vote:', error);
-        alert('Failed to submit vote. Please try again.');
+        alert('Не вдалося відправити голос. Спробуй ще раз.');
     }
 }
 
@@ -1179,7 +1179,7 @@ async function createProposal() {
     const passThreshold = parseFloat(document.getElementById('proposal-threshold').value);
     
     if (!title || !description) {
-        alert('Please fill in all required fields');
+        alert('Будь ласка, заповни всі обов\'язкові поля');
         return;
     }
     
@@ -1208,11 +1208,11 @@ async function createProposal() {
                 showToast('Proposal created successfully!', 'success');
             }
         } else {
-            alert(data.error || 'Failed to create proposal');
+            alert(data.error || 'Не вдалося створити пропозицію');
         }
     } catch (error) {
         console.error('Error creating proposal:', error);
-        alert('Failed to create proposal. Please try again.');
+        alert('Не вдалося створити пропозицію. Спробуй ще раз.');
     }
 }
 

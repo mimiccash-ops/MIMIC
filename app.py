@@ -2485,7 +2485,7 @@ def legal_accept():
         csrf_token = request.form.get('csrf_token', '')
         if not verify_csrf_token(csrf_token):
             audit.log_security_event("CSRF_VALIDATION_FAIL", f"IP: {ip}, Endpoint: legal_accept", "WARNING")
-            flash('Session expired. Please try again.', 'error')
+            flash('Сесія закінчилася. Спробуй ще раз.', 'error')
             return render_template('legal_accept.html', tos_version=tos_version), 403
         
         # Check all required consents
@@ -2494,7 +2494,7 @@ def legal_accept():
         consent_jurisdiction = request.form.get('consent_jurisdiction')
         
         if not all([consent_risks, consent_tos, consent_jurisdiction]):
-            flash('You must accept all terms to continue.', 'error')
+            flash('Необхідно прийняти всі умови для продовження.', 'error')
             return render_template('legal_accept.html', tos_version=tos_version)
         
         # Record the consent
@@ -2514,12 +2514,12 @@ def legal_accept():
                 "INFO"
             )
             logger.info(f"✅ User {current_user.username} accepted TOS v{tos_version}")
-            flash('Thank you for accepting the Terms of Service.', 'success')
+            flash('Дякуємо за прийняття Умов використання!', 'success')
             return redirect(url_for('dashboard'))
             
         except Exception as e:
             logger.error(f"Failed to record TOS consent for user {current_user.id}: {e}")
-            flash('An error occurred. Please try again.', 'error')
+            flash('Сталася помилка. Спробуй ще раз.', 'error')
             return render_template('legal_accept.html', tos_version=tos_version)
     
     return render_template('legal_accept.html', tos_version=tos_version)

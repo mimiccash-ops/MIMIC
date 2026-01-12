@@ -978,13 +978,13 @@ async function joinTournament() {
             loadTournamentData();
             loadMyParticipation();
         } else {
-            alert(data.error || 'Failed to join tournament');
+            alert(data.error || 'Не вдалося приєднатися до турніру');
             joinBtn.disabled = false;
             joinBtn.innerHTML = `<i class="fas fa-rocket"></i><span>Join for ${formatCurrency(currentTournament.entry_fee)}</span>`;
         }
     } catch (error) {
         console.error('Error joining tournament:', error);
-        alert('Failed to join tournament. Please try again.');
+        alert('Не вдалося приєднатися до турніру. Спробуй ще раз.');
         joinBtn.disabled = false;
         joinBtn.innerHTML = `<i class="fas fa-rocket"></i><span>Join for ${formatCurrency(currentTournament.entry_fee)}</span>`;
     }

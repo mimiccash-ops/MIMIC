@@ -1815,7 +1815,7 @@
             return;
         }
         
-        const reason = prompt(`Mute reason (optional):`);
+        const reason = prompt(`Причина мюту (опціонально):`);
         
         try {
             const response = await fetch('/api/admin/chat/mute', {
@@ -1848,11 +1848,11 @@
             return;
         }
         
-        if (!confirm('Are you sure you want to PERMANENTLY ban this user from chat?')) {
+        if (!confirm('Ти впевнений, що хочеш НАЗАВЖДИ заблокувати цього користувача в чаті?')) {
             return;
         }
-        
-        const reason = prompt(`Ban reason:`);
+
+        const reason = prompt(`Причина бану:`);
         
         try {
             const response = await fetch('/api/admin/chat/ban', {
@@ -1878,7 +1878,7 @@
     }
     
     async function unbanUser(userId) {
-        if (!confirm('Remove this ban/mute?')) return;
+        if (!confirm('Зняти цей бан/мют?')) return;
         
         try {
             const response = await fetch('/api/admin/chat/unban', {
@@ -2110,7 +2110,7 @@
     }
     
     function disconnectExchange(name) {
-        if (!confirm(`Disconnect ${name.toUpperCase()}?\n\nThis will also disable it for all users.`)) return;
+        if (!confirm(`Відключити ${name.toUpperCase()}?\n\nЦе також вимкне її для всіх користувачів.`)) return;
         fetch(`/api/admin/exchange-configs/${name}/disconnect`, { 
             method: 'POST' 
         }).then(r => r.json()).then(result => { 
@@ -2850,12 +2850,12 @@
     
     // Delete User Functions
     function confirmDeleteUser(userId, username) {
-        if (!confirm(`⚠️ Are you sure you want to delete user "${username}"?\n\nThis will permanently delete:\n- All their trades history\n- All their balance history\n- All their exchange connections\n- All their messages\n\nThis action CANNOT be undone!`)) {
+        if (!confirm(`⚠️ Ти впевнений, що хочеш видалити користувача "${username}"?\n\nЦе назавжди видалить:\n- Всю історію угод\n- Всю історію балансу\n- Всі підключення бірж\n- Всі повідомлення\n\nЦю дію НЕМОЖЛИВО скасувати!`)) {
             return;
         }
-        
+
         // Double confirmation for safety
-        const confirmText = prompt(`Type "${username}" to confirm deletion:`);
+        const confirmText = prompt(`Введи "${username}" для підтвердження видалення:`);
         if (confirmText !== username) {
             showToast(t('admin.deletionCancelled'), 'warning');
             return;
@@ -3127,7 +3127,7 @@
     }
     
     async function deleteStrategy(strategyId, strategyName) {
-        if (!confirm(`Delete strategy "${strategyName}"?\n\nThis cannot be undone.`)) return;
+        if (!confirm(`Видалити стратегію "${strategyName}"?\n\nЦе неможливо скасувати.`)) return;
         
         try {
             const response = await fetch(`/api/admin/strategies/${strategyId}`, {
@@ -3819,7 +3819,7 @@
     }
     
     async function confirmPayment(paymentId) {
-        if (!confirm('Confirm this payment and activate user subscription?')) return;
+        if (!confirm('Підтвердити цей платіж та активувати підписку користувача?')) return;
         
         try {
             const response = await fetch(`/api/admin/confirm-payment/${paymentId}`, {
@@ -3842,7 +3842,7 @@
     }
     
     async function rejectPayment(paymentId) {
-        const reason = prompt('Enter rejection reason (optional):');
+        const reason = prompt('Введи причину відхилення (опціонально):');
         if (reason === null) return; // Cancelled
         
         try {
@@ -4275,7 +4275,7 @@
     }
     
     async function deleteTask(taskId, taskTitle) {
-        if (!confirm(`Are you sure you want to delete the task "${taskTitle}"? This will also delete all participations.`)) return;
+        if (!confirm(`Ти впевнений, що хочеш видалити завдання "${taskTitle}"? Це також видалить всі участі.`)) return;
         
         try {
             const response = await fetch(`/api/admin/tasks/${taskId}`, {
