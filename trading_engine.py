@@ -24,6 +24,8 @@ from config import Config
 import ccxt.async_support as ccxt_async  # Async CCXT
 import ccxt as ccxt_sync  # Sync CCXT for class lookups
 from service_validator import SUPPORTED_EXCHANGES, PASSPHRASE_EXCHANGES
+from http.client import RemoteDisconnected
+import urllib3.exceptions
 
 # Prometheus metrics
 from metrics import (
@@ -1440,6 +1442,10 @@ class TradingEngine:
                 'exchange_balances': balances
             }, room="admin_room")
             
+        except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                urllib3.exceptions.ProtocolError) as e:
+            # Client disconnected - this is expected behavior, log as warning only
+            logger.warning(f"Could not push master updates: Client disconnected ({type(e).__name__})")
         except Exception as e:
             logger.error(f"Push master updates error: {e}")
 
@@ -1505,6 +1511,10 @@ class TradingEngine:
                         'pos_count': len(positions_data)
                     }, room="admin_room")
                     
+        except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                urllib3.exceptions.ProtocolError) as e:
+            # Client disconnected - this is expected behavior, log as warning only
+            logger.warning(f"Could not push update to user {user_id}: Client disconnected ({type(e).__name__})")
         except Exception as e:
             logger.error(f"Push update error for {user_id}: {e}")
 
@@ -1727,14 +1737,19 @@ class TradingEngine:
                 
                 # Emit to WebSocket for live update
                 if self.socketio:
-                    self.socketio.emit('trade_closed', {
-                        'symbol': symbol,
-                        'side': side,
-                        'pnl': round(pnl, 2),
-                        'roi': round(roi, 2),
-                        'node': node_name,
-                        'time': datetime.now().strftime("%H:%M:%S %d/%m")
-                    }, room="admin_room")
+                    try:
+                        self.socketio.emit('trade_closed', {
+                            'symbol': symbol,
+                            'side': side,
+                            'pnl': round(pnl, 2),
+                            'roi': round(roi, 2),
+                            'node': node_name,
+                            'time': datetime.now().strftime("%H:%M:%S %d/%m")
+                        }, room="admin_room")
+                    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                            urllib3.exceptions.ProtocolError) as e:
+                        # Client disconnected - expected behavior, log as warning only
+                        logger.warning(f"Could not emit trade_closed: Client disconnected ({type(e).__name__})")
                 
                 # Post to Twitter if ROI meets threshold (async, non-blocking)
                 if pnl > 0 and roi > 0:
@@ -2041,7 +2056,12 @@ class TradingEngine:
         
         # Emit to admin
         if self.socketio:
-            self.socketio.emit('panic_complete', results, room="admin_room")
+            try:
+                self.socketio.emit('panic_complete', results, room="admin_room")
+            except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                    urllib3.exceptions.ProtocolError) as e:
+                # Client disconnected - expected behavior, log as warning only
+                logger.warning(f"Could not emit panic_complete: Client disconnected ({type(e).__name__})")
         
         logger.warning(f"🚨 GLOBAL PANIC COMPLETE: Master={results['master_closed']}, Slaves={results['slaves_closed']}")
         
@@ -2084,9 +2104,14 @@ class TradingEngine:
                 trade_data = new_trade.to_dict()
                 
                 if self.socketio:
-                    self.socketio.emit('trade_closed', trade_data, room="admin_room")
-                    if isinstance(user_id, int):
-                        self.socketio.emit('trade_closed', trade_data, room=f"user_{user_id}")
+                    try:
+                        self.socketio.emit('trade_closed', trade_data, room="admin_room")
+                        if isinstance(user_id, int):
+                            self.socketio.emit('trade_closed', trade_data, room=f"user_{user_id}")
+                    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                            urllib3.exceptions.ProtocolError) as e:
+                        # Client disconnected - expected behavior, log as warning only
+                        logger.warning(f"Could not emit trade_closed: Client disconnected ({type(e).__name__})")
                 
                 logger.info(f"✅ Recorded: {node_name} closed {symbol} PnL: {pnl:.2f}")
                 
@@ -2163,13 +2188,18 @@ class TradingEngine:
                 
                 # Broadcast to chat room via SocketIO
                 if self.socketio:
-                    self.socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
-                    self.socketio.emit('whale_alert', {
-                        'masked_username': masked_name,
-                        'symbol': symbol,
-                        'pnl': round(pnl, 2),
-                        'message': alert_message
-                    }, room=f'chat_{room}')
+                    try:
+                        self.socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
+                        self.socketio.emit('whale_alert', {
+                            'masked_username': masked_name,
+                            'symbol': symbol,
+                            'pnl': round(pnl, 2),
+                            'message': alert_message
+                        }, room=f'chat_{room}')
+                    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                            urllib3.exceptions.ProtocolError) as e:
+                        # Client disconnected - expected behavior, log as warning only
+                        logger.warning(f"Could not emit whale_alert: Client disconnected ({type(e).__name__})")
                     
                 logger.info(f"🐋 Whale Alert: {masked_name} made +${pnl:.2f} on {symbol}")
                 

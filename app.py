@@ -31,6 +31,8 @@ import os
 import sys
 import json
 import secrets
+from http.client import RemoteDisconnected
+import urllib3.exceptions
 
 # Setup logging
 logging.basicConfig(
@@ -305,9 +307,14 @@ def log_system_event(user_id, symbol, message, is_error=False):
         'message': message,
         'is_error': is_error
     }
-    socketio.emit('new_log', entry, room="admin_room")
-    if user_id and user_id != 'master':
-        socketio.emit('new_log', entry, room=f"user_{user_id}")
+    try:
+        socketio.emit('new_log', entry, room="admin_room")
+        if user_id and user_id != 'master':
+            socketio.emit('new_log', entry, room=f"user_{user_id}")
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
 
 engine.log_error_callback = log_system_event
 
@@ -497,7 +504,12 @@ def handle_connect():
             if slave:
                 engine.push_update(slave['id'], slave['client'])
             else:
-                socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
+                try:
+                    socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
+                except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                        urllib3.exceptions.ProtocolError):
+                    # Client disconnected - expected behavior, silently ignore
+                    pass
 
 
 # ==================== LIVE CHAT SOCKET EVENTS ====================
@@ -686,13 +698,18 @@ def broadcast_whale_alert(user_id: int, username: str, symbol: str, pnl: float, 
         db.session.commit()
         
         # Broadcast to chat room
-        socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
-        socketio.emit('whale_alert', {
-            'masked_username': masked_name,
-            'symbol': symbol,
-            'pnl': pnl,
-            'message': alert_message
-        }, room=f'chat_{room}')
+        try:
+            socketio.emit('new_message', chat_msg.to_dict(), room=f'chat_{room}')
+            socketio.emit('whale_alert', {
+                'masked_username': masked_name,
+                'symbol': symbol,
+                'pnl': pnl,
+                'message': alert_message
+            }, room=f'chat_{room}')
+        except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                urllib3.exceptions.ProtocolError):
+            # Client disconnected - expected behavior, silently ignore
+            pass
 
 
 # ==================== SEO ROUTES ====================
@@ -6239,10 +6256,15 @@ def send_message():
     db.session.commit()
     
     # Emit socket event for real-time notification
-    if current_user.role != 'admin':
-        socketio.emit('new_message', message.to_dict(), room='admin_room')
-    elif recipient_id:
-        socketio.emit('new_message', message.to_dict(), room=f'user_{recipient_id}')
+    try:
+        if current_user.role != 'admin':
+            socketio.emit('new_message', message.to_dict(), room='admin_room')
+        elif recipient_id:
+            socketio.emit('new_message', message.to_dict(), room=f'user_{recipient_id}')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     return redirect(url_for('messages'))
 
@@ -6289,10 +6311,15 @@ def reply_message(message_id):
     db.session.commit()
     
     # Emit socket event
-    if is_from_admin and recipient_id:
-        socketio.emit('new_message', reply.to_dict(), room=f'user_{recipient_id}')
-    else:
-        socketio.emit('new_message', reply.to_dict(), room='admin_room')
+    try:
+        if is_from_admin and recipient_id:
+            socketio.emit('new_message', reply.to_dict(), room=f'user_{recipient_id}')
+        else:
+            socketio.emit('new_message', reply.to_dict(), room='admin_room')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     flash('Відповідь відправлено', 'success')
     return redirect(url_for('view_message', message_id=original.id))
@@ -6553,11 +6580,16 @@ def mute_user_chat():
     ban = ChatBan.mute_user(user_id, duration, reason, current_user.id)
     
     # Notify the user via socket
-    socketio.emit('chat_muted', {
-        'message': f'You have been muted for {duration} minutes: {reason}',
-        'duration': duration,
-        'expires_at': ban.expires_at.isoformat() if ban.expires_at else None
-    }, room=f'user_{user_id}')
+    try:
+        socketio.emit('chat_muted', {
+            'message': f'You have been muted for {duration} minutes: {reason}',
+            'duration': duration,
+            'expires_at': ban.expires_at.isoformat() if ban.expires_at else None
+        }, room=f'user_{user_id}')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     return jsonify({
         'success': True,
@@ -6595,12 +6627,17 @@ def ban_user_chat():
     ban = ChatBan.ban_user(user_id, reason, current_user.id)
     
     # Notify the user via socket
-    socketio.emit('chat_banned', {
-        'message': f'You have been banned from chat: {reason}'
-    }, room=f'user_{user_id}')
-    
-    # Force disconnect from chat room
-    socketio.emit('force_leave_chat', {'room': 'general'}, room=f'user_{user_id}')
+    try:
+        socketio.emit('chat_banned', {
+            'message': f'You have been banned from chat: {reason}'
+        }, room=f'user_{user_id}')
+        
+        # Force disconnect from chat room
+        socketio.emit('force_leave_chat', {'room': 'general'}, room=f'user_{user_id}')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     return jsonify({
         'success': True,
@@ -6633,9 +6670,14 @@ def unban_user_chat():
     ChatBan.unban_user(user_id)
     
     # Notify the user via socket
-    socketio.emit('chat_unbanned', {
-        'message': 'Your chat restrictions have been lifted'
-    }, room=f'user_{user_id}')
+    try:
+        socketio.emit('chat_unbanned', {
+            'message': 'Your chat restrictions have been lifted'
+        }, room=f'user_{user_id}')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     return jsonify({
         'success': True,
@@ -6668,7 +6710,12 @@ def admin_delete_message():
     db.session.commit()
     
     # Notify chat room
-    socketio.emit('message_deleted', {'message_id': message_id}, room=f'chat_{room}')
+    try:
+        socketio.emit('message_deleted', {'message_id': message_id}, room=f'chat_{room}')
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
     
     return jsonify({
         'success': True,
