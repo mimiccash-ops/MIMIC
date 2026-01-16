@@ -14,31 +14,29 @@ from datetime import datetime
 
 logger = logging.getLogger("TelegramNotifier")
 
-# Try to import telegram, handle gracefully if not installed
+# Try to import telegram for optional compatibility, but we send via HTTP to
+# avoid asyncio loop conflicts in mixed async/sync environments.
 try:
-    import telegram
-    from telegram.constants import ParseMode
+    import telegram  # noqa: F401
     TELEGRAM_AVAILABLE = True
 except ImportError:
     TELEGRAM_AVAILABLE = False
-    logger.warning("⚠️ python-telegram-bot not installed. Telegram notifications disabled.")
+    logger.warning("⚠️ python-telegram-bot not installed. Using direct HTTP fallback.")
 
 
 class TelegramNotifier:
     def __init__(self, bot_token: str, chat_id: str, enabled: bool = True):
         self.bot_token = bot_token
         self.chat_id = chat_id
-        self.enabled = enabled and TELEGRAM_AVAILABLE and bot_token and chat_id
-        self.bot = None
+        self.enabled = enabled and bool(bot_token) and bool(chat_id)
         self.message_queue = Queue()
         
         if self.enabled:
             try:
-                self.bot = telegram.Bot(token=bot_token)
-                # Start message sender thread
+                # Start message sender thread (HTTP-based to avoid asyncio issues)
                 self._sender_thread = threading.Thread(target=self._send_loop, daemon=True)
                 self._sender_thread.start()
-                logger.info("✅ Telegram Notifier initialized")
+                logger.info("✅ Telegram Notifier initialized (HTTP)")
             except Exception as e:
                 logger.error(f"❌ Failed to initialize Telegram bot: {e}")
                 self.enabled = False
@@ -47,10 +45,6 @@ class TelegramNotifier:
 
     def _send_loop(self):
         """Background thread for sending messages"""
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         while True:
             try:
                 item = self.message_queue.get()
@@ -62,22 +56,11 @@ class TelegramNotifier:
                     else:
                         message = item
                         chat_id = None
-                    loop.run_until_complete(self._async_send(message, chat_id))
+                    success, error = self.send_sync(message, chat_id or self.chat_id)
+                    if not success and error:
+                        logger.error(f"Telegram send failed to {chat_id}: {error}")
             except Exception as e:
                 logger.error(f"Telegram send error: {e}")
-
-    async def _async_send(self, message: str, chat_id: str = None):
-        """Async message sender"""
-        if self.bot:
-            try:
-                target_chat = chat_id or self.chat_id
-                await self.bot.send_message(
-                    chat_id=target_chat,
-                    text=message,
-                    parse_mode=ParseMode.HTML
-                )
-            except Exception as e:
-                logger.error(f"Telegram send failed to {chat_id}: {e}")
 
     def send(self, message: str, chat_id: str = None):
         """Queue a message for sending"""

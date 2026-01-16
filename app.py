@@ -5924,8 +5924,12 @@ async def enqueue_signal_task(signal: dict) -> str:
     Returns job_id on success.
     """
     try:
+        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
+        if not arq_settings:
+            logger.warning("ARQ enqueue skipped: ARQ_REDIS_SETTINGS not configured")
+            return None
         from arq import create_pool
-        pool = await create_pool(ARQ_REDIS_SETTINGS)
+        pool = await create_pool(arq_settings)
         job = await pool.enqueue_job('execute_signal_task', signal)
         await pool.close()
         return job.job_id if job else None
@@ -5940,6 +5944,9 @@ def queue_signal_to_arq(signal: dict) -> tuple:
     Returns (success: bool, job_id_or_error: str)
     """
     try:
+        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
+        if not arq_settings:
+            return False, "ARQ_REDIS_SETTINGS not configured"
         import asyncio
         
         # Try to get existing event loop or create new one
