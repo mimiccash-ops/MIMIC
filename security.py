@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from threading import Lock
 
 from flask import request, abort, session, g, jsonify
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel, JsonValue, ValidationError, field_validator
 import bleach
 
 logger = logging.getLogger("Security")
@@ -421,7 +421,7 @@ def sanitize_html(value: str, max_length: int = 2000) -> str:
 
 # ==================== GENERIC INPUT VALIDATION ====================
 
-AllowedValue = Union[str, int, float, bool, None, List["AllowedValue"], Dict[str, "AllowedValue"]]
+AllowedValue = JsonValue
 
 MAX_STRING_LENGTH = 2000
 MAX_LIST_LENGTH = 500
