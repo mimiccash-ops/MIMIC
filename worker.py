@@ -345,9 +345,14 @@ async def shutdown(ctx: dict):
     if telegram:
         telegram.notify_system_event("Worker Stopped", "ARQ worker has been shut down")
     
-    # Pop application context
+    # Pop application context safely
     if app_context:
-        app_context.pop()
+        try:
+            app_context.pop()
+        except (LookupError, RuntimeError) as e:
+            # Context may have already been popped or may not exist
+            # This can happen during interpreter shutdown or if an error occurred
+            logger.debug(f"App context cleanup: {e}")
     
     logger.info("✅ ARQ Worker shutdown complete")
 

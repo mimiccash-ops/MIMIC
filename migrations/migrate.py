@@ -88,6 +88,12 @@ def apply_schema_updates(connection, db_type: str) -> int:
     inspector = inspect(db.engine)
     logger.info("📋 Ensuring columns exist on core tables...")
     user_columns = [
+        # Google OAuth / WebAuthn columns (CRITICAL - must come first)
+        ("google_sub", "VARCHAR(255)", "VARCHAR(255)", None, None),
+        ("google_email_verified", "BOOLEAN", "BOOLEAN", "0", "FALSE"),
+        ("auth_provider", "VARCHAR(20)", "VARCHAR(20)", "'local'", "'local'"),
+        ("webauthn_enabled", "BOOLEAN", "BOOLEAN", "0", "FALSE"),
+        # Other columns
         ("risk_multiplier", "REAL", "FLOAT", "1.0", "1.0"),
         ("referral_code", "VARCHAR(20)", "VARCHAR(20)", None, None),
         ("referred_by_id", "INTEGER", "INTEGER", None, None),

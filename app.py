@@ -880,28 +880,33 @@ def inject_csrf_token():
 
 @socketio.on('connect')
 def handle_connect(auth=None):
-    if current_user.is_authenticated:
-        room = f"user_{current_user.id}"
-        join_room(room)
-        logger.info(f"🔌 Client connected: {current_user.username}")
-        
-        if current_user.role == 'admin':
-            join_room("admin_room")
-            if engine.master_client:
-                engine.push_update('master', engine.master_client, is_master=True)
-            for slave in engine.slave_clients:
-                engine.push_update(slave['id'], slave['client'])
-        else:
-            slave = next((s for s in engine.slave_clients if s['id'] == current_user.id), None)
-            if slave:
-                engine.push_update(slave['id'], slave['client'])
+    try:
+        if current_user.is_authenticated:
+            room = f"user_{current_user.id}"
+            join_room(room)
+            logger.info(f"🔌 Client connected: {current_user.username}")
+            
+            if current_user.role == 'admin':
+                join_room("admin_room")
+                if engine.master_client:
+                    engine.push_update('master', engine.master_client, is_master=True)
+                for slave in engine.slave_clients:
+                    engine.push_update(slave['id'], slave['client'])
             else:
-                try:
-                    socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
-                except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
-                        urllib3.exceptions.ProtocolError):
-                    # Client disconnected - expected behavior, silently ignore
-                    pass
+                slave = next((s for s in engine.slave_clients if s['id'] == current_user.id), None)
+                if slave:
+                    engine.push_update(slave['id'], slave['client'])
+                else:
+                    try:
+                        socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
+                    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
+                            urllib3.exceptions.ProtocolError):
+                        # Client disconnected - expected behavior, silently ignore
+                        pass
+    except KeyError as e:
+        # Race condition: client disconnected before join_room completed
+        # This is expected when clients rapidly connect/disconnect
+        logger.debug(f"Client disconnected during connect handler: {e}")
 
 
 # ==================== LIVE CHAT SOCKET EVENTS ====================
