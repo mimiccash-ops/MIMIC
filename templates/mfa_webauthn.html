@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Security Check{% endblock %}
+{% block meta_title %}Security Check - MIMIC{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .mfa-container {
+        min-height: calc(100vh - var(--header-height) - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 24px;
+    }
+    .mfa-card {
+        width: 100%;
+        max-width: 520px;
+        background: rgba(10, 10, 18, 0.95);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-2xl);
+        padding: 40px;
+        box-shadow: var(--shadow-elevated);
+    }
+    .mfa-title {
+        font-family: var(--font-cyber);
+        font-size: 1.6rem;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+    .mfa-subtitle {
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+    }
+    .mfa-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .mfa-button {
+        width: 100%;
+        padding: 14px 18px;
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        background: rgba(0, 240, 255, 0.12);
+        color: var(--text-primary);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .mfa-button.secondary {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+    }
+    .mfa-button:hover {
+        transform: translateY(-1px);
+    }
+    .mfa-input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(10, 10, 18, 0.8);
+        color: var(--text-primary);
+    }
+    .mfa-status {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border-radius: var(--radius-lg);
+        background: rgba(0, 240, 255, 0.08);
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mfa-container">
+    <div class="mfa-card">
+        <h1 class="mfa-title">Security Check</h1>
+        <p class="mfa-subtitle">
+            Complete biometric verification to finish signing in.
+        </p>
+
+        <div id="mfaStatus" class="mfa-status">Waiting for passkey verification...</div>
+
+        <div class="mfa-actions">
+            {% if needs_registration %}
+            <input class="mfa-input" id="deviceName" type="text" placeholder="Device name (optional)">
+            <button class="mfa-button" id="registerBtn">Register passkey</button>
+            {% else %}
+            <button class="mfa-button" id="authBtn">Verify with passkey</button>
+            <button class="mfa-button secondary" id="registerBtn">Register a new passkey</button>
+            <input class="mfa-input" id="deviceName" type="text" placeholder="Device name (optional)">
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@9.0.0/dist/simplewebauthn-browser.umd.min.js"></script>
+<script>
+const csrfToken = "{{ csrf_value }}";
+const needsRegistration = {{ 'true' if needs_registration else 'false' }};
+const statusEl = document.getElementById('mfaStatus');
+const registerBtn = document.getElementById('registerBtn');
+const authBtn = document.getElementById('authBtn');
+
+function setStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.style.color = isError ? '#ff6363' : '';
+}
+
+async function postJson(url, payload) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify(payload || {})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Request failed');
+    }
+    return data;
+}
+
+async function getOptions(url) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to load options');
+    }
+    return data;
+}
+
+async function registerPasskey() {
+    try {
+        setStatus('Preparing passkey registration...');
+        const options = await getOptions('/webauthn/registration/options');
+        const registration = await SimpleWebAuthnBrowser.startRegistration(options);
+        const deviceName = (document.getElementById('deviceName')?.value || '').trim();
+        const result = await postJson('/webauthn/registration/verify', {
+            credential: registration,
+            device_name: deviceName
+        });
+        setStatus('Passkey registered. Redirecting...');
+        window.location.href = result.redirect;
+    } catch (err) {
+        setStatus(err.message || 'Registration failed', true);
+    }
+}
+
+async function authenticatePasskey() {
+    try {
+        setStatus('Awaiting passkey verification...');
+        const options = await getOptions('/webauthn/authentication/options');
+        const authentication = await SimpleWebAuthnBrowser.startAuthentication(options);
+        const result = await postJson('/webauthn/authentication/verify', {
+            credential: authentication
+        });
+        setStatus('Verification complete. Redirecting...');
+        window.location.href = result.redirect;
+    } catch (err) {
+        setStatus(err.message || 'Verification failed', true);
+    }
+}
+
+if (registerBtn) {
+    registerBtn.addEventListener('click', registerPasskey);
+}
+if (authBtn) {
+    authBtn.addEventListener('click', authenticatePasskey);
+}
+</script>
+{% endblock %}

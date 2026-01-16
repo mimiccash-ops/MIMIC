@@ -237,7 +237,7 @@ enabled = True
 source /var/www/mimic/venv/bin/activate
 
 # Run migrations
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 ---
@@ -466,7 +466,7 @@ DATABASE_URL=postgresql://mimic_user:your_strong_password@localhost:5432/mimic_d
 ```bash
 cd /var/www/mimic
 source venv/bin/activate
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 ---
@@ -651,7 +651,7 @@ curl -I https://yourdomain.com
 | View logs | `sudo journalctl -u mimic -f` |
 | Update code | `cd /var/www/mimic && git pull` |
 | Install deps | `source venv/bin/activate && pip install -r requirements.txt` |
-| Run migrations | `source venv/bin/activate && python migrate_all.py` |
+| Run migrations | `source venv/bin/activate && python migrations/migrate.py` |
 | Restart nginx | `sudo systemctl restart nginx` |
 | Renew SSL | `sudo certbot renew` |
 | Backup DB | `pg_dump mimic_db > backup.sql` |

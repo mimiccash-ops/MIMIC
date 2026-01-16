@@ -4,10 +4,30 @@ Main Flask Application with Enhanced Security
 """
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, abort, g, send_from_directory, Response
+from werkzeug.exceptions import HTTPException
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit, join_room
+from authlib.integrations.flask_client import OAuth
+from webauthn import (
+    generate_registration_options,
+    verify_registration_response,
+    generate_authentication_options,
+    verify_authentication_response
+)
+from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
+    AttestationConveyancePreference,
+    UserVerificationRequirement,
+    ResidentKeyRequirement,
+    RegistrationCredential,
+    AuthenticationCredential,
+    PublicKeyCredentialDescriptor,
+    PublicKeyCredentialType
+)
+from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
+from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 from config import Config
-from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent
+from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent, WebAuthnCredential
 from sqlalchemy import text
 from trading_engine import TradingEngine
 from telegram_notifier import init_notifier, get_notifier, init_email_sender, get_email_sender
@@ -17,13 +37,14 @@ from security import (
     login_tracker, login_limiter, api_limiter, webhook_limiter,
     InputValidator, add_security_headers, get_client_ip,
     init_session_security, verify_session, generate_csrf_token,
-    audit, rate_limit, validate_webhook
+    verify_csrf_token, audit, rate_limit, validate_webhook, validate_json_payload, is_safe_redirect_url
 )
 import asyncio
 import threading
 from queue import Queue
 from datetime import datetime, timedelta, timezone
 import random
+import html
 import logging
 import re
 import time
@@ -103,6 +124,17 @@ app.config.update(
     MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # Max 16MB upload
     WTF_CSRF_TIME_LIMIT=3600,  # CSRF token expires after 1 hour
 )
+
+# ==================== OAUTH CONFIGURATION ====================
+oauth = OAuth(app)
+if Config.GOOGLE_CLIENT_ID and Config.GOOGLE_CLIENT_SECRET:
+    oauth.register(
+        name='google',
+        client_id=Config.GOOGLE_CLIENT_ID,
+        client_secret=Config.GOOGLE_CLIENT_SECRET,
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'},
+    )
 
 # Initialize database and login
 db.init_app(app)
@@ -319,7 +351,227 @@ def log_system_event(user_id, symbol, message, is_error=False):
 engine.log_error_callback = log_system_event
 
 
-def get_user_exchange_balances(user_id: int) -> dict:
+_balance_cache = {}
+_balance_cache_lock = threading.Lock()
+_balance_cache_inflight = set()
+_balance_cache_ttl = int(os.environ.get('BALANCE_CACHE_TTL', '60'))
+
+
+def _get_json_cache_from_redis(cache_key: str):
+    """Fetch JSON cache from Redis if available."""
+    if not redis_client:
+        return None
+    try:
+        cached = redis_client.get(cache_key)
+        if not cached:
+            return None
+        return json.loads(cached)
+    except Exception as e:
+        logger.debug(f"Redis cache read failed for {cache_key}: {e}")
+        return None
+
+
+def _set_json_cache_to_redis(cache_key: str, data: dict, ttl_seconds: int) -> None:
+    """Store JSON cache in Redis if available."""
+    if not redis_client:
+        return
+    try:
+        redis_client.setex(cache_key, ttl_seconds, json.dumps(data))
+    except Exception as e:
+        logger.debug(f"Redis cache write failed for {cache_key}: {e}")
+
+
+def _get_balance_cache_from_redis(user_id: int):
+    """Fetch balance cache from Redis if available."""
+    key = f"user_balance:{user_id}"
+    return _get_json_cache_from_redis(key)
+
+
+def _set_balance_cache_to_redis(user_id: int, data: dict) -> None:
+    """Store balance cache in Redis if available."""
+    key = f"user_balance:{user_id}"
+    _set_json_cache_to_redis(key, data, _balance_cache_ttl)
+
+
+_admin_stats_cache = {}
+_admin_stats_lock = threading.Lock()
+_admin_stats_inflight = set()
+_admin_stats_ttl = int(os.environ.get('ADMIN_STATS_CACHE_TTL', '30'))
+_public_stats_cache = {}
+_public_stats_lock = threading.Lock()
+_public_stats_inflight = set()
+_public_stats_ttl = int(os.environ.get('PUBLIC_STATS_CACHE_TTL', '60'))
+
+
+def _refresh_admin_stats_cache(cache_key: str, compute_fn) -> None:
+    """Refresh cached admin stats asynchronously."""
+    try:
+        with app.app_context():
+            data = compute_fn()
+        with _admin_stats_lock:
+            _admin_stats_cache[cache_key] = {
+                'data': data,
+                'ts': time.time()
+            }
+        _set_json_cache_to_redis(f"admin_stats:{cache_key}", data, _admin_stats_ttl)
+    finally:
+        with _admin_stats_lock:
+            _admin_stats_inflight.discard(cache_key)
+
+
+def get_admin_stats_cached(cache_key: str, compute_fn, allow_stale: bool = True, ttl: int = None) -> dict:
+    """
+    Get cached admin stats with async refresh.
+    
+    Args:
+        cache_key: Unique cache key
+        compute_fn: Callable that returns the stats dict
+        allow_stale: Return stale data while refreshing in background
+        ttl: Optional TTL override in seconds
+    """
+    now = time.time()
+    ttl = ttl if ttl is not None else _admin_stats_ttl
+
+    redis_cached = _get_json_cache_from_redis(f"admin_stats:{cache_key}")
+    if redis_cached:
+        return redis_cached
+    
+    with _admin_stats_lock:
+        cached = _admin_stats_cache.get(cache_key)
+    
+    if cached:
+        age = now - cached['ts']
+        if age <= ttl:
+            return cached['data']
+        if allow_stale:
+            with _admin_stats_lock:
+                if cache_key not in _admin_stats_inflight:
+                    _admin_stats_inflight.add(cache_key)
+                    threading.Thread(
+                        target=_refresh_admin_stats_cache,
+                        args=(cache_key, compute_fn),
+                        daemon=True
+                    ).start()
+            return cached['data']
+    
+    data = compute_fn()
+    with _admin_stats_lock:
+        _admin_stats_cache[cache_key] = {'data': data, 'ts': now}
+    _set_json_cache_to_redis(f"admin_stats:{cache_key}", data, ttl)
+    return data
+
+
+def _refresh_public_stats_cache(cache_key: str, compute_fn, ttl: int) -> None:
+    """Refresh cached public stats asynchronously."""
+    try:
+        with app.app_context():
+            data = compute_fn()
+        with _public_stats_lock:
+            _public_stats_cache[cache_key] = {
+                'data': data,
+                'ts': time.time()
+            }
+        _set_json_cache_to_redis(f"public_stats:{cache_key}", data, ttl)
+    finally:
+        with _public_stats_lock:
+            _public_stats_inflight.discard(cache_key)
+
+
+def get_public_stats_cached(cache_key: str, compute_fn, allow_stale: bool = True, ttl: int = None) -> dict:
+    """
+    Get cached public stats with async refresh.
+    """
+    now = time.time()
+    ttl = ttl if ttl is not None else _public_stats_ttl
+
+    redis_cached = _get_json_cache_from_redis(f"public_stats:{cache_key}")
+    if redis_cached:
+        return redis_cached
+
+    with _public_stats_lock:
+        cached = _public_stats_cache.get(cache_key)
+
+    if cached:
+        age = now - cached['ts']
+        if age <= ttl:
+            return cached['data']
+        if allow_stale:
+            with _public_stats_lock:
+                if cache_key not in _public_stats_inflight:
+                    _public_stats_inflight.add(cache_key)
+                    threading.Thread(
+                        target=_refresh_public_stats_cache,
+                        args=(cache_key, compute_fn, ttl),
+                        daemon=True
+                    ).start()
+            return cached['data']
+
+    data = compute_fn()
+    with _public_stats_lock:
+        _public_stats_cache[cache_key] = {'data': data, 'ts': now}
+    _set_json_cache_to_redis(f"public_stats:{cache_key}", data, ttl)
+    return data
+
+
+_cache_warmers_started = False
+_balance_warm_offset = 0
+
+
+def _warm_balance_cache_batch():
+    """Warm balance cache for a batch of users."""
+    global _balance_warm_offset
+    batch_size = int(os.environ.get('BALANCE_WARMER_BATCH', '50'))
+    
+    with app.app_context():
+        users = User.query.filter(
+            User.role == 'user',
+            User.is_active == True
+        ).order_by(User.id.asc()).offset(_balance_warm_offset).limit(batch_size).all()
+    
+    if not users:
+        _balance_warm_offset = 0
+        return
+    
+    for user in users:
+        _refresh_balance_cache(user.id)
+    
+    _balance_warm_offset += len(users)
+
+
+def _warm_public_leaderboards():
+    """Warm public leaderboard caches."""
+    with app.app_context():
+        get_public_stats_cached('leaderboard_stats', _compute_leaderboard_stats, allow_stale=False)
+        get_public_stats_cached('gamification_leaderboard:10', lambda: _compute_gamification_leaderboard(10), allow_stale=False)
+
+
+def _cache_warmer_loop():
+    """Background loop to warm caches periodically."""
+    interval = int(os.environ.get('CACHE_WARMER_INTERVAL', '120'))
+    while True:
+        try:
+            _warm_balance_cache_batch()
+            _warm_public_leaderboards()
+        except Exception as e:
+            logger.warning(f"Cache warmer error: {e}")
+        time.sleep(interval)
+
+
+def start_cache_warmers():
+    """Start background cache warmers if enabled."""
+    global _cache_warmers_started
+    if _cache_warmers_started:
+        return
+    if os.environ.get('DISABLE_CACHE_WARMERS', 'false').lower() == 'true':
+        return
+    if os.environ.get('ENABLE_CACHE_WARMERS', 'true').lower() != 'true':
+        return
+    
+    _cache_warmers_started = True
+    threading.Thread(target=_cache_warmer_loop, daemon=True).start()
+
+
+def _fetch_user_exchange_balances(user_id: int) -> dict:
     """
     Fetch balances from all connected exchanges for a user using CCXT
     
@@ -443,6 +695,62 @@ def get_user_exchange_balances(user_id: int) -> dict:
     return result
 
 
+def _refresh_balance_cache(user_id: int) -> None:
+    """Refresh cached balances asynchronously."""
+    try:
+        with app.app_context():
+            data = _fetch_user_exchange_balances(user_id)
+        with _balance_cache_lock:
+            _balance_cache[user_id] = {
+                'data': data,
+                'ts': time.time()
+            }
+        _set_balance_cache_to_redis(user_id, data)
+    finally:
+        with _balance_cache_lock:
+            _balance_cache_inflight.discard(user_id)
+
+
+def get_user_exchange_balances(user_id: int, allow_stale: bool = True) -> dict:
+    """
+    Get cached balances for user exchanges with async refresh.
+    
+    Args:
+        user_id: User ID
+        allow_stale: Return stale cache while refreshing in background
+    """
+    # Prefer Redis cache if available (persists across restarts)
+    redis_cached = _get_balance_cache_from_redis(user_id)
+    if redis_cached:
+        return redis_cached
+    
+    now = time.time()
+    with _balance_cache_lock:
+        cached = _balance_cache.get(user_id)
+    
+    if cached:
+        age = now - cached['ts']
+        if age <= _balance_cache_ttl:
+            return cached['data']
+        if allow_stale:
+            with _balance_cache_lock:
+                if user_id not in _balance_cache_inflight:
+                    _balance_cache_inflight.add(user_id)
+                    threading.Thread(
+                        target=_refresh_balance_cache,
+                        args=(user_id,),
+                        daemon=True
+                    ).start()
+            return cached['data']
+    
+    # No cache or stale not allowed: refresh synchronously
+    data = _fetch_user_exchange_balances(user_id)
+    with _balance_cache_lock:
+        _balance_cache[user_id] = {'data': data, 'ts': now}
+    _set_balance_cache_to_redis(user_id, data)
+    return data
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -463,8 +771,56 @@ def security_checks():
     # Store IP in g for later use
     g.client_ip = ip
     
-    # Check for injection attempts in request data
-    if request.method == 'POST':
+    # Enforce admin access for admin routes
+    path = request.path or ''
+    is_admin_api = path.startswith('/api/admin')
+    if path.startswith('/admin') or is_admin_api:
+        if not current_user.is_authenticated:
+            if is_admin_api:
+                return jsonify({'success': False, 'error': 'Authentication required'}), 401
+            abort(401)
+        if not verify_session():
+            if is_admin_api:
+                return jsonify({'success': False, 'error': 'Invalid session'}), 401
+            abort(401)
+        if current_user.role != 'admin':
+            if is_admin_api:
+                return jsonify({'success': False, 'error': 'Admin access required'}), 403
+            abort(403)
+    
+    # Global rate limiting for public API endpoints
+    if path.startswith('/api'):
+        try:
+            max_requests = int(os.environ.get('API_RATE_LIMIT', '120'))
+            window = int(os.environ.get('API_RATE_LIMIT_WINDOW', '60'))
+        except ValueError:
+            max_requests = 120
+            window = 60
+        if not api_limiter.check(f"api_{ip}", max_requests, window):
+            return jsonify({
+                'success': False,
+                'error': 'Rate limit exceeded',
+                'retry_after': window
+            }), 429
+    
+    # Check for injection attempts in request data (query, form, JSON)
+    for key, value in request.args.items():
+        if isinstance(value, str) and InputValidator.check_injection(value):
+            audit.log_security_event("INJECTION_ATTEMPT", f"IP: {ip}, Field: {key}", "CRITICAL")
+            login_tracker.block_ip(ip)
+            abort(403)
+    
+    if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+        if request.is_json:
+            payload = request.get_json(silent=True)
+            raw_body = request.get_data(cache=True)
+            if raw_body and payload is None:
+                audit.log_security_event("INVALID_JSON", f"IP: {ip}, Error: Malformed JSON", "WARNING")
+                return jsonify({'success': False, 'error': 'Invalid input'}), 400
+            is_valid, error_msg = validate_json_payload(payload)
+            if not is_valid:
+                audit.log_security_event("INVALID_JSON", f"IP: {ip}, Error: {error_msg}", "WARNING")
+                return jsonify({'success': False, 'error': 'Invalid input'}), 400
         for key, value in request.form.items():
             if isinstance(value, str) and InputValidator.check_injection(value):
                 audit.log_security_event("INJECTION_ATTEMPT", f"IP: {ip}, Field: {key}", "CRITICAL")
@@ -476,6 +832,42 @@ def security_checks():
 def apply_security_headers(response):
     """Add security headers to all responses"""
     return add_security_headers(response)
+
+
+def _is_api_request() -> bool:
+    """Determine if request expects JSON response."""
+    path = request.path or ''
+    if path.startswith('/api'):
+        return True
+    if request.accept_mimetypes and request.accept_mimetypes.best == 'application/json':
+        return True
+    return False
+
+
+def _json_error_response(message: str, code: int):
+    """Return a structured JSON error response."""
+    return jsonify({
+        'success': False,
+        'error': message,
+        'code': str(code)
+    }), code
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    """Return JSON errors for API endpoints, HTML for others."""
+    if _is_api_request():
+        return _json_error_response(e.description, e.code)
+    return e
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Catch-all handler for API errors."""
+    if _is_api_request():
+        logger.error("Unhandled API error", exc_info=True)
+        return _json_error_response("Internal server error", 500)
+    return app.handle_exception(e)
 
 
 @app.context_processor
@@ -714,16 +1106,6 @@ def broadcast_whale_alert(user_id: int, username: str, symbol: str, pnl: float, 
 
 # ==================== SEO ROUTES ====================
 
-@app.route('/robots.txt')
-def robots_txt():
-    """Serve robots.txt for search engines"""
-    return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
-
-@app.route('/sitemap.xml')
-def sitemap_xml():
-    """Serve sitemap.xml for search engines"""
-    return send_from_directory(app.static_folder, 'sitemap.xml', mimetype='application/xml')
-
 @app.route('/manifest.json')
 def manifest_json():
     """Serve PWA manifest"""
@@ -903,42 +1285,59 @@ Crawl-delay: 1
 
 # ==================== PUBLIC LEADERBOARD ====================
 
-@app.route('/leaderboard')
-def leaderboard():
-    """Public leaderboard page - SEO optimized landing page showing trading stats"""
-    return render_template('leaderboard.html')
-
-
-@app.route('/api/leaderboard/stats')
-def get_leaderboard_stats():
-    """Public API endpoint for leaderboard statistics - no auth required"""
-    try:
-        # Calculate time periods
-        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        last_7_days = datetime.now(timezone.utc) - timedelta(days=7)
-        last_30_days = datetime.now(timezone.utc) - timedelta(days=30)
-        
-        # ===== GLOBAL STATS =====
-        
-        # Total Users (active users only)
-        total_users = User.query.filter(User.role == 'user').count()
-        active_users = User.query.filter(User.role == 'user', User.is_active == True).count()
-        
-        # Total Profit (sum of all positive PnL trades)
-        total_profit = db.session.query(db.func.sum(TradeHistory.pnl)).filter(
-            TradeHistory.pnl > 0
-        ).scalar() or 0
-        
-        # Total Volume (approximate from trades - sum of absolute PnL as proxy for volume)
-        total_volume = db.session.query(db.func.sum(db.func.abs(TradeHistory.pnl))).scalar() or 0
-        # Multiply by approximate leverage factor for more realistic volume
-        total_volume = total_volume * 15  # Assume average 15x leverage
-        
-        # Total trades
-        total_trades = TradeHistory.query.count()
-        
-        # ===== TOP COPIERS TODAY (by ROE%) =====
-        # Get users with trades today, ranked by average ROE
+def _compute_leaderboard_stats() -> dict:
+    """Compute leaderboard stats payload."""
+    # Calculate time periods
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    last_7_days = datetime.now(timezone.utc) - timedelta(days=7)
+    last_30_days = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    # ===== GLOBAL STATS =====
+    total_users = User.query.filter(User.role == 'user').count()
+    active_users = User.query.filter(User.role == 'user', User.is_active == True).count()
+    
+    total_profit = db.session.query(db.func.sum(TradeHistory.pnl)).filter(
+        TradeHistory.pnl > 0
+    ).scalar() or 0
+    
+    total_volume = db.session.query(db.func.sum(db.func.abs(TradeHistory.pnl))).scalar() or 0
+    total_volume = total_volume * 15  # Assume average 15x leverage
+    
+    total_trades = TradeHistory.query.count()
+    
+    # ===== TOP COPIERS TODAY (by ROE%) =====
+    top_copiers_query = db.session.query(
+        TradeHistory.user_id,
+        db.func.sum(TradeHistory.pnl).label('total_pnl'),
+        db.func.avg(TradeHistory.roi).label('avg_roe'),
+        db.func.count(TradeHistory.id).label('trade_count')
+    ).filter(
+        TradeHistory.user_id.isnot(None),
+        TradeHistory.close_time >= today
+    ).group_by(
+        TradeHistory.user_id
+    ).order_by(
+        db.func.sum(TradeHistory.pnl).desc()
+    ).limit(10).all()
+    
+    top_copiers = []
+    for row in top_copiers_query:
+        user = db.session.get(User, row.user_id)
+        if user:
+            username = user.username
+            if len(username) > 2:
+                masked = f"User {username[0]}***{username[-1]}"
+            else:
+                masked = f"User {username[0]}***"
+            
+            top_copiers.append({
+                'masked_name': masked,
+                'roe': round(float(row.avg_roe or 0), 2),
+                'pnl': round(float(row.total_pnl or 0), 2),
+                'trades': int(row.trade_count)
+            })
+    
+    if not top_copiers:
         top_copiers_query = db.session.query(
             TradeHistory.user_id,
             db.func.sum(TradeHistory.pnl).label('total_pnl'),
@@ -946,18 +1345,16 @@ def get_leaderboard_stats():
             db.func.count(TradeHistory.id).label('trade_count')
         ).filter(
             TradeHistory.user_id.isnot(None),
-            TradeHistory.close_time >= today
+            TradeHistory.close_time >= last_7_days
         ).group_by(
             TradeHistory.user_id
         ).order_by(
             db.func.sum(TradeHistory.pnl).desc()
         ).limit(10).all()
         
-        top_copiers = []
         for row in top_copiers_query:
             user = db.session.get(User, row.user_id)
             if user:
-                # Mask username: first 1 char + *** + last 1 char
                 username = user.username
                 if len(username) > 2:
                     masked = f"User {username[0]}***{username[-1]}"
@@ -970,91 +1367,98 @@ def get_leaderboard_stats():
                     'pnl': round(float(row.total_pnl or 0), 2),
                     'trades': int(row.trade_count)
                 })
-        
-        # If no trades today, get top performers from last 7 days
-        if not top_copiers:
-            top_copiers_query = db.session.query(
-                TradeHistory.user_id,
-                db.func.sum(TradeHistory.pnl).label('total_pnl'),
-                db.func.avg(TradeHistory.roi).label('avg_roe'),
-                db.func.count(TradeHistory.id).label('trade_count')
-            ).filter(
-                TradeHistory.user_id.isnot(None),
-                TradeHistory.close_time >= last_7_days
-            ).group_by(
-                TradeHistory.user_id
-            ).order_by(
-                db.func.sum(TradeHistory.pnl).desc()
-            ).limit(10).all()
-            
-            for row in top_copiers_query:
-                user = db.session.get(User, row.user_id)
-                if user:
-                    username = user.username
-                    if len(username) > 2:
-                        masked = f"User {username[0]}***{username[-1]}"
-                    else:
-                        masked = f"User {username[0]}***"
-                    
-                    top_copiers.append({
-                        'masked_name': masked,
-                        'roe': round(float(row.avg_roe or 0), 2),
-                        'pnl': round(float(row.total_pnl or 0), 2),
-                        'trades': int(row.trade_count)
-                    })
-        
-        # ===== MASTER TRADER STATS =====
-        # Master trades have user_id = None
-        master_trades_30d = TradeHistory.query.filter(
-            TradeHistory.user_id == None,
-            TradeHistory.close_time >= last_30_days
-        ).all()
-        
-        master_pnl = sum(t.pnl for t in master_trades_30d) if master_trades_30d else 0
-        master_trades_count = len(master_trades_30d)
-        master_winning = len([t for t in master_trades_30d if t.pnl > 0])
-        master_winrate = (master_winning / master_trades_count * 100) if master_trades_count > 0 else 0
-        master_avg_roi = sum(t.roi for t in master_trades_30d) / len(master_trades_30d) if master_trades_30d else 0
-        
-        # Get master balance history for chart (last 30 days)
-        master_balance_history = BalanceHistory.query.filter(
-            BalanceHistory.user_id == None,
-            BalanceHistory.timestamp >= last_30_days
-        ).order_by(BalanceHistory.timestamp.asc()).all()
-        
-        balance_chart_data = [{
-            'time': h.timestamp.strftime('%d/%m'),
-            'balance': round(h.balance, 2)
-        } for h in master_balance_history]
-        
-        # Calculate master ROE based on starting vs current balance
-        master_roe = 0
-        if master_balance_history and len(master_balance_history) >= 2:
-            start_balance = master_balance_history[0].balance
-            end_balance = master_balance_history[-1].balance
-            if start_balance > 0:
-                master_roe = ((end_balance - start_balance) / start_balance) * 100
-        
-        return jsonify({
-            'success': True,
-            'global_stats': {
-                'total_users': total_users,
-                'active_users': active_users,
-                'total_profit': round(float(total_profit), 2),
-                'total_volume': round(float(total_volume), 2),
-                'total_trades': total_trades
-            },
-            'top_copiers': top_copiers,
-            'master_stats': {
-                'pnl_30d': round(float(master_pnl), 2),
-                'trades_30d': master_trades_count,
-                'winrate': round(float(master_winrate), 1),
-                'avg_roi': round(float(master_avg_roi), 2),
-                'roe_30d': round(float(master_roe), 2)
-            },
-            'balance_chart': balance_chart_data,
-            'generated_at': datetime.now(timezone.utc).isoformat()
+    
+    # ===== MASTER TRADER STATS =====
+    master_trades_30d = TradeHistory.query.filter(
+        TradeHistory.user_id == None,
+        TradeHistory.close_time >= last_30_days
+    ).all()
+    
+    master_pnl = sum(t.pnl for t in master_trades_30d) if master_trades_30d else 0
+    master_trades_count = len(master_trades_30d)
+    master_winning = len([t for t in master_trades_30d if t.pnl > 0])
+    master_winrate = (master_winning / master_trades_count * 100) if master_trades_count > 0 else 0
+    master_avg_roi = sum(t.roi for t in master_trades_30d) / len(master_trades_30d) if master_trades_30d else 0
+    
+    master_balance_history = BalanceHistory.query.filter(
+        BalanceHistory.user_id == None,
+        BalanceHistory.timestamp >= last_30_days
+    ).order_by(BalanceHistory.timestamp.asc()).all()
+    
+    balance_chart_data = [{
+        'time': h.timestamp.strftime('%d/%m'),
+        'balance': round(h.balance, 2)
+    } for h in master_balance_history]
+    
+    master_roe = 0
+    if master_balance_history and len(master_balance_history) >= 2:
+        start_balance = master_balance_history[0].balance
+        end_balance = master_balance_history[-1].balance
+        if start_balance > 0:
+            master_roe = ((end_balance - start_balance) / start_balance) * 100
+    
+    return {
+        'success': True,
+        'global_stats': {
+            'total_users': total_users,
+            'active_users': active_users,
+            'total_profit': round(float(total_profit), 2),
+            'total_volume': round(float(total_volume), 2),
+            'total_trades': total_trades
+        },
+        'top_copiers': top_copiers,
+        'master_stats': {
+            'pnl_30d': round(float(master_pnl), 2),
+            'trades_30d': master_trades_count,
+            'winrate': round(float(master_winrate), 1),
+            'avg_roi': round(float(master_avg_roi), 2),
+            'roe_30d': round(float(master_roe), 2)
+        },
+        'balance_chart': balance_chart_data,
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+
+
+def _compute_gamification_leaderboard(limit: int) -> dict:
+    """Compute gamification leaderboard payload."""
+    top_users = User.query.filter(
+        User.role == 'user',
+        User.xp > 0
+    ).order_by(User.xp.desc()).limit(limit).all()
+    
+    leaderboard = []
+    for i, user in enumerate(top_users, 1):
+        leaderboard.append({
+            'rank': i,
+            'username': user.username[:3] + '*' * max(0, len(user.username) - 4) + user.username[-1:] if len(user.username) > 4 else user.username,
+            'avatar': user.avatar,
+            'avatar_type': user.avatar_type,
+            'xp': user.xp or 0,
+            'level_name': user.current_level.name if user.current_level else 'Novice',
+            'level_icon': user.current_level.icon if user.current_level else 'fa-seedling',
+            'level_color': user.current_level.color if user.current_level else '#888888',
+            'badge_count': user.achievements.count()
         })
+    
+    return {
+        'success': True,
+        'leaderboard': leaderboard,
+        'total_participants': User.query.filter(User.role == 'user', User.xp > 0).count()
+    }
+
+
+@app.route('/leaderboard')
+def leaderboard():
+    """Public leaderboard page - SEO optimized landing page showing trading stats"""
+    return render_template('leaderboard.html')
+
+
+@app.route('/api/leaderboard/stats')
+def get_leaderboard_stats():
+    """Public API endpoint for leaderboard statistics - no auth required"""
+    try:
+        data = get_public_stats_cached('leaderboard_stats', _compute_leaderboard_stats)
+        return jsonify(data)
         
     except Exception as e:
         logger.error(f"Error getting leaderboard stats: {e}")
@@ -2389,15 +2793,27 @@ def favicon():
     return '', 204  # No content - prevents 404 errors
 
 
+def _require_internal_token(env_var: str) -> None:
+    """Require internal token for sensitive endpoints if configured."""
+    expected = os.environ.get(env_var, '')
+    if not expected:
+        return
+    provided = request.headers.get('X-Internal-Token', '')
+    if not provided or not secrets.compare_digest(provided, expected):
+        abort(403)
+
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for Docker/Kubernetes probes"""
+    _require_internal_token('INTERNAL_HEALTH_TOKEN')
     try:
         # Verify database connection
         db.session.execute(text('SELECT 1'))
         db_status = 'healthy'
     except Exception as e:
-        db_status = f'unhealthy: {str(e)}'
+        logger.error("Health check database failure", exc_info=True)
+        db_status = 'unhealthy'
     
     return jsonify({
         'status': 'healthy' if db_status == 'healthy' else 'degraded',
@@ -2409,9 +2825,320 @@ def health_check():
 @app.route('/metrics')
 def prometheus_metrics():
     """Prometheus metrics endpoint for observability stack."""
+    _require_internal_token('INTERNAL_METRICS_TOKEN')
     from flask import Response
     metrics_output, content_type = get_metrics()
     return Response(metrics_output, mimetype=content_type)
+
+
+# ==================== GOOGLE OAUTH + WEBAUTHN MFA ====================
+
+def _get_webauthn_rp_id() -> str:
+    if Config.WEBAUTHN_RP_ID:
+        return Config.WEBAUTHN_RP_ID
+    return request.host.split(':')[0]
+
+
+def _get_webauthn_origin() -> str:
+    if Config.WEBAUTHN_ORIGIN:
+        return Config.WEBAUTHN_ORIGIN.rstrip('/')
+    return request.host_url.rstrip('/')
+
+
+def _get_pending_mfa_user() -> User | None:
+    user_id = session.get('mfa_user_id')
+    if not user_id:
+        return None
+    return db.session.get(User, int(user_id))
+
+
+def _build_unique_username(seed: str) -> str:
+    base = re.sub(r'[^A-Za-z0-9_.@+\-]', '', seed)[:40]
+    if not base:
+        base = f"user_{secrets.token_hex(4)}"
+    candidate = base[:50]
+    suffix = 1
+    while User.query.filter_by(username=candidate).first():
+        candidate = f"{base[:45]}_{suffix}"
+        suffix += 1
+    return candidate[:50]
+
+
+def _finalize_mfa_login(user: User):
+    login_user(user)
+    init_session_security()
+    session.pop('mfa_pending', None)
+    session.pop('mfa_user_id', None)
+    session.pop('mfa_started_at', None)
+    session.pop('mfa_provider', None)
+    session.pop('webauthn_challenge', None)
+    session.pop('webauthn_origin', None)
+    session.pop('webauthn_rp_id', None)
+    next_url = session.pop('post_auth_redirect', None)
+    if next_url and is_safe_redirect_url(next_url):
+        return next_url
+    return url_for('dashboard')
+
+
+@app.route('/auth/google')
+def auth_google():
+    if not Config.GOOGLE_CLIENT_ID or not Config.GOOGLE_CLIENT_SECRET:
+        flash('Google login is not configured.', 'error')
+        return redirect(url_for('login'))
+    next_url = request.args.get('next')
+    if next_url and is_safe_redirect_url(next_url):
+        session['post_auth_redirect'] = next_url
+    forwarded_proto = request.headers.get('X-Forwarded-Proto', '')
+    scheme = 'https' if forwarded_proto == 'https' or request.is_secure else 'http'
+    redirect_uri = Config.GOOGLE_OAUTH_REDIRECT_URL or url_for('auth_google_callback', _external=True, _scheme=scheme)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    if not Config.GOOGLE_CLIENT_ID or not Config.GOOGLE_CLIENT_SECRET:
+        flash('Google login is not configured.', 'error')
+        return redirect(url_for('login'))
+    try:
+        token = oauth.google.authorize_access_token()
+        userinfo = oauth.google.parse_id_token(token)
+        if not userinfo:
+            userinfo = oauth.google.get('userinfo').json()
+    except Exception as exc:
+        logger.warning(f"Google OAuth failed: {exc}")
+        flash('Google login failed. Please try again.', 'error')
+        return redirect(url_for('login'))
+
+    email = (userinfo.get('email') or '').lower()
+    sub = userinfo.get('sub')
+    email_verified = bool(userinfo.get('email_verified'))
+    if not email or not sub:
+        flash('Google account is missing required profile information.', 'error')
+        return redirect(url_for('login'))
+
+    user = User.query.filter_by(google_sub=sub).first()
+    if not user:
+        user = User.query.filter_by(email=email).first()
+    if not user:
+        username = _build_unique_username(email)
+        user = User(
+            username=username,
+            email=email,
+            first_name=userinfo.get('given_name') or '',
+            last_name=userinfo.get('family_name') or '',
+            is_active=True,
+            is_paused=True,
+            auth_provider='google',
+            google_sub=sub,
+            google_email_verified=email_verified
+        )
+        user.ensure_referral_code()
+        db.session.add(user)
+        db.session.commit()
+    else:
+        user.google_sub = sub
+        user.google_email_verified = email_verified
+        user.auth_provider = 'google'
+        if not user.email:
+            user.email = email
+        if not user.first_name and userinfo.get('given_name'):
+            user.first_name = userinfo.get('given_name')
+        if not user.last_name and userinfo.get('family_name'):
+            user.last_name = userinfo.get('family_name')
+        db.session.commit()
+
+    session['mfa_user_id'] = user.id
+    session['mfa_pending'] = True
+    session['mfa_provider'] = 'google'
+    session['mfa_started_at'] = time.time()
+    return redirect(url_for('mfa_webauthn'))
+
+
+@app.route('/mfa')
+def mfa_webauthn():
+    user = _get_pending_mfa_user()
+    if not user:
+        return redirect(url_for('login'))
+    credentials = WebAuthnCredential.query.filter_by(user_id=user.id).all()
+    needs_registration = len(credentials) == 0
+    return render_template(
+        'mfa_webauthn.html',
+        user=user,
+        needs_registration=needs_registration,
+        csrf_value=generate_csrf_token()
+    )
+
+
+@app.route('/webauthn/registration/options', methods=['POST'])
+def webauthn_registration_options():
+    user = _get_pending_mfa_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    csrf_token = request.headers.get('X-CSRF-Token', '')
+    if not verify_csrf_token(csrf_token):
+        return jsonify({'success': False, 'error': 'Invalid CSRF token'}), 403
+
+    rp_id = _get_webauthn_rp_id()
+    rp_name = Config.WEBAUTHN_RP_NAME or 'MIMIC'
+    origin = _get_webauthn_origin()
+    existing = WebAuthnCredential.query.filter_by(user_id=user.id).all()
+    exclude = [
+        PublicKeyCredentialDescriptor(
+            type=PublicKeyCredentialType.PUBLIC_KEY,
+            id=base64url_to_bytes(cred.credential_id)
+        )
+        for cred in existing
+    ]
+
+    options = generate_registration_options(
+        rp_id=rp_id,
+        rp_name=rp_name,
+        user_id=str(user.id).encode(),
+        user_name=user.email or user.username,
+        user_display_name=f"{user.first_name or ''} {user.last_name or ''}".strip() or user.username,
+        attestation=AttestationConveyancePreference.NONE,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.REQUIRED
+        ),
+        exclude_credentials=exclude
+    )
+    session['webauthn_challenge'] = bytes_to_base64url(options.challenge)
+    session['webauthn_origin'] = origin
+    session['webauthn_rp_id'] = rp_id
+    options_json = options.json() if hasattr(options, "json") else json.dumps(options)
+    return jsonify(json.loads(options_json))
+
+
+@app.route('/webauthn/registration/verify', methods=['POST'])
+def webauthn_registration_verify():
+    user = _get_pending_mfa_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    csrf_token = request.headers.get('X-CSRF-Token', '')
+    if not verify_csrf_token(csrf_token):
+        return jsonify({'success': False, 'error': 'Invalid CSRF token'}), 403
+
+    challenge = session.get('webauthn_challenge')
+    origin = session.get('webauthn_origin')
+    rp_id = session.get('webauthn_rp_id')
+    if not challenge or not origin or not rp_id:
+        return jsonify({'success': False, 'error': 'Missing challenge'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    device_name = (payload.get('device_name') or '').strip()[:100] or None
+    credential_json = payload.get('credential')
+    if not credential_json:
+        return jsonify({'success': False, 'error': 'Invalid credential'}), 400
+
+    try:
+        verified = verify_registration_response(
+            credential=RegistrationCredential.parse_raw(json.dumps(credential_json)),
+            expected_challenge=base64url_to_bytes(challenge),
+            expected_origin=origin,
+            expected_rp_id=rp_id,
+            require_user_verification=True
+        )
+    except Exception as exc:
+        logger.warning(f"WebAuthn registration failed: {exc}")
+        return jsonify({'success': False, 'error': 'Registration failed'}), 400
+
+    new_credential = WebAuthnCredential(
+        user_id=user.id,
+        credential_id=bytes_to_base64url(verified.credential_id),
+        public_key=bytes_to_base64url(verified.credential_public_key),
+        sign_count=verified.sign_count,
+        transports=','.join(credential_json.get('response', {}).get('transports', [])) or None,
+        device_name=device_name
+    )
+    user.webauthn_enabled = True
+    db.session.add(new_credential)
+    db.session.commit()
+
+    redirect_url = _finalize_mfa_login(user)
+    return jsonify({'success': True, 'redirect': redirect_url})
+
+
+@app.route('/webauthn/authentication/options', methods=['POST'])
+def webauthn_authentication_options():
+    user = _get_pending_mfa_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    csrf_token = request.headers.get('X-CSRF-Token', '')
+    if not verify_csrf_token(csrf_token):
+        return jsonify({'success': False, 'error': 'Invalid CSRF token'}), 403
+
+    rp_id = _get_webauthn_rp_id()
+    origin = _get_webauthn_origin()
+    credentials = WebAuthnCredential.query.filter_by(user_id=user.id).all()
+    allow_credentials = [
+        PublicKeyCredentialDescriptor(
+            type=PublicKeyCredentialType.PUBLIC_KEY,
+            id=base64url_to_bytes(cred.credential_id)
+        )
+        for cred in credentials
+    ]
+
+    options = generate_authentication_options(
+        rp_id=rp_id,
+        allow_credentials=allow_credentials,
+        user_verification=UserVerificationRequirement.REQUIRED
+    )
+    session['webauthn_challenge'] = bytes_to_base64url(options.challenge)
+    session['webauthn_origin'] = origin
+    session['webauthn_rp_id'] = rp_id
+    options_json = options.json() if hasattr(options, "json") else json.dumps(options)
+    return jsonify(json.loads(options_json))
+
+
+@app.route('/webauthn/authentication/verify', methods=['POST'])
+def webauthn_authentication_verify():
+    user = _get_pending_mfa_user()
+    if not user:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    csrf_token = request.headers.get('X-CSRF-Token', '')
+    if not verify_csrf_token(csrf_token):
+        return jsonify({'success': False, 'error': 'Invalid CSRF token'}), 403
+
+    challenge = session.get('webauthn_challenge')
+    origin = session.get('webauthn_origin')
+    rp_id = session.get('webauthn_rp_id')
+    if not challenge or not origin or not rp_id:
+        return jsonify({'success': False, 'error': 'Missing challenge'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    credential_json = payload.get('credential')
+    if not credential_json:
+        return jsonify({'success': False, 'error': 'Invalid credential'}), 400
+
+    credential_id = credential_json.get('id')
+    if not credential_id:
+        return jsonify({'success': False, 'error': 'Invalid credential'}), 400
+    stored = WebAuthnCredential.query.filter_by(credential_id=credential_id, user_id=user.id).first()
+    if not stored:
+        return jsonify({'success': False, 'error': 'Unknown credential'}), 400
+
+    try:
+        verified = verify_authentication_response(
+            credential=AuthenticationCredential.parse_raw(json.dumps(credential_json)),
+            expected_challenge=base64url_to_bytes(challenge),
+            expected_origin=origin,
+            expected_rp_id=rp_id,
+            credential_public_key=base64url_to_bytes(stored.public_key),
+            credential_current_sign_count=stored.sign_count,
+            require_user_verification=True
+        )
+    except Exception as exc:
+        logger.warning(f"WebAuthn authentication failed: {exc}")
+        return jsonify({'success': False, 'error': 'Authentication failed'}), 400
+
+    stored.update_sign_count(verified.new_sign_count)
+    stored.last_used_at = datetime.now(timezone.utc)
+    user.webauthn_enabled = True
+    db.session.commit()
+
+    redirect_url = _finalize_mfa_login(user)
+    return jsonify({'success': True, 'redirect': redirect_url})
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -3626,6 +4353,9 @@ def get_user_positions():
                 pnl_sign = '+' if p['unrealized_pnl'] >= 0 else ''
                 side_class = 'long' if p['side'] == 'LONG' else 'short'
                 arrow = 'arrow-trend-up' if p['side'] == 'LONG' else 'arrow-trend-down'
+                symbol = html.escape(p.get('symbol', ''))
+                side_label = html.escape(p.get('side', ''))
+                exchange_label = html.escape(p.get('exchange', '')) if p.get('exchange') else ''
                 
                 html_parts.append(f'''
                 <div class="position-card">
@@ -3634,8 +4364,8 @@ def get_user_positions():
                             <i class="fas fa-{arrow}"></i>
                         </div>
                         <div>
-                            <div class="symbol">{p['symbol']}</div>
-                            <div class="details">{p['side']} · x{p['leverage']}{' · ' + p.get('exchange', '') if p.get('exchange') else ''}</div>
+                            <div class="symbol">{symbol}</div>
+                            <div class="details">{side_label} · x{p['leverage']}{' · ' + exchange_label if exchange_label else ''}</div>
                         </div>
                     </div>
                     <div class="pnl">
@@ -4223,32 +4953,10 @@ def get_gamification_leaderboard():
     """
     try:
         limit = min(int(request.args.get('limit', 10)), 50)
-        
-        # Get top users by XP
-        top_users = User.query.filter(
-            User.role == 'user',
-            User.xp > 0
-        ).order_by(User.xp.desc()).limit(limit).all()
-        
-        leaderboard = []
-        for i, user in enumerate(top_users, 1):
-            leaderboard.append({
-                'rank': i,
-                'username': user.username[:3] + '*' * max(0, len(user.username) - 4) + user.username[-1:] if len(user.username) > 4 else user.username,
-                'avatar': user.avatar,
-                'avatar_type': user.avatar_type,
-                'xp': user.xp or 0,
-                'level_name': user.current_level.name if user.current_level else 'Novice',
-                'level_icon': user.current_level.icon if user.current_level else 'fa-seedling',
-                'level_color': user.current_level.color if user.current_level else '#888888',
-                'badge_count': user.achievements.count()
-            })
-        
-        return jsonify({
-            'success': True,
-            'leaderboard': leaderboard,
-            'total_participants': User.query.filter(User.role == 'user', User.xp > 0).count()
-        })
+
+        cache_key = f"gamification_leaderboard:{limit}"
+        data = get_public_stats_cached(cache_key, lambda: _compute_gamification_leaderboard(limit))
+        return jsonify(data)
     except Exception as e:
         logger.error(f"Error getting gamification leaderboard: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -4289,46 +4997,50 @@ def admin_gamification_stats():
         return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
-        from sqlalchemy import func
+        def _compute_stats():
+            from sqlalchemy import func
+            
+            # Users by level
+            level_distribution = db.session.query(
+                UserLevel.name,
+                UserLevel.color,
+                func.count(User.id)
+            ).outerjoin(User, User.current_level_id == UserLevel.id).filter(
+                User.role == 'user'
+            ).group_by(UserLevel.id).order_by(UserLevel.order_rank).all()
+            
+            # Achievement stats
+            achievement_stats = db.session.query(
+                UserAchievement.achievement_type,
+                UserAchievement.name,
+                func.count(UserAchievement.id)
+            ).group_by(UserAchievement.achievement_type).order_by(
+                func.count(UserAchievement.id).desc()
+            ).all()
+            
+            # Total XP across platform
+            total_xp = db.session.query(func.sum(User.xp)).filter(User.role == 'user').scalar() or 0
+            
+            # Average XP
+            avg_xp = db.session.query(func.avg(User.xp)).filter(User.role == 'user').scalar() or 0
+            
+            return {
+                'success': True,
+                'level_distribution': [
+                    {'name': name, 'color': color, 'count': count}
+                    for name, color, count in level_distribution
+                ],
+                'achievement_stats': [
+                    {'type': t, 'name': n, 'count': c}
+                    for t, n, c in achievement_stats
+                ],
+                'total_xp_platform': int(total_xp),
+                'average_xp': round(float(avg_xp), 1),
+                'total_achievements_unlocked': UserAchievement.query.count()
+            }
         
-        # Users by level
-        level_distribution = db.session.query(
-            UserLevel.name,
-            UserLevel.color,
-            func.count(User.id)
-        ).outerjoin(User, User.current_level_id == UserLevel.id).filter(
-            User.role == 'user'
-        ).group_by(UserLevel.id).order_by(UserLevel.order_rank).all()
-        
-        # Achievement stats
-        achievement_stats = db.session.query(
-            UserAchievement.achievement_type,
-            UserAchievement.name,
-            func.count(UserAchievement.id)
-        ).group_by(UserAchievement.achievement_type).order_by(
-            func.count(UserAchievement.id).desc()
-        ).all()
-        
-        # Total XP across platform
-        total_xp = db.session.query(func.sum(User.xp)).filter(User.role == 'user').scalar() or 0
-        
-        # Average XP
-        avg_xp = db.session.query(func.avg(User.xp)).filter(User.role == 'user').scalar() or 0
-        
-        return jsonify({
-            'success': True,
-            'level_distribution': [
-                {'name': name, 'color': color, 'count': count}
-                for name, color, count in level_distribution
-            ],
-            'achievement_stats': [
-                {'type': t, 'name': n, 'count': c}
-                for t, n, c in achievement_stats
-            ],
-            'total_xp_platform': int(total_xp),
-            'average_xp': round(float(avg_xp), 1),
-            'total_achievements_unlocked': UserAchievement.query.count()
-        })
+        data = get_admin_stats_cached('gamification_stats', _compute_stats)
+        return jsonify(data)
     except Exception as e:
         logger.error(f"Error getting admin gamification stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -4395,29 +5107,33 @@ def admin_referral_stats():
         return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
-        from models import ReferralCommission, PayoutRequest
-        from sqlalchemy import func
+        def _compute_stats():
+            from models import ReferralCommission, PayoutRequest
+            from sqlalchemy import func
+            
+            # Total referrals (users who have referred_by_id set)
+            total_referrals = User.query.filter(User.referred_by_id.isnot(None)).count()
+            
+            # Total commissions earned
+            total_commissions = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0)).scalar()
+            
+            # Pending payouts (unpaid commissions)
+            pending_payouts = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0))\
+                .filter(ReferralCommission.is_paid == False).scalar()
+            
+            # Pending payout requests
+            pending_requests = PayoutRequest.query.filter_by(status='pending').count()
+            
+            return {
+                'success': True,
+                'total_referrals': total_referrals,
+                'total_commissions': float(total_commissions or 0),
+                'pending_payouts': float(pending_payouts or 0),
+                'pending_requests': pending_requests
+            }
         
-        # Total referrals (users who have referred_by_id set)
-        total_referrals = User.query.filter(User.referred_by_id.isnot(None)).count()
-        
-        # Total commissions earned
-        total_commissions = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0)).scalar()
-        
-        # Pending payouts (unpaid commissions)
-        pending_payouts = db.session.query(func.coalesce(func.sum(ReferralCommission.amount), 0.0))\
-            .filter(ReferralCommission.is_paid == False).scalar()
-        
-        # Pending payout requests
-        pending_requests = PayoutRequest.query.filter_by(status='pending').count()
-        
-        return jsonify({
-            'success': True,
-            'total_referrals': total_referrals,
-            'total_commissions': float(total_commissions or 0),
-            'pending_payouts': float(pending_payouts or 0),
-            'pending_requests': pending_requests
-        })
+        data = get_admin_stats_cached('referral_stats', _compute_stats)
+        return jsonify(data)
     except Exception as e:
         logger.error(f"Error getting admin referral stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -4431,33 +5147,37 @@ def admin_subscription_stats():
         return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
     
     try:
-        from datetime import datetime, timezone
+        def _compute_stats():
+            from datetime import datetime, timezone
+            
+            # Count premium users (non-free, non-expired subscriptions)
+            now = datetime.now(timezone.utc)
+            
+            premium_count = User.query.filter(
+                User.subscription_plan != 'free',
+                User.subscription_plan.isnot(None),
+                db.or_(
+                    User.subscription_expires_at.is_(None),  # Lifetime subscriptions
+                    User.subscription_expires_at > now  # Active subscriptions
+                )
+            ).count()
+            
+            # Count by plan
+            plan_counts = db.session.query(User.subscription_plan, db.func.count(User.id))\
+                .filter(User.role == 'user')\
+                .group_by(User.subscription_plan).all()
+            
+            plans = {plan: count for plan, count in plan_counts if plan}
+            
+            return {
+                'success': True,
+                'premium_count': premium_count,
+                'plans': plans,
+                'total_users': User.query.filter(User.role == 'user').count()
+            }
         
-        # Count premium users (non-free, non-expired subscriptions)
-        now = datetime.now(timezone.utc)
-        
-        premium_count = User.query.filter(
-            User.subscription_plan != 'free',
-            User.subscription_plan.isnot(None),
-            db.or_(
-                User.subscription_expires_at.is_(None),  # Lifetime subscriptions
-                User.subscription_expires_at > now  # Active subscriptions
-            )
-        ).count()
-        
-        # Count by plan
-        plan_counts = db.session.query(User.subscription_plan, db.func.count(User.id))\
-            .filter(User.role == 'user')\
-            .group_by(User.subscription_plan).all()
-        
-        plans = {plan: count for plan, count in plan_counts if plan}
-        
-        return jsonify({
-            'success': True,
-            'premium_count': premium_count,
-            'plans': plans,
-            'total_users': User.query.filter(User.role == 'user').count()
-        })
+        data = get_admin_stats_cached('subscription_stats', _compute_stats)
+        return jsonify(data)
     except Exception as e:
         logger.error(f"Error getting admin subscription stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -9814,6 +10534,9 @@ def worker_loop():
 
 
 # ==================== MAIN ====================
+
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or os.environ.get('FLASK_RUN_MAIN') == 'true' or not app.debug:
+    start_cache_warmers()
 
 if __name__ == '__main__':
     with app.app_context():

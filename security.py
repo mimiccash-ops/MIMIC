@@ -8,12 +8,15 @@ import hashlib
 import secrets
 import logging
 import re
+from typing import Any, Dict, List, Union, Tuple
 from functools import wraps
 from collections import defaultdict
 from datetime import datetime, timedelta
 from threading import Lock
 
 from flask import request, abort, session, g, jsonify
+from pydantic import BaseModel, ValidationError, field_validator
+import bleach
 
 logger = logging.getLogger("Security")
 
@@ -393,6 +396,96 @@ class InputValidator:
         return False
 
 
+# ==================== HTML SANITIZATION ====================
+
+ALLOWED_HTML_TAGS = [
+    "b", "strong", "i", "em", "u", "br", "p", "ul", "ol", "li", "code", "pre"
+]
+ALLOWED_HTML_ATTRS = {
+    "a": ["href", "title", "rel", "target"],
+}
+
+
+def sanitize_html(value: str, max_length: int = 2000) -> str:
+    """Sanitize HTML output to prevent XSS while preserving safe formatting."""
+    if value is None:
+        return ""
+    cleaned = bleach.clean(
+        str(value),
+        tags=ALLOWED_HTML_TAGS,
+        attributes=ALLOWED_HTML_ATTRS,
+        strip=True,
+    )
+    return cleaned[:max_length]
+
+
+# ==================== GENERIC INPUT VALIDATION ====================
+
+AllowedValue = Union[str, int, float, bool, None, List["AllowedValue"], Dict[str, "AllowedValue"]]
+
+MAX_STRING_LENGTH = 2000
+MAX_LIST_LENGTH = 500
+MAX_DICT_LENGTH = 500
+MAX_DEPTH = 6
+
+
+def _validate_value(value: AllowedValue, depth: int = 0) -> None:
+    if depth > MAX_DEPTH:
+        raise ValueError("Input too deeply nested")
+    if isinstance(value, str):
+        if len(value) > MAX_STRING_LENGTH:
+            raise ValueError("String input too long")
+        if InputValidator.check_injection(value):
+            raise ValueError("Potential injection detected")
+        return
+    if isinstance(value, list):
+        if len(value) > MAX_LIST_LENGTH:
+            raise ValueError("List input too long")
+        for item in value:
+            _validate_value(item, depth + 1)
+        return
+    if isinstance(value, dict):
+        if len(value) > MAX_DICT_LENGTH:
+            raise ValueError("Object input too large")
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ValueError("Object keys must be strings")
+            if len(key) > 200:
+                raise ValueError("Object key too long")
+            if InputValidator.check_injection(key):
+                raise ValueError("Potential injection detected")
+            _validate_value(item, depth + 1)
+        return
+    if value is None:
+        return
+    if isinstance(value, (int, float, bool)):
+        return
+    raise ValueError("Unsupported input type")
+
+
+class JsonPayload(BaseModel):
+    data: Dict[str, AllowedValue]
+
+    @field_validator("data")
+    @classmethod
+    def validate_data(cls, value: Dict[str, AllowedValue]) -> Dict[str, AllowedValue]:
+        _validate_value(value)
+        return value
+
+
+def validate_json_payload(payload: Any) -> Tuple[bool, str]:
+    """Validate JSON input structure and reject suspicious content."""
+    if payload is None:
+        return True, ""
+    if not isinstance(payload, dict):
+        return False, "JSON body must be an object"
+    try:
+        JsonPayload(data=payload)
+    except (ValidationError, ValueError) as exc:
+        return False, str(exc)
+    return True, ""
+
+
 # ==================== SECURITY DECORATORS ====================
 
 def rate_limit(max_requests: int = 10, window: int = 60, key_func=None):
@@ -455,12 +548,37 @@ def admin_required(f):
         if not current_user.is_authenticated:
             abort(401)
         
+        # Verify session integrity
+        if not verify_session():
+            abort(401)
+        
         if current_user.role != 'admin':
             logger.warning(f"⚠️ Unauthorized admin access attempt by {current_user.username}")
             abort(403)
         
         return f(*args, **kwargs)
     return wrapped
+
+
+def get_user_id_from_bearer(auth_header: str):
+    """
+    Extract and verify user_id from a Bearer token.
+    
+    Returns:
+        int: user_id if valid, otherwise None
+    """
+    if not auth_header:
+        return None
+    if not auth_header.startswith('Bearer '):
+        return None
+    token = auth_header.split(' ', 1)[1].strip()
+    if not token:
+        return None
+    
+    is_valid, user_id = verify_api_token(token)
+    if not is_valid:
+        return None
+    return user_id
 
 
 def validate_webhook(f):
@@ -577,6 +695,11 @@ def add_security_headers(response):
     response.headers['Permissions-Policy'] = (
         'geolocation=(), microphone=(), camera=()'
     )
+    
+    # HSTS (only over HTTPS)
+    forwarded_proto = request.headers.get('X-Forwarded-Proto', '')
+    if request.is_secure or forwarded_proto == 'https':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     
     return response
 

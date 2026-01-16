@@ -13,7 +13,7 @@ Usage:
 
 Requirements:
     - OPENAI_API_KEY must be set in .env or environment
-    - Database migrations must be run first (python migrate_add_support_bot.py)
+    - Database migrations must be run first (python migrations/migrate.py)
 """
 
 import os

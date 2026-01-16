@@ -465,13 +465,6 @@ class WorkerSettings:
     log_results = True
 
 
-# Cron jobs (optional - uncomment if needed)
-# class WorkerSettings(WorkerSettings):
-#     cron_jobs = [
-#         cron(health_check_task, hour={0, 6, 12, 18}, minute=0),  # Health check every 6 hours
-#     ]
-
-
 if __name__ == '__main__':
     """
     Run the worker directly with: python worker.py

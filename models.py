@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
+from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from config import Config
 from datetime import datetime, timezone, timedelta
@@ -16,6 +17,25 @@ if Config.MASTER_KEY_ENCRYPTION:
     except Exception as e:
         print(f"⚠️ Encryption setup failed: {e}")
 
+# Password hashing context (bcrypt)
+_password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _hash_secret(value: str) -> str:
+    return _password_context.hash(value)
+
+
+def _verify_hash(stored_hash: str, value: str) -> bool:
+    if not stored_hash:
+        return False
+    # Legacy hashes from Werkzeug (scrypt/pbkdf2)
+    if stored_hash.startswith("scrypt:") or stored_hash.startswith("pbkdf2:"):
+        return check_password_hash(stored_hash, value)
+    try:
+        return _password_context.verify(value, stored_hash)
+    except Exception:
+        return False
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -28,6 +48,12 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(50))
     phone = db.Column(db.String(20))
     email = db.Column(db.String(120), unique=True, nullable=True, index=True)  # OPTIMIZED: Added index
+
+    # OAuth / WebAuthn
+    google_sub = db.Column(db.String(255), unique=True, nullable=True, index=True)
+    google_email_verified = db.Column(db.Boolean, default=False)
+    auth_provider = db.Column(db.String(20), default='local', index=True)
+    webauthn_enabled = db.Column(db.Boolean, default=False, index=True)
     
     # Binance Keys (Stored as encrypted strings)
     api_key_enc = db.Column(db.String(500))
@@ -94,6 +120,12 @@ class User(UserMixin, db.Model):
     # Зв'язок з історією торгів та балансу - OPTIMIZED: Added lazy='dynamic' for large datasets
     trades = db.relationship('TradeHistory', backref='user', lazy='dynamic')
     balance_history = db.relationship('BalanceHistory', backref='user', lazy='dynamic')
+    webauthn_credentials = db.relationship(
+        'WebAuthnCredential',
+        backref='user',
+        lazy='dynamic',
+        cascade='all, delete-orphan'
+    )
     
     # Gamification relationship
     current_level = db.relationship('UserLevel', foreign_keys=[current_level_id], lazy='joined')
@@ -105,10 +137,10 @@ class User(UserMixin, db.Model):
     )
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='scrypt')  # OPTIMIZED: Using scrypt (faster)
+        self.password_hash = _hash_secret(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return _verify_hash(self.password_hash, password)
 
     # Instance-level cache for decrypted keys
     _keys_cache = None
@@ -713,6 +745,27 @@ class ExchangeConfig(db.Model):
             data['admin_api_key'] = self.admin_api_key[:8] + '...' if self.admin_api_key and len(self.admin_api_key) > 8 else '***'
             data['has_admin_keys'] = bool(self.admin_api_key and self.admin_api_secret)
         return data
+
+
+class WebAuthnCredential(db.Model):
+    __tablename__ = 'webauthn_credentials'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+
+    # Credential identifiers stored as base64url strings
+    credential_id = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    public_key = db.Column(db.Text, nullable=False)
+    sign_count = db.Column(db.Integer, default=0)
+    transports = db.Column(db.String(200), nullable=True)
+
+    device_name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+
+    def update_sign_count(self, new_sign_count: int) -> None:
+        if new_sign_count is not None:
+            self.sign_count = int(new_sign_count)
 
 
 class UserExchange(db.Model):
@@ -1714,8 +1767,7 @@ class ApiKey(db.Model):
     
     def verify_secret(self, secret: str) -> bool:
         """Verify the API secret against stored hash"""
-        from werkzeug.security import check_password_hash
-        return check_password_hash(self.secret_hash, secret)
+        return _verify_hash(self.secret_hash, secret)
     
     def record_usage(self):
         """Record API key usage"""
@@ -1770,14 +1822,12 @@ class ApiKey(db.Model):
         Returns:
             tuple: (ApiKey object, plain_secret) - secret is only shown once!
         """
-        from werkzeug.security import generate_password_hash
-        
         # Generate key and secret
         key = cls.generate_key()
         secret = cls.generate_secret()
         
         # Hash the secret for storage
-        secret_hash = generate_password_hash(secret, method='scrypt')
+        secret_hash = _hash_secret(secret)
         
         # Calculate expiration
         expires_at = None

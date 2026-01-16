@@ -13,14 +13,14 @@
 [MasterAccount]
 # Your Binance Futures API credentials
 # RECOMMENDED: Set via BINANCE_MASTER_API_KEY and BINANCE_MASTER_API_SECRET env vars
-api_key = geY93DZUK5ARN7x5EvbpR5jR8aA53gT0C4h6TcPR9INHgzBCVrsbrRFJrYUbwylm
-api_secret = yqrgLFFqeId0070Hc2nlV5DyHzY2NLDKZADUkwNVM57PneTfNA25Gl0PhQjjcMg4
+api_key = ${BINANCE_MASTER_API_KEY}
+api_secret = ${BINANCE_MASTER_API_SECRET}
 
 [Webhook]
 # Secret passphrase for TradingView webhooks
 # RECOMMENDED: Set via WEBHOOK_PASSPHRASE env var
 # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-passphrase = mimiccashadmin
+passphrase = ${WEBHOOK_PASSPHRASE}
 
 [Settings]
 # Use Binance Testnet (True) or Real account (False)
@@ -31,9 +31,9 @@ max_open_positions = 1
 [Telegram]
 # Telegram Bot for notifications (get from @BotFather)
 # RECOMMENDED: Set via TELEGRAM_BOT_TOKEN env var
-bot_token = 8062805313:AAEF0TEzU3hQhDdOPyEx_9YHwZmu967tcF4
+bot_token = ${TELEGRAM_BOT_TOKEN}
 # Your Telegram Chat ID (get from @userinfobot)
-chat_id = 8254483196
+chat_id = ${TELEGRAM_CHAT_ID}
 # Enable/disable notifications
 enabled = True
 # Disable polling for Telegram commands (use if running multiple instances)
@@ -87,8 +87,8 @@ authorized_users = ${PANIC_AUTHORIZED_USERS}
 # Web Push Notifications (PWA) - VAPID Keys
 # Generate keys with: python generate_vapid_keys.py
 # SECURITY: Store actual keys in VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY env vars
-vapid_public_key = BNSlxzuAXfnONI46NIUKNPfQcA29426UbJenFsJaWaI4q7i3oom8BJzWg5hWJjHQaXRODhCSd65LyFPssSIb88M
-vapid_private_key = bRR7dMgXkbk70xdsK14OvVGl8C0cJEwX5_j_-J4dYVM
+vapid_public_key = ${VAPID_PUBLIC_KEY}
+vapid_private_key = ${VAPID_PRIVATE_KEY}
 # Email for VAPID identification (mailto: format)
 vapid_claim_email = mailto:admin@mimiccash.com
 
@@ -122,8 +122,8 @@ tos_consent_enabled = True
 # Plisio Crypto Payment Gateway
 # Sign up at: https://plisio.net
 # SECURITY: Store credentials in environment variables
-api_key = TQFxYvul1f43nO9yi1SIXGheaKrkImmAVAmIOQ2ICbC81HzZZgok5gF_1oarpsv-
-webhook_secret = TQFxYvul1f43nO9yi1SIXGheaKrkImmAVAmIOQ2ICbC81HzZZgok5gF_1oarpsv-
+api_key = ${PLISIO_API_KEY}
+webhook_secret = ${PLISIO_WEBHOOK_SECRET}
 # Enable/disable payment functionality
 enabled = True
 

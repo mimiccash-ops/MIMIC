@@ -199,8 +199,8 @@ cp config.ini.example config.ini    # Linux/Mac
 ### 3. Run Database Migrations
 
 ```bash
-# Run all database migrations
-python migrate_all.py
+# Run unified database migrations
+python migrations/migrate.py
 ```
 
 ### 4. Start the Application
@@ -316,32 +316,12 @@ MIMIC/
 │   ├── validate_settings.py      # Validate config files
 │   ├── stress_test.py            # Load testing
 │   ├── optimize_assets.py        # JS/CSS minification
-│   ├── add_performance_indexes.py # Database optimization
 │   ├── generate_vapid_keys.py    # Generate VAPID keys for web push
 │   ├── generate_pwa_icons.py     # Generate PWA icons
 │   └── ingest_docs.py            # RAG document ingestion
 │
 ├── 📄 Migration Scripts
-│   ├── migrate_all.py            # Run all migrations in sequence
-│   ├── migrate_add_columns.py    # Basic column additions
-│   ├── migrate_add_smart_features.py # DCA and Trailing SL
-│   ├── migrate_add_risk_guardrails.py # Risk guardrails
-│   ├── migrate_add_subscription.py # Subscription system
-│   ├── migrate_add_subscription_settings.py # Subscription settings
-│   ├── migrate_add_strategies.py # Multi-strategy support
-│   ├── migrate_add_chat.py       # Live chat system
-│   ├── migrate_add_gamification.py # Levels & achievements
-│   ├── migrate_add_governance.py # Voting/proposals
-│   ├── migrate_add_tournaments.py # Tournament system
-│   ├── migrate_add_api_keys.py   # Public API keys
-│   ├── migrate_add_compliance.py # TOS consent tracking
-│   ├── migrate_add_influencer.py # Influencer analytics
-│   ├── migrate_add_support_bot.py # RAG support tables
-│   ├── migrate_add_insurance_fund.py # Insurance fund
-│   ├── migrate_add_push_subscriptions.py # Web push
-│   ├── migrate_add_system_settings.py # System settings table
-│   ├── migrate_add_tasks.py      # Task management tables
-│   ├── migrate_high_traffic_indexes.py # Performance indexes
+│   ├── migrations/migrate.py     # Unified schema + seeds + indexes
 │   └── migrate_sqlite_to_postgres.py # DB migration
 │
 ├── 📄 Deployment
@@ -905,7 +885,7 @@ python setup_env.py --force
 
 #### Database Migration Error
 ```bash
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 #### WebSocket Connection Failed
@@ -976,9 +956,9 @@ alembic history
 alembic current
 ```
 
-**Legacy migrations** (`migrate_*.py`) are still available and can be run with:
+**Unified migrations** can be run with:
 ```bash
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 ### API Documentation (OpenAPI/Swagger)

@@ -131,7 +131,7 @@ enabled = True
 ### Step 4: Run Database Migrations
 
 ```bash
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 ### Step 5: Start the Application
@@ -236,8 +236,9 @@ MIMIC/
 │   └── tasks.py              # Background task definitions
 │
 ├── 🗄️ Database Migrations
-│   ├── migrate_all.py        # Run all migrations
-│   └── migrate_*.py          # Individual migration scripts
+│   ├── migrations/           # Unified migration tools
+│   │   └── migrate.py         # Schema + seeds + indexes
+│   └── migrate_sqlite_to_postgres.py  # SQLite -> Postgres data move
 │
 ├── 🎨 Frontend
 │   ├── templates/            # Jinja2 HTML templates (21 files)
@@ -310,8 +311,11 @@ pytest tests/test_models.py -v
 ### Database Migrations
 
 ```bash
-# Run all legacy migrations
-python migrate_all.py
+# Run unified migrations
+python migrations/migrate.py
+
+# High-traffic indexes (optional)
+python migrations/migrate.py --high-traffic
 
 # Using Alembic (recommended)
 alembic upgrade head           # Apply all migrations
@@ -442,7 +446,7 @@ Close all positions with OTP verification:
 
 ### Database Migration Error
 ```bash
-python migrate_all.py
+python migrations/migrate.py
 ```
 
 ### Port 80 in Use

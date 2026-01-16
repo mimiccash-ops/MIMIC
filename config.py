@@ -351,6 +351,16 @@ class Config:
         ) if config.has_section('WebPush') else os.environ.get('VAPID_CLAIM_EMAIL', 'mailto:admin@mimic.cash')
         
         WEBPUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+
+        # --- GOOGLE OAUTH (Authentication) ---
+        GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+        GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+        GOOGLE_OAUTH_REDIRECT_URL = os.environ.get('GOOGLE_OAUTH_REDIRECT_URL', '')
+
+        # --- WEBAUTHN / PASSKEYS ---
+        WEBAUTHN_RP_ID = os.environ.get('WEBAUTHN_RP_ID', '')
+        WEBAUTHN_RP_NAME = os.environ.get('WEBAUTHN_RP_NAME', 'MIMIC')
+        WEBAUTHN_ORIGIN = os.environ.get('WEBAUTHN_ORIGIN', '')
         
         # --- TWITTER/X API SETTINGS (for auto-posting successful trades) ---
         # Get Twitter API credentials from environment or config.ini
