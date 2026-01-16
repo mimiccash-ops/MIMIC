@@ -13,14 +13,14 @@
 [MasterAccount]
 # Your Binance Futures API credentials
 # RECOMMENDED: Set via BINANCE_MASTER_API_KEY and BINANCE_MASTER_API_SECRET env vars
-api_key = ${BINANCE_MASTER_API_KEY}
-api_secret = ${BINANCE_MASTER_API_SECRET}
+api_key = geY93DZUK5ARN7x5EvbpR5jR8aA53gT0C4h6TcPR9INHgzBCVrsbrRFJrYUbwylm
+api_secret = yqrgLFFqeId0070Hc2nlV5DyHzY2NLDKZADUkwNVM57PneTfNA25Gl0PhQjjcMg4
 
 [Webhook]
 # Secret passphrase for TradingView webhooks
 # RECOMMENDED: Set via WEBHOOK_PASSPHRASE env var
 # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-passphrase = ${WEBHOOK_PASSPHRASE}
+passphrase = mimiccashadmin
 
 [Settings]
 # Use Binance Testnet (True) or Real account (False)
