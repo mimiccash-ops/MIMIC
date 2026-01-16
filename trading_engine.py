@@ -15,6 +15,7 @@ import math
 import logging
 import asyncio
 import threading
+import socket
 from collections import defaultdict
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,30 @@ import ccxt as ccxt_sync  # Sync CCXT for class lookups
 from service_validator import SUPPORTED_EXCHANGES, PASSPHRASE_EXCHANGES
 from http.client import RemoteDisconnected
 import urllib3.exceptions
+import urllib3.util.connection
+
+# ============================================================================
+# GLOBAL IPv4 ENFORCEMENT
+# ============================================================================
+# Force all outgoing connections to use IPv4 to prevent -2015 API errors
+# when Binance API keys are bound to a specific IPv4 address (e.g., 38.180.147.102)
+# but the server might prefer IPv6 for DNS resolution.
+#
+# This monkey-patch ensures urllib3 (used by requests, aiohttp, ccxt) only uses IPv4.
+# ============================================================================
+
+_original_allowed_gai_family = urllib3.util.connection.allowed_gai_family
+
+
+def _force_ipv4_family():
+    """Force IPv4 (AF_INET) for all urllib3 connections."""
+    return socket.AF_INET
+
+
+# Apply the patch globally at module load time
+urllib3.util.connection.allowed_gai_family = _force_ipv4_family
+logger_ipv4 = logging.getLogger("TradingEngine.IPv4")
+logger_ipv4.info("🔒 IPv4 enforced globally for all HTTP connections (urllib3 patched)")
 
 # Prometheus metrics
 from metrics import (
@@ -49,24 +74,42 @@ def verify_outgoing_ip() -> str:
     This helps diagnose APIError(code=-2015) which means:
     - Invalid API-key, IP, or permissions for action
     
+    Note: This module enforces IPv4 globally via urllib3 patch.
+    
     Returns:
         The detected outgoing IP address (IPv4)
     """
     import requests
-    import socket
     
     detected_ip = None
     
-    # Method 1: Use ipify.org (most reliable)
+    # Confirm IPv4 enforcement is active
+    current_family = urllib3.util.connection.allowed_gai_family()
+    if current_family == socket.AF_INET:
+        logger.info("✅ IPv4 enforcement is ACTIVE (socket.AF_INET)")
+    else:
+        logger.warning(f"⚠️ IPv4 enforcement may not be active! Family: {current_family}")
+    
+    # Method 1: Use ipify.org (most reliable, IPv4 only endpoint)
     try:
-        response = requests.get('https://api.ipify.org', timeout=10)
+        response = requests.get('https://api4.ipify.org', timeout=10)  # api4 = IPv4 only
         if response.status_code == 200:
             detected_ip = response.text.strip()
-            logger.info(f"🌐 Outgoing IP (ipify.org): {detected_ip}")
+            logger.info(f"🌐 Outgoing IPv4 (api4.ipify.org): {detected_ip}")
     except Exception as e:
-        logger.debug(f"ipify.org check failed: {e}")
+        logger.debug(f"api4.ipify.org check failed: {e}")
     
-    # Method 2: Use ipinfo.io as backup
+    # Method 2: Fallback to generic ipify
+    if not detected_ip:
+        try:
+            response = requests.get('https://api.ipify.org', timeout=10)
+            if response.status_code == 200:
+                detected_ip = response.text.strip()
+                logger.info(f"🌐 Outgoing IP (ipify.org): {detected_ip}")
+        except Exception as e:
+            logger.debug(f"ipify.org check failed: {e}")
+    
+    # Method 3: Use ipinfo.io as backup
     if not detected_ip:
         try:
             response = requests.get('https://ipinfo.io/ip', timeout=10)
@@ -76,29 +119,14 @@ def verify_outgoing_ip() -> str:
         except Exception as e:
             logger.debug(f"ipinfo.io check failed: {e}")
     
-    # Method 3: Check if IPv6 might be in use
-    try:
-        # Try to determine local address family preference
-        test_socket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        test_socket.settimeout(1)
-        try:
-            test_socket.connect(('2001:4860:4860::8888', 80))  # Google DNS
-            ipv6_local = test_socket.getsockname()[0]
-            logger.warning(f"⚠️ IPv6 might be available on this system: {ipv6_local}")
-            logger.warning("⚠️ If Binance API key is restricted to IPv4, ensure outgoing requests use IPv4!")
-        except:
-            pass
-        finally:
-            test_socket.close()
-    except:
-        pass
-    
     if detected_ip:
         logger.info(f"✅ Detected outgoing IP for Binance API: {detected_ip}")
-        # Check if it looks like IPv6
+        # Check if it looks like IPv6 (shouldn't happen with patch)
         if ':' in detected_ip:
-            logger.warning(f"⚠️ WARNING: Outgoing IP appears to be IPv6!")
-            logger.warning(f"⚠️ If your Binance API key is restricted to IPv4, this may cause -2015 errors!")
+            logger.error(f"❌ CRITICAL: Outgoing IP is IPv6 despite IPv4 enforcement!")
+            logger.error(f"❌ This WILL cause -2015 errors if API key is IPv4-restricted!")
+        else:
+            logger.info(f"✅ IPv4 confirmed: {detected_ip}")
     else:
         logger.warning("⚠️ Could not determine outgoing IP address")
     
@@ -107,7 +135,10 @@ def verify_outgoing_ip() -> str:
 
 def create_binance_client_with_ipv4(api_key: str, api_secret: str, testnet: bool = False):
     """
-    Create a Binance client that explicitly uses IPv4.
+    Create a Binance client that uses IPv4.
+    
+    Note: IPv4 is now enforced globally at module load via urllib3 patch.
+    This function simply creates the client - no additional patching needed.
     
     This helps avoid -2015 errors when:
     - Server has both IPv4 and IPv6 available
@@ -121,28 +152,15 @@ def create_binance_client_with_ipv4(api_key: str, api_secret: str, testnet: bool
     Returns:
         Configured Binance Client
     """
-    import socket
-    import requests.adapters
-    import urllib3.util.connection
+    # Verify IPv4 enforcement is still active
+    current_family = urllib3.util.connection.allowed_gai_family()
+    if current_family != socket.AF_INET:
+        logger.warning("⚠️ IPv4 enforcement not active, re-applying patch...")
+        urllib3.util.connection.allowed_gai_family = _force_ipv4_family
     
-    # Force IPv4 by monkey-patching the allowed address family
-    # This ensures all connections use IPv4 only
-    _original_allowed_gai_family = urllib3.util.connection.allowed_gai_family
-    
-    def _allowed_gai_family_ipv4():
-        """Return socket.AF_INET to force IPv4"""
-        return socket.AF_INET
-    
-    # Temporarily force IPv4 for client creation
-    urllib3.util.connection.allowed_gai_family = _allowed_gai_family_ipv4
-    
-    try:
-        client = Client(api_key, api_secret, testnet=testnet)
-        logger.info("✅ Binance client created with IPv4 preference")
-        return client
-    finally:
-        # Restore original function (important for other libraries)
-        urllib3.util.connection.allowed_gai_family = _original_allowed_gai_family
+    client = Client(api_key, api_secret, testnet=testnet)
+    logger.info("✅ Binance client created (IPv4 enforced globally)")
+    return client
 
 
 class RateLimiter:

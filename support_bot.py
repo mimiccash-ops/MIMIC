@@ -31,21 +31,45 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger("SupportBot")
 
-# Try to import OpenAI and LangChain
+# ============================================================================
+# OPTIONAL DEPENDENCY IMPORTS
+# ============================================================================
+# These libraries are optional - the bot will gracefully degrade if not installed.
+# Warnings are logged once at startup, not on every import attempt.
+# ============================================================================
+
+OPENAI_AVAILABLE = False
+LANGCHAIN_AVAILABLE = False
+_DEPS_LOGGED = False
+
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
 except ImportError:
-    OPENAI_AVAILABLE = False
-    logger.warning("⚠️ OpenAI not installed. Install with: pip install openai")
+    pass  # Will log once when SupportBot is initialized
 
 try:
     from langchain_openai import OpenAIEmbeddings
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     LANGCHAIN_AVAILABLE = True
 except ImportError:
-    LANGCHAIN_AVAILABLE = False
-    logger.warning("⚠️ LangChain not installed. Install with: pip install langchain langchain-openai")
+    pass  # Will log once when SupportBot is initialized
+
+
+def _log_dependency_status():
+    """Log dependency availability status once at startup."""
+    global _DEPS_LOGGED
+    if _DEPS_LOGGED:
+        return
+    _DEPS_LOGGED = True
+    
+    if not OPENAI_AVAILABLE:
+        logger.info("ℹ️ OpenAI library not installed. RAG support bot disabled.")
+        logger.info("   To enable: pip install openai")
+    
+    if not LANGCHAIN_AVAILABLE:
+        logger.info("ℹ️ LangChain not installed. RAG embeddings disabled.")
+        logger.info("   To enable: pip install langchain langchain-openai")
 
 try:
     import numpy as np
@@ -95,6 +119,9 @@ Where X.XX is a number between 0.00 and 1.00 indicating how confident you are in
         Args:
             api_key: OpenAI API key. If not provided, reads from config.
         """
+        # Log dependency status once
+        _log_dependency_status()
+        
         self.api_key = api_key
         self.client = None
         self.embeddings = None
@@ -104,25 +131,36 @@ Where X.XX is a number between 0.00 and 1.00 indicating how confident you are in
         # Load configuration
         self._load_config()
 
+        # Check for API key - log once, don't spam
         if not self.api_key:
-            logger.warning(
-                "⚠️ OpenAI API key missing. Set OPENAI_API_KEY env var or Config.OPENAI_API_KEY"
-            )
+            if OPENAI_AVAILABLE:
+                logger.info(
+                    "ℹ️ OpenAI API key not configured. RAG support bot will return fallback responses."
+                )
+                logger.info("   Set OPENAI_API_KEY env var or Config.OPENAI_API_KEY to enable.")
         
         # Initialize OpenAI client
         if self.api_key and OPENAI_AVAILABLE:
-            self.client = OpenAI(api_key=self.api_key)
-            logger.info("✅ OpenAI client initialized")
-        else:
-            logger.warning("⚠️ OpenAI client not initialized (missing API key or library)")
+            try:
+                self.client = OpenAI(api_key=self.api_key)
+                logger.info("✅ OpenAI client initialized for Support Bot")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize OpenAI client: {e}")
+                self.client = None
+        elif not OPENAI_AVAILABLE:
+            logger.debug("OpenAI library not available - Support Bot in fallback mode")
         
         # Initialize embeddings
         if self.api_key and LANGCHAIN_AVAILABLE:
-            self.embeddings = OpenAIEmbeddings(
-                model=self.embedding_model,
-                openai_api_key=self.api_key
-            )
-            logger.info(f"✅ Embeddings initialized with {self.embedding_model}")
+            try:
+                self.embeddings = OpenAIEmbeddings(
+                    model=self.embedding_model,
+                    openai_api_key=self.api_key
+                )
+                logger.info(f"✅ Embeddings initialized with {self.embedding_model}")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize embeddings: {e}")
+                self.embeddings = None
     
     def _load_config(self):
         """Load configuration from Config class"""

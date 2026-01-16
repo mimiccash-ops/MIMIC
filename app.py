@@ -195,6 +195,33 @@ socketio = SocketIO(
     engineio_logger=False
 )
 
+
+# ============================================================================
+# SOCKETIO DISCONNECT ERROR FILTER
+# ============================================================================
+# Suppress "Session is disconnected" errors from engineio.server
+# These occur when the server tries to send to a client that has already
+# disconnected, which is expected behavior and not an error condition.
+# ============================================================================
+class SocketIODisconnectFilter(logging.Filter):
+    """Filter out 'Session is disconnected' log spam from engineio."""
+    
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Suppress "Session is disconnected" messages
+        if 'Session is disconnected' in str(record.getMessage()):
+            return False
+        # Also suppress the follow-up INFO messages about same error
+        if hasattr(record, 'msg') and 'further occurrences' in str(record.msg):
+            return False
+        return True
+
+
+# Apply filter to engineio.server logger
+_engineio_logger = logging.getLogger('engineio.server')
+_engineio_logger.addFilter(SocketIODisconnectFilter())
+logger.info("✅ SocketIO disconnect error filter applied to engineio.server")
+
+
 # Initialize Redis (optional) and ARQ for task queue
 redis_client = None
 arq_pool = None
