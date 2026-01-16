@@ -17,6 +17,7 @@ import asyncio
 import threading
 from collections import defaultdict
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 from binance.client import Client
 from binance.exceptions import BinanceAPIException
 from models import User, db, TradeHistory, BalanceHistory, UserExchange, ExchangeConfig, Strategy, StrategySubscription
@@ -422,11 +423,11 @@ class TradingEngine:
         self._background_tasks = []
         self._event_loop = None
         
-        # Thread pool executor for background tasks
-        from concurrent.futures import ThreadPoolExecutor
+        # Thread pool executor for background tasks (MUST be initialized before starting threads)
         self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="TradingEngine")
         
         # Start background threads (will be migrated to async tasks when event loop is available)
+        # Note: These threads use self.executor, so it must be initialized first
         threading.Thread(target=self.monitor_balances, daemon=True).start()
         threading.Thread(target=self.monitor_position_closes, daemon=True).start()
         
