@@ -879,7 +879,7 @@ def inject_csrf_token():
 # ==================== SOCKET EVENTS ====================
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     if current_user.is_authenticated:
         room = f"user_{current_user.id}"
         join_room(room)
