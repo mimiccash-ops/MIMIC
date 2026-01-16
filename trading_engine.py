@@ -42,6 +42,109 @@ from smart_features import SmartFeaturesManager, RiskGuardrailsManager, calculat
 logger = logging.getLogger("TradingEngine")
 
 
+def verify_outgoing_ip() -> str:
+    """
+    Verify the outgoing IP address that Binance sees for API requests.
+    
+    This helps diagnose APIError(code=-2015) which means:
+    - Invalid API-key, IP, or permissions for action
+    
+    Returns:
+        The detected outgoing IP address (IPv4)
+    """
+    import requests
+    import socket
+    
+    detected_ip = None
+    
+    # Method 1: Use ipify.org (most reliable)
+    try:
+        response = requests.get('https://api.ipify.org', timeout=10)
+        if response.status_code == 200:
+            detected_ip = response.text.strip()
+            logger.info(f"🌐 Outgoing IP (ipify.org): {detected_ip}")
+    except Exception as e:
+        logger.debug(f"ipify.org check failed: {e}")
+    
+    # Method 2: Use ipinfo.io as backup
+    if not detected_ip:
+        try:
+            response = requests.get('https://ipinfo.io/ip', timeout=10)
+            if response.status_code == 200:
+                detected_ip = response.text.strip()
+                logger.info(f"🌐 Outgoing IP (ipinfo.io): {detected_ip}")
+        except Exception as e:
+            logger.debug(f"ipinfo.io check failed: {e}")
+    
+    # Method 3: Check if IPv6 might be in use
+    try:
+        # Try to determine local address family preference
+        test_socket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        test_socket.settimeout(1)
+        try:
+            test_socket.connect(('2001:4860:4860::8888', 80))  # Google DNS
+            ipv6_local = test_socket.getsockname()[0]
+            logger.warning(f"⚠️ IPv6 might be available on this system: {ipv6_local}")
+            logger.warning("⚠️ If Binance API key is restricted to IPv4, ensure outgoing requests use IPv4!")
+        except:
+            pass
+        finally:
+            test_socket.close()
+    except:
+        pass
+    
+    if detected_ip:
+        logger.info(f"✅ Detected outgoing IP for Binance API: {detected_ip}")
+        # Check if it looks like IPv6
+        if ':' in detected_ip:
+            logger.warning(f"⚠️ WARNING: Outgoing IP appears to be IPv6!")
+            logger.warning(f"⚠️ If your Binance API key is restricted to IPv4, this may cause -2015 errors!")
+    else:
+        logger.warning("⚠️ Could not determine outgoing IP address")
+    
+    return detected_ip
+
+
+def create_binance_client_with_ipv4(api_key: str, api_secret: str, testnet: bool = False):
+    """
+    Create a Binance client that explicitly uses IPv4.
+    
+    This helps avoid -2015 errors when:
+    - Server has both IPv4 and IPv6 available
+    - Binance API key is restricted to a specific IPv4 address
+    
+    Args:
+        api_key: Binance API key
+        api_secret: Binance API secret
+        testnet: Whether to use testnet
+        
+    Returns:
+        Configured Binance Client
+    """
+    import socket
+    import requests.adapters
+    import urllib3.util.connection
+    
+    # Force IPv4 by monkey-patching the allowed address family
+    # This ensures all connections use IPv4 only
+    _original_allowed_gai_family = urllib3.util.connection.allowed_gai_family
+    
+    def _allowed_gai_family_ipv4():
+        """Return socket.AF_INET to force IPv4"""
+        return socket.AF_INET
+    
+    # Temporarily force IPv4 for client creation
+    urllib3.util.connection.allowed_gai_family = _allowed_gai_family_ipv4
+    
+    try:
+        client = Client(api_key, api_secret, testnet=testnet)
+        logger.info("✅ Binance client created with IPv4 preference")
+        return client
+    finally:
+        # Restore original function (important for other libraries)
+        urllib3.util.connection.allowed_gai_family = _original_allowed_gai_family
+
+
 class RateLimiter:
     """Async-safe rate limiter for API calls using asyncio.Lock"""
     def __init__(self, max_calls: int = 10, period: int = 1):
@@ -719,9 +822,35 @@ class TradingEngine:
                 
                 try:
                     if exchange_name == 'binance':
-                        # Use Binance client for Binance
-                        client = Client(api_key, api_secret, testnet=Config.IS_TESTNET)
-                        client.get_account_status()
+                        # Verify outgoing IP for troubleshooting -2015 errors
+                        logger.info("🔍 Verifying outgoing IP for Binance API...")
+                        outgoing_ip = verify_outgoing_ip()
+                        
+                        # Use Binance client with IPv4 preference to avoid IP mismatch
+                        # This fixes APIError(code=-2015): Invalid API-key, IP, or permissions
+                        logger.info("🔗 Connecting to Binance Futures API...")
+                        client = create_binance_client_with_ipv4(api_key, api_secret, testnet=Config.IS_TESTNET)
+                        
+                        # Test connection with detailed error handling
+                        try:
+                            account_status = client.get_account_status()
+                            logger.info(f"✅ Binance account status: {account_status.get('msg', 'OK')}")
+                        except BinanceAPIException as e:
+                            if e.code == -2015:
+                                logger.error("=" * 60)
+                                logger.error("❌ BINANCE API ERROR: Invalid API-key, IP, or permissions!")
+                                logger.error("=" * 60)
+                                logger.error(f"   Error code: {e.code}")
+                                logger.error(f"   Error message: {e.message}")
+                                logger.error(f"   Detected outgoing IP: {outgoing_ip}")
+                                logger.error("")
+                                logger.error("   TROUBLESHOOTING:")
+                                logger.error("   1. Verify your VPS IP in Binance API settings")
+                                logger.error("   2. Ensure API key has Futures permissions enabled")
+                                logger.error("   3. Check if server is using IPv6 (API key might be IPv4 only)")
+                                logger.error("   4. Try regenerating the API key and re-adding the IP")
+                                logger.error("=" * 60)
+                            raise
                         
                         # Set one-way position mode
                         try:
@@ -1237,6 +1366,13 @@ class TradingEngine:
                                 'leverage': int(p.get('leverage', 1)),
                                 'exchange': exchange_name
                             })
+            except BinanceAPIException as e:
+                if e.code == -2015:
+                    logger.error(f"❌ Binance API Error -2015 fetching positions from {exchange_name}!")
+                    logger.error(f"   This means: Invalid API-key, IP, or permissions for action")
+                    logger.error(f"   Verify: 1) API key IP whitelist, 2) Futures permissions enabled")
+                else:
+                    logger.warning(f"Binance API error fetching positions from {exchange_name}: {e}")
             except Exception as e:
                 logger.warning(f"Error fetching positions from {exchange_name}: {e}")
             return positions_list
@@ -1290,6 +1426,13 @@ class TradingEngine:
                                 'leverage': int(p.get('leverage', 1)),
                                 'exchange': exchange_name
                             })
+            except BinanceAPIException as e:
+                if e.code == -2015:
+                    logger.error(f"❌ Binance API Error -2015 fetching positions from {exchange_name}!")
+                    logger.error(f"   This means: Invalid API-key, IP, or permissions for action")
+                    logger.error(f"   Verify: 1) API key IP whitelist, 2) Futures permissions enabled")
+                else:
+                    logger.warning(f"Binance API error fetching positions from {exchange_name}: {e}")
             except Exception as e:
                 logger.warning(f"Error fetching positions from {exchange_name}: {e}")
         

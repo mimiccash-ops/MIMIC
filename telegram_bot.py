@@ -1173,8 +1173,27 @@ class TelegramBotHandler:
             """
             Run the bot using asyncio directly.
             Works when NOT running under eventlet.
+            
+            FIXED: Properly handles existing event loops and avoids
+            'Cannot run the event loop while another loop is running' errors.
             """
             import asyncio
+            
+            # Check if there's already a running loop (e.g., Flask with async)
+            try:
+                existing_loop = asyncio.get_running_loop()
+                logger.warning("⚠️ Detected existing running event loop - using nest_asyncio")
+                # If we have an existing loop, use nest_asyncio to allow nested loops
+                try:
+                    import nest_asyncio
+                    nest_asyncio.apply()
+                except ImportError:
+                    logger.error("❌ nest_asyncio not installed but required for nested event loops")
+                    logger.error("   Install with: pip install nest_asyncio")
+                    return
+            except RuntimeError:
+                # No running loop, which is good
+                pass
             
             # Create a brand new event loop for this thread
             loop = asyncio.new_event_loop()
@@ -1222,16 +1241,33 @@ class TelegramBotHandler:
                 except Exception as e:
                     logger.debug(f"Bot cleanup error: {e}")
             
+            async def _run_bot_loop():
+                """Main bot loop with graceful shutdown handling"""
+                await _start_bot()
+                try:
+                    # Keep running until interrupted
+                    while self._running:
+                        await asyncio.sleep(1)
+                except asyncio.CancelledError:
+                    pass
+                finally:
+                    await _stop_bot()
+            
             try:
-                loop.run_until_complete(_start_bot())
-                loop.run_forever()
+                loop.run_until_complete(_run_bot_loop())
             except Exception as e:
                 logger.error(f"Bot error: {e}")
                 import traceback
                 logger.debug(f"Traceback: {traceback.format_exc()}")
             finally:
                 try:
-                    loop.run_until_complete(_stop_bot())
+                    # Cancel all pending tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    # Wait for tasks to complete with timeout
+                    if pending:
+                        loop.run_until_complete(asyncio.wait(pending, timeout=5))
                 except:
                     pass
                 try:

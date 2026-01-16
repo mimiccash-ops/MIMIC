@@ -264,22 +264,39 @@ if hasattr(Config, 'TG_ENABLED') and Config.TG_ENABLED:
 email_sender = None
 EMAIL_CONFIGURED = False
 if hasattr(Config, 'EMAIL_ENABLED') and Config.EMAIL_ENABLED:
-    email_sender = init_email_sender(
-        smtp_server=Config.SMTP_SERVER,
-        smtp_port=Config.SMTP_PORT,
-        username=Config.SMTP_USERNAME,
-        password=Config.SMTP_PASSWORD,
-        from_email=Config.SMTP_FROM_EMAIL,
-        from_name=Config.SMTP_FROM_NAME,
-        enabled=True
-    )
-    if email_sender and email_sender.enabled:
-        logger.info("✅ Email sender enabled")
-        EMAIL_CONFIGURED = True
+    # Check which SMTP settings are missing and log them for debugging
+    smtp_missing = []
+    if not getattr(Config, 'SMTP_SERVER', None):
+        smtp_missing.append('SMTP_SERVER')
+    if not getattr(Config, 'SMTP_USERNAME', None):
+        smtp_missing.append('SMTP_USERNAME')
+    if not getattr(Config, 'SMTP_PASSWORD', None):
+        smtp_missing.append('SMTP_PASSWORD')
+    if not getattr(Config, 'SMTP_FROM_EMAIL', None):
+        smtp_missing.append('SMTP_FROM_EMAIL')
+    
+    if smtp_missing:
+        logger.warning(f"⚠️ Email sender NOT active - missing settings: {', '.join(smtp_missing)}")
+        logger.warning("   Set these in your .env file or config.ini [Email] section")
     else:
-        logger.warning("⚠️ Email sender NOT active (check SMTP settings)")
+        email_sender = init_email_sender(
+            smtp_server=Config.SMTP_SERVER,
+            smtp_port=Config.SMTP_PORT,
+            username=Config.SMTP_USERNAME,
+            password=Config.SMTP_PASSWORD,
+            from_email=Config.SMTP_FROM_EMAIL,
+            from_name=Config.SMTP_FROM_NAME,
+            enabled=True
+        )
+        if email_sender and email_sender.enabled:
+            logger.info("✅ Email sender enabled")
+            EMAIL_CONFIGURED = True
+        else:
+            logger.warning("⚠️ Email sender NOT active (SMTP connection failed)")
+            logger.warning("   Verify SMTP server, port, username, and password are correct")
 else:
     logger.info("ℹ️ Email not configured in config.ini - password reset via email disabled")
+    logger.info("   To enable: Set [Email] enabled=true in config.ini and configure SMTP settings")
     email_sender = get_email_sender()  # May be None
 
 # Initialize Trading Engine
@@ -6116,7 +6133,9 @@ def webhook():
         queue_mode = 'memory'
         job_id = None
         
-        if ARQ_REDIS_SETTINGS:
+        # Use globals().get() for safe access - prevents NameError in edge cases
+        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
+        if arq_settings:
             # Use ARQ async task queue (preferred)
             success, result = queue_signal_to_arq(signal)
             if success:
