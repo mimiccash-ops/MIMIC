@@ -160,16 +160,12 @@ async def startup(ctx: dict):
     
     # Initialize database
     db.init_app(app)
-    
-    # Push application context
-    app_context = app.app_context()
-    app_context.push()
-    ctx['app_context'] = app_context
     ctx['app'] = app
     ctx['db'] = db
     
-    # Ensure tables exist
-    db.create_all()
+    # Ensure tables exist within a scoped app context
+    with app.app_context():
+        db.create_all()
     
     # Initialize Telegram notifier
     telegram = None
@@ -299,7 +295,8 @@ async def shutdown(ctx: dict):
     
     engine = ctx.get('engine')
     telegram = ctx.get('telegram')
-    app_context = ctx.get('app_context')
+    app = ctx.get('app')
+    db = ctx.get('db')
     redis_client = ctx.get('redis_client')
     
     # Stop trailing SL monitor
@@ -345,13 +342,12 @@ async def shutdown(ctx: dict):
     if telegram:
         telegram.notify_system_event("Worker Stopped", "ARQ worker has been shut down")
     
-    # Pop application context safely
-    if app_context:
+    # Clean up SQLAlchemy sessions safely without relying on a stored context
+    if app and db:
         try:
-            app_context.pop()
-        except (LookupError, RuntimeError) as e:
-            # Context may have already been popped or may not exist
-            # This can happen during interpreter shutdown or if an error occurred
+            with app.app_context():
+                db.session.remove()
+        except Exception as e:
             logger.debug(f"App context cleanup: {e}")
     
     logger.info("✅ ARQ Worker shutdown complete")

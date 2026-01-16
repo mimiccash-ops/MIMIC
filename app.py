@@ -935,32 +935,36 @@ def handle_join_chat(data):
         })
         return
     
-    # Join the chat room
-    socket_join_room(f'chat_{room}')
-    logger.info(f"💬 {current_user.username} joined chat room: {room}")
-    
-    # Get recent messages
-    messages = ChatMessage.get_recent_messages(room, limit=50)
-    messages_data = [msg.to_dict() for msg in reversed(messages)]  # Oldest first
-    
-    emit('chat_joined', {
-        'room': room,
-        'messages': messages_data,
-        'user': {
-            'id': current_user.id,
+    try:
+        # Join the chat room
+        socket_join_room(f'chat_{room}')
+        logger.info(f"💬 {current_user.username} joined chat room: {room}")
+        
+        # Get recent messages
+        messages = ChatMessage.get_recent_messages(room, limit=50)
+        messages_data = [msg.to_dict() for msg in reversed(messages)]  # Oldest first
+        
+        emit('chat_joined', {
+            'room': room,
+            'messages': messages_data,
+            'user': {
+                'id': current_user.id,
+                'username': current_user.username,
+                'avatar': current_user.avatar,
+                'avatar_type': current_user.avatar_type,
+                'is_admin': current_user.role == 'admin'
+            }
+        })
+        
+        # Notify room that user joined
+        emit('user_joined', {
             'username': current_user.username,
             'avatar': current_user.avatar,
-            'avatar_type': current_user.avatar_type,
-            'is_admin': current_user.role == 'admin'
-        }
-    })
-    
-    # Notify room that user joined
-    emit('user_joined', {
-        'username': current_user.username,
-        'avatar': current_user.avatar,
-        'user_id': current_user.id
-    }, room=f'chat_{room}', include_self=False)
+            'user_id': current_user.id
+        }, room=f'chat_{room}', include_self=False)
+    except KeyError as e:
+        # Client disconnected before join_room completed
+        logger.debug(f"Client disconnected during chat join: {e}")
 
 
 @socketio.on('leave_chat')

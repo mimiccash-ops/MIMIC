@@ -4,9 +4,11 @@ Sends trade alerts and system notifications to Telegram
 Also includes Email sending functionality for password recovery
 """
 
+import atexit
 import logging
 import threading
 import smtplib
+import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from queue import Queue
@@ -30,6 +32,8 @@ class TelegramNotifier:
         self.chat_id = chat_id
         self.enabled = enabled and bool(bot_token) and bool(chat_id)
         self.message_queue = Queue()
+        self._shutdown_event = threading.Event()
+        atexit.register(self._mark_shutdown)
         
         if self.enabled:
             try:
@@ -43,9 +47,21 @@ class TelegramNotifier:
         else:
             logger.info("ℹ️ Telegram notifications disabled")
 
+    def _mark_shutdown(self):
+        self._shutdown_event.set()
+
+    def _is_shutdown(self) -> bool:
+        if self._shutdown_event.is_set():
+            return True
+        if hasattr(sys, "is_finalizing") and sys.is_finalizing():
+            return True
+        return False
+
     def _send_loop(self):
         """Background thread for sending messages"""
         while True:
+            if self._is_shutdown():
+                return
             try:
                 item = self.message_queue.get()
                 if item:
@@ -64,6 +80,8 @@ class TelegramNotifier:
 
     def send(self, message: str, chat_id: str = None):
         """Queue a message for sending"""
+        if self._is_shutdown():
+            return
         if self.enabled or chat_id:  # Allow sending to specific chat even if main notifications disabled
             self.message_queue.put({'message': message, 'chat_id': chat_id})
 
@@ -73,6 +91,8 @@ class TelegramNotifier:
         Returns (success: bool, error_message: str)
         Used for testing connections and sending critical messages that need confirmation.
         """
+        if self._is_shutdown():
+            return False, "interpreter_shutting_down"
         if not self.bot_token:
             return False, "Telegram bot not initialized"
         
