@@ -349,6 +349,16 @@ async def shutdown(ctx: dict):
                 db.session.remove()
         except Exception as e:
             logger.debug(f"App context cleanup: {e}")
+
+    # If a legacy app context was stored in ctx, pop it safely
+    app_context = ctx.pop('app_context', None)
+    if app_context:
+        try:
+            app_context.pop()
+        except LookupError:
+            logger.debug("App context already popped during shutdown")
+        except Exception as e:
+            logger.debug(f"App context pop error: {e}")
     
     logger.info("✅ ARQ Worker shutdown complete")
 

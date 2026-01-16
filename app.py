@@ -878,9 +878,22 @@ def inject_csrf_token():
 
 # ==================== SOCKET EVENTS ====================
 
+def _socket_is_connected(sid: str, namespace: str = "/") -> bool:
+    """Check if a SocketIO client is still connected."""
+    try:
+        if not socketio.server or not socketio.server.manager:
+            return False
+        return socketio.server.manager.is_connected(sid, namespace)
+    except Exception:
+        return False
+
+
 @socketio.on('connect')
 def handle_connect(auth=None):
     try:
+        if not _socket_is_connected(request.sid):
+            logger.debug("Connect handler called for stale socket session")
+            return
         if current_user.is_authenticated:
             room = f"user_{current_user.id}"
             join_room(room)
@@ -937,6 +950,9 @@ def handle_join_chat(data):
     
     try:
         # Join the chat room
+        if not _socket_is_connected(request.sid):
+            logger.debug("Chat join skipped for stale socket session")
+            return
         socket_join_room(f'chat_{room}')
         logger.info(f"💬 {current_user.username} joined chat room: {room}")
         
@@ -976,7 +992,10 @@ def handle_leave_chat(data):
         return
     
     room = data.get('room', 'general')
-    socket_leave_room(f'chat_{room}')
+    try:
+        socket_leave_room(f'chat_{room}')
+    except KeyError as e:
+        logger.debug(f"Client disconnected during chat leave: {e}")
     
     emit('user_left', {
         'username': current_user.username,

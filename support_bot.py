@@ -103,6 +103,11 @@ Where X.XX is a number between 0.00 and 1.00 indicating how confident you are in
         
         # Load configuration
         self._load_config()
+
+        if not self.api_key:
+            logger.warning(
+                "⚠️ OpenAI API key missing. Set OPENAI_API_KEY env var or Config.OPENAI_API_KEY"
+            )
         
         # Initialize OpenAI client
         if self.api_key and OPENAI_AVAILABLE:

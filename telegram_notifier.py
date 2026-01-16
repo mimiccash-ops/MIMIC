@@ -11,7 +11,7 @@ import smtplib
 import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from queue import Queue
+from queue import Queue, Empty
 from datetime import datetime
 
 logger = logging.getLogger("TelegramNotifier")
@@ -49,6 +49,10 @@ class TelegramNotifier:
 
     def _mark_shutdown(self):
         self._shutdown_event.set()
+        try:
+            self.message_queue.put_nowait(None)
+        except Exception:
+            pass
 
     def _is_shutdown(self) -> bool:
         if self._shutdown_event.is_set():
@@ -63,18 +67,29 @@ class TelegramNotifier:
             if self._is_shutdown():
                 return
             try:
-                item = self.message_queue.get()
-                if item:
-                    # Handle both old string format and new dict format
-                    if isinstance(item, dict):
-                        message = item.get('message', '')
-                        chat_id = item.get('chat_id')
-                    else:
-                        message = item
-                        chat_id = None
-                    success, error = self.send_sync(message, chat_id or self.chat_id)
-                    if not success and error:
-                        logger.error(f"Telegram send failed to {chat_id}: {error}")
+                item = self.message_queue.get(timeout=0.5)
+            except Empty:
+                continue
+            except Exception as e:
+                logger.error(f"Telegram send error: {e}")
+                continue
+            
+            if self._is_shutdown():
+                return
+            if not item:
+                continue
+            
+            try:
+                # Handle both old string format and new dict format
+                if isinstance(item, dict):
+                    message = item.get('message', '')
+                    chat_id = item.get('chat_id')
+                else:
+                    message = item
+                    chat_id = None
+                success, error = self.send_sync(message, chat_id or self.chat_id)
+                if not success and error:
+                    logger.error(f"Telegram send failed to {chat_id}: {error}")
             except Exception as e:
                 logger.error(f"Telegram send error: {e}")
 

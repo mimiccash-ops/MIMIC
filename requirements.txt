@@ -68,6 +68,7 @@ pywebpush>=1.14.0
 tweepy>=4.14.0
 
 # RAG Support Bot (LangChain + OpenAI + pgvector)
+# Requires OPENAI_API_KEY env var for runtime access
 langchain>=0.3.0
 langchain-openai>=0.2.0
 langchain-postgres>=0.0.6
