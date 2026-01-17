@@ -13,7 +13,9 @@ Features:
 - Provides status endpoint for dashboard display
 """
 
+import asyncio
 import logging
+import os
 import httpx
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, Tuple
@@ -53,7 +55,7 @@ class SentimentManager:
     - Providing sentiment data for dashboard display
     """
     
-    def __init__(self, redis_client=None):
+    def __init__(self, redis_client=None, redis_url: Optional[str] = None):
         """
         Initialize the SentimentManager.
         
@@ -61,6 +63,9 @@ class SentimentManager:
             redis_client: Async Redis client for caching sentiment data
         """
         self.redis = redis_client
+        self.redis_url = redis_url or os.environ.get("REDIS_URL")
+        self._redis_loop = None
+        self._redis_by_loop = {}
         self._fallback_sentiment = {
             "value": 50,  # Neutral
             "classification": "neutral",
@@ -72,7 +77,42 @@ class SentimentManager:
     def set_redis_client(self, redis_client):
         """Set the Redis client for caching."""
         self.redis = redis_client
+        self._redis_loop = None
+        self._redis_by_loop = {}
+        try:
+            loop = asyncio.get_running_loop()
+            self._redis_loop = loop
+            self._redis_by_loop[loop] = redis_client
+        except RuntimeError:
+            pass
         logger.info("🔗 Redis client set for SentimentManager")
+
+    async def _get_redis_client(self):
+        """Return a Redis client bound to the current loop (recreate if needed)."""
+        if self.redis is None and not self.redis_url and not self._redis_by_loop:
+            return None
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return self.redis
+        if loop in self._redis_by_loop:
+            return self._redis_by_loop[loop]
+        if self.redis is not None and self._redis_loop is loop:
+            return self.redis
+        if self.redis_url:
+            try:
+                import redis.asyncio as aioredis
+                client = aioredis.from_url(self.redis_url, socket_timeout=10)
+                self._redis_by_loop[loop] = client
+                return client
+            except Exception as e:
+                logger.debug(f"Could not create loop-local Redis client: {e}")
+                return None
+        if self.redis is not None and self._redis_loop is None:
+            self._redis_loop = loop
+            self._redis_by_loop[loop] = self.redis
+            return self.redis
+        return self.redis
     
     async def fetch_fear_greed_index(self) -> Dict[str, Any]:
         """
@@ -135,19 +175,20 @@ class SentimentManager:
         """
         sentiment = await self.fetch_fear_greed_index()
         
-        if self.redis and sentiment.get("source") == "api":
+        redis_client = await self._get_redis_client()
+        if redis_client and sentiment.get("source") == "api":
             try:
-                await self.redis.set(
+                await redis_client.set(
                     REDIS_KEY_SENTIMENT, 
                     str(sentiment["value"]),
                     ex=7200  # Expire after 2 hours (buffer for hourly update)
                 )
-                await self.redis.set(
+                await redis_client.set(
                     REDIS_KEY_SENTIMENT_CLASSIFICATION,
                     sentiment["classification"],
                     ex=7200
                 )
-                await self.redis.set(
+                await redis_client.set(
                     REDIS_KEY_SENTIMENT_TIMESTAMP,
                     sentiment["timestamp"],
                     ex=7200
@@ -160,14 +201,15 @@ class SentimentManager:
     
     async def _get_cached_sentiment(self) -> Optional[Dict[str, Any]]:
         """Get cached sentiment from Redis."""
-        if not self.redis:
+        redis_client = await self._get_redis_client()
+        if not redis_client:
             return None
         
         try:
-            value = await self.redis.get(REDIS_KEY_SENTIMENT)
+            value = await redis_client.get(REDIS_KEY_SENTIMENT)
             if value:
-                classification = await self.redis.get(REDIS_KEY_SENTIMENT_CLASSIFICATION)
-                timestamp = await self.redis.get(REDIS_KEY_SENTIMENT_TIMESTAMP)
+                classification = await redis_client.get(REDIS_KEY_SENTIMENT_CLASSIFICATION)
+                timestamp = await redis_client.get(REDIS_KEY_SENTIMENT_TIMESTAMP)
                 
                 return {
                     "value": int(value),
@@ -181,7 +223,10 @@ class SentimentManager:
             else:
                 logger.error(f"❌ Failed to get cached sentiment: {e}")
         except Exception as e:
-            logger.error(f"❌ Failed to get cached sentiment: {e}")
+            if "different loop" in str(e).lower():
+                logger.debug(f"Sentiment cache skipped due to event loop conflict: {e}")
+            else:
+                logger.error(f"❌ Failed to get cached sentiment: {e}")
         
         return None
     

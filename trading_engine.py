@@ -565,6 +565,8 @@ class TradingEngine:
         # Will be initialized with Redis when set_redis_client is called
         self.smart_features: SmartFeaturesManager = None
         self._redis_client = None
+        self._sync_redis = None
+        self._sync_redis_lock = threading.Lock()
         
         # Risk Guardrails Manager (Daily Drawdown/Profit Protection)
         self.risk_guardrails: RiskGuardrailsManager = None
@@ -577,12 +579,13 @@ class TradingEngine:
         self.sentiment_manager = sentiment_manager
         logger.info("🧠 AI Sentiment Manager initialized")
 
-    def set_redis_client(self, redis_client):
+    def set_redis_client(self, redis_client, redis_url: str = None):
         """Set Redis client for Smart Features (trailing SL, DCA tracking, risk guardrails)"""
         self._redis_client = redis_client
         self.smart_features = SmartFeaturesManager(
             redis_client=redis_client,
-            trading_engine=self
+            trading_engine=self,
+            redis_url=redis_url
         )
         self.risk_guardrails = RiskGuardrailsManager(
             redis_client=redis_client,
@@ -825,6 +828,105 @@ class TradingEngine:
             return self._global_settings.get(key, default)
 
         return default
+
+    # ==================== GLOBAL MASTER PENDING (REDIS) ====================
+
+    MASTER_PENDING_REDIS_KEY = "master:pending_symbols"
+    MASTER_PENDING_TTL_SECONDS = 180
+
+    def _get_sync_redis(self):
+        """Get a sync Redis client for cross-process master position guarding."""
+        if self._sync_redis:
+            return self._sync_redis
+        redis_url = None
+        try:
+            if hasattr(self.app, 'config'):
+                redis_url = self.app.config.get('REDIS_URL')
+        except Exception:
+            redis_url = None
+        if not redis_url:
+            return None
+        try:
+            import redis
+            with self._sync_redis_lock:
+                if not self._sync_redis:
+                    self._sync_redis = redis.from_url(redis_url)
+            return self._sync_redis
+        except Exception as e:
+            logger.debug(f"Could not initialize sync Redis client: {e}")
+            return None
+
+    def _reserve_master_pending_symbol_sync(self, symbol: str, max_pos: int, open_count: int):
+        """Atomically reserve a master slot in Redis. Returns 'added', 'max', 'already', or None."""
+        redis_client = self._get_sync_redis()
+        if not redis_client:
+            return None
+        lua = """
+        local key = KEYS[1]
+        local symbol = ARGV[1]
+        local max_pos = tonumber(ARGV[2])
+        local open_count = tonumber(ARGV[3])
+        local ttl = tonumber(ARGV[4])
+        if redis.call("SISMEMBER", key, symbol) == 1 then
+            return {"0", "already"}
+        end
+        local pending_count = redis.call("SCARD", key)
+        local total = open_count + pending_count
+        if total >= max_pos then
+            return {"0", "max"}
+        end
+        redis.call("SADD", key, symbol)
+        if ttl and ttl > 0 then
+            redis.call("EXPIRE", key, ttl)
+        end
+        return {"1", "added"}
+        """
+        try:
+            script = redis_client.register_script(lua)
+            result = script(
+                keys=[self.MASTER_PENDING_REDIS_KEY],
+                args=[symbol, max_pos, open_count, self.MASTER_PENDING_TTL_SECONDS],
+            )
+            if isinstance(result, (list, tuple)) and len(result) >= 2:
+                return result[1].decode() if isinstance(result[1], (bytes, bytearray)) else result[1]
+            return None
+        except Exception as e:
+            logger.debug(f"Redis reserve master pending failed: {e}")
+            return None
+
+    async def _reserve_master_pending_symbol_async(self, symbol: str, max_pos: int, open_count: int):
+        return await asyncio.to_thread(self._reserve_master_pending_symbol_sync, symbol, max_pos, open_count)
+
+    def _release_master_pending_symbol_sync(self, symbol: str):
+        redis_client = self._get_sync_redis()
+        if not redis_client:
+            return
+        try:
+            redis_client.srem(self.MASTER_PENDING_REDIS_KEY, symbol)
+        except Exception as e:
+            logger.debug(f"Redis release master pending failed: {e}")
+
+    async def _release_master_pending_symbol_async(self, symbol: str):
+        await asyncio.to_thread(self._release_master_pending_symbol_sync, symbol)
+
+    def _get_master_pending_symbols_sync(self) -> set:
+        redis_client = self._get_sync_redis()
+        if not redis_client:
+            return set()
+        try:
+            members = redis_client.smembers(self.MASTER_PENDING_REDIS_KEY)
+            symbols = set()
+            for member in members:
+                if isinstance(member, bytes):
+                    member = member.decode('utf-8')
+                symbols.add(member)
+            return symbols
+        except Exception as e:
+            logger.debug(f"Redis get master pending symbols failed: {e}")
+            return set()
+
+    async def _get_master_pending_symbols_async(self) -> set:
+        return await asyncio.to_thread(self._get_master_pending_symbols_sync)
 
     def get_min_balance_required(self) -> float:
         """Get the minimum balance required for trading (set by admin)"""
@@ -2599,6 +2701,8 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
                         return
                     
                     # Check minimum balance
@@ -2614,6 +2718,8 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
                         return
                     
                     # Calculate position size (notional value)
@@ -2693,6 +2799,8 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
                         return
                     
                     qty = notional / price
@@ -2731,6 +2839,8 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
                         return
 
                     # Place order (async)
@@ -2801,6 +2911,7 @@ class TradingEngine:
                                 if 'master' in self.pending_trades:
                                     self.pending_trades['master'].discard(pending_key)
                                     logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
+                            await self._release_master_pending_symbol_async(symbol)
                     
                     # Set TP/SL if configured
                     tp_perc = float(signal.get('tp_perc', 0) or 0)
@@ -2874,6 +2985,8 @@ class TradingEngine:
                     # Clear pending (async)
                     async with self._async_pending_lock:
                         self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master:
+                        await self._release_master_pending_symbol_async(symbol)
                     
                     # Notify via Telegram - always notify for master, or if user has chat_id
                     try:
@@ -2919,6 +3032,8 @@ class TradingEngine:
                     
                     async with self._async_pending_lock:
                         self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master:
+                        await self._release_master_pending_symbol_async(symbol)
                     
         except Exception as e:
             # Record general trade error metrics
@@ -2940,6 +3055,14 @@ class TradingEngine:
                 chat_id = client_data.get('telegram_chat_id')
                 if chat_id:
                     self.telegram.notify_user_error(chat_id, symbol, error_msg)
+            # Clear pending on unexpected error
+            try:
+                async with self._async_pending_lock:
+                    self.pending_trades.get(user_id, set()).discard(pending_key)
+                if is_master:
+                    await self._release_master_pending_symbol_async(symbol)
+            except Exception:
+                pass
     
     async def _get_user_equity_async(self, client_data: dict) -> float:
         """
@@ -3250,6 +3373,7 @@ class TradingEngine:
 
             # === CHECK MAX POSITIONS & EXISTING POSITION ===
             is_master_account = str(user_id).startswith('master')
+            pending_key = f"{symbol}_master" if is_master_account else symbol
             
             # CRITICAL: Use per-user lock to serialize position checks for this specific user
             # This prevents race conditions where multiple signals for the same user check simultaneously
@@ -3269,7 +3393,7 @@ class TradingEngine:
                 
                 # Check if already pending for this symbol FIRST (before any API calls)
                 with self.pending_lock:
-                    if symbol in self.pending_trades[user_id]:
+                    if pending_key in self.pending_trades[user_id]:
                         error_msg = f"Trade already in progress for {symbol}"
                         self.log_event(user_id, symbol, error_msg, is_error=True)
                         # Send Telegram notification
@@ -3332,7 +3456,7 @@ class TradingEngine:
                         
                         # All checks passed - mark as pending IMMEDIATELY to prevent concurrent signals
                         # This MUST happen atomically with the check above, before releasing the lock
-                        self.pending_trades[user_id].add(symbol)
+                        self.pending_trades[user_id].add(pending_key)
                         
                         # Double-check: After marking as pending, verify we didn't exceed limit
                         # This is a safety net in case of any race condition
@@ -3340,7 +3464,9 @@ class TradingEngine:
                         final_total = base_open_count + final_pending_count
                         if final_total > max_pos:
                             # We exceeded the limit - remove from pending and reject
-                            self.pending_trades[user_id].discard(symbol)
+                            self.pending_trades[user_id].discard(pending_key)
+                            if is_master_account:
+                                self._release_master_pending_symbol_sync(symbol)
                             error_msg = f"Max positions exceeded ({base_open_count} open + {final_pending_count} pending > {max_pos})"
                             self.log_event(user_id, symbol, error_msg, is_error=True)
                             # Send Telegram notification
@@ -3379,7 +3505,9 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         # Clear pending trade
                         with self.pending_lock:
-                            self.pending_trades.get(user_id, set()).discard(symbol)
+                            self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master_account:
+                            self._release_master_pending_symbol_sync(symbol)
                         return
 
                 # Set leverage
@@ -3409,7 +3537,9 @@ class TradingEngine:
                             self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
-                        self.pending_trades.get(user_id, set()).discard(symbol)
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master_account:
+                        self._release_master_pending_symbol_sync(symbol)
                     return
                 
                 # Check minimum balance requirement (set by admin)
@@ -3425,7 +3555,9 @@ class TradingEngine:
                             self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
-                        self.pending_trades.get(user_id, set()).discard(symbol)
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master_account:
+                        self._release_master_pending_symbol_sync(symbol)
                     return
 
                 # Calculate position size (notional value)
@@ -3498,7 +3630,9 @@ class TradingEngine:
                             self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
-                        self.pending_trades.get(user_id, set()).discard(symbol)
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master_account:
+                        self._release_master_pending_symbol_sync(symbol)
                     return
 
                 # Calculate quantity from notional value
@@ -3529,7 +3663,9 @@ class TradingEngine:
                             self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
-                        self.pending_trades.get(user_id, set()).discard(symbol)
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master_account:
+                            self._release_master_pending_symbol_sync(symbol)
                     return
 
                 # === PLACE ORDER ===
@@ -3708,13 +3844,17 @@ class TradingEngine:
                         
                         if position_found:
                             with self.pending_lock:
-                                self.pending_trades.get(user_id, set()).discard(symbol)
+                                self.pending_trades.get(user_id, set()).discard(pending_key)
+                            if is_master_account:
+                                self._release_master_pending_symbol_sync(symbol)
                         else:
                             logger.warning(f"Position {symbol} not immediately visible after order placement")
                     except Exception as e:
                         logger.warning(f"Position verification failed for {symbol}: {e}")
                         with self.pending_lock:
-                            self.pending_trades.get(user_id, set()).discard(symbol)
+                            self.pending_trades.get(user_id, set()).discard(pending_key)
+                            if is_master_account:
+                                self._release_master_pending_symbol_sync(symbol)
                     
                     # Track master position (for any master exchange)
                     if is_master_account:
@@ -3729,10 +3869,10 @@ class TradingEngine:
                             logger.info(f"📍 Tracked master position: {symbol} {action.upper()}")
                         # Clear pending trade now that position is tracked (for sync context)
                         with self.pending_lock:
-                            pending_key = f"{symbol}_master"
                             if 'master' in self.pending_trades:
                                 self.pending_trades['master'].discard(pending_key)
                                 logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
+                        self._release_master_pending_symbol_sync(symbol)
                     
                     # Telegram notifications (non-critical)
                     try:
@@ -3750,7 +3890,9 @@ class TradingEngine:
                 except BinanceAPIException as e:
                     # Clear pending trade on error
                     with self.pending_lock:
-                        self.pending_trades.get(user_id, set()).discard(symbol)
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master_account:
+                            self._release_master_pending_symbol_sync(symbol)
                     error_msg = f"Binance Error: {e.message}"
                     self.log_event(user_id, symbol, error_msg, is_error=True)
                     if self.telegram:
@@ -3762,7 +3904,9 @@ class TradingEngine:
         except Exception as e:
             # Clear pending trade on error
             with self.pending_lock:
-                self.pending_trades.get(user_id, set()).discard(symbol)
+                self.pending_trades.get(user_id, set()).discard(pending_key)
+                if is_master_account:
+                    self._release_master_pending_symbol_sync(symbol)
             error_msg = f"Engine Error: {str(e)[:100]}"
             self.log_event(user_id, symbol, error_msg, is_error=True)
             if self.telegram:
@@ -3941,34 +4085,68 @@ class TradingEngine:
                     else:
                         # Check current positions
                         global_pos_count, open_symbols = await self.get_global_master_position_count_async()
-                        
-                        # Include pending positions in count to prevent race conditions
-                        # Count unique symbols from pending trades
-                        pending_symbols = {p.split('_')[0] for p in master_pending if '_' in p}
+
+                        # Include pending positions in count (cross-process via Redis if available)
+                        pending_symbols = await self._get_master_pending_symbols_async()
+                        if not pending_symbols:
+                            pending_symbols = set()
+                            for p in master_pending:
+                                if '_' in p:
+                                    pending_symbols.add(p.split('_')[0])
+                                else:
+                                    pending_symbols.add(p)
                         all_symbols = open_symbols | pending_symbols
                         total_count = len(all_symbols)
-                        
+
                         logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, pending_symbols={pending_symbols}, open_symbols={open_symbols}, total={total_count}")
-                        
+
                         if clean_symbol in all_symbols:
                             error_msg = f"Already have position or pending on {clean_symbol}"
                             logger.warning(f"⚠️ MASTER: {error_msg}")
                             if self.telegram:
                                 self.telegram.notify_error("MASTER", clean_symbol, error_msg)
                             # Continue with slaves, don't return - slaves may need this signal
-                        elif total_count >= max_pos_master:
-                            error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
-                            logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
-                            if self.telegram:
-                                self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                            return
                         else:
-                            # Mark this trade as pending BEFORE opening to prevent race conditions
-                            if 'master' not in self.pending_trades:
-                                self.pending_trades['master'] = set()
-                            self.pending_trades['master'].add(pending_key)
-                            logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (preventing race condition)")
-                            remaining_master_slots = max_pos_master - total_count
+                            # Reserve a global slot in Redis (prevents multi-worker double opens)
+                            reserve_result = await self._reserve_master_pending_symbol_async(
+                                clean_symbol, max_pos_master, len(open_symbols)
+                            )
+                            if reserve_result == "max":
+                                error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
+                                logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
+                                if self.telegram:
+                                    self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                                return
+                            if reserve_result == "already":
+                                error_msg = f"Already pending on {clean_symbol}"
+                                logger.warning(f"⚠️ MASTER: {error_msg}")
+                                if self.telegram:
+                                    self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                                # Continue with slaves, don't return
+                            elif reserve_result is None:
+                                if total_count >= max_pos_master:
+                                    error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
+                                    logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
+                                    if self.telegram:
+                                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                                    return
+                                # No Redis guard available, fall back to in-process pending
+                                if 'master' not in self.pending_trades:
+                                    self.pending_trades['master'] = set()
+                                self.pending_trades['master'].add(pending_key)
+                                logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (no Redis guard)")
+                                pending_symbols.add(clean_symbol)
+                                total_count = len(open_symbols | pending_symbols)
+                                remaining_master_slots = max_pos_master - total_count
+                            else:
+                                # Mark this trade as pending BEFORE opening to prevent race conditions
+                                if 'master' not in self.pending_trades:
+                                    self.pending_trades['master'] = set()
+                                self.pending_trades['master'].add(pending_key)
+                                logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (preventing race condition)")
+                                pending_symbols.add(clean_symbol)
+                                total_count = len(open_symbols | pending_symbols)
+                                remaining_master_slots = max_pos_master - total_count
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0

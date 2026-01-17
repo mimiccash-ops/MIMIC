@@ -16,6 +16,7 @@ Redis Keys Structure:
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set, Tuple
@@ -58,7 +59,7 @@ class SmartFeaturesManager:
     Designed to run in the ARQ worker context with access to Redis and Trading Engine.
     """
     
-    def __init__(self, redis_client=None, trading_engine=None):
+    def __init__(self, redis_client=None, trading_engine=None, redis_url: str = None):
         """
         Initialize Smart Features Manager.
         
@@ -67,6 +68,15 @@ class SmartFeaturesManager:
             trading_engine: Reference to TradingEngine for executing orders
         """
         self.redis = redis_client
+        self.redis_url = redis_url or os.environ.get("REDIS_URL")
+        self._redis_loop = None
+        self._redis_by_loop = {}
+        try:
+            loop = asyncio.get_running_loop()
+            self._redis_loop = loop
+            self._redis_by_loop[loop] = redis_client
+        except RuntimeError:
+            pass
         self.engine = trading_engine
         self._monitoring_task: Optional[asyncio.Task] = None
         self._websocket_tasks: Dict[str, asyncio.Task] = {}
@@ -82,9 +92,43 @@ class SmartFeaturesManager:
         
         logger.info("🎯 SmartFeaturesManager initialized")
 
+    async def _get_redis_client(self):
+        """Return a Redis client bound to the current loop (recreate if needed)."""
+        if self.redis is None and not self.redis_url and not self._redis_by_loop:
+            return None
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return self.redis
+        if loop in self._redis_by_loop:
+            return self._redis_by_loop[loop]
+        if self.redis is not None and self._redis_loop is loop:
+            return self.redis
+        if self.redis_url:
+            try:
+                import redis.asyncio as aioredis
+                client = aioredis.from_url(self.redis_url, socket_timeout=10)
+                self._redis_by_loop[loop] = client
+                return client
+            except Exception as e:
+                logger.debug(f"Could not create loop-local Redis client: {e}")
+                return None
+        if self.redis is not None and self._redis_loop is None:
+            self._redis_loop = loop
+            self._redis_by_loop[loop] = self.redis
+            return self.redis
+        return self.redis
+
+    async def _ensure_redis(self):
+        redis_client = await self._get_redis_client()
+        if redis_client is not None:
+            self.redis = redis_client
+        return redis_client
+
     @staticmethod
     def _is_loop_conflict_error(error: Exception) -> bool:
-        return "attached to a different loop" in str(error)
+        message = str(error).lower()
+        return "different loop" in message or "attached to a different loop" in message
     
     # ==================== REDIS KEYS ====================
     
@@ -126,7 +170,8 @@ class SmartFeaturesManager:
         Returns:
             True if registered successfully
         """
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             logger.warning("Redis not available, cannot register trailing SL")
             return False
         
@@ -180,7 +225,8 @@ class SmartFeaturesManager:
         Returns:
             New SL price if updated, None if no change or position not found
         """
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return None
         
         try:
@@ -271,7 +317,8 @@ class SmartFeaturesManager:
         Returns:
             True if SL triggered, False otherwise
         """
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return False
         
         try:
@@ -420,7 +467,8 @@ class SmartFeaturesManager:
     
     async def remove_trailing_sl(self, user_id: str, symbol: str) -> bool:
         """Remove trailing SL tracking for a position"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return False
         
         try:
@@ -437,7 +485,8 @@ class SmartFeaturesManager:
     
     async def get_trailing_sl(self, user_id: str, symbol: str) -> Optional[TrailingStopData]:
         """Get trailing SL data for a position"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return None
         
         try:
@@ -460,7 +509,8 @@ class SmartFeaturesManager:
     
     async def get_all_active_trailing_positions(self) -> List[Tuple[str, str]]:
         """Get all active trailing SL positions as (user_id, symbol) tuples"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return []
         
         try:
@@ -493,7 +543,8 @@ class SmartFeaturesManager:
     
     async def get_dca_count(self, user_id: str, symbol: str) -> int:
         """Get the number of DCA orders already placed for a position"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return 0
         
         try:
@@ -512,7 +563,8 @@ class SmartFeaturesManager:
     
     async def increment_dca_count(self, user_id: str, symbol: str) -> int:
         """Increment DCA count and return new value"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return 0
         
         try:
@@ -533,7 +585,8 @@ class SmartFeaturesManager:
     
     async def reset_dca_count(self, user_id: str, symbol: str) -> bool:
         """Reset DCA count (called when position is closed)"""
-        if not self.redis:
+        redis_client = await self._ensure_redis()
+        if not redis_client:
             return False
         
         try:

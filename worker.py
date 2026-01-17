@@ -251,7 +251,7 @@ async def startup(ctx: dict):
             socket_timeout=10,
         )
         await redis_client.ping()
-        engine.set_redis_client(redis_client)
+        engine.set_redis_client(redis_client, redis_url=REDIS_URL)
         ctx['redis_client'] = redis_client
         logger.info("✅ Smart Features Redis client initialized")
         
