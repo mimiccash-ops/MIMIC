@@ -551,7 +551,7 @@ class TradingEngine:
         self._event_loop = None
         
         # Thread pool executor for background tasks (MUST be initialized before starting threads)
-        self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="TradingEngine")
+        self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="TradingWorker")
         
         # Start background threads (will be migrated to async tasks when event loop is available)
         # Note: These threads use self.executor, so it must be initialized first
@@ -4453,6 +4453,14 @@ class TradingEngine:
         if self.smart_features:
             await self.smart_features.stop_price_monitor()
             logger.info("🛑 Trailing stop-loss monitor stopped")
+
+    def shutdown(self):
+        """Shutdown background executor to prevent thread leaks."""
+        try:
+            if getattr(self, "executor", None):
+                self.executor.shutdown(wait=False)
+        except Exception as e:
+            logger.warning(f"⚠️ Error shutting down executor: {e}")
     
     async def cleanup_position_smart_features(self, user_id: str, symbol: str):
         """
