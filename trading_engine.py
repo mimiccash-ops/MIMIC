@@ -832,7 +832,7 @@ class TradingEngine:
     # ==================== GLOBAL MASTER PENDING (REDIS) ====================
 
     MASTER_PENDING_REDIS_KEY = "master:pending_symbols"
-    MASTER_PENDING_TTL_SECONDS = 180
+    MASTER_PENDING_TTL_SECONDS = 30  # Reduced from 180 - individual symbols auto-expire after 30s
 
     def _get_sync_redis(self):
         """Get a sync Redis client for cross-process master position guarding."""
@@ -857,39 +857,34 @@ class TradingEngine:
             return None
 
     def _reserve_master_pending_symbol_sync(self, symbol: str, max_pos: int, open_count: int):
-        """Atomically reserve a master slot in Redis. Returns 'added', 'max', 'already', or None."""
+        """Atomically reserve a master slot in Redis. Returns 'added', 'max', 'already', or None.
+        
+        Uses individual keys per symbol with TTL so each symbol auto-expires independently.
+        """
         redis_client = self._get_sync_redis()
         if not redis_client:
             return None
-        lua = """
-        local key = KEYS[1]
-        local symbol = ARGV[1]
-        local max_pos = tonumber(ARGV[2])
-        local open_count = tonumber(ARGV[3])
-        local ttl = tonumber(ARGV[4])
-        if redis.call("SISMEMBER", key, symbol) == 1 then
-            return {"0", "already"}
-        end
-        local pending_count = redis.call("SCARD", key)
-        local total = open_count + pending_count
-        if total >= max_pos then
-            return {"0", "max"}
-        end
-        redis.call("SADD", key, symbol)
-        if ttl and ttl > 0 then
-            redis.call("EXPIRE", key, ttl)
-        end
-        return {"1", "added"}
-        """
+        
+        pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
+        
         try:
-            script = redis_client.register_script(lua)
-            result = script(
-                keys=[self.MASTER_PENDING_REDIS_KEY],
-                args=[symbol, max_pos, open_count, self.MASTER_PENDING_TTL_SECONDS],
-            )
-            if isinstance(result, (list, tuple)) and len(result) >= 2:
-                return result[1].decode() if isinstance(result[1], (bytes, bytearray)) else result[1]
-            return None
+            # Check if already pending
+            if redis_client.exists(pending_key):
+                return "already"
+            
+            # Count current pending symbols
+            pattern = f"{self.MASTER_PENDING_REDIS_KEY}:*"
+            pending_keys = list(redis_client.scan_iter(match=pattern, count=100))
+            pending_count = len(pending_keys)
+            
+            total = open_count + pending_count
+            if total >= max_pos:
+                return "max"
+            
+            # Reserve this symbol with TTL (auto-expires if trade fails/hangs)
+            redis_client.setex(pending_key, self.MASTER_PENDING_TTL_SECONDS, "1")
+            return "added"
+            
         except Exception as e:
             logger.debug(f"Redis reserve master pending failed: {e}")
             return None
@@ -898,10 +893,14 @@ class TradingEngine:
         return await asyncio.to_thread(self._reserve_master_pending_symbol_sync, symbol, max_pos, open_count)
 
     def _release_master_pending_symbol_sync(self, symbol: str):
+        """Release a pending symbol from Redis."""
         redis_client = self._get_sync_redis()
         if not redis_client:
             return
         try:
+            pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
+            redis_client.delete(pending_key)
+            # Also remove from legacy set if it exists
             redis_client.srem(self.MASTER_PENDING_REDIS_KEY, symbol)
         except Exception as e:
             logger.debug(f"Redis release master pending failed: {e}")
@@ -910,16 +909,30 @@ class TradingEngine:
         await asyncio.to_thread(self._release_master_pending_symbol_sync, symbol)
 
     def _get_master_pending_symbols_sync(self) -> set:
+        """Get all currently pending symbols from Redis."""
         redis_client = self._get_sync_redis()
         if not redis_client:
             return set()
         try:
-            members = redis_client.smembers(self.MASTER_PENDING_REDIS_KEY)
             symbols = set()
-            for member in members:
+            
+            # Get from new per-symbol keys
+            pattern = f"{self.MASTER_PENDING_REDIS_KEY}:*"
+            for key in redis_client.scan_iter(match=pattern, count=100):
+                if isinstance(key, bytes):
+                    key = key.decode('utf-8')
+                # Extract symbol from key: "master:pending_symbols:BTCUSDT" -> "BTCUSDT"
+                symbol = key.split(':')[-1]
+                if symbol:
+                    symbols.add(symbol)
+            
+            # Also check legacy set for backward compatibility
+            legacy_members = redis_client.smembers(self.MASTER_PENDING_REDIS_KEY)
+            for member in legacy_members:
                 if isinstance(member, bytes):
                     member = member.decode('utf-8')
                 symbols.add(member)
+            
             return symbols
         except Exception as e:
             logger.debug(f"Redis get master pending symbols failed: {e}")
@@ -927,6 +940,30 @@ class TradingEngine:
 
     async def _get_master_pending_symbols_async(self) -> set:
         return await asyncio.to_thread(self._get_master_pending_symbols_sync)
+    
+    def clear_all_master_pending_symbols(self):
+        """Clear all pending symbols from Redis. Called on startup to reset state."""
+        redis_client = self._get_sync_redis()
+        if not redis_client:
+            return
+        try:
+            # Clear per-symbol keys
+            pattern = f"{self.MASTER_PENDING_REDIS_KEY}:*"
+            keys_to_delete = list(redis_client.scan_iter(match=pattern, count=100))
+            if keys_to_delete:
+                redis_client.delete(*keys_to_delete)
+                logger.info(f"🧹 Cleared {len(keys_to_delete)} pending symbol keys from Redis")
+            
+            # Clear legacy set
+            redis_client.delete(self.MASTER_PENDING_REDIS_KEY)
+            
+            # Clear in-memory pending
+            if 'master' in self.pending_trades:
+                self.pending_trades['master'].clear()
+                
+            logger.info("🧹 All master pending symbols cleared")
+        except Exception as e:
+            logger.warning(f"Failed to clear pending symbols: {e}")
 
     def get_min_balance_required(self) -> float:
         """Get the minimum balance required for trading (set by admin)"""
@@ -1116,6 +1153,9 @@ class TradingEngine:
                 if self.telegram:
                     exchanges_str = ", ".join([mc['exchange_name'] for mc in self.master_clients])
                     self.telegram.notify_system_event("Master Connected", f"Підключено {len(self.master_clients)} бірж: {exchanges_str}")
+                
+                # Clear any stale pending symbols from previous run
+                self.clear_all_master_pending_symbols()
             else:
                 logger.critical("❌ No master exchanges connected!")
                 if self.telegram:
@@ -4039,15 +4079,16 @@ class TradingEngine:
         # Clean symbol
         raw_symbol = signal['symbol']
         clean_symbol = re.sub(r'\.P|\.p|\.S|\.s$', '', raw_symbol).upper()
-        signal['symbol'] = clean_symbol 
+        signal['symbol'] = clean_symbol
+        action = signal['action']
 
         # Record signal received metric
-        record_signal(symbol=clean_symbol, action=signal['action'])
+        record_signal(symbol=clean_symbol, action=action)
         
-        logger.info(f"📥 Processing signal (async): {signal['action'].upper()} {clean_symbol}")
+        logger.info(f"📥 Processing signal (async): {action.upper()} {clean_symbol}")
         
         # === DCA (Dollar Cost Averaging) ACTION HANDLING ===
-        if signal['action'] == 'dca':
+        if action == 'dca':
             await self._process_dca_signal(signal, clean_symbol)
             return
         
@@ -4070,7 +4111,7 @@ class TradingEngine:
         remaining_master_slots = None
         
         # === GLOBAL POSITION CHECK FOR MASTER EXCHANGES ===
-        if self.master_clients and signal['action'] != 'close':
+        if self.master_clients and action != 'close':
             async with self._async_master_lock:
                 # Check pending trades first (prevents race conditions)
                 async with self._async_pending_lock:
@@ -4150,6 +4191,7 @@ class TradingEngine:
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0
+        symbol_is_invalid = False
         
         if self.master_client:
             try:
@@ -4167,6 +4209,18 @@ class TradingEngine:
                 
             except Exception as e:
                 logger.error(f"⚠️ Master info error: {e}")
+                # Check if this is an invalid symbol error
+                error_str = str(e).lower()
+                if 'invalid symbol' in error_str or '-1121' in str(e):
+                    symbol_is_invalid = True
+                    logger.warning(f"⚠️ {clean_symbol} is not a valid Binance Futures symbol - releasing pending")
+                    # Release pending symbol immediately for invalid symbols
+                    await self._release_master_pending_symbol_async(clean_symbol)
+                    # Clear in-memory pending too
+                    if 'master' in self.pending_trades:
+                        pending_key = f"{clean_symbol}_master"
+                        self.pending_trades['master'].discard(pending_key)
+                    return  # Don't process invalid symbols
 
         # Collect all users to execute trades for
         all_users = []
@@ -4246,7 +4300,7 @@ class TradingEngine:
             logger.info(f"📊 No strategy specified - preparing all {len(slaves)} slave accounts")
         
         # Pre-compute global open positions per user (across all exchanges)
-        if slaves and signal['action'] != 'close':
+        if slaves and action != 'close':
             user_groups = {}
             for slave in slaves:
                 user_groups.setdefault(slave['id'], []).append(slave)
@@ -4286,7 +4340,7 @@ class TradingEngine:
         )
         
         # Record signal processed metric
-        record_signal_processed(symbol=clean_symbol, action=signal['action'], status='success')
+        record_signal_processed(symbol=clean_symbol, action=action, status='success')
         
         # Update active users count
         master_count = len(self.master_clients) if self.master_clients else (1 if self.master_client else 0)
