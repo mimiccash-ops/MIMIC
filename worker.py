@@ -355,7 +355,8 @@ async def shutdown(ctx: dict):
     if app_context:
         try:
             app_context.pop()
-        except LookupError:
+        except (LookupError, RuntimeError):
+            # Context was already gone or never pushed
             logger.debug("App context already popped during shutdown")
         except Exception as e:
             logger.debug(f"App context pop error: {e}")
