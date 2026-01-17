@@ -1682,11 +1682,16 @@ class TradingEngine:
                     }, room="admin_room")
                     
         except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
-                urllib3.exceptions.ProtocolError) as e:
+                urllib3.exceptions.ProtocolError, OSError, BrokenPipeError) as e:
             # Client disconnected - this is expected behavior, log as warning only
             logger.warning(f"Could not push update to user {user_id}: Client disconnected ({type(e).__name__})")
         except Exception as e:
-            logger.error(f"Push update error for {user_id}: {e}")
+            # Check if this is a connection-related error wrapped in another exception
+            err_str = str(e).lower()
+            if any(term in err_str for term in ['connection', 'remote', 'disconnected', 'aborted', 'reset', 'broken pipe']):
+                logger.warning(f"Network issue pushing update to user {user_id}: {type(e).__name__}")
+            else:
+                logger.error(f"Push update error for {user_id}: {e}")
 
     def snapshot_balance(self, user_id, client, retries: int = 2):
         """Save balance snapshot for charts with retry logic"""

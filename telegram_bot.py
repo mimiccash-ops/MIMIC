@@ -61,6 +61,14 @@ def _telegram_bot_process_main(bot_token: str, admin_chat_id: str, authorized_us
     from datetime import datetime
     from pathlib import Path
     
+    # Fix for "RuntimeError: This event loop is already running"
+    # Required when running in environments with existing event loops (eventlet, gevent, etc.)
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+    except ImportError:
+        pass  # nest_asyncio not installed, may cause issues with existing event loops
+    
     # Set up logging for this process
     logging.basicConfig(
         level=logging.INFO, 
