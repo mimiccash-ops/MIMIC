@@ -6007,12 +6007,11 @@ async def enqueue_signal_task(signal: dict) -> str:
     Returns job_id on success.
     """
     try:
-        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
-        if not arq_settings:
+        if not ARQ_REDIS_SETTINGS:
             logger.warning("ARQ enqueue skipped: ARQ_REDIS_SETTINGS not configured")
             return None
         from arq import create_pool
-        pool = await create_pool(arq_settings)
+        pool = await create_pool(ARQ_REDIS_SETTINGS)
         job = await pool.enqueue_job('execute_signal_task', signal)
         await pool.close()
         return job.job_id if job else None
@@ -6027,8 +6026,7 @@ def queue_signal_to_arq(signal: dict) -> tuple:
     Returns (success: bool, job_id_or_error: str)
     """
     try:
-        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
-        if not arq_settings:
+        if not ARQ_REDIS_SETTINGS:
             return False, "ARQ_REDIS_SETTINGS not configured"
         import asyncio
         
@@ -6176,9 +6174,9 @@ def webhook():
         queue_mode = 'memory'
         job_id = None
         
-        # Use globals().get() for safe access - prevents NameError in edge cases
-        arq_settings = globals().get("ARQ_REDIS_SETTINGS")
-        if arq_settings:
+        # Use ARQ_REDIS_SETTINGS directly (it's defined at module level)
+        # Check if ARQ is configured
+        if ARQ_REDIS_SETTINGS:
             # Use ARQ async task queue (preferred)
             success, result = queue_signal_to_arq(signal)
             if success:
