@@ -3945,6 +3945,7 @@ class TradingEngine:
         
         # Initialize for tracking open symbols globally
         open_symbols = set()
+        remaining_master_slots = None
         
         # === GLOBAL POSITION CHECK FOR MASTER EXCHANGES ===
         if self.master_clients and signal['action'] != 'close':
@@ -3989,6 +3990,7 @@ class TradingEngine:
                                 self.pending_trades['master'] = set()
                             self.pending_trades['master'].add(pending_key)
                             logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (preventing race condition)")
+                            remaining_master_slots = max_pos_master - total_count
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0
@@ -4015,10 +4017,13 @@ class TradingEngine:
         
         logger.info(f"🔧 Master max_positions setting: {max_pos_master}")
         
-        # === MASTER EXCHANGES (ALL) ===
+        # === MASTER EXCHANGES (LIMITED BY REMAINING SLOTS) ===
         if self.master_clients:
-            logger.info(f"📊 Preparing {clean_symbol} for {len(self.master_clients)} MASTER exchanges")
-            for master_data in self.master_clients:
+            master_clients_to_use = self.master_clients
+            if remaining_master_slots is not None:
+                master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
+            logger.info(f"📊 Preparing {clean_symbol} for {len(master_clients_to_use)} MASTER exchanges")
+            for master_data in master_clients_to_use:
                 master_data_copy = master_data.copy()
                 master_data_copy['risk'] = 0
                 master_data_copy['leverage'] = 0
