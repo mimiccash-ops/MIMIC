@@ -2706,8 +2706,15 @@ class TradingEngine:
                     logger.info(f"   📊 Price: ${price:.4f}  →  Qty: {notional/price:.6f}")
                     
                     if notional < min_notional:
-                        self.log_event(user_id, symbol, 
-                            f"({exchange_type.upper()}) Position too small: ${notional:.2f} < ${min_notional:.2f} (balance: ${available_balance:.2f}, risk: {risk_percent}%, leverage: {leverage}x)", is_error=True)
+                        error_msg = f"({exchange_type.upper()}) Position too small: ${notional:.2f} < ${min_notional:.2f} (balance: ${available_balance:.2f}, risk: {risk_percent}%, leverage: {leverage}x, margin: ${margin:.2f})"
+                        logger.error(f"❌ [{node_name}] {error_msg}")
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        # Send Telegram notification
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         async with self._async_pending_lock:
                             self.pending_trades.get(user_id, set()).discard(pending_key)
                         return
@@ -2737,7 +2744,8 @@ class TradingEngine:
                         qty = round(qty, 4)
                     
                     if qty <= 0:
-                        error_msg = f"({exchange_type.upper()}) Quantity is 0 - trade skipped"
+                        error_msg = f"({exchange_type.upper()}) Quantity is 0 - trade skipped (balance: ${available_balance:.2f}, margin: ${margin:.2f}, leverage: {leverage}x, notional: ${notional:.2f}, price: ${price:.4f}, qty: {qty})"
+                        logger.error(f"❌ [{node_name}] {error_msg}")
                         self.log_event(user_id, symbol, error_msg, is_error=True)
                         # Send Telegram notification
                         if self.telegram:
@@ -3035,6 +3043,7 @@ class TradingEngine:
         symbol = signal.get('symbol', 'UNKNOWN')
         
         if client_data.get('is_paused', False):
+            logger.warning(f"⏸️ [{node_name}] User is paused - trade skipped for {symbol}")
             return
         
         # SUBSCRIPTION CHECK: Skip trade if subscription expired
@@ -3045,8 +3054,8 @@ class TradingEngine:
             # Handle both timezone-aware and naive datetimes
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
-            if now >= subscription_expires:
-                error_msg = "Subscription expired - trade skipped"
+                if now >= subscription_expires:
+                error_msg = f"Subscription expired - trade skipped (expired: {subscription_expires}, now: {now})"
                 logger.warning(f"⏰ [{node_name}] {error_msg}")
                 # Send Telegram notification
                 if self.telegram:
@@ -3140,6 +3149,7 @@ class TradingEngine:
         symbol = signal.get('symbol', 'UNKNOWN')
         
         if client_data.get('is_paused', False):
+            logger.warning(f"⏸️ [{node_name}] User is paused - trade skipped for {symbol}")
             return
         
         # SUBSCRIPTION CHECK: Skip trade if subscription expired
@@ -3150,8 +3160,8 @@ class TradingEngine:
             # Handle both timezone-aware and naive datetimes
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
-            if now >= subscription_expires:
-                error_msg = "Subscription expired - trade skipped"
+                if now >= subscription_expires:
+                error_msg = f"Subscription expired - trade skipped (expired: {subscription_expires}, now: {now})"
                 logger.warning(f"⏰ [{node_name}] {error_msg}")
                 # Send Telegram notification
                 if self.telegram:
@@ -3562,9 +3572,15 @@ class TradingEngine:
                 # If calculated position is too small, reject the trade
                 # DO NOT use minimum notional as fallback - this would ignore risk settings
                 if notional < min_notional:
-                    self.log_event(user_id, symbol, 
-                                  f"Position too small: ${notional:.2f} < ${min_notional:.2f} (balance: ${available_balance:.2f}, risk: {risk_percent}%, margin: ${margin:.2f}, leverage: {leverage}x)", 
-                                  is_error=True)
+                    error_msg = f"Position too small: ${notional:.2f} < ${min_notional:.2f} (balance: ${available_balance:.2f}, risk: {risk_percent}%, margin: ${margin:.2f}, leverage: {leverage}x)"
+                    logger.error(f"❌ [{node_name}] {error_msg}")
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    # Send Telegram notification
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
                     # Clear pending trade
                     with self.pending_lock:
                         self.pending_trades.get(user_id, set()).discard(symbol)
@@ -3587,7 +3603,8 @@ class TradingEngine:
                 qty_str = f"{qty:.{prec['qty_prec']}f}"
                 
                 if qty <= 0:
-                    error_msg = "Quantity is 0 - trade skipped"
+                    error_msg = f"Quantity is 0 - trade skipped (balance: ${available_balance:.2f}, margin: ${margin:.2f}, leverage: {leverage}x, notional: ${notional:.2f}, price: ${price:.4f}, qty: {qty})"
+                    logger.error(f"❌ [{node_name}] {error_msg}")
                     self.log_event(user_id, symbol, error_msg, is_error=True)
                     # Send Telegram notification
                     if self.telegram:
@@ -4064,6 +4081,8 @@ class TradingEngine:
                 
                 slaves = filtered_slaves
                 logger.info(f"📊 Strategy {strategy_id}: {len(slaves)} subscribed slaves (of {len(all_slaves)} total)")
+                if len(slaves) == 0 and len(all_slaves) > 0:
+                    logger.warning(f"⚠️ Strategy {strategy_id}: NO SUBSCRIPTIONS FOUND! {len(all_slaves)} total slaves exist but none are subscribed to this strategy!")
         else:
             # No strategy specified - process all slaves with 100% allocation (backward compatibility)
             slaves = []
@@ -4076,20 +4095,33 @@ class TradingEngine:
         if slaves:
             all_users.extend(slaves)
         
+        # CRITICAL: Log if no users to process
+        if not all_users:
+            error_msg = f"❌ NO USERS TO PROCESS: Signal {action.upper()} {clean_symbol} ignored - no master or slave accounts configured/active"
+            logger.error(error_msg)
+            logger.error(f"   Master clients: {len(self.master_clients) if self.master_clients else 0}")
+            logger.error(f"   Master client (legacy): {1 if self.master_client else 0}")
+            logger.error(f"   Slave clients: {len(self.slave_clients)}")
+            logger.error(f"   Strategy ID: {strategy_id}")
+            if self.telegram:
+                self.telegram.notify_error("SYSTEM", clean_symbol, error_msg)
+            return
+        
+        logger.info(f"✅ Processing signal for {len(all_users)} users ({len(self.master_clients) if self.master_clients else 0} master, {len(slaves)} slaves)")
+        
         # Execute all trades concurrently using asyncio.gather
-        if all_users:
-            await self.process_signal_batch(
-                all_users, signal, master_entry_price, master_balance, master_trade_cost
-            )
-            
-            # Record signal processed metric
-            record_signal_processed(symbol=clean_symbol, action=signal['action'], status='success')
-            
-            # Update active users count
-            master_count = len(self.master_clients) if self.master_clients else (1 if self.master_client else 0)
-            slave_count = len(self.slave_clients)
-            update_active_users(exchange='all', user_type='master', count=master_count)
-            update_active_users(exchange='all', user_type='slave', count=slave_count)
+        await self.process_signal_batch(
+            all_users, signal, master_entry_price, master_balance, master_trade_cost
+        )
+        
+        # Record signal processed metric
+        record_signal_processed(symbol=clean_symbol, action=signal['action'], status='success')
+        
+        # Update active users count
+        master_count = len(self.master_clients) if self.master_clients else (1 if self.master_client else 0)
+        slave_count = len(self.slave_clients)
+        update_active_users(exchange='all', user_type='master', count=master_count)
+        update_active_users(exchange='all', user_type='slave', count=slave_count)
 
     def process_signal(self, signal: dict):
         """Process incoming trading signal - SYNC WRAPPER"""
