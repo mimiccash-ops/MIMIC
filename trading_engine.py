@@ -2839,6 +2839,12 @@ class TradingEngine:
                                 'leverage': leverage
                             }
                             logger.info(f"📍 Tracked master position ({exchange_type.upper()}): {symbol} {action.upper()}")
+                            # Clear pending trade now that position is tracked
+                            async with self._async_pending_lock:
+                                pending_key = f"{symbol}_master"
+                                if 'master' in self.pending_trades:
+                                    self.pending_trades['master'].discard(pending_key)
+                                    logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
                     
                     # Set TP/SL if configured
                     tp_perc = float(signal.get('tp_perc', 0) or 0)
@@ -3804,6 +3810,12 @@ class TradingEngine:
                                 'leverage': leverage
                             }
                             logger.info(f"📍 Tracked master position: {symbol} {action.upper()}")
+                        # Clear pending trade now that position is tracked (for sync context)
+                        with self.pending_lock:
+                            pending_key = f"{symbol}_master"
+                            if 'master' in self.pending_trades:
+                                self.pending_trades['master'].discard(pending_key)
+                                logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
                     
                     # Telegram notifications (non-critical)
                     try:
@@ -3973,22 +3985,46 @@ class TradingEngine:
         # === GLOBAL POSITION CHECK FOR MASTER EXCHANGES ===
         if self.master_clients and signal['action'] != 'close':
             async with self._async_master_lock:
-                global_pos_count, open_symbols = await self.get_global_master_position_count_async()
-                
-                logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, symbols={open_symbols}")
-                
-                if clean_symbol in open_symbols:
-                    error_msg = f"Already have position on {clean_symbol}"
-                    logger.warning(f"⚠️ MASTER: {error_msg}")
-                    if self.telegram:
-                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                    # Continue with slaves, don't return - slaves may need this signal
-                elif global_pos_count >= max_pos_master:
-                    error_msg = f"Max positions reached ({global_pos_count}/{max_pos_master})"
-                    logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}")
-                    if self.telegram:
-                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                    return
+                # Check pending trades first (prevents race conditions)
+                async with self._async_pending_lock:
+                    pending_key = f"{clean_symbol}_master"
+                    master_pending = self.pending_trades.get('master', set())
+                    if pending_key in master_pending:
+                        error_msg = f"Master position on {clean_symbol} already in progress"
+                        logger.warning(f"⚠️ MASTER: {error_msg}")
+                        if self.telegram:
+                            self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                        # Continue with slaves, don't return
+                    else:
+                        # Check current positions
+                        global_pos_count, open_symbols = await self.get_global_master_position_count_async()
+                        
+                        # Include pending positions in count to prevent race conditions
+                        # Count unique symbols from pending trades
+                        pending_symbols = {p.split('_')[0] for p in master_pending if '_' in p}
+                        all_symbols = open_symbols | pending_symbols
+                        total_count = len(all_symbols)
+                        
+                        logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, pending_symbols={pending_symbols}, open_symbols={open_symbols}, total={total_count}")
+                        
+                        if clean_symbol in all_symbols:
+                            error_msg = f"Already have position or pending on {clean_symbol}"
+                            logger.warning(f"⚠️ MASTER: {error_msg}")
+                            if self.telegram:
+                                self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                            # Continue with slaves, don't return - slaves may need this signal
+                        elif total_count >= max_pos_master:
+                            error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
+                            logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
+                            if self.telegram:
+                                self.telegram.notify_error("MASTER", clean_symbol, error_msg)
+                            return
+                        else:
+                            # Mark this trade as pending BEFORE opening to prevent race conditions
+                            if 'master' not in self.pending_trades:
+                                self.pending_trades['master'] = set()
+                            self.pending_trades['master'].add(pending_key)
+                            logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (preventing race condition)")
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0
