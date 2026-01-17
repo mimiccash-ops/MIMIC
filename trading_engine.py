@@ -3054,7 +3054,7 @@ class TradingEngine:
             # Handle both timezone-aware and naive datetimes
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
-                if now >= subscription_expires:
+            if now >= subscription_expires:
                 error_msg = f"Subscription expired - trade skipped (expired: {subscription_expires}, now: {now})"
                 logger.warning(f"⏰ [{node_name}] {error_msg}")
                 # Send Telegram notification
@@ -3160,7 +3160,7 @@ class TradingEngine:
             # Handle both timezone-aware and naive datetimes
             if subscription_expires.tzinfo is None:
                 subscription_expires = subscription_expires.replace(tzinfo=timezone.utc)
-                if now >= subscription_expires:
+            if now >= subscription_expires:
                 error_msg = f"Subscription expired - trade skipped (expired: {subscription_expires}, now: {now})"
                 logger.warning(f"⏰ [{node_name}] {error_msg}")
                 # Send Telegram notification
