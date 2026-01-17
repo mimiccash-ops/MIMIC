@@ -2458,8 +2458,6 @@ class TradingEngine:
                 return
             
             # === CHECK MAX POSITIONS ===
-            # For master accounts, we may have already done global position check
-            skip_position_check = client_data.get('skip_position_check', False)
             is_master_account = str(user_id).startswith('master')
             
             # Get or create user-specific async lock
@@ -2512,33 +2510,25 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
-                    # For master accounts with skip_position_check, skip the max position check
-                    # (it was already done globally in process_signal)
-                    if skip_position_check and is_master_account:
-                        logger.debug(f"[{user_id}] ({exchange_type.upper()}) Skipping per-exchange max position check (global check passed)")
-                        # Mark as pending
-                        async with self._async_pending_lock:
-                            self.pending_trades[user_id].add(pending_key)
-                    else:
-                        global_open_count = client_data.get('global_open_count')
-                        # For slave accounts: Check max positions limit including pending trades
-                        async with self._async_pending_lock:
-                            pending_count = len(self.pending_trades[user_id])
-                            base_open_count = global_open_count if global_open_count is not None else open_cnt
-                            total_positions = base_open_count + pending_count
-                            
-                            if total_positions >= max_pos:
-                                error_msg = f"({exchange_type.upper()}) Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
-                                self.log_event(user_id, symbol, error_msg, is_error=True)
-                                # Send Telegram notification about skipped trade
-                                if self.telegram:
-                                    self.telegram.notify_error(node_name, symbol, error_msg)
-                                    chat_id = client_data.get('telegram_chat_id')
-                                    if chat_id:
-                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                                return
-                            
-                            self.pending_trades[user_id].add(pending_key)
+                    global_open_count = client_data.get('global_open_count')
+                    # Enforce max positions limit including pending trades
+                    async with self._async_pending_lock:
+                        pending_count = len(self.pending_trades[user_id])
+                        base_open_count = global_open_count if global_open_count is not None else open_cnt
+                        total_positions = base_open_count + pending_count
+                        
+                        if total_positions >= max_pos:
+                            error_msg = f"({exchange_type.upper()}) Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
+                            self.log_event(user_id, symbol, error_msg, is_error=True)
+                            # Send Telegram notification about skipped trade
+                            if self.telegram:
+                                self.telegram.notify_error(node_name, symbol, error_msg)
+                                chat_id = client_data.get('telegram_chat_id')
+                                if chat_id:
+                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                            return
+                        
+                        self.pending_trades[user_id].add(pending_key)
                 
                 except Exception as e:
                     error_msg = f"({exchange_type.upper()}) Position check failed: {str(e)[:100]}"
@@ -3259,10 +3249,6 @@ class TradingEngine:
                 return
 
             # === CHECK MAX POSITIONS & EXISTING POSITION ===
-            
-            # For master accounts, we may have already done global position check
-            skip_position_check = client_data.get('skip_position_check', False)
-            global_open_symbols = client_data.get('global_open_symbols', set())
             is_master_account = str(user_id).startswith('master')
             
             # CRITICAL: Use per-user lock to serialize position checks for this specific user
@@ -3321,40 +3307,32 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
-                    # For master accounts with skip_position_check, skip the max position check
-                    # (it was already done globally in process_signal)
-                    if skip_position_check and is_master_account:
-                        logger.debug(f"[{user_id}] Skipping per-exchange max position check (global check passed)")
-                        # Mark as pending
-                        with self.pending_lock:
-                            self.pending_trades[user_id].add(symbol)
-                    else:
-                        global_open_count = client_data.get('global_open_count')
-                        # For slave accounts: Check max positions limit including pending trades
-                        with self.pending_lock:
-                            pending_count = len(self.pending_trades[user_id])
-                            base_open_count = global_open_count if global_open_count is not None else open_cnt
-                            total_positions = base_open_count + pending_count
-                            
-                            # Log the check for debugging
-                            logger.debug(f"[{user_id}] Position check for {symbol}: open={base_open_count}, pending={pending_count}, total={total_positions}, max={max_pos}")
-                            
-                            # Enforce max positions strictly: if max_pos is 1, only allow 1 total position
-                            # Use strict comparison: if we're at or above max, reject
-                            if total_positions >= max_pos:
-                                error_msg = f"Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
-                                self.log_event(user_id, symbol, error_msg, is_error=True)
-                                # Send Telegram notification
-                                if self.telegram:
-                                    self.telegram.notify_error(node_name, symbol, error_msg)
-                                    chat_id = client_data.get('telegram_chat_id')
-                                    if chat_id:
-                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                                return
-                            
-                            # All checks passed - mark as pending IMMEDIATELY to prevent concurrent signals
-                            # This MUST happen atomically with the check above, before releasing the lock
-                            self.pending_trades[user_id].add(symbol)
+                    global_open_count = client_data.get('global_open_count')
+                    # Enforce max positions limit including pending trades
+                    with self.pending_lock:
+                        pending_count = len(self.pending_trades[user_id])
+                        base_open_count = global_open_count if global_open_count is not None else open_cnt
+                        total_positions = base_open_count + pending_count
+                        
+                        # Log the check for debugging
+                        logger.debug(f"[{user_id}] Position check for {symbol}: open={base_open_count}, pending={pending_count}, total={total_positions}, max={max_pos}")
+                        
+                        # Enforce max positions strictly: if max_pos is 1, only allow 1 total position
+                        # Use strict comparison: if we're at or above max, reject
+                        if total_positions >= max_pos:
+                            error_msg = f"Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
+                            self.log_event(user_id, symbol, error_msg, is_error=True)
+                            # Send Telegram notification
+                            if self.telegram:
+                                self.telegram.notify_error(node_name, symbol, error_msg)
+                                chat_id = client_data.get('telegram_chat_id')
+                                if chat_id:
+                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                            return
+                        
+                        # All checks passed - mark as pending IMMEDIATELY to prevent concurrent signals
+                        # This MUST happen atomically with the check above, before releasing the lock
+                        self.pending_trades[user_id].add(symbol)
                         
                         # Double-check: After marking as pending, verify we didn't exceed limit
                         # This is a safety net in case of any race condition
