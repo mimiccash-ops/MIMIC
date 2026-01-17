@@ -785,61 +785,54 @@ class TradingEngine:
 
     def get_master_max_positions(self) -> int:
         """Get the current max_positions setting for master account (read dynamically from Redis/database)"""
+        val = self._get_global_setting('max_positions', getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
+        try:
+            return max(1, int(val))
+        except (TypeError, ValueError):
+            return max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
+
+    def _get_global_setting(self, key: str, default):
+        """Read global trading settings from Redis/app/module cache with fallback."""
         # Try Redis first (updated immediately when admin changes settings, works across processes)
         try:
             import redis
-            # Use sync Redis client (works in both sync and async contexts)
             if hasattr(self.app, 'config') and self.app.config.get('REDIS_URL'):
                 redis_url = self.app.config.get('REDIS_URL')
                 sync_redis = redis.from_url(redis_url)
-                cached_val = sync_redis.get('global_settings:max_positions')
+                cached_val = sync_redis.get(f'global_settings:{key}')
                 if cached_val is not None:
-                    val = int(cached_val)
+                    val = cached_val.decode() if isinstance(cached_val, (bytes, bytearray)) else cached_val
                     # Update cached reference for consistency
                     if self._global_settings is not None:
-                        self._global_settings['max_positions'] = val
-                    return max(1, val)
+                        self._global_settings[key] = val
+                    return val
         except Exception as e:
-            logger.debug(f"Could not read max_positions from Redis: {e}")
-        
+            logger.debug(f"Could not read global setting {key} from Redis: {e}")
+
         # Fallback to app module (works for same process, but worker is separate)
         try:
             import app as app_module
             if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
-                val = app_module.GLOBAL_TRADE_SETTINGS.get('max_positions', 10)
-                # Update cached reference for consistency
+                val = app_module.GLOBAL_TRADE_SETTINGS.get(key, default)
                 if self._global_settings is not None:
-                    self._global_settings['max_positions'] = val
-                return max(1, int(val))
+                    self._global_settings[key] = val
+                return val
         except (ImportError, AttributeError) as e:
             logger.debug(f"Could not read GLOBAL_TRADE_SETTINGS from app module: {e}")
-        
+
         # Use cached reference if available
         if self._global_settings is not None:
-            val = self._global_settings.get('max_positions', 10)
-            return max(1, int(val))
-        
-        # Last resort: use Config default
-        return max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
+            return self._global_settings.get(key, default)
+
+        return default
 
     def get_min_balance_required(self) -> float:
         """Get the minimum balance required for trading (set by admin)"""
-        # First try the direct reference (preferred)
-        if self._global_settings is not None:
-            val = self._global_settings.get('min_balance', 1.0)
-            return max(0.0, float(val))  # Allow 0 to disable check
-        
-        # Fallback: try importing from app module
+        val = self._get_global_setting('min_balance', 1.0)
         try:
-            import app as app_module
-            if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
-                val = app_module.GLOBAL_TRADE_SETTINGS.get('min_balance', 1.0)
-                return max(0.0, float(val))
-        except (ImportError, AttributeError) as e:
-            logger.warning(f"Could not read min_balance from GLOBAL_TRADE_SETTINGS: {e}")
-        
-        # Default: $1 minimum
-        return 1.0
+            return max(0.0, float(val))  # Allow 0 to disable check
+        except (TypeError, ValueError):
+            return 1.0
 
     def init_master(self):
         """Initialize master trading accounts from ALL enabled ExchangeConfigs"""
@@ -1098,10 +1091,10 @@ class TradingEngine:
                             'exchange_type': 'binance',
                             'exchange_name': ue.label or 'Binance',
                             'is_paused': user.is_paused,
-                            'risk': user.custom_risk,
-                            'leverage': user.custom_leverage,
-                            'max_pos': user.max_positions,
-                            'risk_multiplier': user.risk_multiplier if user.risk_multiplier else 1.0,
+                            'risk': 0,
+                            'leverage': 0,
+                            'max_pos': 0,
+                            'risk_multiplier': 1.0,
                             'telegram_chat_id': user.telegram_chat_id if user.telegram_enabled else None,
                             'lock': threading.Lock(),
                             'proxy': user_proxy,  # Store assigned proxy for retry logic
@@ -1174,10 +1167,10 @@ class TradingEngine:
                             'exchange_type': exchange_name,
                             'exchange_name': ue.label or exchange_name.upper(),
                             'is_paused': user.is_paused,
-                            'risk': user.custom_risk,
-                            'leverage': user.custom_leverage,
-                            'max_pos': user.max_positions,
-                            'risk_multiplier': user.risk_multiplier if user.risk_multiplier else 1.0,
+                            'risk': 0,
+                            'leverage': 0,
+                            'max_pos': 0,
+                            'risk_multiplier': 1.0,
                             'telegram_chat_id': user.telegram_chat_id if user.telegram_enabled else None,
                             'lock': asyncio.Lock(),
                             'is_ccxt': True,  # Flag to use CCXT methods
@@ -1248,10 +1241,10 @@ class TradingEngine:
                         'exchange_type': 'binance',
                         'exchange_name': 'Binance (Legacy)',
                         'is_paused': u.is_paused,
-                        'risk': u.custom_risk,
-                        'leverage': u.custom_leverage,
-                        'max_pos': u.max_positions,
-                        'risk_multiplier': u.risk_multiplier if u.risk_multiplier else 1.0,
+                        'risk': 0,
+                        'leverage': 0,
+                        'max_pos': 0,
+                        'risk_multiplier': 1.0,
                         'telegram_chat_id': u.telegram_chat_id if u.telegram_enabled else None,
                         'lock': threading.Lock(),
                         'proxy': user_proxy,  # Store assigned proxy for retry logic
@@ -2423,44 +2416,15 @@ class TradingEngine:
         
         logger.info(f"🔧 [{node_name}] CCXT execute_trade_ccxt started for {symbol} {action.upper()}")
         
-        # Use custom risk/leverage if set (0 means use signal values)
-        custom_risk = client_data.get('risk', 0) or 0
-        custom_leverage = client_data.get('leverage', 0) or 0
-        risk_percent = custom_risk if custom_risk > 0 else signal['risk']
-        
-        # Get leverage: prioritize custom > signal > global settings
-        # IMPORTANT: Always multiply position by leverage (position = margin × leverage)
-        leverage = 1  # Default
-        
-        if custom_leverage > 0:
-            leverage = custom_leverage
-            logger.debug(f"[{node_name}] Using custom leverage: {leverage}x")
-        elif signal.get('lev', 0) > 1:
-            leverage = signal['lev']
-            logger.debug(f"[{node_name}] Using signal leverage: {leverage}x")
-        else:
-            # Fallback to global settings - ALWAYS try this
-            try:
-                if self._global_settings is not None:
-                    leverage = self._global_settings.get('leverage', 20)
-                    logger.debug(f"[{node_name}] Using global settings leverage (direct): {leverage}x")
-                else:
-                    import app as app_module
-                    if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
-                        leverage = app_module.GLOBAL_TRADE_SETTINGS.get('leverage', 20)
-                        logger.debug(f"[{node_name}] Using global settings leverage (import): {leverage}x")
-                    else:
-                        leverage = 20  # Hardcoded default for futures
-                        logger.warning(f"[{node_name}] GLOBAL_TRADE_SETTINGS not found, using default {leverage}x")
-            except Exception as e:
-                leverage = 20  # Hardcoded default for futures
-                logger.warning(f"[{node_name}] Failed to get global leverage: {e}, using default {leverage}x")
+        # Use admin global settings only (ignore per-user and signal overrides)
+        risk_percent = float(self._get_global_setting('risk_perc', 3.0))
+        leverage = int(float(self._get_global_setting('leverage', 20)))
         
         # SECURITY: Ensure leverage is within safe bounds (1 to MAX_LEVERAGE)
         leverage = max(1, min(int(leverage), self.MAX_LEVERAGE))
-        logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (custom={custom_leverage}, signal_lev={signal.get('lev', 0)})")
+        logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (admin global)")
         
-        max_pos = int(client_data.get('max_pos', 10))
+        max_pos = self.get_master_max_positions()
         
         if max_pos <= 0:
             max_pos = 1
@@ -2511,7 +2475,7 @@ class TradingEngine:
                 
                 # Check pending
                 async with self._async_pending_lock:
-                    pending_key = f"{symbol}_{exchange_type}"
+                    pending_key = f"{symbol}_master" if is_master_account else symbol
                     if pending_key in self.pending_trades[user_id]:
                         error_msg = f"({exchange_type.upper()}) Trade already in progress"
                         self.log_event(user_id, symbol, error_msg, is_error=True)
@@ -2556,13 +2520,15 @@ class TradingEngine:
                         async with self._async_pending_lock:
                             self.pending_trades[user_id].add(pending_key)
                     else:
+                        global_open_count = client_data.get('global_open_count')
                         # For slave accounts: Check max positions limit including pending trades
                         async with self._async_pending_lock:
-                            pending_count = len([k for k in self.pending_trades[user_id] if k.endswith(f"_{exchange_type}")])
-                            total_positions = open_cnt + pending_count
+                            pending_count = len(self.pending_trades[user_id])
+                            base_open_count = global_open_count if global_open_count is not None else open_cnt
+                            total_positions = base_open_count + pending_count
                             
                             if total_positions >= max_pos:
-                                error_msg = f"({exchange_type.upper()}) Max positions reached ({open_cnt} open + {pending_count} pending >= {max_pos})"
+                                error_msg = f"({exchange_type.upper()}) Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
                                 self.log_event(user_id, symbol, error_msg, is_error=True)
                                 # Send Telegram notification about skipped trade
                                 if self.telegram:
@@ -3235,44 +3201,15 @@ class TradingEngine:
         action = signal['action']
         node_name = client_data.get('fullname', client_data['name'])
         
-        # Use custom risk/leverage if set, otherwise use signal values
-        # custom_risk/custom_leverage of 0 means "use signal values"
-        risk_percent = client_data['risk'] if client_data['risk'] > 0 else signal['risk']
-        
-        # Get leverage: prioritize custom > signal > global settings
-        # IMPORTANT: Always multiply position by leverage (position = margin × leverage)
-        custom_leverage = client_data.get('leverage', 0) or 0
-        leverage = 1  # Default
-        
-        if custom_leverage > 0:
-            leverage = custom_leverage
-            logger.debug(f"[{node_name}] Using custom leverage: {leverage}x")
-        elif signal.get('lev', 0) > 1:
-            leverage = signal['lev']
-            logger.debug(f"[{node_name}] Using signal leverage: {leverage}x")
-        else:
-            # Fallback to global settings - ALWAYS try this
-            try:
-                if self._global_settings is not None:
-                    leverage = self._global_settings.get('leverage', 20)
-                    logger.debug(f"[{node_name}] Using global settings leverage (direct): {leverage}x")
-                else:
-                    import app as app_module
-                    if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
-                        leverage = app_module.GLOBAL_TRADE_SETTINGS.get('leverage', 20)
-                        logger.debug(f"[{node_name}] Using global settings leverage (import): {leverage}x")
-                    else:
-                        leverage = 20  # Hardcoded default for futures
-                        logger.warning(f"[{node_name}] GLOBAL_TRADE_SETTINGS not found, using default {leverage}x")
-            except Exception as e:
-                leverage = 20  # Hardcoded default for futures
-                logger.warning(f"[{node_name}] Failed to get global leverage: {e}, using default {leverage}x")
+        # Use admin global settings only (ignore per-user and signal overrides)
+        risk_percent = float(self._get_global_setting('risk_perc', 3.0))
+        leverage = int(float(self._get_global_setting('leverage', 20)))
         
         # SECURITY: Ensure leverage is within safe bounds (1 to MAX_LEVERAGE)
         leverage = max(1, min(int(leverage), self.MAX_LEVERAGE))
-        logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (custom={custom_leverage}, signal_lev={signal.get('lev', 0)})")
+        logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (admin global)")
         
-        max_pos = int(client_data.get('max_pos', 10))  # Ensure it's an integer, default to 10 if missing
+        max_pos = self.get_master_max_positions()
         
         # Validate max_pos is positive and reasonable
         if max_pos <= 0:
@@ -3392,18 +3329,20 @@ class TradingEngine:
                         with self.pending_lock:
                             self.pending_trades[user_id].add(symbol)
                     else:
+                        global_open_count = client_data.get('global_open_count')
                         # For slave accounts: Check max positions limit including pending trades
                         with self.pending_lock:
                             pending_count = len(self.pending_trades[user_id])
-                            total_positions = open_cnt + pending_count
+                            base_open_count = global_open_count if global_open_count is not None else open_cnt
+                            total_positions = base_open_count + pending_count
                             
                             # Log the check for debugging
-                            logger.debug(f"[{user_id}] Position check for {symbol}: open={open_cnt}, pending={pending_count}, total={total_positions}, max={max_pos}")
+                            logger.debug(f"[{user_id}] Position check for {symbol}: open={base_open_count}, pending={pending_count}, total={total_positions}, max={max_pos}")
                             
                             # Enforce max positions strictly: if max_pos is 1, only allow 1 total position
                             # Use strict comparison: if we're at or above max, reject
                             if total_positions >= max_pos:
-                                error_msg = f"Max positions reached ({open_cnt} open + {pending_count} pending >= {max_pos})"
+                                error_msg = f"Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
                                 self.log_event(user_id, symbol, error_msg, is_error=True)
                                 # Send Telegram notification
                                 if self.telegram:
@@ -3420,11 +3359,11 @@ class TradingEngine:
                         # Double-check: After marking as pending, verify we didn't exceed limit
                         # This is a safety net in case of any race condition
                         final_pending_count = len(self.pending_trades[user_id])
-                        final_total = open_cnt + final_pending_count
+                        final_total = base_open_count + final_pending_count
                         if final_total > max_pos:
                             # We exceeded the limit - remove from pending and reject
                             self.pending_trades[user_id].discard(symbol)
-                            error_msg = f"Max positions exceeded ({open_cnt} open + {final_pending_count} pending > {max_pos})"
+                            error_msg = f"Max positions exceeded ({base_open_count} open + {final_pending_count} pending > {max_pos})"
                             self.log_event(user_id, symbol, error_msg, is_error=True)
                             # Send Telegram notification
                             if self.telegram:
@@ -3893,6 +3832,27 @@ class TradingEngine:
         
         return len(all_symbols), all_symbols
 
+    async def _get_user_global_open_count_async(self, user_clients: list) -> int:
+        """Get total open position count across ALL exchanges for a single user."""
+        total_open = 0
+        for client_data in user_clients:
+            try:
+                if client_data.get('is_async'):
+                    positions = await client_data['client'].fetch_positions()
+                    for pos in positions:
+                        if pos.get('contracts') and float(pos['contracts']) != 0:
+                            total_open += 1
+                else:
+                    positions = await asyncio.to_thread(
+                        client_data['client'].futures_position_information
+                    )
+                    for pos in positions:
+                        if float(pos.get('positionAmt', 0)) != 0:
+                            total_open += 1
+            except Exception as e:
+                logger.debug(f"User global position check failed: {e}")
+        return total_open
+
     async def process_signal_batch(self, users: list, signal: dict, master_entry_price: float = 0.0,
                                      master_balance: float = 0.0, master_trade_cost: float = 0.0):
         """
@@ -3969,12 +3929,16 @@ class TradingEngine:
             await self._process_dca_signal(signal, clean_symbol)
             return
         
-        # Log signal params with global settings fallback info
-        signal_lev = signal.get('lev', 0)
-        global_lev = self._global_settings.get('leverage', 20) if self._global_settings else 20
-        effective_lev = signal_lev if signal_lev > 1 else global_lev
-        logger.info(f"📊 Signal params: risk={signal.get('risk')}%, lev={signal_lev}x (effective: {effective_lev}x), TP={signal.get('tp_perc')}%, SL={signal.get('sl_perc')}%")
-        logger.info(f"📊 Global settings: leverage={global_lev}x, risk={self._global_settings.get('risk_perc', 'N/A') if self._global_settings else 'N/A'}%")
+        # Force signal params to admin global settings only
+        global_risk = float(self._get_global_setting('risk_perc', 3.0))
+        global_lev = int(float(self._get_global_setting('leverage', 20)))
+        global_tp = float(self._get_global_setting('tp_perc', 5.0))
+        global_sl = float(self._get_global_setting('sl_perc', 2.0))
+        signal['risk'] = global_risk
+        signal['lev'] = global_lev
+        signal['tp_perc'] = global_tp
+        signal['sl_perc'] = global_sl
+        logger.info(f"📊 Signal params overridden by admin settings: risk={global_risk}%, lev={global_lev}x, TP={global_tp}%, SL={global_sl}%")
         
         # Get max_positions directly from the global settings reference
         max_pos_master = self.get_master_max_positions()
@@ -4041,7 +4005,7 @@ class TradingEngine:
                         master_balance = float(b.get('availableBalance', b['balance']))
                         break
                         
-                master_trade_cost = master_balance * (signal['risk'] / 100.0)
+                master_trade_cost = master_balance * (global_risk / 100.0)
                 
             except Exception as e:
                 logger.error(f"⚠️ Master info error: {e}")
@@ -4120,6 +4084,24 @@ class TradingEngine:
                 slaves.append(slave_copy)
             logger.info(f"📊 No strategy specified - preparing all {len(slaves)} slave accounts")
         
+        # Pre-compute global open positions per user (across all exchanges)
+        if slaves and signal['action'] != 'close':
+            user_groups = {}
+            for slave in slaves:
+                user_groups.setdefault(slave['id'], []).append(slave)
+            tasks = {
+                user_id: asyncio.create_task(self._get_user_global_open_count_async(user_clients))
+                for user_id, user_clients in user_groups.items()
+            }
+            for user_id, task in tasks.items():
+                try:
+                    open_count = await task
+                except Exception as e:
+                    logger.debug(f"User {user_id} global open count failed: {e}")
+                    open_count = 0
+                for slave in user_groups[user_id]:
+                    slave['global_open_count'] = open_count
+
         if slaves:
             all_users.extend(slaves)
         
