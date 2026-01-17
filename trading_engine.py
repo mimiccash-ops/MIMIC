@@ -82,6 +82,12 @@ def verify_outgoing_ip() -> str:
     import requests
     
     detected_ip = None
+
+    # Debug print to confirm IPv4-only endpoint is reachable
+    try:
+        print(requests.get('https://api4.ipify.org').text)
+    except Exception as e:
+        logger.debug(f"IPv4 debug print failed: {e}")
     
     # Confirm IPv4 enforcement is active
     current_family = urllib3.util.connection.allowed_gai_family()
@@ -907,6 +913,7 @@ class TradingEngine:
                             'enableRateLimit': True,
                             'options': {
                                 'defaultType': 'swap',  # Use perpetual futures
+                                'forcePublicIPv4': True,  # Force IPv4 for CCXT
                             }
                         }
                         
@@ -1111,6 +1118,7 @@ class TradingEngine:
                             'enableRateLimit': True,
                             'options': {
                                 'defaultType': 'swap',  # Use perpetual futures
+                                'forcePublicIPv4': True,  # Force IPv4 for CCXT
                             }
                         }
                         if passphrase:

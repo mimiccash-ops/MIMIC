@@ -26,7 +26,7 @@ from webauthn.helpers.structs import (
 )
 from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
-from config import Config
+from config import Config, ARQ_REDIS_SETTINGS
 from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent, WebAuthnCredential
 from sqlalchemy import text
 from trading_engine import TradingEngine
@@ -226,7 +226,8 @@ logger.info("✅ SocketIO disconnect error filter applied to engineio.server")
 redis_client = None
 arq_pool = None
 signal_queue = Queue()
-ARQ_REDIS_SETTINGS = None  # Initialize to None by default
+# Preserve any preloaded ARQ settings from config (may be overridden below)
+ARQ_REDIS_SETTINGS = ARQ_REDIS_SETTINGS or None
 
 try:
     import redis
@@ -391,6 +392,21 @@ def log_system_event(user_id, symbol, message, is_error=False):
             urllib3.exceptions.ProtocolError):
         # Client disconnected - expected behavior, silently ignore
         pass
+
+
+def safe_emit(event, *args, **kwargs):
+    """Emit SocketIO events safely to avoid disconnect log spam."""
+    try:
+        emit(event, *args, **kwargs)
+    except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError,
+            urllib3.exceptions.ProtocolError):
+        # Client disconnected - expected behavior, silently ignore
+        pass
+    except RuntimeError as e:
+        # engineio can raise this when the session is already gone
+        if 'Session is disconnected' in str(e):
+            return
+        raise
 
 engine.log_error_callback = log_system_event
 
@@ -975,7 +991,7 @@ def handle_join_chat(data):
     from models import ChatBan, ChatMessage
     
     if not current_user.is_authenticated:
-        emit('chat_error', {'message': 'Увійдіть, щоб отримати доступ до чату'})
+        safe_emit('chat_error', {'message': 'Увійдіть, щоб отримати доступ до чату'})
         return
     
     room = data.get('room', 'general')
@@ -985,7 +1001,7 @@ def handle_join_chat(data):
     # Check if user is banned
     is_banned, ban_type, reason, expires_at = ChatBan.is_user_banned(current_user.id)
     if is_banned:
-        emit('chat_error', {
+        safe_emit('chat_error', {
             'message': f'You are {ban_type}ed from chat' + (f': {reason}' if reason else ''),
             'ban_type': ban_type,
             'expires_at': expires_at.isoformat() if expires_at else None
@@ -1004,7 +1020,7 @@ def handle_join_chat(data):
         messages = ChatMessage.get_recent_messages(room, limit=50)
         messages_data = [msg.to_dict() for msg in reversed(messages)]  # Oldest first
         
-        emit('chat_joined', {
+        safe_emit('chat_joined', {
             'room': room,
             'messages': messages_data,
             'user': {
@@ -1017,7 +1033,7 @@ def handle_join_chat(data):
         })
         
         # Notify room that user joined
-        emit('user_joined', {
+        safe_emit('user_joined', {
             'username': current_user.username,
             'avatar': current_user.avatar,
             'user_id': current_user.id
@@ -1041,7 +1057,7 @@ def handle_leave_chat(data):
     except KeyError as e:
         logger.debug(f"Client disconnected during chat leave: {e}")
     
-    emit('user_left', {
+    safe_emit('user_left', {
         'username': current_user.username,
         'user_id': current_user.id
     }, room=f'chat_{room}', include_self=False)
@@ -1053,7 +1069,7 @@ def handle_send_message(data):
     from models import ChatBan, ChatMessage
     
     if not current_user.is_authenticated:
-        emit('chat_error', {'message': 'Увійдіть, щоб надсилати повідомлення'})
+        safe_emit('chat_error', {'message': 'Увійдіть, щоб надсилати повідомлення'})
         return
     
     room = data.get('room', 'general')
@@ -1064,7 +1080,7 @@ def handle_send_message(data):
         return
     
     if len(message_text) > 500:
-        emit('chat_error', {'message': 'Повідомлення занадто довге (макс. 500 символів)'})
+        safe_emit('chat_error', {'message': 'Повідомлення занадто довге (макс. 500 символів)'})
         return
     
     # Chat is available to all logged-in users (no subscription required)

@@ -567,3 +567,29 @@ if IS_PRODUCTION:
         logger.critical(f"Security validation failed: {e}")
         # In production, we should fail hard on security issues
         raise
+
+
+# ============================================================================
+# ARQ Redis Settings (optional)
+# ============================================================================
+# Provides a shared ARQ_REDIS_SETTINGS for the web app and worker.
+# This avoids NameError issues in app.py if ARQ is referenced before initialization.
+# ============================================================================
+try:
+    from arq.connections import RedisSettings
+    from urllib.parse import urlparse
+
+    def _parse_redis_url(url: str) -> RedisSettings:
+        parsed = urlparse(url)
+        return RedisSettings(
+            host=parsed.hostname or 'localhost',
+            port=parsed.port or 6379,
+            database=int(parsed.path.lstrip('/') or 0) if parsed.path else 0,
+            password=parsed.password,
+            ssl=parsed.scheme == 'rediss',
+        )
+
+    _redis_url = os.environ.get('REDIS_URL') or getattr(Config, 'REDIS_URL', None)
+    ARQ_REDIS_SETTINGS = _parse_redis_url(_redis_url) if _redis_url else None
+except Exception:
+    ARQ_REDIS_SETTINGS = None

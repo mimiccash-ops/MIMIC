@@ -134,10 +134,10 @@ Where X.XX is a number between 0.00 and 1.00 indicating how confident you are in
         # Check for API key - log once, don't spam
         if not self.api_key:
             if OPENAI_AVAILABLE:
-                logger.info(
-                    "ℹ️ OpenAI API key not configured. RAG support bot will return fallback responses."
+                logger.warning(
+                    "⚠️ OpenAI API key not configured. RAG support bot will return fallback responses."
                 )
-                logger.info("   Set OPENAI_API_KEY env var or Config.OPENAI_API_KEY to enable.")
+                logger.warning("   Set OPENAI_API_KEY env var or Config.OPENAI_API_KEY to enable.")
         
         # Initialize OpenAI client
         if self.api_key and OPENAI_AVAILABLE:
