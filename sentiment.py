@@ -175,6 +175,11 @@ class SentimentManager:
                     "timestamp": timestamp.decode() if isinstance(timestamp, bytes) else timestamp,
                     "source": "cache"
                 }
+        except RuntimeError as e:
+            if "attached to a different loop" in str(e):
+                logger.debug(f"Sentiment cache skipped due to event loop conflict: {e}")
+            else:
+                logger.error(f"❌ Failed to get cached sentiment: {e}")
         except Exception as e:
             logger.error(f"❌ Failed to get cached sentiment: {e}")
         

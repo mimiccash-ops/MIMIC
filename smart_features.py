@@ -81,6 +81,10 @@ class SmartFeaturesManager:
         self.default_dca_multiplier = 1.0       # Same size as original
         
         logger.info("🎯 SmartFeaturesManager initialized")
+
+    @staticmethod
+    def _is_loop_conflict_error(error: Exception) -> bool:
+        return "attached to a different loop" in str(error)
     
     # ==================== REDIS KEYS ====================
     
@@ -444,6 +448,12 @@ class SmartFeaturesManager:
                 return TrailingStopData.from_json(raw_data)
             return None
             
+        except RuntimeError as e:
+            if self._is_loop_conflict_error(e):
+                logger.debug(f"Trailing SL get skipped due to event loop conflict: {e}")
+                return None
+            logger.error(f"Failed to get trailing SL: {e}")
+            return None
         except Exception as e:
             logger.error(f"Failed to get trailing SL: {e}")
             return None
@@ -467,13 +477,16 @@ class SmartFeaturesManager:
         except RuntimeError as e:
             # Event loop conflict - Redis client bound to different loop
             # This is non-critical - trailing SL monitoring can skip this cycle
-            if "attached to a different loop" in str(e):
+            if self._is_loop_conflict_error(e):
                 logger.debug(f"Trailing SL monitor: event loop conflict (non-critical): {e}")
             else:
                 logger.error(f"Failed to get active trailing positions: {e}")
             return []
         except Exception as e:
-            logger.error(f"Failed to get active trailing positions: {e}")
+            if self._is_loop_conflict_error(e):
+                logger.debug(f"Trailing SL monitor: event loop conflict (non-critical): {e}")
+            else:
+                logger.error(f"Failed to get active trailing positions: {e}")
             return []
     
     # ==================== DCA (Dollar Cost Averaging) ====================
@@ -487,6 +500,12 @@ class SmartFeaturesManager:
             key = self._dca_count_key(user_id, symbol)
             count = await self.redis.get(key)
             return int(count) if count else 0
+        except RuntimeError as e:
+            if self._is_loop_conflict_error(e):
+                logger.debug(f"DCA count skipped due to event loop conflict: {e}")
+                return 0
+            logger.error(f"Failed to get DCA count: {e}")
+            return 0
         except Exception as e:
             logger.error(f"Failed to get DCA count: {e}")
             return 0
@@ -502,6 +521,12 @@ class SmartFeaturesManager:
             # Set expiry (7 days - positions usually close before this)
             await self.redis.expire(key, 7 * 24 * 60 * 60)
             return new_count
+        except RuntimeError as e:
+            if self._is_loop_conflict_error(e):
+                logger.debug(f"DCA increment skipped due to event loop conflict: {e}")
+                return 0
+            logger.error(f"Failed to increment DCA count: {e}")
+            return 0
         except Exception as e:
             logger.error(f"Failed to increment DCA count: {e}")
             return 0
@@ -515,6 +540,12 @@ class SmartFeaturesManager:
             key = self._dca_count_key(user_id, symbol)
             await self.redis.delete(key)
             return True
+        except RuntimeError as e:
+            if self._is_loop_conflict_error(e):
+                logger.debug(f"DCA reset skipped due to event loop conflict: {e}")
+                return False
+            logger.error(f"Failed to reset DCA count: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to reset DCA count: {e}")
             return False
