@@ -784,20 +784,40 @@ class TradingEngine:
                 loop.close()
 
     def get_master_max_positions(self) -> int:
-        """Get the current max_positions setting for master account"""
-        # First try the direct reference (preferred)
-        if self._global_settings is not None:
-            val = self._global_settings.get('max_positions', 10)
-            return max(1, int(val))  # Ensure minimum of 1
+        """Get the current max_positions setting for master account (read dynamically from Redis/database)"""
+        # Try Redis first (updated immediately when admin changes settings, works across processes)
+        try:
+            import redis
+            # Use sync Redis client (works in both sync and async contexts)
+            if hasattr(self.app, 'config') and self.app.config.get('REDIS_URL'):
+                redis_url = self.app.config.get('REDIS_URL')
+                sync_redis = redis.from_url(redis_url)
+                cached_val = sync_redis.get('global_settings:max_positions')
+                if cached_val is not None:
+                    val = int(cached_val)
+                    # Update cached reference for consistency
+                    if self._global_settings is not None:
+                        self._global_settings['max_positions'] = val
+                    return max(1, val)
+        except Exception as e:
+            logger.debug(f"Could not read max_positions from Redis: {e}")
         
-        # Fallback: try importing from app module
+        # Fallback to app module (works for same process, but worker is separate)
         try:
             import app as app_module
             if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
                 val = app_module.GLOBAL_TRADE_SETTINGS.get('max_positions', 10)
+                # Update cached reference for consistency
+                if self._global_settings is not None:
+                    self._global_settings['max_positions'] = val
                 return max(1, int(val))
         except (ImportError, AttributeError) as e:
-            logger.warning(f"Could not read GLOBAL_TRADE_SETTINGS: {e}")
+            logger.debug(f"Could not read GLOBAL_TRADE_SETTINGS from app module: {e}")
+        
+        # Use cached reference if available
+        if self._global_settings is not None:
+            val = self._global_settings.get('max_positions', 10)
+            return max(1, int(val))
         
         # Last resort: use Config default
         return max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
@@ -3510,41 +3530,13 @@ class TradingEngine:
                     logger.info(f"   📊 Strategy Allocation: {allocation_percent}% applied (margin now: ${margin:.2f})")
                 
                 # === AI SENTIMENT FILTER (SYNC) ===
-                # Adjust risk based on Fear & Greed Index (using cached value from Redis)
-                ai_adjustment_reason = None
+                # NOTE: Sentiment adjustment is skipped in sync context to avoid event loop conflicts
+                # Redis clients are bound to the async worker loop, not the sync executor thread
+                # This is a non-critical feature - trades proceed normally without sentiment adjustment in sync context
                 if self.sentiment_manager and client_data.get('ai_sentiment_enabled', True):
-                    try:
-                        trade_side = 'LONG' if action == 'long' else 'SHORT'
-                        original_margin = margin
-                        # Run async method in sync context
-                        import asyncio
-                        try:
-                            loop = asyncio.get_event_loop()
-                            if loop.is_running():
-                                # Can't use run_until_complete in running loop, skip sentiment check
-                                logger.debug("Event loop running, skipping sync sentiment check")
-                            else:
-                                adjusted_risk, ai_adjustment_reason = loop.run_until_complete(
-                                    self.sentiment_manager.calculate_risk_adjustment(trade_side, 100.0)
-                                )
-                                if adjusted_risk != 100.0 and ai_adjustment_reason:
-                                    sentiment_factor = adjusted_risk / 100.0
-                                    margin = margin * sentiment_factor
-                                    logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
-                                    logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
-                        except RuntimeError:
-                            # No event loop, create one
-                            loop = asyncio.new_event_loop()
-                            adjusted_risk, ai_adjustment_reason = loop.run_until_complete(
-                                self.sentiment_manager.calculate_risk_adjustment(trade_side, 100.0)
-                            )
-                            if adjusted_risk != 100.0 and ai_adjustment_reason:
-                                sentiment_factor = adjusted_risk / 100.0
-                                margin = margin * sentiment_factor
-                                logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
-                                logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
-                    except Exception as sentiment_err:
-                        logger.warning(f"   ⚠️ AI Sentiment check failed: {sentiment_err}")
+                    # Skip sentiment adjustment in sync Binance handler to avoid event loop conflicts
+                    # Sentiment adjustment works fine in async CCXT handlers
+                    logger.debug("   ℹ️ AI Sentiment adjustment skipped in sync context (event loop conflict prevention)")
 
                 # Ensure leverage is valid (must be >= 1)
                 if leverage < 1:

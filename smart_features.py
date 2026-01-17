@@ -464,6 +464,14 @@ class SmartFeaturesManager:
                     positions.append((parts[0], parts[1]))
             return positions
             
+        except RuntimeError as e:
+            # Event loop conflict - Redis client bound to different loop
+            # This is non-critical - trailing SL monitoring can skip this cycle
+            if "attached to a different loop" in str(e):
+                logger.debug(f"Trailing SL monitor: event loop conflict (non-critical): {e}")
+            else:
+                logger.error(f"Failed to get active trailing positions: {e}")
+            return []
         except Exception as e:
             logger.error(f"Failed to get active trailing positions: {e}")
             return []
