@@ -141,6 +141,13 @@ def apply_schema_updates(connection, db_type: str) -> int:
         if add_column_if_missing(connection, inspector, db_type, "user_exchanges", *col):
             changes += 1
 
+    tournament_columns = [
+        ("tasks", "TEXT", "JSON", "NULL", "NULL"),  # JSON array of tournament tasks/goals
+    ]
+    for col in tournament_columns:
+        if add_column_if_missing(connection, inspector, db_type, "tournaments", *col):
+            changes += 1
+
     push_columns = [
         ("error_count", "INTEGER", "INTEGER", "0", "0"),
         ("last_used_at", "DATETIME", "TIMESTAMP", None, None),
