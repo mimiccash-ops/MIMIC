@@ -229,12 +229,12 @@
 
 <!-- Modal Styles -->
 <style>
-    /* Modal Overlay */
+    /* Modal Overlay - Hidden by default */
     .payout-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        display: flex;
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 1000 !important;
+        display: none !important;
         align-items: center;
         justify-content: center;
         padding: 20px;
@@ -247,8 +247,9 @@
     }
     
     .payout-modal.active {
-        opacity: 1;
-        visibility: visible;
+        display: flex !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
     
     /* Modal Container */
