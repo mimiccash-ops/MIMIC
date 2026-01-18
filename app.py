@@ -1908,9 +1908,25 @@ def admin_create_tournament():
             return jsonify({'success': False, 'error': 'Tournament name is required'}), 400
         
         if start_date_str and end_date_str:
-            # Custom dates provided
-            start = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
-            end = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
+            # Custom dates provided - handle both ISO format and datetime-local format
+            try:
+                # Try ISO format first
+                if 'T' in start_date_str and ('Z' in start_date_str or '+' in start_date_str or start_date_str.endswith('00:00')):
+                    start = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                else:
+                    # datetime-local format "YYYY-MM-DDTHH:mm"
+                    start = dt.fromisoformat(start_date_str)
+                    if start.tzinfo is None:
+                        start = start.replace(tzinfo=timezone.utc)
+                
+                if 'T' in end_date_str and ('Z' in end_date_str or '+' in end_date_str or end_date_str.endswith('00:00')):
+                    end = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                else:
+                    end = dt.fromisoformat(end_date_str)
+                    if end.tzinfo is None:
+                        end = end.replace(tzinfo=timezone.utc)
+            except ValueError as e:
+                return jsonify({'success': False, 'error': f'Invalid date format: {str(e)}'}), 400
             
             if start >= end:
                 return jsonify({'success': False, 'error': 'End date must be after start date'}), 400

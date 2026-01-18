@@ -4791,20 +4791,35 @@
     
     async function loadTournaments() {
         const filter = document.getElementById('tournament-status-filter')?.value || 'all';
+        const container = document.getElementById('tournaments-list');
+        
+        if (!container) {
+            console.error('tournaments-list container not found');
+            return;
+        }
+        
+        // Show loading state
+        container.innerHTML = '<div class="text-center py-8 text-muted"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Loading tournaments...</p></div>';
         
         try {
             const response = await fetch(`/api/admin/tournaments?status=${filter}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
             if (data.success) {
                 renderTournaments(data.tournaments || []);
                 updateTournamentStats(data.tournaments || []);
             } else {
-                showToast(data.error || 'Failed to load tournaments', 'error');
+                container.innerHTML = `<div class="text-center py-8 text-red"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>${data.error || 'Failed to load tournaments'}</p></div>`;
+                console.error('API error:', data.error);
             }
         } catch (err) {
             console.error('Error loading tournaments:', err);
-            showToast('Failed to load tournaments', 'error');
+            container.innerHTML = `<div class="text-center py-8 text-red"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>Failed to load tournaments. Check console for details.</p></div>`;
         }
     }
     
@@ -4931,15 +4946,15 @@
     function addTournamentTask() {
         const taskId = Date.now();
         const taskHtml = `
-            <div class="p-3 rounded-lg border" style="background: var(--color-surface-2); border-color: var(--color-border);" data-task-id="${taskId}">
+            <div class="p-3 rounded-lg border mb-3" style="background: var(--color-surface-2); border-color: var(--color-border);" data-task-id="${taskId}">
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <div>
                         <label class="text-xs text-muted mb-1 block">Task Title *</label>
-                        <input type="text" class="input input-sm" placeholder="e.g., Make 10 trades" data-field="title" required>
+                        <input type="text" class="input" placeholder="e.g., Make 10 trades" data-field="title" required style="padding: 10px 14px; font-size: 0.9rem;">
                     </div>
                     <div>
                         <label class="text-xs text-muted mb-1 block">Reward Type</label>
-                        <select class="input input-sm" data-field="reward_type">
+                        <select class="input" data-field="reward_type" style="padding: 10px 14px; font-size: 0.9rem;">
                             <option value="money">Cash ($)</option>
                             <option value="xp">XP Points</option>
                             <option value="bonus">Bonus Entry</option>
@@ -4949,11 +4964,11 @@
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <div>
                         <label class="text-xs text-muted mb-1 block">Description</label>
-                        <input type="text" class="input input-sm" placeholder="Task description" data-field="description">
+                        <input type="text" class="input" placeholder="Task description" data-field="description" style="padding: 10px 14px; font-size: 0.9rem;">
                     </div>
                     <div>
                         <label class="text-xs text-muted mb-1 block">Reward Amount</label>
-                        <input type="number" class="input input-sm" placeholder="0" min="0" step="0.01" data-field="reward_amount" value="0">
+                        <input type="number" class="input" placeholder="0" min="0" step="0.01" data-field="reward_amount" value="0" style="padding: 10px 14px; font-size: 0.9rem;">
                     </div>
                 </div>
                 <div class="flex items-center justify-between">
@@ -4967,7 +4982,12 @@
                 </div>
             </div>
         `;
-        document.getElementById('tournament-tasks-list').insertAdjacentHTML('beforeend', taskHtml);
+        const tasksList = document.getElementById('tournament-tasks-list');
+        if (tasksList) {
+            tasksList.insertAdjacentHTML('beforeend', taskHtml);
+        } else {
+            console.error('tournament-tasks-list element not found');
+        }
     }
     
     function removeTournamentTask(taskId) {
@@ -4987,23 +5007,39 @@
         // Collect tasks
         const tasks = [];
         document.querySelectorAll('[data-task-id]').forEach(taskEl => {
-            const title = taskEl.querySelector('[data-field="title"]').value.trim();
+            const titleInput = taskEl.querySelector('[data-field="title"]');
+            if (!titleInput) return;
+            
+            const title = titleInput.value.trim();
             if (!title) return;
+            
+            const descriptionInput = taskEl.querySelector('[data-field="description"]');
+            const rewardTypeInput = taskEl.querySelector('[data-field="reward_type"]');
+            const rewardAmountInput = taskEl.querySelector('[data-field="reward_amount"]');
+            const requiredInput = taskEl.querySelector('[data-field="required"]');
             
             tasks.push({
                 title: title,
-                description: taskEl.querySelector('[data-field="description"]').value.trim() || '',
-                reward_type: taskEl.querySelector('[data-field="reward_type"]').value,
-                reward_amount: parseFloat(taskEl.querySelector('[data-field="reward_amount"]').value) || 0,
-                required: taskEl.querySelector('[data-field="required"]').checked || false
+                description: descriptionInput ? descriptionInput.value.trim() : '',
+                reward_type: rewardTypeInput ? rewardTypeInput.value : 'money',
+                reward_amount: rewardAmountInput ? parseFloat(rewardAmountInput.value) || 0 : 0,
+                required: requiredInput ? requiredInput.checked : false
             });
         });
+        
+        // Convert datetime-local to ISO format
+        const startDateValue = document.getElementById('tournament-start-date').value;
+        const endDateValue = document.getElementById('tournament-end-date').value;
+        
+        // datetime-local format is "YYYY-MM-DDTHH:mm", convert to ISO with timezone
+        const startDateISO = startDateValue ? new Date(startDateValue).toISOString() : null;
+        const endDateISO = endDateValue ? new Date(endDateValue).toISOString() : null;
         
         const payload = {
             name: document.getElementById('tournament-name').value.trim(),
             description: document.getElementById('tournament-description').value.trim() || null,
-            start_date: document.getElementById('tournament-start-date').value,
-            end_date: document.getElementById('tournament-end-date').value,
+            start_date: startDateISO,
+            end_date: endDateISO,
             entry_fee: parseFloat(document.getElementById('tournament-entry-fee').value) || 0,
             min_participants: parseInt(document.getElementById('tournament-min-participants').value) || 3,
             max_participants: document.getElementById('tournament-max-participants').value ? parseInt(document.getElementById('tournament-max-participants').value) : null,
@@ -5013,8 +5049,17 @@
             tasks: tasks.length > 0 ? tasks : null
         };
         
+        console.log('Saving tournament with payload:', payload);
+        
         if (!payload.name) {
             showToast('Tournament name is required', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
+        
+        if (!payload.start_date || !payload.end_date) {
+            showToast('Start date and end date are required', 'error');
             btn.disabled = false;
             btn.innerHTML = originalHtml;
             return;
@@ -5030,18 +5075,28 @@
                 body: JSON.stringify(payload)
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            
+            console.log('Tournament save response:', data);
             
             if (data.success) {
                 showToast(data.message || 'Tournament saved successfully', 'success');
                 closeCreateTournamentModal();
-                loadTournaments();
+                // Reload tournaments list
+                setTimeout(() => {
+                    loadTournaments();
+                }, 500);
             } else {
                 showToast(data.error || 'Failed to save tournament', 'error');
+                console.error('Save error:', data.error);
             }
         } catch (err) {
             console.error('Error saving tournament:', err);
-            showToast('Failed to save tournament', 'error');
+            showToast('Failed to save tournament: ' + err.message, 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
