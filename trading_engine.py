@@ -790,13 +790,22 @@ class TradingEngine:
         """Get the current max_positions setting for master account (read dynamically from Redis/database)"""
         val = self._get_global_setting('max_positions', getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
         try:
-            return max(1, int(val))
-        except (TypeError, ValueError):
+            result = max(1, int(val))
+            # Log the value being used for debugging
+            logger.debug(f"🔧 get_master_max_positions: reading value={val}, returning={result}")
+            return result
+        except (TypeError, ValueError) as e:
+            logger.warning(f"⚠️ Failed to parse max_positions value '{val}': {e}, using default")
             return max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
 
     def _get_global_setting(self, key: str, default):
-        """Read global trading settings from Redis/app/module cache with fallback."""
+        """Read global trading settings from Redis/app/module cache with fallback.
+        
+        Always reads fresh from Redis first (for cross-process updates), then falls back
+        to app module, then cache, then default. This ensures admin changes are picked up immediately.
+        """
         # Try Redis first (updated immediately when admin changes settings, works across processes)
+        # CRITICAL: Always read from Redis to get latest value, don't rely on cache
         try:
             import redis
             if hasattr(self.app, 'config') and self.app.config.get('REDIS_URL'):
@@ -805,28 +814,35 @@ class TradingEngine:
                 cached_val = sync_redis.get(f'global_settings:{key}')
                 if cached_val is not None:
                     val = cached_val.decode() if isinstance(cached_val, (bytes, bytearray)) else cached_val
-                    # Update cached reference for consistency
+                    # Update cached reference for consistency, but Redis value takes precedence
                     if self._global_settings is not None:
                         self._global_settings[key] = val
+                    logger.debug(f"📊 Read {key}={val} from Redis")
                     return val
         except Exception as e:
             logger.debug(f"Could not read global setting {key} from Redis: {e}")
 
         # Fallback to app module (works for same process, but worker is separate)
+        # Only use this if Redis is not available
         try:
             import app as app_module
             if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
                 val = app_module.GLOBAL_TRADE_SETTINGS.get(key, default)
+                # Update cache but log that we're using app module (may be stale if worker is separate)
                 if self._global_settings is not None:
                     self._global_settings[key] = val
+                logger.debug(f"📊 Read {key}={val} from app module GLOBAL_TRADE_SETTINGS")
                 return val
         except (ImportError, AttributeError) as e:
             logger.debug(f"Could not read GLOBAL_TRADE_SETTINGS from app module: {e}")
 
-        # Use cached reference if available
+        # Use cached reference if available (last resort)
         if self._global_settings is not None:
-            return self._global_settings.get(key, default)
+            cached = self._global_settings.get(key, default)
+            logger.debug(f"📊 Read {key}={cached} from cache (fallback)")
+            return cached
 
+        logger.debug(f"📊 Using default {key}={default}")
         return default
 
     # ==================== GLOBAL MASTER PENDING (REDIS) ====================
