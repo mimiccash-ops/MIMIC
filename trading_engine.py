@@ -810,8 +810,21 @@ class TradingEngine:
         # CRITICAL: Always read from Redis to get latest value, don't rely on cache
         try:
             import redis
+            redis_url = None
+            # Prefer app config, but fall back to Config/env for worker processes
             if hasattr(self.app, 'config') and self.app.config.get('REDIS_URL'):
                 redis_url = self.app.config.get('REDIS_URL')
+            else:
+                try:
+                    from config import Config
+                    redis_url = getattr(Config, 'REDIS_URL', None)
+                except Exception:
+                    redis_url = None
+                if not redis_url:
+                    import os
+                    redis_url = os.environ.get('REDIS_URL')
+
+            if redis_url:
                 sync_redis = redis.from_url(redis_url)
                 cached_val = sync_redis.get(f'global_settings:{key}')
                 if cached_val is not None:
@@ -824,6 +837,8 @@ class TradingEngine:
                     return val
                 else:
                     logger.debug(f"📊 Redis key 'global_settings:{key}' not found, trying fallbacks")
+            else:
+                logger.debug("📊 No REDIS_URL configured for global settings lookup")
         except Exception as e:
             logger.warning(f"⚠️ Could not read global setting {key} from Redis: {e}")
 

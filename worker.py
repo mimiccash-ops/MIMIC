@@ -157,6 +157,10 @@ async def startup(ctx: dict):
     # Create minimal Flask app for database context
     app = Flask(__name__)
     app.config.from_object(Config)
+    # Ensure REDIS_URL is present for worker (Config may not set it if env var missing)
+    if not app.config.get('REDIS_URL'):
+        app.config['REDIS_URL'] = REDIS_URL
+        logger.info(f"✅ Worker REDIS_URL set from env/default: {REDIS_URL}")
     
     # Initialize database
     db.init_app(app)
