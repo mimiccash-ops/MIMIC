@@ -1843,48 +1843,103 @@ def get_tournament_history():
 
 # Admin endpoints for tournament management
 
-@app.route('/api/admin/tournament/create', methods=['POST'])
+@app.route('/api/admin/tournaments')
 @login_required
-def admin_create_tournament():
+def admin_list_tournaments():
     """
-    Create a new tournament (admin only).
+    List all tournaments (admin only) with optional status filter.
     """
     if current_user.role != 'admin':
-        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
     
     try:
         from models import Tournament
         
+        status_filter = request.args.get('status', 'all')
+        
+        query = Tournament.query
+        
+        if status_filter != 'all':
+            query = query.filter(Tournament.status == status_filter)
+        
+        tournaments = query.order_by(Tournament.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'tournaments': [t.to_dict(include_leaderboard=False) for t in tournaments]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error listing tournaments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/admin/tournament/create', methods=['POST'])
+@login_required
+def admin_create_tournament():
+    """
+    Create a new tournament (admin only) with tasks/goals support.
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Tournament
+        from datetime import datetime as dt, timezone
+        
         data = request.get_json()
         
         name = data.get('name', 'Weekly Championship')
+        description = data.get('description')
         entry_fee = float(data.get('entry_fee', 10.0))
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
+        min_participants = int(data.get('min_participants', 3))
+        max_participants = data.get('max_participants')
+        prize_1st_pct = float(data.get('prize_1st_pct', 50.0))
+        prize_2nd_pct = float(data.get('prize_2nd_pct', 30.0))
+        prize_3rd_pct = float(data.get('prize_3rd_pct', 20.0))
+        tasks = data.get('tasks')  # List of tournament tasks/goals
         
-        if start_date and end_date:
+        if not name:
+            return jsonify({'success': False, 'error': 'Tournament name is required'}), 400
+        
+        if start_date_str and end_date_str:
             # Custom dates provided
-            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            start = dt.fromisoformat(start_date_str.replace('Z', '+00:00'))
+            end = dt.fromisoformat(end_date_str.replace('Z', '+00:00'))
             
-            tournament = Tournament(
-                name=name,
-                description=f"Entry: ${entry_fee}. Prizes: 50%/30%/20% for TOP-3.",
-                start_date=start,
-                end_date=end,
-                entry_fee=entry_fee,
-                status='upcoming'
-            )
-            db.session.add(tournament)
-            db.session.commit()
+            if start >= end:
+                return jsonify({'success': False, 'error': 'End date must be after start date'}), 400
         else:
-            # Create weekly tournament
-            tournament = Tournament.create_weekly_tournament(
-                name=name,
-                entry_fee=entry_fee
-            )
+            return jsonify({'success': False, 'error': 'Start date and end date are required'}), 400
         
-        logger.info(f"Admin created tournament: {tournament.name}")
+        # Validate prize distribution
+        if abs(prize_1st_pct + prize_2nd_pct + prize_3rd_pct - 100.0) > 0.1:
+            return jsonify({'success': False, 'error': 'Prize distribution must sum to 100%'}), 400
+        
+        tournament = Tournament(
+            name=name,
+            description=description or f"Entry: ${entry_fee}. Prizes: {prize_1st_pct}%/{prize_2nd_pct}%/{prize_3rd_pct}% for TOP-3.",
+            start_date=start,
+            end_date=end,
+            entry_fee=entry_fee,
+            min_participants=min_participants,
+            max_participants=int(max_participants) if max_participants else None,
+            prize_1st_pct=prize_1st_pct,
+            prize_2nd_pct=prize_2nd_pct,
+            prize_3rd_pct=prize_3rd_pct,
+            tasks=tasks if tasks else None,  # Store tasks as JSON
+            status='upcoming'
+        )
+        
+        db.session.add(tournament)
+        db.session.commit()
+        
+        logger.info(f"Admin created tournament: {tournament.name} (ID: {tournament.id})")
         
         return jsonify({
             'success': True,
@@ -1892,8 +1947,84 @@ def admin_create_tournament():
             'tournament': tournament.to_dict()
         })
         
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
     except Exception as e:
-        logger.error(f"Error creating tournament: {e}")
+        logger.error(f"Error creating tournament: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/admin/tournament/<int:tournament_id>', methods=['PUT'])
+@login_required
+def admin_update_tournament(tournament_id):
+    """
+    Update a tournament (admin only).
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        from models import Tournament
+        from datetime import datetime as dt
+        
+        tournament = Tournament.query.get(tournament_id)
+        
+        if not tournament:
+            return jsonify({
+                'success': False,
+                'error': 'Tournament not found'
+            }), 404
+        
+        if tournament.status in ['active', 'completed', 'calculating']:
+            return jsonify({
+                'success': False,
+                'error': f'Cannot update tournament with status: {tournament.status}'
+            }), 400
+        
+        data = request.get_json()
+        
+        # Update fields if provided
+        if 'name' in data:
+            tournament.name = data['name']
+        if 'description' in data:
+            tournament.description = data['description']
+        if 'entry_fee' in data:
+            tournament.entry_fee = float(data['entry_fee'])
+        if 'min_participants' in data:
+            tournament.min_participants = int(data['min_participants'])
+        if 'max_participants' in data:
+            tournament.max_participants = int(data['max_participants']) if data['max_participants'] else None
+        if 'start_date' in data:
+            tournament.start_date = dt.fromisoformat(data['start_date'].replace('Z', '+00:00'))
+        if 'end_date' in data:
+            tournament.end_date = dt.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        if 'prize_1st_pct' in data:
+            tournament.prize_1st_pct = float(data['prize_1st_pct'])
+        if 'prize_2nd_pct' in data:
+            tournament.prize_2nd_pct = float(data['prize_2nd_pct'])
+        if 'prize_3rd_pct' in data:
+            tournament.prize_3rd_pct = float(data['prize_3rd_pct'])
+        if 'tasks' in data:
+            tournament.tasks = data['tasks'] if data['tasks'] else None
+        
+        db.session.commit()
+        
+        logger.info(f"Admin updated tournament: {tournament.name} (ID: {tournament_id})")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Tournament "{tournament.name}" updated successfully',
+            'tournament': tournament.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating tournament: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

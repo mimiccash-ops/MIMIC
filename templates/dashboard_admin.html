@@ -19,6 +19,10 @@
     <i class="fas fa-tasks"></i>
     <span data-i18n="section.tasks">Tasks</span>
 </a>
+<a href="#" class="mobile-nav-item mobile-section-link" data-section="tournaments" onclick="showSection('tournaments'); return false;">
+    <i class="fas fa-medal"></i>
+    <span>Tournaments</span>
+</a>
 <a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
     <i class="fas fa-sliders-h"></i>
     <span data-i18n="section.settings">Settings</span>
@@ -1377,6 +1381,103 @@
             </div>
         </div>
     </div>
+
+    <!-- ==================== TOURNAMENTS MANAGEMENT SECTION ==================== -->
+    <div class="section-content" data-section="tournaments">
+        <!-- Tournaments Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="font-display text-xl font-semibold flex items-center gap-3">
+                    <i class="fas fa-medal text-yellow"></i>
+                    <span>Tournament Management</span>
+                </h1>
+                <p class="text-muted text-sm mt-1">Create and manage trading tournaments with tasks and rewards</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="refreshTournaments()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync-alt" id="tournaments-refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+                <button onclick="openCreateTournamentModal()" class="cyber-btn cyber-btn-primary">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Tournament</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tournament Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card p-4" style="border-color: rgba(234, 179, 8, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-play-circle text-yellow"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Active</div>
+                        <div class="font-mono font-bold text-lg" id="tournaments-active">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(59, 130, 246, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-clock text-blue"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Upcoming</div>
+                        <div class="font-mono font-bold text-lg" id="tournaments-upcoming">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(34, 197, 94, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-check-circle text-green"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Completed</div>
+                        <div class="font-mono font-bold text-lg" id="tournaments-completed">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-4" style="border-color: rgba(168, 85, 247, 0.2);">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--radius-md);">
+                        <i class="fas fa-users text-purple"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-muted">Total Participants</div>
+                        <div class="font-mono font-bold text-lg" id="tournaments-participants">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tournaments List -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-list text-yellow"></i>
+                    <span>All Tournaments</span>
+                </h2>
+                <div class="flex items-center gap-2">
+                    <select id="tournament-status-filter" class="input" style="width: auto;" onchange="loadTournaments()">
+                        <option value="all">All Status</option>
+                        <option value="active" selected>Active</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+            <div id="tournaments-list" class="space-y-3">
+                <div class="text-center py-8 text-muted">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading tournaments...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Review Submission Modal -->
@@ -1416,6 +1517,134 @@
                 <button onclick="approveSubmission()" class="cyber-btn cyber-btn-success flex-1">
                     <i class="fas fa-check"></i>
                     <span>Approve & Give Reward</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Tournament Modal -->
+<div id="createTournamentModal" class="modal-overlay" onclick="if(event.target===this)closeCreateTournamentModal()">
+    <div class="modal-card" style="max-width: 750px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-medal text-yellow"></i>
+                <span id="tournament-modal-title">Create New Tournament</span>
+            </div>
+            <button onclick="closeCreateTournamentModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="tournament-edit-id" value="">
+            
+            <!-- Basic Info -->
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Tournament Name *</label>
+                    <input type="text" id="tournament-name" class="input" placeholder="e.g., Weekly Trading Championship" required>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Description</label>
+                    <textarea id="tournament-description" class="input" rows="2" placeholder="Tournament description for participants"></textarea>
+                </div>
+            </div>
+
+            <!-- Schedule -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
+                    <i class="fas fa-calendar text-blue"></i>
+                    <span>Schedule</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Start Date & Time *</label>
+                        <input type="datetime-local" id="tournament-start-date" class="input" required>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">End Date & Time *</label>
+                        <input type="datetime-local" id="tournament-end-date" class="input" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Settings -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
+                    <i class="fas fa-dollar-sign text-green"></i>
+                    <span>Financial Settings</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Entry Fee ($) *</label>
+                        <input type="number" id="tournament-entry-fee" class="input" value="10.00" min="0" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Minimum Participants *</label>
+                        <input type="number" id="tournament-min-participants" class="input" value="3" min="1" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Max Participants (empty = unlimited)</label>
+                        <input type="number" id="tournament-max-participants" class="input" placeholder="Unlimited" min="1">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Prize Pool (auto-calculated from entry fees)</label>
+                        <input type="text" id="tournament-prize-pool" class="input" value="$0.00" readonly style="background: var(--color-surface-3);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prize Distribution -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2);">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
+                    <i class="fas fa-trophy text-yellow"></i>
+                    <span>Prize Distribution (%)</span>
+                </h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">🥇 1st Place</label>
+                        <input type="number" id="tournament-prize-1st" class="input" value="50.0" min="0" max="100" step="0.1" onchange="updatePrizeDistribution()">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">🥈 2nd Place</label>
+                        <input type="number" id="tournament-prize-2nd" class="input" value="30.0" min="0" max="100" step="0.1" onchange="updatePrizeDistribution()">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">🥉 3rd Place</label>
+                        <input type="number" id="tournament-prize-3rd" class="input" value="20.0" min="0" max="100" step="0.1" onchange="updatePrizeDistribution()">
+                    </div>
+                </div>
+                <p class="text-xs text-muted mt-2" id="prize-distribution-total">Total: 100%</p>
+            </div>
+
+            <!-- Tournament Tasks/Goals -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2);">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-sm flex items-center gap-2">
+                        <i class="fas fa-tasks text-purple"></i>
+                        <span>Tournament Tasks/Goals (Optional)</span>
+                    </h3>
+                    <button type="button" onclick="addTournamentTask()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Task</span>
+                    </button>
+                </div>
+                <p class="text-xs text-muted mb-4">Add tasks that participants can complete during the tournament to earn bonus rewards</p>
+                <div id="tournament-tasks-list" class="space-y-3">
+                    <!-- Tasks will be added here by JS -->
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                <button onclick="closeCreateTournamentModal()" class="cyber-btn cyber-btn-outline flex-1">
+                    Cancel
+                </button>
+                <button onclick="saveTournament()" class="cyber-btn cyber-btn-primary flex-1" id="save-tournament-btn">
+                    <i class="fas fa-save"></i>
+                    <span>Create Tournament</span>
                 </button>
             </div>
         </div>
@@ -4551,8 +4780,306 @@
             if (section === 'tasks') {
                 loadAdminTasks();
                 loadPendingReviews();
+            } else if (section === 'tournaments') {
+                loadTournaments();
             }
         };
     })();
+
+    // ==================== TOURNAMENT MANAGEMENT ====================
+    let tournamentTasks = [];
+    
+    async function loadTournaments() {
+        const filter = document.getElementById('tournament-status-filter')?.value || 'all';
+        
+        try {
+            const response = await fetch(`/api/admin/tournaments?status=${filter}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                renderTournaments(data.tournaments || []);
+                updateTournamentStats(data.tournaments || []);
+            } else {
+                showToast(data.error || 'Failed to load tournaments', 'error');
+            }
+        } catch (err) {
+            console.error('Error loading tournaments:', err);
+            showToast('Failed to load tournaments', 'error');
+        }
+    }
+    
+    function renderTournaments(tournaments) {
+        const container = document.getElementById('tournaments-list');
+        
+        if (!tournaments || tournaments.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-muted"><i class="fas fa-medal text-4xl mb-2 opacity-50"></i><p>No tournaments found</p></div>';
+            return;
+        }
+        
+        container.innerHTML = tournaments.map(t => {
+            const statusColors = {
+                'active': 'green',
+                'upcoming': 'blue',
+                'completed': 'gray',
+                'cancelled': 'red',
+                'calculating': 'yellow'
+            };
+            const statusColor = statusColors[t.status] || 'gray';
+            
+            const startDate = new Date(t.start_date).toLocaleString();
+            const endDate = new Date(t.end_date).toLocaleString();
+            
+            return `
+                <div class="card p-4" style="border-left: 4px solid var(--neon-${statusColor});">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-display font-semibold">${escapeHtml(t.name)}</h3>
+                                <span class="badge badge-${statusColor}">${t.status}</span>
+                                ${t.tasks && t.tasks.length > 0 ? `<span class="badge badge-purple"><i class="fas fa-tasks"></i> ${t.tasks.length} Tasks</span>` : ''}
+                            </div>
+                            <p class="text-sm text-muted mb-2">${escapeHtml(t.description || 'No description')}</p>
+                            <div class="flex flex-wrap gap-4 text-xs text-muted">
+                                <div><i class="fas fa-dollar-sign"></i> Entry: $${t.entry_fee.toFixed(2)}</div>
+                                <div><i class="fas fa-trophy"></i> Prize Pool: $${t.prize_pool.toFixed(2)}</div>
+                                <div><i class="fas fa-users"></i> Participants: ${t.participant_count}</div>
+                                <div><i class="fas fa-calendar"></i> ${startDate} - ${endDate}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${t.status === 'upcoming' ? `<button onclick="editTournament(${t.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm"><i class="fas fa-edit"></i></button>` : ''}
+                            ${t.status === 'active' || t.status === 'upcoming' ? `<button onclick="cancelTournament(${t.id})" class="cyber-btn cyber-btn-danger cyber-btn-sm"><i class="fas fa-ban"></i></button>` : ''}
+                            <a href="/tournament" target="_blank" class="cyber-btn cyber-btn-primary cyber-btn-sm"><i class="fas fa-external-link-alt"></i></a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function updateTournamentStats(tournaments) {
+        const stats = {
+            active: tournaments.filter(t => t.status === 'active').length,
+            upcoming: tournaments.filter(t => t.status === 'upcoming').length,
+            completed: tournaments.filter(t => t.status === 'completed').length,
+            participants: tournaments.reduce((sum, t) => sum + (t.participant_count || 0), 0)
+        };
+        
+        document.getElementById('tournaments-active').textContent = stats.active;
+        document.getElementById('tournaments-upcoming').textContent = stats.upcoming;
+        document.getElementById('tournaments-completed').textContent = stats.completed;
+        document.getElementById('tournaments-participants').textContent = stats.participants;
+    }
+    
+    function refreshTournaments() {
+        const icon = document.getElementById('tournaments-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        loadTournaments().finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+    
+    function openCreateTournamentModal() {
+        tournamentTasks = [];
+        document.getElementById('tournament-edit-id').value = '';
+        document.getElementById('tournament-modal-title').textContent = 'Create New Tournament';
+        document.getElementById('save-tournament-btn').innerHTML = '<i class="fas fa-save"></i><span>Create Tournament</span>';
+        
+        // Reset form
+        document.getElementById('tournament-name').value = '';
+        document.getElementById('tournament-description').value = '';
+        document.getElementById('tournament-entry-fee').value = '10.00';
+        document.getElementById('tournament-min-participants').value = '3';
+        document.getElementById('tournament-max-participants').value = '';
+        document.getElementById('tournament-prize-1st').value = '50.0';
+        document.getElementById('tournament-prize-2nd').value = '30.0';
+        document.getElementById('tournament-prize-3rd').value = '20.0';
+        
+        // Set default dates (next week)
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const endDate = new Date(nextWeek.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        document.getElementById('tournament-start-date').value = formatDateTimeLocal(nextWeek);
+        document.getElementById('tournament-end-date').value = formatDateTimeLocal(endDate);
+        
+        document.getElementById('tournament-tasks-list').innerHTML = '';
+        updatePrizeDistribution();
+        
+        document.getElementById('createTournamentModal').style.display = 'flex';
+    }
+    
+    function closeCreateTournamentModal() {
+        document.getElementById('createTournamentModal').style.display = 'none';
+    }
+    
+    function formatDateTimeLocal(date) {
+        const d = new Date(date);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    }
+    
+    function updatePrizeDistribution() {
+        const p1 = parseFloat(document.getElementById('tournament-prize-1st').value) || 0;
+        const p2 = parseFloat(document.getElementById('tournament-prize-2nd').value) || 0;
+        const p3 = parseFloat(document.getElementById('tournament-prize-3rd').value) || 0;
+        const total = p1 + p2 + p3;
+        document.getElementById('prize-distribution-total').textContent = `Total: ${total.toFixed(1)}%`;
+        document.getElementById('prize-distribution-total').style.color = total === 100 ? 'var(--neon-green)' : 'var(--neon-red)';
+    }
+    
+    function addTournamentTask() {
+        const taskId = Date.now();
+        const taskHtml = `
+            <div class="p-3 rounded-lg border" style="background: var(--color-surface-2); border-color: var(--color-border);" data-task-id="${taskId}">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Task Title *</label>
+                        <input type="text" class="input input-sm" placeholder="e.g., Make 10 trades" data-field="title" required>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                        <select class="input input-sm" data-field="reward_type">
+                            <option value="money">Cash ($)</option>
+                            <option value="xp">XP Points</option>
+                            <option value="bonus">Bonus Entry</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Description</label>
+                        <input type="text" class="input input-sm" placeholder="Task description" data-field="description">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Reward Amount</label>
+                        <input type="number" class="input input-sm" placeholder="0" min="0" step="0.01" data-field="reward_amount" value="0">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="cyber-checkbox" data-field="required">
+                        <span class="text-xs">Required to win</span>
+                    </label>
+                    <button type="button" onclick="removeTournamentTask(${taskId})" class="cyber-btn cyber-btn-danger cyber-btn-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('tournament-tasks-list').insertAdjacentHTML('beforeend', taskHtml);
+    }
+    
+    function removeTournamentTask(taskId) {
+        const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskEl) taskEl.remove();
+    }
+    
+    async function saveTournament() {
+        const btn = document.getElementById('save-tournament-btn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Saving...</span>';
+        
+        const tournamentId = document.getElementById('tournament-edit-id').value;
+        const isEdit = !!tournamentId;
+        
+        // Collect tasks
+        const tasks = [];
+        document.querySelectorAll('[data-task-id]').forEach(taskEl => {
+            const title = taskEl.querySelector('[data-field="title"]').value.trim();
+            if (!title) return;
+            
+            tasks.push({
+                title: title,
+                description: taskEl.querySelector('[data-field="description"]').value.trim() || '',
+                reward_type: taskEl.querySelector('[data-field="reward_type"]').value,
+                reward_amount: parseFloat(taskEl.querySelector('[data-field="reward_amount"]').value) || 0,
+                required: taskEl.querySelector('[data-field="required"]').checked || false
+            });
+        });
+        
+        const payload = {
+            name: document.getElementById('tournament-name').value.trim(),
+            description: document.getElementById('tournament-description').value.trim() || null,
+            start_date: document.getElementById('tournament-start-date').value,
+            end_date: document.getElementById('tournament-end-date').value,
+            entry_fee: parseFloat(document.getElementById('tournament-entry-fee').value) || 0,
+            min_participants: parseInt(document.getElementById('tournament-min-participants').value) || 3,
+            max_participants: document.getElementById('tournament-max-participants').value ? parseInt(document.getElementById('tournament-max-participants').value) : null,
+            prize_1st_pct: parseFloat(document.getElementById('tournament-prize-1st').value) || 50.0,
+            prize_2nd_pct: parseFloat(document.getElementById('tournament-prize-2nd').value) || 30.0,
+            prize_3rd_pct: parseFloat(document.getElementById('tournament-prize-3rd').value) || 20.0,
+            tasks: tasks.length > 0 ? tasks : null
+        };
+        
+        if (!payload.name) {
+            showToast('Tournament name is required', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
+        
+        try {
+            const url = isEdit ? `/api/admin/tournament/${tournamentId}` : '/api/admin/tournament/create';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || 'Tournament saved successfully', 'success');
+                closeCreateTournamentModal();
+                loadTournaments();
+            } else {
+                showToast(data.error || 'Failed to save tournament', 'error');
+            }
+        } catch (err) {
+            console.error('Error saving tournament:', err);
+            showToast('Failed to save tournament', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    function editTournament(tournamentId) {
+        // TODO: Implement edit functionality
+        showToast('Edit functionality coming soon', 'info');
+    }
+    
+    async function cancelTournament(tournamentId) {
+        if (!confirm('Are you sure you want to cancel this tournament?')) return;
+        
+        try {
+            const response = await fetch(`/api/admin/tournament/${tournamentId}/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || 'Tournament cancelled', 'success');
+                loadTournaments();
+            } else {
+                showToast(data.error || 'Failed to cancel tournament', 'error');
+            }
+        } catch (err) {
+            console.error('Error cancelling tournament:', err);
+            showToast('Failed to cancel tournament', 'error');
+        }
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 </script>
 {% endblock %}

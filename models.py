@@ -2234,6 +2234,10 @@ class Tournament(db.Model):
     min_participants = db.Column(db.Integer, default=3)
     max_participants = db.Column(db.Integer, nullable=True)  # NULL = unlimited
     
+    # Tournament tasks/goals (JSON array of task objects)
+    # Each task: {title, description, reward_type, reward_amount, reward_description, required: bool}
+    tasks = db.Column(db.JSON, nullable=True)  # List of tasks/goals for tournament participants
+    
     # Tournament status
     status = db.Column(db.String(20), default='upcoming', index=True)  # 'upcoming', 'active', 'calculating', 'completed', 'cancelled'
     
@@ -2275,6 +2279,7 @@ class Tournament(db.Model):
             },
             'min_participants': self.min_participants,
             'max_participants': self.max_participants,
+            'tasks': self.tasks or [],
             'status': self.status,
             'participant_count': self.participants.count(),
             'time_remaining': self.get_time_remaining(),
