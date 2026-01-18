@@ -224,19 +224,52 @@ async def startup(ctx: dict):
     # Load slave clients from database
     engine.load_slaves()
     
-    # Load global settings from database
+    # Load global settings - prefer Redis (source of truth), then app module, then defaults
+    settings_loaded = False
     try:
-        from app import GLOBAL_TRADE_SETTINGS
-        engine.set_global_settings(GLOBAL_TRADE_SETTINGS)
-    except ImportError:
-        logger.warning("⚠️ Could not import GLOBAL_TRADE_SETTINGS, using defaults")
-        engine.set_global_settings({
-            'risk_perc': 3.0,
-            'leverage': 20,
-            'tp_perc': 5.0,
-            'sl_perc': 2.0,
-            'max_positions': 2
-        })
+        import redis
+        redis_client = redis.from_url(REDIS_URL)
+        # Read settings from Redis (stored as strings)
+        redis_settings = {
+            'risk_perc': redis_client.get('global_settings:risk_perc'),
+            'leverage': redis_client.get('global_settings:leverage'),
+            'tp_perc': redis_client.get('global_settings:tp_perc'),
+            'sl_perc': redis_client.get('global_settings:sl_perc'),
+            'max_positions': redis_client.get('global_settings:max_positions'),
+            'min_order_cost': redis_client.get('global_settings:min_balance'),
+            'min_balance': redis_client.get('global_settings:min_balance'),
+        }
+        # Decode bytes to strings and keep only non-empty values
+        cleaned = {}
+        for k, v in redis_settings.items():
+            if v is None:
+                continue
+            if isinstance(v, (bytes, bytearray)):
+                v = v.decode('utf-8')
+            cleaned[k] = v
+        if cleaned:
+            engine.set_global_settings(cleaned)
+            logger.info("✅ Global settings loaded from Redis for worker")
+            settings_loaded = True
+    except Exception as e:
+        logger.warning(f"⚠️ Could not load global settings from Redis: {e}")
+
+    if not settings_loaded:
+        try:
+            from app import GLOBAL_TRADE_SETTINGS
+            engine.set_global_settings(GLOBAL_TRADE_SETTINGS)
+            logger.info("✅ Global settings loaded from app module")
+        except ImportError:
+            logger.warning("⚠️ Could not import GLOBAL_TRADE_SETTINGS, using defaults")
+            engine.set_global_settings({
+                'risk_perc': 3.0,
+                'leverage': 20,
+                'tp_perc': 5.0,
+                'sl_perc': 2.0,
+                'max_positions': 2,
+                'min_order_cost': 1.0,
+                'min_balance': 1.0
+            })
     
     ctx['engine'] = engine
     
