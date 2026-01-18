@@ -255,6 +255,61 @@
     .inf-section-body {
         padding: 24px;
     }
+
+    /* Payout Menu */
+    .payout-menu-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+    
+    @media (max-width: 1024px) {
+        .payout-menu-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 640px) {
+        .payout-menu-grid { grid-template-columns: 1fr; }
+    }
+    
+    .payout-menu-card {
+        position: relative;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-xl);
+        padding: 18px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .payout-menu-card:hover {
+        border-color: rgba(0, 240, 255, 0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3), 0 0 24px rgba(0, 240, 255, 0.1);
+    }
+    
+    .payout-menu-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    
+    .payout-menu-badge {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
     
     /* Marketing Assets */
     .asset-grid {
@@ -735,6 +790,67 @@
         </div>
     </div>
 
+    <!-- Payout Menu -->
+    <div class="inf-section animate-entry" style="animation-delay: 0.28s;">
+        <div class="inf-section-header">
+            <div class="inf-section-title">
+                <i style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(0, 240, 255, 0.2)); color: #8b5cf6;">
+                    <i class="fas fa-credit-card"></i>
+                </i>
+                <span>Меню виплат</span>
+            </div>
+            <span class="text-xs text-white/40">Швидкий доступ до виплат</span>
+        </div>
+        <div class="inf-section-body">
+            <div class="payout-menu-grid">
+                <a href="#payout-request-section" class="payout-menu-card">
+                    <div class="flex items-center gap-4">
+                        <div class="payout-menu-icon" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e;">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-white">Запит на виплату</div>
+                            <div class="text-xs text-white/50">Вивести комісію</div>
+                        </div>
+                    </div>
+                    <span class="payout-menu-badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Запросити</span>
+                </a>
+                <a href="#payout-history-section" class="payout-menu-card">
+                    <div class="flex items-center gap-4">
+                        <div class="payout-menu-icon" style="background: rgba(0, 240, 255, 0.15); border: 1px solid rgba(0, 240, 255, 0.3); color: #00f0ff;">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-white">Історія виплат</div>
+                            <div class="text-xs text-white/50">Статуси та суми</div>
+                        </div>
+                    </div>
+                    <span class="payout-menu-badge" style="background: rgba(0, 240, 255, 0.15); color: #00f0ff;">Переглянути</span>
+                </a>
+                <a href="#payout-request-section" class="payout-menu-card">
+                    <div class="flex items-center gap-4">
+                        <div class="payout-menu-icon" style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); color: #fbbf24;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-white">Статус запиту</div>
+                            <div class="text-xs text-white/50">
+                                {% if pending_payout %}
+                                Очікує підтвердження
+                                {% else %}
+                                Немає активних запитів
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="payout-menu-badge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+                        {% if pending_payout %}Очікує{% else %}Готово{% endif %}
+                    </span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Chart & Payout Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Earnings Chart -->
@@ -763,7 +879,7 @@
         </div>
         
         <!-- Payout Request -->
-        <div class="inf-section animate-entry" style="animation-delay: 0.35s;">
+        <div class="inf-section animate-entry" style="animation-delay: 0.35s;" id="payout-request-section">
             <div class="inf-section-header">
                 <div class="inf-section-title">
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 240, 255, 0.2)); color: #22c55e;">
@@ -972,7 +1088,7 @@
     </div>
 
     <!-- Payout History -->
-    <div class="inf-section animate-entry" style="animation-delay: 0.55s;">
+    <div class="inf-section animate-entry" style="animation-delay: 0.55s;" id="payout-history-section">
         <div class="inf-section-header">
             <div class="inf-section-title">
                 <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
