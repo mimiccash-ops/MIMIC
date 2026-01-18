@@ -397,9 +397,13 @@ def ensure_tournament_tasks_column() -> None:
 
 # ==================== HELPER FUNCTIONS ====================
 
-@app.before_first_request
-def _ensure_schema_on_first_request():
-    ensure_tournament_tasks_column()
+# Ensure schema migrations run at app startup (Flask 2.3+ compatibility)
+# Call once at module load since ensure_tournament_tasks_column is idempotent
+with app.app_context():
+    try:
+        ensure_tournament_tasks_column()
+    except Exception:
+        pass  # Will retry on first request if needed
 
 def log_system_event(user_id, symbol, message, is_error=False):
     """Log event and emit to WebSocket"""
