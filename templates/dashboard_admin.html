@@ -4781,10 +4781,23 @@
                 loadAdminTasks();
                 loadPendingReviews();
             } else if (section === 'tournaments') {
-                loadTournaments();
+                // Load tournaments when section is shown
+                setTimeout(() => {
+                    loadTournaments();
+                }, 100);
             }
         };
     })();
+    
+    // Also load tournaments if the section is active on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.querySelector('[data-section="tournaments"].active') || 
+            document.querySelector('.section-content[data-section="tournaments"].active')) {
+            setTimeout(() => {
+                loadTournaments();
+            }, 300);
+        }
+    });
 
     // ==================== TOURNAMENT MANAGEMENT ====================
     let tournamentTasks = [];
@@ -4826,6 +4839,11 @@
     function renderTournaments(tournaments) {
         const container = document.getElementById('tournaments-list');
         
+        if (!container) {
+            console.error('tournaments-list container not found');
+            return;
+        }
+        
         if (!tournaments || tournaments.length === 0) {
             container.innerHTML = '<div class="text-center py-8 text-muted"><i class="fas fa-medal text-4xl mb-2 opacity-50"></i><p>No tournaments found</p></div>';
             return;
@@ -4844,6 +4862,18 @@
             const startDate = new Date(t.start_date).toLocaleString();
             const endDate = new Date(t.end_date).toLocaleString();
             
+            const taskBadge = (t.tasks && Array.isArray(t.tasks) && t.tasks.length > 0) 
+                ? `<span class="badge badge-purple"><i class="fas fa-tasks"></i> ${t.tasks.length} Tasks</span>` 
+                : '';
+            
+            const editBtn = t.status === 'upcoming' 
+                ? `<button onclick="editTournament(${t.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm"><i class="fas fa-edit"></i></button>` 
+                : '';
+            
+            const cancelBtn = (t.status === 'active' || t.status === 'upcoming')
+                ? `<button onclick="cancelTournament(${t.id})" class="cyber-btn cyber-btn-danger cyber-btn-sm"><i class="fas fa-ban"></i></button>`
+                : '';
+            
             return `
                 <div class="card p-4" style="border-left: 4px solid var(--neon-${statusColor});">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -4851,19 +4881,19 @@
                             <div class="flex items-center gap-3 mb-2">
                                 <h3 class="font-display font-semibold">${escapeHtml(t.name)}</h3>
                                 <span class="badge badge-${statusColor}">${t.status}</span>
-                                ${t.tasks && t.tasks.length > 0 ? `<span class="badge badge-purple"><i class="fas fa-tasks"></i> ${t.tasks.length} Tasks</span>` : ''}
+                                ${taskBadge}
                             </div>
                             <p class="text-sm text-muted mb-2">${escapeHtml(t.description || 'No description')}</p>
                             <div class="flex flex-wrap gap-4 text-xs text-muted">
-                                <div><i class="fas fa-dollar-sign"></i> Entry: $${t.entry_fee.toFixed(2)}</div>
-                                <div><i class="fas fa-trophy"></i> Prize Pool: $${t.prize_pool.toFixed(2)}</div>
-                                <div><i class="fas fa-users"></i> Participants: ${t.participant_count}</div>
+                                <div><i class="fas fa-dollar-sign"></i> Entry: $${(t.entry_fee || 0).toFixed(2)}</div>
+                                <div><i class="fas fa-trophy"></i> Prize Pool: $${(t.prize_pool || 0).toFixed(2)}</div>
+                                <div><i class="fas fa-users"></i> Participants: ${t.participant_count || 0}</div>
                                 <div><i class="fas fa-calendar"></i> ${startDate} - ${endDate}</div>
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            ${t.status === 'upcoming' ? `<button onclick="editTournament(${t.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm"><i class="fas fa-edit"></i></button>` : ''}
-                            ${t.status === 'active' || t.status === 'upcoming' ? `<button onclick="cancelTournament(${t.id})" class="cyber-btn cyber-btn-danger cyber-btn-sm"><i class="fas fa-ban"></i></button>` : ''}
+                            ${editBtn}
+                            ${cancelBtn}
                             <a href="/tournament" target="_blank" class="cyber-btn cyber-btn-primary cyber-btn-sm"><i class="fas fa-external-link-alt"></i></a>
                         </div>
                     </div>
@@ -5086,15 +5116,13 @@
             if (data.success) {
                 showToast(data.message || 'Tournament saved successfully', 'success');
                 closeCreateTournamentModal();
-                // Reload tournaments list - ensure we show all statuses to see the new tournament
+                // Always switch to 'all' filter to see new tournament (which starts as 'upcoming')
                 const filterSelect = document.getElementById('tournament-status-filter');
-                if (filterSelect && filterSelect.value === 'active') {
-                    // If filtering by active only, switch to 'all' or 'upcoming' to see new tournament
+                if (filterSelect) {
                     filterSelect.value = 'all';
                 }
-                setTimeout(() => {
-                    loadTournaments();
-                }, 500);
+                // Reload tournaments list immediately
+                loadTournaments();
             } else {
                 showToast(data.error || 'Failed to save tournament', 'error');
                 console.error('Save error:', data.error);
