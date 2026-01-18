@@ -28,7 +28,7 @@ from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 from config import Config, ARQ_REDIS_SETTINGS
 from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent, WebAuthnCredential
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from trading_engine import TradingEngine
 from telegram_notifier import init_notifier, get_notifier, init_email_sender, get_email_sender
 from telegram_bot import init_telegram_bot, get_telegram_bot
@@ -373,7 +373,33 @@ engine.min_order_cost = GLOBAL_TRADE_SETTINGS['min_order_cost']
 engine.set_global_settings(GLOBAL_TRADE_SETTINGS)  # Link settings for live reading
 
 
+# ==================== LIGHTWEIGHT SCHEMA CHECKS ====================
+
+def ensure_tournament_tasks_column() -> None:
+    """Ensure tournaments.tasks exists to prevent admin crashes on older DBs."""
+    try:
+        inspector = inspect(db.engine)
+        if 'tournaments' not in inspector.get_table_names():
+            return
+        columns = {col['name'] for col in inspector.get_columns('tournaments')}
+        if 'tasks' in columns:
+            return
+
+        db_type = db.engine.dialect.name
+        column_type = "TEXT" if db_type == "sqlite" else "JSON"
+        sql = f"ALTER TABLE tournaments ADD COLUMN tasks {column_type}"
+        with db.engine.begin() as conn:
+            conn.execute(text(sql))
+        logger.info("✅ Added missing tournaments.tasks column")
+    except Exception as exc:
+        logger.warning(f"⚠️ Could not ensure tournaments.tasks column: {exc}")
+
+
 # ==================== HELPER FUNCTIONS ====================
+
+@app.before_first_request
+def _ensure_schema_on_first_request():
+    ensure_tournament_tasks_column()
 
 def log_system_event(user_id, symbol, message, is_error=False):
     """Log event and emit to WebSocket"""
