@@ -2966,7 +2966,30 @@ class TradingEngine:
                     logger.info(f"✅ {action.upper()} {symbol} for {node_name} ({exchange_type.upper()}) - ${notional:.2f} position (latency: {trade_duration:.3f}s)")
                     self.log_event(user_id, symbol, f"({exchange_type.upper()}) OPENED: {action.upper()} (${notional:.2f})")
                     
-                    # Track master position (for global position counting)
+                    # CRITICAL: Verify position exists before tracking/notifying/clearing pending
+                    await asyncio.sleep(0.1)  # Small delay to allow exchange to update
+                    position_found = False
+                    try:
+                        positions = await exchange.fetch_positions([ccxt_symbol])
+                        for pos in positions:
+                            if pos.get('symbol') == ccxt_symbol and pos.get('contracts'):
+                                contracts = float(pos['contracts'])
+                                if contracts != 0:
+                                    position_found = True
+                                    break
+                        
+                        if not position_found:
+                            logger.warning(f"⚠️ Position {symbol} NOT found on {exchange_type.upper()} after order placement - NOT tracking/notifying")
+                            # Keep pending active so trade can retry - DON'T clear it
+                            return  # Exit early - don't track/notify if position doesn't exist
+                    except Exception as e:
+                        logger.error(f"❌ Position verification failed for {symbol} on {exchange_type.upper()}: {e} - NOT tracking/notifying")
+                        # Keep pending active - DON'T clear it on verification failure
+                        return  # Exit early - don't track/notify if verification fails
+                    
+                    # Position verified successfully - now safe to track/clear pending
+                    
+                    # Track master position (for global position counting) - ONLY if verification succeeded
                     if is_master:
                         async with self._async_positions_lock:
                             self.master_positions[symbol] = {
@@ -2977,13 +3000,6 @@ class TradingEngine:
                                 'leverage': leverage
                             }
                             logger.info(f"📍 Tracked master position ({exchange_type.upper()}): {symbol} {action.upper()}")
-                            # Clear pending trade now that position is tracked
-                            async with self._async_pending_lock:
-                                pending_key = f"{symbol}_master"
-                                if 'master' in self.pending_trades:
-                                    self.pending_trades['master'].discard(pending_key)
-                                    logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
-                            await self._release_master_pending_symbol_async(symbol)
                     
                     # Set TP/SL if configured
                     tp_perc = float(signal.get('tp_perc', 0) or 0)
@@ -3054,13 +3070,18 @@ class TradingEngine:
                         except Exception as e:
                             logger.warning(f"[{node_name}] ({exchange_type.upper()}) SL order failed: {e}")
                     
-                    # Clear pending (async)
+                    # Clear pending (async) - ONLY after position is verified
                     async with self._async_pending_lock:
                         self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            pending_key = f"{symbol}_master"
+                            if 'master' in self.pending_trades:
+                                self.pending_trades['master'].discard(pending_key)
+                                logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position verified")
                     if is_master:
                         await self._release_master_pending_symbol_async(symbol)
                     
-                    # Notify via Telegram - always notify for master, or if user has chat_id
+                    # Notify via Telegram - ONLY after position is verified
                     try:
                         if self.telegram:
                             # Always send notification to admin channel
@@ -3933,11 +3954,11 @@ class TradingEngine:
 
                     # === NOW DO NON-CRITICAL OPERATIONS ===
                     
-                    # Verify position is actually open before clearing pending
+                    # CRITICAL: Verify position is actually open before tracking/notifying/clearing pending
+                    position_found = False
                     try:
                         time.sleep(0.1)  # Small delay to allow Binance to update
                         positions = client.futures_position_information()
-                        position_found = False
                         for p in positions:
                             if p['symbol'] == symbol:
                                 amt = float(p['positionAmt'])
@@ -3945,21 +3966,18 @@ class TradingEngine:
                                     position_found = True
                                     break
                         
-                        if position_found:
-                            with self.pending_lock:
-                                self.pending_trades.get(user_id, set()).discard(pending_key)
-                            if is_master_account:
-                                self._release_master_pending_symbol_sync(symbol)
-                        else:
-                            logger.warning(f"Position {symbol} not immediately visible after order placement")
+                        if not position_found:
+                            logger.warning(f"⚠️ Position {symbol} NOT found on Binance after order placement - NOT tracking/notifying")
+                            # Keep pending active so trade can retry - DON'T clear it
+                            return  # Exit early - don't track/notify if position doesn't exist
                     except Exception as e:
-                        logger.warning(f"Position verification failed for {symbol}: {e}")
-                        with self.pending_lock:
-                            self.pending_trades.get(user_id, set()).discard(pending_key)
-                            if is_master_account:
-                                self._release_master_pending_symbol_sync(symbol)
+                        logger.error(f"❌ Position verification failed for {symbol}: {e} - NOT tracking/notifying")
+                        # Keep pending active - DON'T clear it on verification failure
+                        return  # Exit early - don't track/notify if verification fails
                     
-                    # Track master position (for any master exchange)
+                    # Position verified successfully - now safe to track/notify/clear pending
+                    
+                    # Track master position (for any master exchange) - ONLY if verification succeeded
                     if is_master_account:
                         with self.positions_lock:
                             self.master_positions[symbol] = {
@@ -3970,14 +3988,18 @@ class TradingEngine:
                                 'leverage': leverage
                             }
                             logger.info(f"📍 Tracked master position: {symbol} {action.upper()}")
-                        # Clear pending trade now that position is tracked (for sync context)
-                        with self.pending_lock:
+                    
+                    # Clear pending trade now that position is verified and tracked
+                    with self.pending_lock:
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master_account:
                             if 'master' in self.pending_trades:
                                 self.pending_trades['master'].discard(pending_key)
-                                logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position tracked")
+                                logger.debug(f"🔓 MASTER: Cleared pending {symbol} after position verified")
+                    if is_master_account:
                         self._release_master_pending_symbol_sync(symbol)
                     
-                    # Telegram notifications (non-critical)
+                    # Telegram notifications - ONLY if position is verified
                     try:
                         if self.telegram:
                             self.telegram.notify_trade_opened(node_name, symbol, action.upper(), qty, price)
