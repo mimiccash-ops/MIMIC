@@ -1273,7 +1273,7 @@ class TradingEngine:
                             'is_paused': user.is_paused,
                             'risk': 0,
                             'leverage': 0,
-                            'max_pos': 0,
+                            'max_pos': user.max_positions or 0,
                             'risk_multiplier': 1.0,
                             'telegram_chat_id': user.telegram_chat_id if user.telegram_enabled else None,
                             'lock': threading.Lock(),
@@ -1349,7 +1349,7 @@ class TradingEngine:
                             'is_paused': user.is_paused,
                             'risk': 0,
                             'leverage': 0,
-                            'max_pos': 0,
+                            'max_pos': user.max_positions or 0,
                             'risk_multiplier': 1.0,
                             'telegram_chat_id': user.telegram_chat_id if user.telegram_enabled else None,
                             'lock': asyncio.Lock(),
@@ -1423,7 +1423,7 @@ class TradingEngine:
                         'is_paused': u.is_paused,
                         'risk': 0,
                         'leverage': 0,
-                        'max_pos': 0,
+                        'max_pos': u.max_positions or 0,
                         'risk_multiplier': 1.0,
                         'telegram_chat_id': u.telegram_chat_id if u.telegram_enabled else None,
                         'lock': threading.Lock(),
@@ -2604,7 +2604,15 @@ class TradingEngine:
         leverage = max(1, min(int(leverage), self.MAX_LEVERAGE))
         logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (admin global)")
         
-        max_pos = self.get_master_max_positions()
+        is_master_account = str(user_id).startswith('master')
+        global_max_pos = self.get_master_max_positions()
+        if is_master_account:
+            max_pos = global_max_pos
+        else:
+            user_max_pos = client_data.get('max_pos') or 0
+            max_pos = min(user_max_pos, global_max_pos) if user_max_pos else global_max_pos
+        # Keep for compatibility with cleanup paths; pending tracking is disabled
+        pending_key = f"{symbol}_master" if is_master_account else symbol
         
         if max_pos <= 0:
             max_pos = 1
@@ -2638,8 +2646,6 @@ class TradingEngine:
                 return
             
             # === CHECK MAX POSITIONS ===
-            is_master_account = str(user_id).startswith('master')
-            
             # Get or create user-specific async lock
             async with self._user_locks_async_lock:
                 if user_id not in self.user_async_locks:
@@ -2647,55 +2653,8 @@ class TradingEngine:
                 user_lock = self.user_async_locks[user_id]
             
             async with user_lock:
-                async with self._async_pending_lock:
-                    if user_id not in self.pending_trades:
-                        self.pending_trades[user_id] = set()
-                
-                # Check pending - for master accounts, check Redis first (source of truth)
-                pending_key = f"{symbol}_master" if is_master_account else symbol
-                
-                # Skip pending check if skip_position_check is True (higher-level function already handled it)
+                # Skip position limit check if skip_position_check is True (handled earlier for master)
                 skip_position_check = client_data.get('skip_position_check', False)
-                if not skip_position_check:
-                    # For master accounts, check Redis state first (cross-process coordination)
-                    if is_master_account:
-                        redis_client = self._get_sync_redis()
-                        if redis_client:
-                            try:
-                                redis_pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
-                                if redis_client.exists(redis_pending_key):
-                                    # Redis says it's pending - sync in-memory state
-                                    async with self._async_pending_lock:
-                                        if pending_key not in self.pending_trades[user_id]:
-                                            self.pending_trades[user_id].add(pending_key)
-                                    error_msg = f"({exchange_type.upper()}) Trade already in progress"
-                                    self.log_event(user_id, symbol, error_msg, is_error=True)
-                                    if self.telegram:
-                                        self.telegram.notify_error(node_name, symbol, error_msg)
-                                        chat_id = client_data.get('telegram_chat_id')
-                                        if chat_id:
-                                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                                    return
-                                else:
-                                    # Redis says it's not pending - clean up in-memory if stale
-                                    async with self._async_pending_lock:
-                                        if pending_key in self.pending_trades[user_id]:
-                                            self.pending_trades[user_id].discard(pending_key)
-                            except Exception as e:
-                                logger.debug(f"Redis pending check failed: {e}")
-                    
-                    # Check in-memory pending state (for non-master or fallback)
-                    async with self._async_pending_lock:
-                        if pending_key in self.pending_trades[user_id]:
-                            error_msg = f"({exchange_type.upper()}) Trade already in progress"
-                            self.log_event(user_id, symbol, error_msg, is_error=True)
-                            # Send Telegram notification about skipped trade
-                            if self.telegram:
-                                self.telegram.notify_error(node_name, symbol, error_msg)
-                                chat_id = client_data.get('telegram_chat_id')
-                                if chat_id:
-                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                            return
                 
                 try:
                     # Get open positions on THIS exchange (async)
@@ -2722,15 +2681,11 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
-                    global_open_count = client_data.get('global_open_count')
-                    # Enforce max positions limit including pending trades
-                    async with self._async_pending_lock:
-                        pending_count = len(self.pending_trades[user_id])
+                    if not skip_position_check:
+                        global_open_count = client_data.get('global_open_count')
                         base_open_count = global_open_count if global_open_count is not None else open_cnt
-                        total_positions = base_open_count + pending_count
-                        
-                        if total_positions >= max_pos:
-                            error_msg = f"({exchange_type.upper()}) Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
+                        if base_open_count >= max_pos:
+                            error_msg = f"({exchange_type.upper()}) Max positions reached ({base_open_count} open >= {max_pos})"
                             self.log_event(user_id, symbol, error_msg, is_error=True)
                             # Send Telegram notification about skipped trade
                             if self.telegram:
@@ -2739,8 +2694,7 @@ class TradingEngine:
                                 if chat_id:
                                     self.telegram.notify_user_error(chat_id, symbol, error_msg)
                             return
-                        
-                        self.pending_trades[user_id].add(pending_key)
+                        # No pending tracking (open positions only)
                 
                 except Exception as e:
                     error_msg = f"({exchange_type.upper()}) Position check failed: {str(e)[:100]}"
@@ -3472,7 +3426,7 @@ class TradingEngine:
             max_pos = 50  # Maximum cap
         
         # Log max_pos for debugging
-        logger.info(f"[{user_id}] Using max_positions={max_pos} for {symbol}")
+        logger.info(f"[{user_id}] Using max_positions={max_pos} for {symbol} (master={is_master_account})")
 
         try:
             # === CLOSE POSITION ===
@@ -3513,8 +3467,6 @@ class TradingEngine:
                 return
 
             # === CHECK MAX POSITIONS & EXISTING POSITION ===
-            is_master_account = str(user_id).startswith('master')
-            pending_key = f"{symbol}_master" if is_master_account else symbol
             
             # CRITICAL: Use per-user lock to serialize position checks for this specific user
             # This prevents race conditions where multiple signals for the same user check simultaneously
@@ -3527,54 +3479,8 @@ class TradingEngine:
             # Hold user lock for the ENTIRE check-and-order-placement operation
             # This ensures only one signal per user can check and place orders at a time
             with user_lock:
-                # Initialize pending trades set if needed
-                with self.pending_lock:
-                    if user_id not in self.pending_trades:
-                        self.pending_trades[user_id] = set()
-                
-                # Skip pending check if skip_position_check is True (higher-level function already handled it)
+                # Skip position limit check if skip_position_check is True (handled earlier for master)
                 skip_position_check = client_data.get('skip_position_check', False)
-                if not skip_position_check:
-                    # Check if already pending for this symbol FIRST (before any API calls)
-                    # For master accounts, check Redis first (source of truth for cross-process coordination)
-                    if is_master_account:
-                        redis_client = self._get_sync_redis()
-                        if redis_client:
-                            try:
-                                redis_pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
-                                if redis_client.exists(redis_pending_key):
-                                    # Redis says it's pending - sync in-memory state
-                                    with self.pending_lock:
-                                        if pending_key not in self.pending_trades[user_id]:
-                                            self.pending_trades[user_id].add(pending_key)
-                                    error_msg = f"Trade already in progress for {symbol}"
-                                    self.log_event(user_id, symbol, error_msg, is_error=True)
-                                    if self.telegram:
-                                        self.telegram.notify_error(node_name, symbol, error_msg)
-                                        chat_id = client_data.get('telegram_chat_id')
-                                        if chat_id:
-                                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                                    return
-                                else:
-                                    # Redis says it's not pending - clean up in-memory if stale
-                                    with self.pending_lock:
-                                        if pending_key in self.pending_trades[user_id]:
-                                            self.pending_trades[user_id].discard(pending_key)
-                            except Exception as e:
-                                logger.debug(f"Redis pending check failed: {e}")
-                    
-                    # Check in-memory pending state (for non-master or fallback)
-                    with self.pending_lock:
-                        if pending_key in self.pending_trades[user_id]:
-                            error_msg = f"Trade already in progress for {symbol}"
-                            self.log_event(user_id, symbol, error_msg, is_error=True)
-                            # Send Telegram notification
-                            if self.telegram:
-                                self.telegram.notify_error(node_name, symbol, error_msg)
-                                chat_id = client_data.get('telegram_chat_id')
-                                if chat_id:
-                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                            return
                 
                 # For master accounts with global check already done, only check if we have position on THIS exchange
                 # For slave accounts, do full per-account position check
@@ -3603,43 +3509,12 @@ class TradingEngine:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
                         return
                     
-                    global_open_count = client_data.get('global_open_count')
-                    # Enforce max positions limit including pending trades
-                    with self.pending_lock:
-                        pending_count = len(self.pending_trades[user_id])
+                    if not skip_position_check:
+                        global_open_count = client_data.get('global_open_count')
                         base_open_count = global_open_count if global_open_count is not None else open_cnt
-                        total_positions = base_open_count + pending_count
-                        
-                        # Log the check for debugging
-                        logger.debug(f"[{user_id}] Position check for {symbol}: open={base_open_count}, pending={pending_count}, total={total_positions}, max={max_pos}")
-                        
-                        # Enforce max positions strictly: if max_pos is 1, only allow 1 total position
-                        # Use strict comparison: if we're at or above max, reject
-                        if total_positions >= max_pos:
-                            error_msg = f"Max positions reached ({base_open_count} open + {pending_count} pending >= {max_pos})"
-                            self.log_event(user_id, symbol, error_msg, is_error=True)
-                            # Send Telegram notification
-                            if self.telegram:
-                                self.telegram.notify_error(node_name, symbol, error_msg)
-                                chat_id = client_data.get('telegram_chat_id')
-                                if chat_id:
-                                    self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                            return
-                        
-                        # All checks passed - mark as pending IMMEDIATELY to prevent concurrent signals
-                        # This MUST happen atomically with the check above, before releasing the lock
-                        self.pending_trades[user_id].add(pending_key)
-                        
-                        # Double-check: After marking as pending, verify we didn't exceed limit
-                        # This is a safety net in case of any race condition
-                        final_pending_count = len(self.pending_trades[user_id])
-                        final_total = base_open_count + final_pending_count
-                        if final_total > max_pos:
-                            # We exceeded the limit - remove from pending and reject
-                            self.pending_trades[user_id].discard(pending_key)
-                            if is_master_account:
-                                self._release_master_pending_symbol_sync(symbol)
-                            error_msg = f"Max positions exceeded ({base_open_count} open + {final_pending_count} pending > {max_pos})"
+                        logger.debug(f"[{user_id}] Position check for {symbol}: open={base_open_count}, max={max_pos}")
+                        if base_open_count >= max_pos:
+                            error_msg = f"Max positions reached ({base_open_count} open >= {max_pos})"
                             self.log_event(user_id, symbol, error_msg, is_error=True)
                             # Send Telegram notification
                             if self.telegram:
@@ -3675,11 +3550,6 @@ class TradingEngine:
                             chat_id = client_data.get('telegram_chat_id')
                             if chat_id:
                                 self.telegram.notify_user_error(chat_id, symbol, error_msg)
-                        # Clear pending trade
-                        with self.pending_lock:
-                            self.pending_trades.get(user_id, set()).discard(pending_key)
-                        if is_master_account:
-                            self._release_master_pending_symbol_sync(symbol)
                         return
 
                 # Set leverage
@@ -4252,88 +4122,32 @@ class TradingEngine:
         # Initialize for tracking open symbols globally
         open_symbols = set()
         remaining_master_slots = None
-        reserved_master_symbol = False
         
         # === GLOBAL POSITION CHECK FOR MASTER EXCHANGES ===
         if self.master_clients and action != 'close':
             async with self._async_master_lock:
                 # Check pending trades first (prevents race conditions)
                 async with self._async_pending_lock:
-                    pending_key = f"{clean_symbol}_master"
-                    master_pending = self.pending_trades.get('master', set())
-                    if pending_key in master_pending:
-                        error_msg = f"Master position on {clean_symbol} already in progress"
+                    # Check current positions (open only; no pending reservations)
+                    global_pos_count, open_symbols = await self.get_global_master_position_count_async()
+                    total_count = len(open_symbols)
+
+                    logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, open_symbols={open_symbols}, total={total_count}")
+
+                    if clean_symbol in open_symbols:
+                        error_msg = f"Already have position on {clean_symbol}"
                         logger.warning(f"⚠️ MASTER: {error_msg}")
                         if self.telegram:
                             self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                        # Continue with slaves, don't return
+                        # Continue with slaves, don't return - slaves may need this signal
                     else:
-                        # Check current positions
-                        global_pos_count, open_symbols = await self.get_global_master_position_count_async()
-
-                        # Include pending positions in count (cross-process via Redis if available)
-                        pending_symbols = await self._get_master_pending_symbols_async()
-                        if not pending_symbols:
-                            pending_symbols = set()
-                            for p in master_pending:
-                                if '_' in p:
-                                    pending_symbols.add(p.split('_')[0])
-                                else:
-                                    pending_symbols.add(p)
-                        all_symbols = open_symbols | pending_symbols
-                        total_count = len(all_symbols)
-
-                        logger.info(f"🔧 Master: max_positions={max_pos_master}, current_global={global_pos_count}, pending_symbols={pending_symbols}, open_symbols={open_symbols}, total={total_count}")
-
-                        if clean_symbol in all_symbols:
-                            error_msg = f"Already have position or pending on {clean_symbol}"
-                            logger.warning(f"⚠️ MASTER: {error_msg}")
+                        if total_count >= max_pos_master:
+                            error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}"
+                            logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}")
                             if self.telegram:
                                 self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                            # Continue with slaves, don't return - slaves may need this signal
-                        else:
-                            # Reserve a global slot in Redis (prevents multi-worker double opens)
-                            reserve_result = await self._reserve_master_pending_symbol_async(
-                                clean_symbol, max_pos_master, len(open_symbols)
-                            )
-                            if reserve_result == "max":
-                                error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
-                                logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
-                                if self.telegram:
-                                    self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                                return
-                            if reserve_result == "already":
-                                error_msg = f"Already pending on {clean_symbol}"
-                                logger.warning(f"⚠️ MASTER: {error_msg}")
-                                if self.telegram:
-                                    self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                                # Continue with slaves, don't return
-                            elif reserve_result is None:
-                                if total_count >= max_pos_master:
-                                    error_msg = f"Max positions reached ({total_count}/{max_pos_master}) - open: {global_pos_count}, pending: {len(pending_symbols)}"
-                                    logger.error(f"❌ MASTER: {clean_symbol}: {error_msg}. Open symbols: {open_symbols}, Pending: {pending_symbols}")
-                                    if self.telegram:
-                                        self.telegram.notify_error("MASTER", clean_symbol, error_msg)
-                                    return
-                                # No Redis guard available, fall back to in-process pending
-                                if 'master' not in self.pending_trades:
-                                    self.pending_trades['master'] = set()
-                                self.pending_trades['master'].add(pending_key)
-                                logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (no Redis guard)")
-                                pending_symbols.add(clean_symbol)
-                                total_count = len(open_symbols | pending_symbols)
-                                remaining_master_slots = max_pos_master - total_count
-                                reserved_master_symbol = True
-                            else:
-                                # Mark this trade as pending BEFORE opening to prevent race conditions
-                                if 'master' not in self.pending_trades:
-                                    self.pending_trades['master'] = set()
-                                self.pending_trades['master'].add(pending_key)
-                                logger.debug(f"🔒 MASTER: Marked {clean_symbol} as pending (preventing race condition)")
-                                pending_symbols.add(clean_symbol)
-                                total_count = len(open_symbols | pending_symbols)
-                                remaining_master_slots = max_pos_master - total_count
-                                reserved_master_symbol = True
+                            return
+                        remaining_master_slots = max_pos_master - total_count
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0
@@ -4359,13 +4173,7 @@ class TradingEngine:
                 error_str = str(e).lower()
                 if 'invalid symbol' in error_str or '-1121' in str(e):
                     symbol_is_invalid = True
-                    logger.warning(f"⚠️ {clean_symbol} is not a valid Binance Futures symbol - releasing pending")
-                    # Release pending symbol immediately for invalid symbols
-                    await self._release_master_pending_symbol_async(clean_symbol)
-                    # Clear in-memory pending too
-                    if 'master' in self.pending_trades:
-                        pending_key = f"{clean_symbol}_master"
-                        self.pending_trades['master'].discard(pending_key)
+                    logger.warning(f"⚠️ {clean_symbol} is not a valid Binance Futures symbol")
                     return  # Don't process invalid symbols
 
         # Collect all users to execute trades for
@@ -4377,11 +4185,7 @@ class TradingEngine:
         if self.master_clients:
             master_clients_to_use = self.master_clients
             if remaining_master_slots is not None:
-                # Ensure we still execute for the current symbol when it was reserved
-                if reserved_master_symbol:
-                    master_clients_to_use = self.master_clients[:max(1, remaining_master_slots)]
-                else:
-                    master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
+                master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
             logger.info(f"📊 Preparing {clean_symbol} for {len(master_clients_to_use)} MASTER exchanges")
             for master_data in master_clients_to_use:
                 master_data_copy = master_data.copy()
@@ -4480,15 +4284,6 @@ class TradingEngine:
             logger.error(f"   Strategy ID: {strategy_id}")
             if self.telegram:
                 self.telegram.notify_error("SYSTEM", clean_symbol, error_msg)
-            # Clear any pending reservation for this symbol to avoid stale blocks
-            if reserved_master_symbol:
-                try:
-                    await self._release_master_pending_symbol_async(clean_symbol)
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to release pending symbol {clean_symbol} on NO USERS: {e}")
-                if 'master' in self.pending_trades:
-                    pending_key = f"{clean_symbol}_master"
-                    self.pending_trades['master'].discard(pending_key)
             return
         
         logger.info(f"✅ Processing signal for {len(all_users)} users ({len(self.master_clients) if self.master_clients else 0} master, {len(slaves)} slaves)")
