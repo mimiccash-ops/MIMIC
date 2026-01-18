@@ -590,7 +590,7 @@
 </div>
 
 <!-- Approve Modal -->
-<div id="approveModal" class="payout-modal modal-accent-green" onclick="if(event.target===this)closeModal('approveModal')">
+<div id="approveModal" class="payout-modal modal-accent-green" style="display:none" onclick="if(event.target===this)closeModal('approveModal')">
     <div class="payout-modal-content">
         <div class="payout-modal-header">
             <div class="payout-modal-title">
@@ -621,7 +621,7 @@
 </div>
 
 <!-- Reject Modal -->
-<div id="rejectModal" class="payout-modal modal-accent-red" onclick="if(event.target===this)closeModal('rejectModal')">
+<div id="rejectModal" class="payout-modal modal-accent-red" style="display:none" onclick="if(event.target===this)closeModal('rejectModal')">
     <div class="payout-modal-content">
         <div class="payout-modal-header">
             <div class="payout-modal-title">
@@ -655,7 +655,7 @@
 </div>
 
 <!-- Mark Paid Modal -->
-<div id="payModal" class="payout-modal modal-accent-cyan" onclick="if(event.target===this)closeModal('payModal')">
+<div id="payModal" class="payout-modal modal-accent-cyan" style="display:none" onclick="if(event.target===this)closeModal('payModal')">
     <div class="payout-modal-content">
         <div class="payout-modal-header">
             <div class="payout-modal-title">
@@ -690,7 +690,7 @@
 </div>
 
 <!-- Details Modal -->
-<div id="detailsModal" class="payout-modal modal-accent-purple" onclick="if(event.target===this)closeModal('detailsModal')">
+<div id="detailsModal" class="payout-modal modal-accent-purple" style="display:none" onclick="if(event.target===this)closeModal('detailsModal')">
     <div class="payout-modal-content" style="max-width: 540px;">
         <div class="payout-modal-header">
             <div class="payout-modal-title">
@@ -713,12 +713,14 @@
 <script>
 function openModal(id) {
     const modal = document.getElementById(id);
+    modal.style.display = 'flex';
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
 
 function closeModal(id) {
     const modal = document.getElementById(id);
+    modal.style.display = 'none';
     modal.classList.remove('active');
     document.body.style.overflow = '';
 }
