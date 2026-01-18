@@ -3417,7 +3417,15 @@ class TradingEngine:
         leverage = max(1, min(int(leverage), self.MAX_LEVERAGE))
         logger.info(f"[{node_name}] {symbol}: Final leverage = {leverage}x (admin global)")
         
-        max_pos = self.get_master_max_positions()
+        is_master_account = str(user_id).startswith('master')
+        global_max_pos = self.get_master_max_positions()
+        if is_master_account:
+            max_pos = global_max_pos
+        else:
+            user_max_pos = client_data.get('max_pos') or 0
+            max_pos = min(user_max_pos, global_max_pos) if user_max_pos else global_max_pos
+        # Keep for compatibility with cleanup paths; pending tracking is disabled
+        pending_key = f"{symbol}_master" if is_master_account else symbol
         
         # Validate max_pos is positive and reasonable
         if max_pos <= 0:
