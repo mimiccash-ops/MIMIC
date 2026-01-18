@@ -4252,6 +4252,7 @@ class TradingEngine:
         # Initialize for tracking open symbols globally
         open_symbols = set()
         remaining_master_slots = None
+        reserved_master_symbol = False
         
         # === GLOBAL POSITION CHECK FOR MASTER EXCHANGES ===
         if self.master_clients and action != 'close':
@@ -4322,6 +4323,7 @@ class TradingEngine:
                                 pending_symbols.add(clean_symbol)
                                 total_count = len(open_symbols | pending_symbols)
                                 remaining_master_slots = max_pos_master - total_count
+                                reserved_master_symbol = True
                             else:
                                 # Mark this trade as pending BEFORE opening to prevent race conditions
                                 if 'master' not in self.pending_trades:
@@ -4331,6 +4333,7 @@ class TradingEngine:
                                 pending_symbols.add(clean_symbol)
                                 total_count = len(open_symbols | pending_symbols)
                                 remaining_master_slots = max_pos_master - total_count
+                                reserved_master_symbol = True
 
         # Get master's current state (from primary Binance if available)
         master_entry_price, master_balance, master_trade_cost = 0.0, 0.0, 0.0
@@ -4374,7 +4377,11 @@ class TradingEngine:
         if self.master_clients:
             master_clients_to_use = self.master_clients
             if remaining_master_slots is not None:
-                master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
+                # Ensure we still execute for the current symbol when it was reserved
+                if reserved_master_symbol:
+                    master_clients_to_use = self.master_clients[:max(1, remaining_master_slots)]
+                else:
+                    master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
             logger.info(f"📊 Preparing {clean_symbol} for {len(master_clients_to_use)} MASTER exchanges")
             for master_data in master_clients_to_use:
                 master_data_copy = master_data.copy()
@@ -4474,13 +4481,14 @@ class TradingEngine:
             if self.telegram:
                 self.telegram.notify_error("SYSTEM", clean_symbol, error_msg)
             # Clear any pending reservation for this symbol to avoid stale blocks
-            try:
-                await self._release_master_pending_symbol_async(clean_symbol)
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to release pending symbol {clean_symbol} on NO USERS: {e}")
-            if 'master' in self.pending_trades:
-                pending_key = f"{clean_symbol}_master"
-                self.pending_trades['master'].discard(pending_key)
+            if reserved_master_symbol:
+                try:
+                    await self._release_master_pending_symbol_async(clean_symbol)
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to release pending symbol {clean_symbol} on NO USERS: {e}")
+                if 'master' in self.pending_trades:
+                    pending_key = f"{clean_symbol}_master"
+                    self.pending_trades['master'].discard(pending_key)
             return
         
         logger.info(f"✅ Processing signal for {len(all_users)} users ({len(self.master_clients) if self.master_clients else 0} master, {len(slaves)} slaves)")
