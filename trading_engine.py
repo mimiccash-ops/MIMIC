@@ -788,15 +788,17 @@ class TradingEngine:
 
     def get_master_max_positions(self) -> int:
         """Get the current max_positions setting for master account (read dynamically from Redis/database)"""
+        # Always read fresh - don't rely on cached values
         val = self._get_global_setting('max_positions', getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
         try:
-            result = max(1, int(val))
-            # Log the value being used for debugging
-            logger.debug(f"🔧 get_master_max_positions: reading value={val}, returning={result}")
+            result = max(1, int(float(str(val))))  # Convert to string first, then float, then int (handles "1.0" -> 1)
+            # Log the value being used for debugging - use INFO level so it's visible
+            logger.info(f"🔧 get_master_max_positions: read value='{val}' (type={type(val).__name__}), returning={result}")
             return result
         except (TypeError, ValueError) as e:
-            logger.warning(f"⚠️ Failed to parse max_positions value '{val}': {e}, using default")
-            return max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
+            default_val = max(1, getattr(Config, 'GLOBAL_MAX_POSITIONS', 10))
+            logger.warning(f"⚠️ Failed to parse max_positions value '{val}' (type={type(val).__name__}): {e}, using default={default_val}")
+            return default_val
 
     def _get_global_setting(self, key: str, default):
         """Read global trading settings from Redis/app/module cache with fallback.
@@ -813,36 +815,41 @@ class TradingEngine:
                 sync_redis = redis.from_url(redis_url)
                 cached_val = sync_redis.get(f'global_settings:{key}')
                 if cached_val is not None:
-                    val = cached_val.decode() if isinstance(cached_val, (bytes, bytearray)) else cached_val
+                    # Decode bytes to string if needed
+                    val = cached_val.decode('utf-8') if isinstance(cached_val, (bytes, bytearray)) else str(cached_val)
                     # Update cached reference for consistency, but Redis value takes precedence
                     if self._global_settings is not None:
                         self._global_settings[key] = val
-                    logger.debug(f"📊 Read {key}={val} from Redis")
+                    logger.debug(f"📊 Read {key}={val} from Redis (type: {type(val).__name__})")
                     return val
+                else:
+                    logger.debug(f"📊 Redis key 'global_settings:{key}' not found, trying fallbacks")
         except Exception as e:
-            logger.debug(f"Could not read global setting {key} from Redis: {e}")
+            logger.warning(f"⚠️ Could not read global setting {key} from Redis: {e}")
 
         # Fallback to app module (works for same process, but worker is separate)
-        # Only use this if Redis is not available
+        # NOTE: This may be stale if worker is a separate process, so Redis is preferred
         try:
             import app as app_module
             if hasattr(app_module, 'GLOBAL_TRADE_SETTINGS'):
                 val = app_module.GLOBAL_TRADE_SETTINGS.get(key, default)
+                # Convert to string for consistency
+                val = str(val) if val is not None else default
                 # Update cache but log that we're using app module (may be stale if worker is separate)
                 if self._global_settings is not None:
                     self._global_settings[key] = val
-                logger.debug(f"📊 Read {key}={val} from app module GLOBAL_TRADE_SETTINGS")
+                logger.info(f"📊 Read {key}={val} from app module GLOBAL_TRADE_SETTINGS (Redis unavailable/not found)")
                 return val
         except (ImportError, AttributeError) as e:
             logger.debug(f"Could not read GLOBAL_TRADE_SETTINGS from app module: {e}")
 
-        # Use cached reference if available (last resort)
+        # Use cached reference if available (last resort - may be stale)
         if self._global_settings is not None:
             cached = self._global_settings.get(key, default)
-            logger.debug(f"📊 Read {key}={cached} from cache (fallback)")
+            logger.warning(f"⚠️ Read {key}={cached} from stale cache (Redis and app module unavailable)")
             return cached
 
-        logger.debug(f"📊 Using default {key}={default}")
+        logger.warning(f"⚠️ Using default {key}={default} (no Redis, app module, or cache available)")
         return default
 
     # ==================== GLOBAL MASTER PENDING (REDIS) ====================

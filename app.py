@@ -6286,15 +6286,16 @@ def admin_update_global_settings():
         engine.set_global_settings(GLOBAL_TRADE_SETTINGS)  # Update engine cache
         
         # Store in Redis so worker process can read it immediately
+        # CRITICAL: Store as strings to ensure type consistency when reading
         if redis_client:
             try:
-                redis_client.set('global_settings:max_positions', new_max_pos)
-                redis_client.set('global_settings:risk_perc', GLOBAL_TRADE_SETTINGS['risk_perc'])
-                redis_client.set('global_settings:leverage', GLOBAL_TRADE_SETTINGS['leverage'])
-                redis_client.set('global_settings:tp_perc', new_tp)
-                redis_client.set('global_settings:sl_perc', new_sl)
-                redis_client.set('global_settings:min_balance', new_min_balance)
-                logger.debug(f"✅ Global settings stored in Redis for worker access")
+                redis_client.set('global_settings:max_positions', str(new_max_pos))
+                redis_client.set('global_settings:risk_perc', str(GLOBAL_TRADE_SETTINGS['risk_perc']))
+                redis_client.set('global_settings:leverage', str(GLOBAL_TRADE_SETTINGS['leverage']))
+                redis_client.set('global_settings:tp_perc', str(new_tp))
+                redis_client.set('global_settings:sl_perc', str(new_sl))
+                redis_client.set('global_settings:min_balance', str(new_min_balance))
+                logger.info(f"✅ Global settings stored in Redis: max_positions={new_max_pos} (as string for worker access)")
             except Exception as redis_err:
                 logger.warning(f"Could not store settings in Redis: {redis_err}")
         
