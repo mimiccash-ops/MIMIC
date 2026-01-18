@@ -290,20 +290,70 @@
                     </div>
                 </div>
             </a>
-            
-            <!-- Payouts -->
-            <a href="{{ url_for('admin_payouts') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
-               style="border-color: rgba(34, 197, 94, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-md);">
-                        <i class="fas fa-wallet" style="color: #22c55e;"></i>
+        </div>
+
+        <!-- Payment Management Menu -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-credit-card text-purple"></i>
+                    <span>Payment Management</span>
+                </h2>
+                <span class="text-xs text-muted">Subscriptions, wallets, payouts</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button type="button" onclick="openSectionAndScroll('settings', 'admin-subscription-management')" 
+                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                        style="border-color: rgba(234, 179, 8, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-md);">
+                            <i class="fas fa-crown" style="color: #eab308;"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">Subscription Settings</div>
+                            <div class="text-xs text-muted">Plans, access, revenue</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="font-semibold text-sm" data-i18n="nav.payouts">Payouts</div>
-                        <div class="text-xs text-muted" data-i18n="admin.referralPayouts">Referral payouts</div>
+                </button>
+                <button type="button" onclick="openSectionAndScroll('settings', 'wallet-addresses-grid', openWalletSettingsModal)" 
+                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                        style="border-color: rgba(139, 92, 246, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-md);">
+                            <i class="fas fa-wallet" style="color: #8b5cf6;"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">Wallet Settings</div>
+                            <div class="text-xs text-muted">Payment addresses</div>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </button>
+                <button type="button" onclick="openSectionAndScroll('settings', 'pending-payments-list')" 
+                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                        style="border-color: rgba(251, 191, 36, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-md);">
+                            <i class="fas fa-clock" style="color: #fbbf24;"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">Pending Payments</div>
+                            <div class="text-xs text-muted">Verify user payments</div>
+                        </div>
+                    </div>
+                </button>
+                <a href="{{ url_for('admin_payouts') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+                   style="border-color: rgba(34, 197, 94, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-md);">
+                            <i class="fas fa-hand-holding-usd" style="color: #22c55e;"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-sm">Payouts</div>
+                            <div class="text-xs text-muted">Referral withdrawals</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
         </div>
 
         <!-- Platform Stats Row -->
@@ -378,7 +428,7 @@
     <!-- ==================== TRADING (Stats + Positions + History) ==================== -->
     <div class="section-content" data-section="trading">
         <!-- Stats -->
-        <div class="card mb-6">
+        <div class="card mb-6" id="admin-subscription-management">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h2 class="font-display font-semibold flex items-center gap-2">
                     <i class="fas fa-chart-line text-magenta"></i>
@@ -4460,6 +4510,26 @@
         ]).finally(() => {
             if (icon) icon.classList.remove('fa-spin');
         });
+    }
+
+    function openSectionAndScroll(section, targetId, callback) {
+        if (typeof window.showSection === 'function') {
+            window.showSection(section);
+        }
+        const runCallback = typeof callback === 'function';
+        if (runCallback || targetId) {
+            setTimeout(() => {
+                if (targetId) {
+                    const el = document.getElementById(targetId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+                if (runCallback) {
+                    callback();
+                }
+            }, 150);
+        }
     }
     
     // Load tasks when switching to tasks section

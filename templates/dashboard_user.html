@@ -1351,6 +1351,64 @@
         </a>
     </div>
 
+    <!-- Payment Management Menu -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold flex items-center gap-2">
+                <i class="fas fa-credit-card text-purple-400"></i>
+                <span>Payment Management</span>
+            </h2>
+            <span class="text-xs text-white/40">Subscription & billing</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button type="button" onclick="openSectionAndScroll('subscription', 'subscription-status-card')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08)); border-color: rgba(59, 130, 246, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <i class="fas fa-crown text-xl" style="color: #60a5fa;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Subscription</div>
+                        <div class="text-xs text-white/50">Status & access</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+            <button type="button" onclick="openSectionAndScroll('subscription', 'upgrade-section')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.08)); border-color: rgba(139, 92, 246, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <i class="fas fa-wallet text-xl" style="color: #a78bfa;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Make a Payment</div>
+                        <div class="text-xs text-white/50">Upgrade your plan</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+            <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(14, 165, 233, 0.08)); border-color: rgba(34, 211, 238, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.3);">
+                        <i class="fas fa-history text-xl" style="color: #22d3ee;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Payment History</div>
+                        <div class="text-xs text-white/50">Track your payments</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+        </div>
+    </div>
+
     <!-- Open Positions Panel with HTMX polling -->
     <div class="positions-panel">
         <div class="panel-header">
@@ -1772,7 +1830,7 @@
     </div>
     
     <!-- Payment History -->
-    <div class="section-card">
+    <div class="section-card" id="payment-history-section">
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-history text-cyan-400"></i>
@@ -2839,9 +2897,23 @@
     let currentPaymentId = null;
     let availableNetworks = [];
 
+    function openSectionAndScroll(section, targetId) {
+        if (typeof window.showSection === 'function') {
+            window.showSection(section);
+        }
+        if (targetId) {
+            setTimeout(() => {
+                const el = document.getElementById(targetId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 150);
+        }
+    }
+
     function showUpgradeModal() {
         // Navigate to subscription section
-        showSection('subscription');
+        openSectionAndScroll('subscription', 'upgrade-section');
     }
     
     function loadSubscriptionStatus() {
