@@ -3018,11 +3018,21 @@ class TradingEngine:
                         
                         if not position_found:
                             logger.warning(f"⚠️ Position {symbol} NOT found on {exchange_type.upper()} after order placement - NOT tracking/notifying")
-                            # Keep pending active so trade can retry - DON'T clear it
+                            # Release pending to avoid stale blocks; next signal can retry
+                            if is_master:
+                                await self._release_master_pending_symbol_async(symbol)
+                                if 'master' in self.pending_trades:
+                                    pending_key = f"{symbol}_master"
+                                    self.pending_trades['master'].discard(pending_key)
                             return  # Exit early - don't track/notify if position doesn't exist
                     except Exception as e:
                         logger.error(f"❌ Position verification failed for {symbol} on {exchange_type.upper()}: {e} - NOT tracking/notifying")
-                        # Keep pending active - DON'T clear it on verification failure
+                        # Release pending to avoid stale blocks; next signal can retry
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
+                            if 'master' in self.pending_trades:
+                                pending_key = f"{symbol}_master"
+                                self.pending_trades['master'].discard(pending_key)
                         return  # Exit early - don't track/notify if verification fails
                     
                     # Position verified successfully - now safe to track/clear pending
@@ -4006,11 +4016,21 @@ class TradingEngine:
                         
                         if not position_found:
                             logger.warning(f"⚠️ Position {symbol} NOT found on Binance after order placement - NOT tracking/notifying")
-                            # Keep pending active so trade can retry - DON'T clear it
+                            # Release pending to avoid stale blocks; next signal can retry
+                            if is_master_account:
+                                self._release_master_pending_symbol_sync(symbol)
+                                if 'master' in self.pending_trades:
+                                    pending_key = f"{symbol}_master"
+                                    self.pending_trades['master'].discard(pending_key)
                             return  # Exit early - don't track/notify if position doesn't exist
                     except Exception as e:
                         logger.error(f"❌ Position verification failed for {symbol}: {e} - NOT tracking/notifying")
-                        # Keep pending active - DON'T clear it on verification failure
+                        # Release pending to avoid stale blocks; next signal can retry
+                        if is_master_account:
+                            self._release_master_pending_symbol_sync(symbol)
+                            if 'master' in self.pending_trades:
+                                pending_key = f"{symbol}_master"
+                                self.pending_trades['master'].discard(pending_key)
                         return  # Exit early - don't track/notify if verification fails
                     
                     # Position verified successfully - now safe to track/notify/clear pending
@@ -4453,6 +4473,14 @@ class TradingEngine:
             logger.error(f"   Strategy ID: {strategy_id}")
             if self.telegram:
                 self.telegram.notify_error("SYSTEM", clean_symbol, error_msg)
+            # Clear any pending reservation for this symbol to avoid stale blocks
+            try:
+                await self._release_master_pending_symbol_async(clean_symbol)
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to release pending symbol {clean_symbol} on NO USERS: {e}")
+            if 'master' in self.pending_trades:
+                pending_key = f"{clean_symbol}_master"
+                self.pending_trades['master'].discard(pending_key)
             return
         
         logger.info(f"✅ Processing signal for {len(all_users)} users ({len(self.master_clients) if self.master_clients else 0} master, {len(slaves)} slaves)")

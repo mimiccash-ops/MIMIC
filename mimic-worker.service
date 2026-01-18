@@ -48,6 +48,7 @@ Group=mimic
 WorkingDirectory=/var/www/mimic
 
 # Environment
+Environment=REDIS_URL=redis://127.0.0.1:6379/0
 Environment="FLASK_ENV=production"
 Environment="PYTHONUNBUFFERED=1"
 Environment="PATH=/var/www/mimic/venv/bin:/usr/local/bin:/usr/bin:/bin"
