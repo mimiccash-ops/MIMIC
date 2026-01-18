@@ -1462,8 +1462,8 @@
                 </h2>
                 <div class="flex items-center gap-2">
                     <select id="tournament-status-filter" class="input" style="width: auto;" onchange="loadTournaments()">
-                        <option value="all">All Status</option>
-                        <option value="active" selected>Active</option>
+                        <option value="all" selected>All Status</option>
+                        <option value="active">Active</option>
                         <option value="upcoming">Upcoming</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
@@ -5086,7 +5086,12 @@
             if (data.success) {
                 showToast(data.message || 'Tournament saved successfully', 'success');
                 closeCreateTournamentModal();
-                // Reload tournaments list
+                // Reload tournaments list - ensure we show all statuses to see the new tournament
+                const filterSelect = document.getElementById('tournament-status-filter');
+                if (filterSelect && filterSelect.value === 'active') {
+                    // If filtering by active only, switch to 'all' or 'upcoming' to see new tournament
+                    filterSelect.value = 'all';
+                }
                 setTimeout(() => {
                     loadTournaments();
                 }, 500);
