@@ -227,30 +227,425 @@
     </div>
 </div>
 
+<!-- Modal Styles -->
+<style>
+    /* Modal Overlay */
+    .payout-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .payout-modal.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    /* Modal Container */
+    .payout-modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        background: linear-gradient(165deg, rgba(15, 15, 24, 0.98) 0%, rgba(8, 8, 14, 0.98) 100%);
+        border: 1px solid rgba(0, 245, 255, 0.2);
+        border-radius: 16px;
+        overflow: hidden;
+        transform: translateY(20px) scale(0.95);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 
+            0 0 60px rgba(0, 0, 0, 0.8),
+            0 0 40px rgba(0, 245, 255, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    
+    .payout-modal.active .payout-modal-content {
+        transform: translateY(0) scale(1);
+    }
+    
+    /* Modal Header */
+    .payout-modal-header {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: linear-gradient(135deg, rgba(0, 245, 255, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+        border-bottom: 1px solid rgba(0, 245, 255, 0.15);
+    }
+    
+    .payout-modal-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent-color, #00f5ff), transparent);
+    }
+    
+    .payout-modal-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: 'Orbitron', 'Space Grotesk', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--accent-color, #00f5ff);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-shadow: 0 0 20px var(--accent-color, rgba(0, 245, 255, 0.5));
+    }
+    
+    .payout-modal-title i {
+        font-size: 1.25rem;
+        filter: drop-shadow(0 0 8px currentColor);
+    }
+    
+    .payout-modal-close {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    
+    .payout-modal-close:hover {
+        background: rgba(255, 0, 64, 0.15);
+        border-color: rgba(255, 0, 64, 0.4);
+        color: #ff0040;
+        transform: rotate(90deg);
+        box-shadow: 0 0 20px rgba(255, 0, 64, 0.3);
+    }
+    
+    /* Modal Body */
+    .payout-modal-body {
+        padding: 24px;
+    }
+    
+    .payout-modal-body p {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+    
+    /* Form Elements */
+    .payout-field {
+        margin-bottom: 20px;
+    }
+    
+    .payout-field:last-child {
+        margin-bottom: 0;
+    }
+    
+    .payout-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    
+    .payout-label .required {
+        color: #ff0040;
+    }
+    
+    .payout-input,
+    .payout-textarea {
+        width: 100%;
+        padding: 14px 16px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        transition: all 0.25s ease;
+    }
+    
+    .payout-input::placeholder,
+    .payout-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.25);
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .payout-input:focus,
+    .payout-textarea:focus {
+        outline: none;
+        border-color: var(--accent-color, #00f5ff);
+        background: rgba(0, 0, 0, 0.6);
+        box-shadow: 
+            0 0 0 3px rgba(0, 245, 255, 0.1),
+            0 0 20px rgba(0, 245, 255, 0.15),
+            inset 0 0 20px rgba(0, 245, 255, 0.03);
+    }
+    
+    .payout-textarea {
+        resize: none;
+        min-height: 80px;
+    }
+    
+    /* Modal Footer */
+    .payout-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 20px 24px;
+        background: rgba(0, 0, 0, 0.3);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Buttons */
+    .payout-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .payout-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .payout-btn:hover::before {
+        left: 100%;
+    }
+    
+    .payout-btn-cancel {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .payout-btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #fff;
+    }
+    
+    .payout-btn-success {
+        background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 200, 100, 0.15) 100%);
+        border: 1px solid rgba(0, 255, 136, 0.4);
+        color: #00ff88;
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    }
+    
+    .payout-btn-success:hover {
+        background: linear-gradient(135deg, rgba(0, 255, 136, 0.35) 0%, rgba(0, 200, 100, 0.25) 100%);
+        border-color: rgba(0, 255, 136, 0.6);
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.35), 0 4px 15px rgba(0, 255, 136, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .payout-btn-danger {
+        background: linear-gradient(135deg, rgba(255, 0, 64, 0.2) 0%, rgba(200, 0, 50, 0.15) 100%);
+        border: 1px solid rgba(255, 0, 64, 0.4);
+        color: #ff0040;
+        box-shadow: 0 0 20px rgba(255, 0, 64, 0.2);
+    }
+    
+    .payout-btn-danger:hover {
+        background: linear-gradient(135deg, rgba(255, 0, 64, 0.35) 0%, rgba(200, 0, 50, 0.25) 100%);
+        border-color: rgba(255, 0, 64, 0.6);
+        box-shadow: 0 0 30px rgba(255, 0, 64, 0.35), 0 4px 15px rgba(255, 0, 64, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .payout-btn-primary {
+        background: linear-gradient(135deg, rgba(0, 245, 255, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+        border: 1px solid rgba(0, 245, 255, 0.4);
+        color: #00f5ff;
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+    }
+    
+    .payout-btn-primary:hover {
+        background: linear-gradient(135deg, rgba(0, 245, 255, 0.35) 0%, rgba(139, 92, 246, 0.25) 100%);
+        border-color: rgba(0, 245, 255, 0.6);
+        box-shadow: 0 0 30px rgba(0, 245, 255, 0.35), 0 4px 15px rgba(0, 245, 255, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    /* Details Grid */
+    .payout-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+    
+    .payout-details-grid.full-width {
+        grid-template-columns: 1fr;
+    }
+    
+    .payout-detail-item {
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+    
+    .payout-detail-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.35);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 4px;
+    }
+    
+    .payout-detail-value {
+        font-size: 0.95rem;
+        color: #fff;
+        font-weight: 500;
+    }
+    
+    .payout-detail-value.mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+    }
+    
+    .payout-detail-value.highlight-green {
+        color: #00ff88;
+        font-weight: 700;
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+    }
+    
+    .payout-detail-value.address-box {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 6px;
+        word-break: break-all;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Loading State */
+    .payout-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        gap: 16px;
+    }
+    
+    .payout-loading i {
+        font-size: 2rem;
+        color: #00f5ff;
+        filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.5));
+    }
+    
+    .payout-loading span {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+    
+    /* Accent color variations */
+    .modal-accent-green { --accent-color: #00ff88; }
+    .modal-accent-red { --accent-color: #ff0040; }
+    .modal-accent-cyan { --accent-color: #00f5ff; }
+    .modal-accent-purple { --accent-color: #8b5cf6; }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+        .payout-modal-content {
+            max-width: 100%;
+            border-radius: 12px;
+        }
+        
+        .payout-modal-header {
+            padding: 16px 20px;
+        }
+        
+        .payout-modal-title {
+            font-size: 0.95rem;
+        }
+        
+        .payout-modal-body {
+            padding: 20px;
+        }
+        
+        .payout-modal-footer {
+            padding: 16px 20px;
+            flex-direction: column-reverse;
+        }
+        
+        .payout-btn {
+            width: 100%;
+        }
+        
+        .payout-details-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <!-- Approve Modal -->
-<div id="approveModal" class="modal-cyber" onclick="if(event.target===this)closeModal('approveModal')">
-    <div class="modal-content max-w-md">
-        <div class="modal-head">
-            <div class="modal-title text-green-400">
+<div id="approveModal" class="payout-modal modal-accent-green" onclick="if(event.target===this)closeModal('approveModal')">
+    <div class="payout-modal-content">
+        <div class="payout-modal-header">
+            <div class="payout-modal-title">
                 <i class="fas fa-check-circle"></i>
                 <span data-i18n="payouts.approvePayout">Схвалити виплату</span>
             </div>
-            <button onclick="closeModal('approveModal')" class="modal-close">
+            <button onclick="closeModal('approveModal')" class="payout-modal-close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <form id="approveForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
-            <div class="modal-body">
-                <p class="text-white/60 mb-4" data-i18n="payouts.approveConfirm">Ви впевнені, що хочете схвалити цей запит на виплату?</p>
-                <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.notes">Примітки (необов'язково)</label>
-                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
+            <div class="payout-modal-body">
+                <p data-i18n="payouts.approveConfirm">Ви впевнені, що хочете схвалити цей запит на виплату?</p>
+                <div class="payout-field">
+                    <label class="payout-label" data-i18n="payouts.notes">Примітки (необов'язково)</label>
+                    <textarea name="notes" class="payout-textarea" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
                 </div>
             </div>
-            <div class="modal-foot">
-                <button type="button" onclick="closeModal('approveModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
-                <button type="submit" class="btn-cyber btn-cyber-sm bg-green-500/10 border-green-500/30 text-green-400">
-                    <i class="fas fa-check mr-1"></i><span data-i18n="payouts.approve">Схвалити</span>
+            <div class="payout-modal-footer">
+                <button type="button" onclick="closeModal('approveModal')" class="payout-btn payout-btn-cancel" data-i18n="payouts.cancel">Скасувати</button>
+                <button type="submit" class="payout-btn payout-btn-success">
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="payouts.approve">Схвалити</span>
                 </button>
             </div>
         </form>
@@ -258,29 +653,33 @@
 </div>
 
 <!-- Reject Modal -->
-<div id="rejectModal" class="modal-cyber" onclick="if(event.target===this)closeModal('rejectModal')">
-    <div class="modal-content max-w-md">
-        <div class="modal-head">
-            <div class="modal-title text-red-400">
+<div id="rejectModal" class="payout-modal modal-accent-red" onclick="if(event.target===this)closeModal('rejectModal')">
+    <div class="payout-modal-content">
+        <div class="payout-modal-header">
+            <div class="payout-modal-title">
                 <i class="fas fa-times-circle"></i>
                 <span data-i18n="payouts.rejectPayout">Відхилити виплату</span>
             </div>
-            <button onclick="closeModal('rejectModal')" class="modal-close">
+            <button onclick="closeModal('rejectModal')" class="payout-modal-close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <form id="rejectForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
-            <div class="modal-body">
-                <p class="text-white/60 mb-4" data-i18n="payouts.provideReason">Будь ласка, вкажіть причину відхилення:</p>
-                <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2"><span data-i18n="payouts.reason">Причина</span> *</label>
-                    <textarea name="reason" class="input-cyber" rows="3" placeholder="Введіть причину відхилення..." data-i18n-placeholder="payouts.enterReason" required></textarea>
+            <div class="payout-modal-body">
+                <p data-i18n="payouts.provideReason">Будь ласка, вкажіть причину відхилення:</p>
+                <div class="payout-field">
+                    <label class="payout-label">
+                        <span data-i18n="payouts.reason">Причина</span>
+                        <span class="required">*</span>
+                    </label>
+                    <textarea name="reason" class="payout-textarea" rows="3" placeholder="Введіть причину відхилення..." data-i18n-placeholder="payouts.enterReason" required></textarea>
                 </div>
             </div>
-            <div class="modal-foot">
-                <button type="button" onclick="closeModal('rejectModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
-                <button type="submit" class="btn-cyber btn-cyber-sm bg-red-500/10 border-red-500/30 text-red-400">
-                    <i class="fas fa-times mr-1"></i><span data-i18n="payouts.reject">Відхилити</span>
+            <div class="payout-modal-footer">
+                <button type="button" onclick="closeModal('rejectModal')" class="payout-btn payout-btn-cancel" data-i18n="payouts.cancel">Скасувати</button>
+                <button type="submit" class="payout-btn payout-btn-danger">
+                    <i class="fas fa-times"></i>
+                    <span data-i18n="payouts.reject">Відхилити</span>
                 </button>
             </div>
         </form>
@@ -288,33 +687,34 @@
 </div>
 
 <!-- Mark Paid Modal -->
-<div id="payModal" class="modal-cyber" onclick="if(event.target===this)closeModal('payModal')">
-    <div class="modal-content max-w-md">
-        <div class="modal-head">
-            <div class="modal-title text-cyan-400">
+<div id="payModal" class="payout-modal modal-accent-cyan" onclick="if(event.target===this)closeModal('payModal')">
+    <div class="payout-modal-content">
+        <div class="payout-modal-header">
+            <div class="payout-modal-title">
                 <i class="fas fa-money-bill-wave"></i>
                 <span data-i18n="payouts.markAsPaid">Позначити як виплачено</span>
             </div>
-            <button onclick="closeModal('payModal')" class="modal-close">
+            <button onclick="closeModal('payModal')" class="payout-modal-close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <form id="payForm" method="POST" action="javascript:void(0)" onsubmit="return validateFormAction(this)">
-            <div class="modal-body">
-                <p class="text-white/60 mb-4" data-i18n="payouts.confirmPayment">Підтвердіть, що платіж надіслано:</p>
-                <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.transactionId">ID транзакції</label>
-                    <input type="text" name="txn_id" class="input-cyber" placeholder="ID транзакції в блокчейні або довідка" data-i18n-placeholder="payouts.txnPlaceholder">
+            <div class="payout-modal-body">
+                <p data-i18n="payouts.confirmPayment">Підтвердіть, що платіж надіслано:</p>
+                <div class="payout-field">
+                    <label class="payout-label" data-i18n="payouts.transactionId">ID транзакції</label>
+                    <input type="text" name="txn_id" class="payout-input" placeholder="ID транзакції в блокчейні або довідка" data-i18n-placeholder="payouts.txnPlaceholder">
                 </div>
-                <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2" data-i18n="payouts.notes">Примітки (необов'язково)</label>
-                    <textarea name="notes" class="input-cyber" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
+                <div class="payout-field">
+                    <label class="payout-label" data-i18n="payouts.notes">Примітки (необов'язково)</label>
+                    <textarea name="notes" class="payout-textarea" rows="2" placeholder="Додати примітки для довідки..." data-i18n-placeholder="payouts.addNotes"></textarea>
                 </div>
             </div>
-            <div class="modal-foot">
-                <button type="button" onclick="closeModal('payModal')" class="btn-cyber btn-cyber-sm" data-i18n="payouts.cancel">Скасувати</button>
-                <button type="submit" class="btn-cyber btn-cyber-sm bg-cyan-500/10 border-cyan-500/30 text-cyan-400">
-                    <i class="fas fa-check mr-1"></i><span data-i18n="payouts.confirmPaid">Підтвердити виплату</span>
+            <div class="payout-modal-footer">
+                <button type="button" onclick="closeModal('payModal')" class="payout-btn payout-btn-cancel" data-i18n="payouts.cancel">Скасувати</button>
+                <button type="submit" class="payout-btn payout-btn-primary">
+                    <i class="fas fa-check"></i>
+                    <span data-i18n="payouts.confirmPaid">Підтвердити виплату</span>
                 </button>
             </div>
         </form>
@@ -322,20 +722,21 @@
 </div>
 
 <!-- Details Modal -->
-<div id="detailsModal" class="modal-cyber" onclick="if(event.target===this)closeModal('detailsModal')">
-    <div class="modal-content max-w-lg">
-        <div class="modal-head">
-            <div class="modal-title">
+<div id="detailsModal" class="payout-modal modal-accent-purple" onclick="if(event.target===this)closeModal('detailsModal')">
+    <div class="payout-modal-content" style="max-width: 540px;">
+        <div class="payout-modal-header">
+            <div class="payout-modal-title">
                 <i class="fas fa-info-circle"></i>
                 <span data-i18n="payouts.payoutDetails">Деталі виплати</span>
             </div>
-            <button onclick="closeModal('detailsModal')" class="modal-close">
+            <button onclick="closeModal('detailsModal')" class="payout-modal-close">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="modal-body" id="detailsContent">
-            <div class="flex items-center justify-center py-8">
-                <i class="fas fa-spinner fa-spin text-2xl text-cyan-400"></i>
+        <div class="payout-modal-body" id="detailsContent">
+            <div class="payout-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span data-i18n="payouts.loading">Завантаження...</span>
             </div>
         </div>
     </div>
@@ -343,11 +744,15 @@
 
 <script>
 function openModal(id) {
-    document.getElementById(id).classList.add('active');
+    const modal = document.getElementById(id);
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
 }
 
 function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
+    const modal = document.getElementById(id);
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
 }
 
 function validateFormAction(form) {
@@ -378,7 +783,7 @@ function openPayModal(payoutId) {
 
 function viewDetails(payoutId) {
     const content = document.getElementById('detailsContent');
-    content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-cyan-400"></i></div>';
+    content.innerHTML = '<div class="payout-loading"><i class="fas fa-spinner fa-spin"></i><span>Завантаження...</span></div>';
     openModal('detailsModal');
     
     fetch(`/api/admin/payout/${payoutId}`)
@@ -399,46 +804,60 @@ function viewDetails(payoutId) {
                 const processedLabel = typeof t === 'function' ? t('payouts.processed') : 'Оброблено';
                 
                 content.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="text-xs text-white/40">${userLabel}</div>
-                                <div class="font-semibold">${u.username}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-white/40">${emailLabel}</div>
-                                <div>${u.email || 'N/A'}</div>
-                            </div>
+                    <div class="payout-details-grid" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${userLabel}</div>
+                            <div class="payout-detail-value">${u.username}</div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <div class="text-xs text-white/40">${amountLabel}</div>
-                                <div class="font-mono font-bold text-green-400">$${p.amount.toFixed(2)}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-white/40">${statusLabel}</div>
-                                <div class="capitalize">${p.status}</div>
-                            </div>
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${emailLabel}</div>
+                            <div class="payout-detail-value">${u.email || 'N/A'}</div>
                         </div>
-                        <div>
-                            <div class="text-xs text-white/40">${methodLabel}</div>
-                            <div>${p.payment_method_label}</div>
+                    </div>
+                    <div class="payout-details-grid" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${amountLabel}</div>
+                            <div class="payout-detail-value mono highlight-green">$${p.amount.toFixed(2)}</div>
                         </div>
-                        <div>
-                            <div class="text-xs text-white/40">${addressLabel}</div>
-                            <div class="font-mono text-sm break-all bg-dark-lighter p-2 rounded">${p.payment_address || 'N/A'}</div>
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${statusLabel}</div>
+                            <div class="payout-detail-value" style="text-transform: capitalize;">${p.status}</div>
                         </div>
-                        ${p.txn_id ? `<div><div class="text-xs text-white/40">${txnLabel}</div><div class="font-mono text-sm">${p.txn_id}</div></div>` : ''}
-                        ${p.admin_notes ? `<div><div class="text-xs text-white/40">${notesLabel}</div><div>${p.admin_notes}</div></div>` : ''}
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <div class="text-xs text-white/40">${createdLabel}</div>
-                                <div>${p.created_at || 'N/A'}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs text-white/40">${processedLabel}</div>
-                                <div>${p.paid_at || p.reviewed_at || 'N/A'}</div>
-                            </div>
+                    </div>
+                    <div class="payout-details-grid full-width" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${methodLabel}</div>
+                            <div class="payout-detail-value">${p.payment_method_label}</div>
+                        </div>
+                    </div>
+                    <div class="payout-details-grid full-width" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${addressLabel}</div>
+                            <div class="payout-detail-value address-box">${p.payment_address || 'N/A'}</div>
+                        </div>
+                    </div>
+                    ${p.txn_id ? `
+                    <div class="payout-details-grid full-width" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${txnLabel}</div>
+                            <div class="payout-detail-value mono">${p.txn_id}</div>
+                        </div>
+                    </div>` : ''}
+                    ${p.admin_notes ? `
+                    <div class="payout-details-grid full-width" style="margin-bottom: 16px;">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${notesLabel}</div>
+                            <div class="payout-detail-value">${p.admin_notes}</div>
+                        </div>
+                    </div>` : ''}
+                    <div class="payout-details-grid">
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${createdLabel}</div>
+                            <div class="payout-detail-value">${p.created_at || 'N/A'}</div>
+                        </div>
+                        <div class="payout-detail-item">
+                            <div class="payout-detail-label">${processedLabel}</div>
+                            <div class="payout-detail-value">${p.paid_at || p.reviewed_at || 'N/A'}</div>
                         </div>
                     </div>
                 `;
@@ -446,7 +865,7 @@ function viewDetails(payoutId) {
         })
         .catch(err => {
             const failedMsg = typeof t === 'function' ? t('payouts.failedToLoad') : 'Не вдалося завантажити деталі';
-            content.innerHTML = `<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>${failedMsg}</div>`;
+            content.innerHTML = `<div class="payout-loading" style="color: #ff0040;"><i class="fas fa-exclamation-triangle" style="color: #ff0040;"></i><span>${failedMsg}</span></div>`;
         });
 }
 
