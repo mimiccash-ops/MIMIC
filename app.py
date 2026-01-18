@@ -6034,10 +6034,19 @@ def queue_signal_to_arq(signal: dict) -> tuple:
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                # Running in async context (e.g., with eventlet/gevent)
+                # Running in async context - cannot use asyncio.run() from running loop
+                # Instead, create a new event loop in a separate thread
                 import concurrent.futures
+                def run_in_new_loop():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(enqueue_signal_task(signal))
+                    finally:
+                        new_loop.close()
+                
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(asyncio.run, enqueue_signal_task(signal))
+                    future = executor.submit(run_in_new_loop)
                     job_id = future.result(timeout=5)
             else:
                 job_id = loop.run_until_complete(enqueue_signal_task(signal))

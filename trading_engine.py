@@ -2613,9 +2613,38 @@ class TradingEngine:
                     if user_id not in self.pending_trades:
                         self.pending_trades[user_id] = set()
                 
-                # Check pending
+                # Check pending - for master accounts, check Redis first (source of truth)
+                pending_key = f"{symbol}_master" if is_master_account else symbol
+                
+                # For master accounts, check Redis state first (cross-process coordination)
+                if is_master_account:
+                    redis_client = self._get_sync_redis()
+                    if redis_client:
+                        try:
+                            redis_pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
+                            if redis_client.exists(redis_pending_key):
+                                # Redis says it's pending - sync in-memory state
+                                async with self._async_pending_lock:
+                                    if pending_key not in self.pending_trades[user_id]:
+                                        self.pending_trades[user_id].add(pending_key)
+                                error_msg = f"({exchange_type.upper()}) Trade already in progress"
+                                self.log_event(user_id, symbol, error_msg, is_error=True)
+                                if self.telegram:
+                                    self.telegram.notify_error(node_name, symbol, error_msg)
+                                    chat_id = client_data.get('telegram_chat_id')
+                                    if chat_id:
+                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                                return
+                            else:
+                                # Redis says it's not pending - clean up in-memory if stale
+                                async with self._async_pending_lock:
+                                    if pending_key in self.pending_trades[user_id]:
+                                        self.pending_trades[user_id].discard(pending_key)
+                        except Exception as e:
+                            logger.debug(f"Redis pending check failed: {e}")
+                
+                # Check in-memory pending state (for non-master or fallback)
                 async with self._async_pending_lock:
-                    pending_key = f"{symbol}_master" if is_master_account else symbol
                     if pending_key in self.pending_trades[user_id]:
                         error_msg = f"({exchange_type.upper()}) Trade already in progress"
                         self.log_event(user_id, symbol, error_msg, is_error=True)
@@ -3432,6 +3461,34 @@ class TradingEngine:
                         self.pending_trades[user_id] = set()
                 
                 # Check if already pending for this symbol FIRST (before any API calls)
+                # For master accounts, check Redis first (source of truth for cross-process coordination)
+                if is_master_account:
+                    redis_client = self._get_sync_redis()
+                    if redis_client:
+                        try:
+                            redis_pending_key = f"{self.MASTER_PENDING_REDIS_KEY}:{symbol}"
+                            if redis_client.exists(redis_pending_key):
+                                # Redis says it's pending - sync in-memory state
+                                with self.pending_lock:
+                                    if pending_key not in self.pending_trades[user_id]:
+                                        self.pending_trades[user_id].add(pending_key)
+                                error_msg = f"Trade already in progress for {symbol}"
+                                self.log_event(user_id, symbol, error_msg, is_error=True)
+                                if self.telegram:
+                                    self.telegram.notify_error(node_name, symbol, error_msg)
+                                    chat_id = client_data.get('telegram_chat_id')
+                                    if chat_id:
+                                        self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                                return
+                            else:
+                                # Redis says it's not pending - clean up in-memory if stale
+                                with self.pending_lock:
+                                    if pending_key in self.pending_trades[user_id]:
+                                        self.pending_trades[user_id].discard(pending_key)
+                        except Exception as e:
+                            logger.debug(f"Redis pending check failed: {e}")
+                
+                # Check in-memory pending state (for non-master or fallback)
                 with self.pending_lock:
                     if pending_key in self.pending_trades[user_id]:
                         error_msg = f"Trade already in progress for {symbol}"
