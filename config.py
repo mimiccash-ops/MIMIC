@@ -285,8 +285,13 @@ class Config:
             TG_DISABLE_POLLING = False
             TG_POLLING_STARTUP_DELAY = 30
         
-        IS_TESTNET = config['Settings'].getboolean('testnet', False)
-        GLOBAL_MAX_POSITIONS = int(config['Settings'].get('max_open_positions', 10))
+        # Settings section - optional
+        if config.has_section('Settings'):
+            IS_TESTNET = config['Settings'].getboolean('testnet', False)
+            GLOBAL_MAX_POSITIONS = int(config['Settings'].get('max_open_positions', 10))
+        else:
+            IS_TESTNET = False
+            GLOBAL_MAX_POSITIONS = 10
         
         # --- EMAIL SETTINGS (SMTP) ---
         SMTP_SERVER = get_config_value('Email', 'smtp_server', default='') if config.has_section('Email') else ''

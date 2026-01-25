@@ -183,7 +183,7 @@ http {
     # UPSTREAM - Flask/Gunicorn Backend (Main App)
     # ==========================================================================
     upstream mimic_backend {
-        server 127.0.0.1:5000;  # FIXED: Changed from 8000 to 5000 to match Docker/Gunicorn
+        server 127.0.0.1:8000;  # Gunicorn listens on port 8000
         
         # Connection pooling for better performance
         keepalive 32;
