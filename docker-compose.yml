@@ -15,7 +15,7 @@ services:
     container_name: brain_capital_web
     restart: unless-stopped
     ports:
-      - "8000:5000"  # External:Internal - webhooks use port 80, internal stays 5000
+      - "8001:5000"  # External:Internal - Changed to 8001 to avoid conflict with systemd service on 8000
     environment:
       # Flask Configuration
       - FLASK_ENV=production
