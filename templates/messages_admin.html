@@ -524,10 +524,10 @@
                             </span>
                             <span class="username">@{{ msg.sender.username }}</span>
                             {% if not msg.is_read %}
-                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;" data-i18n="messages.new">NEW</span>
                             {% endif %}
                         </div>
-                        <p class="message-subject">{{ msg.subject or 'No subject' }}</p>
+                        <p class="message-subject">{% if msg.subject %}{{ msg.subject }}{% else %}<span data-i18n="messages.noSubject">No subject</span>{% endif %}</p>
                         <p class="message-preview">{{ msg.content[:150] }}{% if msg.content|length > 150 %}...{% endif %}</p>
                         <div class="message-meta">
                             <span><i class="fas fa-clock"></i> {{ msg.created_at.strftime("%d.%m.%Y %H:%M") }}</span>

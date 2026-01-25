@@ -2155,8 +2155,8 @@
             <i class="fas fa-key"></i>
         </div>
         <div class="flex-1">
-            <div class="font-display font-semibold text-white">Change Password</div>
-            <div class="text-sm text-white/40">Security settings</div>
+            <div class="font-display font-semibold text-white" data-i18n="auth.changePassword">Change Password</div>
+            <div class="text-sm text-white/40" data-i18n="dash.securitySettings">Security settings</div>
         </div>
         <i class="fas fa-chevron-right text-white/30"></i>
     </a>
@@ -4387,5 +4387,23 @@
             loadAvailablePlans();
         }
     };
+    
+    // Handle URL hash for direct navigation to sections
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1); // Remove #
+        if (hash === 'subscription' && typeof window.showSection === 'function') {
+            setTimeout(() => {
+                window.showSection('subscription');
+            }, 300);
+        }
+    }
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        if (hash === 'subscription' && typeof window.showSection === 'function') {
+            window.showSection('subscription');
+        }
+    });
 </script>
 {% endblock %}

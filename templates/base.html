@@ -278,7 +278,7 @@
                     </a>
                     <div class="dropdown-divider"></div>
                     <!-- Account -->
-                    <a href="#" class="dropdown-item" onclick="showSection('subscription'); closeUserMenu(); return false;">
+                    <a href="{{ url_for('dashboard') }}" class="dropdown-item" onclick="closeUserMenu(); if(typeof showSection === 'function') { showSection('subscription'); return false; } else { window.location.href='{{ url_for('dashboard') }}#subscription'; return false; }">
                         <i class="fas fa-crown"></i>
                         <span data-i18n="nav.subscription">Subscription</span>
                     </a>
@@ -758,7 +758,7 @@
             color: var(--neon-pink) !important;
         }
     </style>
-    
+
     <!-- Fix FAB and Chat Button Positioning -->
     <style>
         /* Fix FAB button z-index and positioning to not overlap with chat button */
@@ -813,6 +813,81 @@
                         'nav.account': 'Account',
                         'nav.admin': 'Admin',
                         'role.admin': 'Admin',
+                        'role.user': 'User',
+                        'payouts.title': 'Payment Management',
+                        'payouts.subtitle': 'Review and process commission payment requests',
+                        'payouts.backToDashboard': 'Back to Dashboard',
+                        'payouts.menu': 'Payment Menu',
+                        'payouts.filterByStatus': 'Filter by status',
+                        'payouts.pending': 'Pending',
+                        'payouts.underReview': 'Under review',
+                        'payouts.approved': 'Approved',
+                        'payouts.readyForPayment': 'Ready for payment',
+                        'payouts.paid': 'Paid',
+                        'payouts.completed': 'Completed',
+                        'payouts.rejected': 'Rejected',
+                        'payouts.requiresAction': 'Require action',
+                        'payouts.all': 'All',
+                        'payouts.fullList': 'Full list',
+                        'payouts.id': 'ID',
+                        'payouts.user': 'User',
+                        'payouts.amount': 'Amount',
+                        'payouts.method': 'Method',
+                        'payouts.address': 'Address',
+                        'payouts.status': 'Status',
+                        'payouts.date': 'Date',
+                        'payouts.actions': 'Actions',
+                        'payouts.copy': 'Copy',
+                        'payouts.approve': 'Approve',
+                        'payouts.reject': 'Reject',
+                        'payouts.markPaid': 'Mark as Paid',
+                        'payouts.view': 'View',
+                        'payouts.noRequests': 'No payment requests',
+                        'payouts.approvePayout': 'Approve Payout',
+                        'payouts.approveConfirm': 'Are you sure you want to approve this payment request?',
+                        'payouts.notes': 'Notes (optional)',
+                        'payouts.cancel': 'Cancel',
+                        'payouts.rejectPayout': 'Reject Payout',
+                        'payouts.provideReason': 'Please provide a reason for rejection:',
+                        'payouts.reason': 'Reason',
+                        'payouts.markAsPaid': 'Mark as Paid',
+                        'payouts.confirmPayment': 'Confirm that payment has been sent:',
+                        'payouts.transactionId': 'Transaction ID',
+                        'payouts.confirmPaid': 'Confirm Payment',
+                        'payouts.payoutDetails': 'Payout Details',
+                        'payouts.loading': 'Loading...',
+                        'auth.changePassword': 'Change Password',
+                        'auth.enterPasswordInfo': 'Update your account security credentials',
+                        'auth.secureSession': 'SECURE SESSION',
+                        'auth.currentPassword': 'Current Password',
+                        'auth.enterCurrentPassword': 'Enter current password',
+                        'auth.passwordRequirements': 'Min 8 chars, uppercase, lowercase, number',
+                        'btn.saveChanges': 'Save Changes',
+                        'btn.cancel': 'Cancel',
+                        'btn.send': 'Send',
+                        'security.encrypted': 'ENCRYPTED',
+                        'security.secure': 'SECURE',
+                        'nav.backToDashboard': 'Back to Dashboard',
+                        'messages.messageCenter': 'Message Center',
+                        'messages.writeToUser': 'Write to User',
+                        'messages.userRequests': 'User Requests',
+                        'messages.total': 'Total',
+                        'messages.new': 'New',
+                        'messages.handled': 'Handled',
+                        'messages.repliesCount': 'Replies',
+                        'messages.all': 'All',
+                        'messages.unread': 'Unread',
+                        'messages.noRequests': 'No requests',
+                        'messages.userMessagesAppear': 'User messages will appear here',
+                        'messages.recipient': 'Recipient',
+                        'messages.selectUser': 'Select user...',
+                        'messages.subject': 'Subject',
+                        'messages.enterSubject': 'Enter message subject',
+                        'messages.message': 'Message',
+                        'messages.enterMessageText': 'Enter message text...',
+                        'messages.replies': 'replies',
+                        'messages.awaitingReply': 'Awaiting reply',
+                        'messages.noSubject': 'No subject',
                         'role.user': 'User'
                     },
                     ua: {
@@ -825,6 +900,81 @@
                         'nav.account': 'Акаунт',
                         'nav.admin': 'Адмін',
                         'role.admin': 'Адмін',
+                        'role.user': 'Користувач',
+                        'payouts.title': 'Управління виплатами',
+                        'payouts.subtitle': 'Перегляд та обробка запитів на виплату комісій',
+                        'payouts.backToDashboard': 'Назад до панелі',
+                        'payouts.menu': 'Меню виплат',
+                        'payouts.filterByStatus': 'Фільтр за статусом',
+                        'payouts.pending': 'Очікує',
+                        'payouts.underReview': 'На перевірці',
+                        'payouts.approved': 'Схвалено',
+                        'payouts.readyForPayment': 'Готові до виплати',
+                        'payouts.paid': 'Виплачено',
+                        'payouts.completed': 'Завершені',
+                        'payouts.rejected': 'Відхилено',
+                        'payouts.requiresAction': 'Потребують дій',
+                        'payouts.all': 'Всі',
+                        'payouts.fullList': 'Повний список',
+                        'payouts.id': 'ID',
+                        'payouts.user': 'Користувач',
+                        'payouts.amount': 'Сума',
+                        'payouts.method': 'Метод',
+                        'payouts.address': 'Адреса',
+                        'payouts.status': 'Статус',
+                        'payouts.date': 'Дата',
+                        'payouts.actions': 'Дії',
+                        'payouts.copy': 'Копіювати',
+                        'payouts.approve': 'Схвалити',
+                        'payouts.reject': 'Відхилити',
+                        'payouts.markPaid': 'Позначити виплаченим',
+                        'payouts.view': 'Переглянути',
+                        'payouts.noRequests': 'Немає запитів на виплату',
+                        'payouts.approvePayout': 'Схвалити виплату',
+                        'payouts.approveConfirm': 'Ви впевнені, що хочете схвалити цей запит на виплату?',
+                        'payouts.notes': 'Примітки (необов\'язково)',
+                        'payouts.cancel': 'Скасувати',
+                        'payouts.rejectPayout': 'Відхилити виплату',
+                        'payouts.provideReason': 'Будь ласка, вкажіть причину відхилення:',
+                        'payouts.reason': 'Причина',
+                        'payouts.markAsPaid': 'Позначити як виплачено',
+                        'payouts.confirmPayment': 'Підтвердіть, що платіж надіслано:',
+                        'payouts.transactionId': 'ID транзакції',
+                        'payouts.confirmPaid': 'Підтвердити виплату',
+                        'payouts.payoutDetails': 'Деталі виплати',
+                        'payouts.loading': 'Завантаження...',
+                        'auth.changePassword': 'Змінити пароль',
+                        'auth.enterPasswordInfo': 'Оновіть облікові дані безпеки вашого акаунту',
+                        'auth.secureSession': 'БЕЗПЕЧНА СЕСІЯ',
+                        'auth.currentPassword': 'Поточний пароль',
+                        'auth.enterCurrentPassword': 'Введіть поточний пароль',
+                        'auth.passwordRequirements': 'Мін. 8 символів, великі, малі літери, цифра',
+                        'btn.saveChanges': 'Зберегти зміни',
+                        'btn.cancel': 'Скасувати',
+                        'btn.send': 'Надіслати',
+                        'security.encrypted': 'ЗАШИФРОВАНО',
+                        'security.secure': 'БЕЗПЕЧНО',
+                        'nav.backToDashboard': 'Назад до панелі',
+                        'messages.messageCenter': 'Центр повідомлень',
+                        'messages.writeToUser': 'Написати користувачу',
+                        'messages.userRequests': 'Запити користувачів',
+                        'messages.total': 'Всього',
+                        'messages.new': 'Нові',
+                        'messages.handled': 'Оброблені',
+                        'messages.repliesCount': 'Відповіді',
+                        'messages.all': 'Всі',
+                        'messages.unread': 'Непрочитані',
+                        'messages.noRequests': 'Немає запитів',
+                        'messages.userMessagesAppear': 'Повідомлення користувачів з\'являться тут',
+                        'messages.recipient': 'Отримувач',
+                        'messages.selectUser': 'Виберіть користувача...',
+                        'messages.subject': 'Тема',
+                        'messages.enterSubject': 'Введіть тему повідомлення',
+                        'messages.message': 'Повідомлення',
+                        'messages.enterMessageText': 'Введіть текст повідомлення...',
+                        'messages.replies': 'відповіді',
+                        'messages.awaitingReply': 'Очікує відповіді',
+                        'messages.noSubject': 'Без теми',
                         'role.user': 'Користувач'
                     }
                 };
@@ -945,6 +1095,20 @@
                                         }
                                     }
                                 });
+                                
+                                // Special handling for buttons with spans inside
+                                document.querySelectorAll('button[type="submit"], button.cyber-btn').forEach(function(btn) {
+                                    const span = btn.querySelector('span[data-i18n]');
+                                    if (span) {
+                                        const key = span.getAttribute('data-i18n');
+                                        if (key && window.t) {
+                                            const translation = window.t(key);
+                                            if (translation && translation !== key) {
+                                                span.textContent = translation;
+                                            }
+                                        }
+                                    }
+                                });
                             }
                             
                             // Apply translations multiple times with delays to catch all elements
@@ -1011,6 +1175,20 @@
                                     const translation = window.t(key);
                                     if (translation && translation !== key) {
                                         el.textContent = translation;
+                                    }
+                                }
+                            });
+                            
+                            // Special handling for buttons with spans inside
+                            document.querySelectorAll('button[type="submit"], button.cyber-btn').forEach(function(btn) {
+                                const span = btn.querySelector('span[data-i18n]');
+                                if (span) {
+                                    const key = span.getAttribute('data-i18n');
+                                    if (key && window.t) {
+                                        const translation = window.t(key);
+                                        if (translation && translation !== key) {
+                                            span.textContent = translation;
+                                        }
                                     }
                                 }
                             });
