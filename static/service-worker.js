@@ -3,8 +3,8 @@
  * Handles caching, offline functionality, and push notifications
  */
 
-const CACHE_NAME = 'mimic-cache-v2';
-const DYNAMIC_CACHE = 'mimic-dynamic-v2';
+const CACHE_NAME = 'mimic-cache-v3';
+const DYNAMIC_CACHE = 'mimic-dynamic-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Static assets to cache on install
@@ -12,11 +12,8 @@ const STATIC_ASSETS = [
     '/',
     '/login',
     '/register',
-    '/static/css/tailwind.css',
-    '/static/css/main.min.css',
-    '/static/css/chat.css',
-    '/static/js/main.js',
-    '/static/js/push.js',
+    // CSS/JS files are versioned, so we don't cache them statically here
+    // They will be cached dynamically when requested with their version parameter
     '/static/mimic-logo.svg',
     '/static/manifest.json',
     '/static/icons/icon-144x144.png',
@@ -41,11 +38,9 @@ const NETWORK_ONLY = [
 ];
 
 // URLs that should use cache-first strategy
+// NOTE: Versioned files (?v=...) should always go to network first to get latest version
 const CACHE_FIRST = [
-    '/static/',
     '/fonts/',
-    '.css',
-    '.js',
     '.png',
     '.jpg',
     '.jpeg',
@@ -54,6 +49,12 @@ const CACHE_FIRST = [
     '.woff',
     '.woff2',
     '.ttf'
+];
+
+// Versioned static files - always check network first
+const VERSIONED_FILES = [
+    '/static/css/',
+    '/static/js/'
 ];
 
 // ==================== INSTALL EVENT ====================
@@ -141,7 +142,31 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Cache-first for static assets
+    // Network-first for versioned CSS/JS files (?v=...) - always get latest version
+    const isVersioned = url.searchParams.has('v') || url.search.includes('?v=');
+    const isVersionedStatic = isVersioned && VERSIONED_FILES.some(pattern => url.pathname.includes(pattern));
+    
+    if (isVersionedStatic) {
+        event.respondWith(
+            fetch(event.request)
+                .then((networkResponse) => {
+                    // Cache versioned files with their version in the cache key
+                    if (networkResponse.ok) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME)
+                            .then(cache => cache.put(event.request, responseClone));
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Fallback to cache if network fails
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+    
+    // Cache-first for static assets (non-versioned)
     if (CACHE_FIRST.some(pattern => url.pathname.includes(pattern) || url.pathname.endsWith(pattern))) {
         event.respondWith(
             caches.match(event.request)
