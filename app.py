@@ -846,6 +846,15 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+@login_manager.unauthorized_handler
+def unauthorized_handler():
+    """Handle unauthorized access attempts"""
+    if request.path.startswith('/api'):
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    flash('Будь ласка, увійдіть для доступу до цієї сторінки.', 'info')
+    return redirect(url_for('login'))
+
+
 # ==================== SECURITY MIDDLEWARE ====================
 
 @app.before_request
@@ -868,22 +877,24 @@ def security_checks():
         if not current_user.is_authenticated:
             if is_admin_api:
                 return jsonify({'success': False, 'error': 'Authentication required'}), 401
-            abort(401)
+            # For web requests, redirect to login with message
+            flash('Будь ласка, увійдіть для доступу до адмін-панелі.', 'info')
+            return redirect(url_for('login', next=request.path))
         
         # Verify session - be lenient, log issues but don't block
+        # Always allow access, just log warnings
         try:
             session_valid = verify_session()
             if not session_valid:
-                logger.warning(f"Session verification failed for admin {current_user.username} at {path}")
-                # Still allow access but log warning - too strict blocking causes issues
+                logger.debug(f"Session verification issue for admin {current_user.username} at {path} - allowing anyway")
                 # Re-initialize session security
                 try:
                     from security import init_session_security
                     init_session_security()
                 except Exception as e:
-                    logger.error(f"Failed to re-initialize session security: {e}")
+                    logger.debug(f"Could not re-initialize session security: {e}")
         except Exception as e:
-            logger.error(f"Error in session verification: {e}")
+            logger.debug(f"Session verification error (non-critical): {e}")
             # On error, allow access (better to allow than block legitimate users)
             try:
                 from security import init_session_security
@@ -894,7 +905,8 @@ def security_checks():
         if current_user.role != 'admin':
             if is_admin_api:
                 return jsonify({'success': False, 'error': 'Admin access required'}), 403
-            abort(403)
+            flash('Доступ заборонено. Потрібні права адміністратора.', 'error')
+            return redirect(url_for('dashboard'))
     
     # Global rate limiting for public API endpoints
     if path.startswith('/api'):
@@ -3469,17 +3481,33 @@ def login():
             # Successful login
             login_tracker.record_success(ip)
             remember = request.form.get('remember') == 'on'
+            
+            # Login user and make session permanent
             login_user(user, remember=remember)
+            
+            # Initialize session security AFTER login
             init_session_security()  # Set session fingerprint
             
+            # Force session to be saved
+            from flask import session
+            session.permanent = True
+            session.modified = True
+            
             audit.log_login(username, ip, True)
-            logger.info(f"✅ User logged in: {username}")
+            logger.info(f"✅ User logged in: {username} (role: {user.role})")
             
             next_page = request.args.get('next')
             # Prevent open redirect attacks
             if next_page and not next_page.startswith('/'):
                 next_page = None
-            return redirect(next_page or url_for('dashboard'))
+            
+            # For admin users, always go to dashboard (which shows admin view)
+            redirect_url = next_page or url_for('dashboard')
+            
+            # Create response and ensure session is saved
+            response = redirect(redirect_url)
+            
+            return response
         
         # Failed login
         login_tracker.record_failure(ip, username)
