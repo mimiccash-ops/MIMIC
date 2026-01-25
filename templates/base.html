@@ -262,6 +262,10 @@
                         <i class="fas fa-cog"></i>
                         <span data-i18n="section.settings">Settings</span>
                     </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="tasks" onclick="showSection('tasks'); closeUserMenu(); return false;">
+                        <i class="fas fa-tasks"></i>
+                        <span data-i18n="section.tasks">Tasks</span>
+                    </a>
                     <div class="dropdown-divider"></div>
                     <!-- Community & Features -->
                     <a href="{{ url_for('leaderboard') }}" class="dropdown-item">
@@ -282,10 +286,6 @@
                         <i class="fas fa-envelope"></i>
                         <span data-i18n="nav.messages">Messages</span>
                     </a>
-                    <a href="{{ url_for('api_keys_page') }}" class="dropdown-item">
-                        <i class="fas fa-code"></i>
-                        <span data-i18n="nav.apiKeys">API Keys</span>
-                    </a>
                     <a href="{{ url_for('change_password') }}" class="dropdown-item">
                         <i class="fas fa-key"></i>
                         <span data-i18n="nav.changePassword">Security</span>
@@ -296,10 +296,6 @@
                     <a href="{{ url_for('admin_payouts') }}" class="dropdown-item">
                         <i class="fas fa-wallet"></i>
                         <span data-i18n="nav.payouts">Payouts</span>
-                    </a>
-                    <a href="#" class="dropdown-item" onclick="if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); closeUserMenu(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
-                        <i class="fas fa-tools"></i>
-                        <span data-i18n="admin.addExchange">Add Exchange</span>
                     </a>
                     {% endif %}
                     <div class="dropdown-divider"></div>
@@ -388,10 +384,6 @@
                 <span class="mobile-badge">{{ unread_count }}</span>
                 {% endif %}
             </a>
-            <a href="{{ url_for('api_keys_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-code"></i>
-                <span data-i18n="nav.apiKeys">API Keys</span>
-            </a>
             <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-key"></i>
                 <span data-i18n="nav.changePassword">Security</span>
@@ -405,10 +397,6 @@
             <a href="{{ url_for('admin_payouts') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-wallet"></i>
                 <span data-i18n="nav.payouts">Payouts</span>
-            </a>
-            <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof openAdminExchangeModal === 'function') { openAdminExchangeModal(); return false; } else { window.location.href='{{ url_for('dashboard') }}#exchange'; return false; }">
-                <i class="fas fa-plug"></i>
-                <span data-i18n="admin.addExchange">Add Exchange</span>
             </a>
             {% endif %}
             {% else %}
