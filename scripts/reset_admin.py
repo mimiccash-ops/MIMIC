@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import app, db
 from models import User
 from passlib.context import CryptContext
+from werkzeug.security import generate_password_hash
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -36,14 +37,21 @@ def generate_password(length=16):
 
 
 def reset_admin_password(username, new_password=None):
-    """Reset password for admin user."""
+    """Reset password for admin user. Creates user if doesn't exist."""
     with app.app_context():
         # Find user
         user = User.query.filter_by(username=username).first()
         
         if not user:
-            print(f"❌ User '{username}' not found!")
-            return False
+            print(f"⚠️  User '{username}' not found!")
+            print(f"Creating new user '{username}'...")
+            user = User(
+                username=username,
+                role='admin',
+                is_active=True
+            )
+            db.session.add(user)
+            db.session.flush()  # Get ID without committing yet
         
         # Check if user is admin
         if user.role != 'admin':
@@ -57,8 +65,13 @@ def reset_admin_password(username, new_password=None):
         if not new_password:
             new_password = generate_password()
         
-        # Hash password
-        password_hash = pwd_context.hash(new_password)
+        # Hash password - try bcrypt first, fallback to werkzeug
+        try:
+            password_hash = pwd_context.hash(new_password)
+        except Exception as e:
+            print(f"⚠️  Error with bcrypt: {e}")
+            print("Using werkzeug as fallback...")
+            password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         
         # Update user
         user.password_hash = password_hash

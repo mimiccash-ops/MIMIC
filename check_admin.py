@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
 from models import User
+from werkzeug.security import generate_password_hash
 
 def check_and_fix_admin():
     """Check if admin exists and create/reset if needed"""
@@ -28,7 +29,15 @@ def check_and_fix_admin():
                 role='admin',
                 is_active=True
             )
-            admin.set_password('admin')
+            
+            # Use werkzeug to hash password (fallback if bcrypt fails)
+            try:
+                admin.set_password('admin')
+            except Exception as e:
+                print(f"⚠️  Error with set_password: {e}")
+                print("Using werkzeug as fallback...")
+                admin.password_hash = generate_password_hash('admin', method='pbkdf2:sha256')
+            
             db.session.add(admin)
             db.session.commit()
             print("✅ Admin user created!")
@@ -43,7 +52,12 @@ def check_and_fix_admin():
             else:
                 print("⚠️  Password 'admin' does NOT work")
                 print("Resetting password to 'admin'...")
-                admin.set_password('admin')
+                try:
+                    admin.set_password('admin')
+                except Exception as e:
+                    print(f"⚠️  Error with set_password: {e}")
+                    print("Using werkzeug as fallback...")
+                    admin.password_hash = generate_password_hash('admin', method='pbkdf2:sha256')
                 db.session.commit()
                 print("✅ Password reset to 'admin'")
         
