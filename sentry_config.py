@@ -44,10 +44,11 @@ def init_sentry(app=None, framework='flask'):
     Returns:
         bool: True if Sentry was initialized, False otherwise
     """
-    dsn = os.environ.get('SENTRY_DSN', '')
+    dsn = os.environ.get('SENTRY_DSN', '').strip()
     
-    if not dsn:
-        logger.info("SENTRY_DSN not set. Error tracking disabled.")
+    # Check if DSN is empty or contains placeholder values
+    if not dsn or 'your-sentry-dsn' in dsn.lower() or 'project-id' in dsn.lower() or dsn == 'https://your-sentry-dsn@sentry.io/project-id':
+        logger.info("SENTRY_DSN not set or invalid. Error tracking disabled.")
         return False
     
     if not SENTRY_AVAILABLE:
