@@ -3236,10 +3236,13 @@
             const statusLabel = service.status === 'active' ? 'Активний' : 
                               service.status === 'configured' ? 'Готовий' : 'Не налаштовано';
             
+            // Escape category for use in data attribute
+            const categoryEscaped = service.category.replace(/'/g, "\\'");
+            
             return `
-                <div class="p-3 bg-[var(--color-surface-2)] border rounded-lg cursor-pointer transition-all duration-200 hover:border-[var(--neon-cyan)] hover:scale-[1.02]"
+                <div class="service-card p-3 bg-[var(--color-surface-2)] border rounded-lg cursor-pointer transition-all duration-200 hover:border-[var(--neon-cyan)] hover:scale-[1.02]"
                      style="border-color: ${service.is_enabled ? service.color + '40' : 'var(--color-border)'};"
-                     onclick="openServiceEdit('${service.category}')">
+                     data-category="${categoryEscaped}">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center justify-center" 
                              style="width: 36px; height: 36px; background: ${service.color}15; border: 1px solid ${service.color}30; border-radius: var(--radius-sm);">
@@ -3256,10 +3259,29 @@
                 </div>
             `;
         }).join('');
+        
+        // Add event delegation for service cards
+        container.querySelectorAll('.service-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const category = this.getAttribute('data-category');
+                if (category && typeof openServiceEdit === 'function') {
+                    openServiceEdit(category);
+                } else {
+                    console.error('openServiceEdit function not found or category missing');
+                }
+            });
+        });
     }
     
     function openServiceConfigModal() {
-        document.getElementById('serviceConfigModal').style.display = 'flex';
+        const modal = document.getElementById('serviceConfigModal');
+        if (!modal) {
+            console.error('serviceConfigModal element not found');
+            return;
+        }
+        modal.style.display = 'flex';
         loadAllServicesConfig();
     }
     
@@ -3343,7 +3365,7 @@
                                         <span class="w-2 h-2 rounded-full" style="background: ${statusColor};"></span>
                                         <span class="text-xs" style="color: ${statusColor};">${statusText}</span>
                                     </div>
-                                    <button onclick="openServiceEdit('${cat.key}')" class="cyber-btn cyber-btn-sm cyber-btn-outline">
+                                    <button class="cyber-btn cyber-btn-sm cyber-btn-outline service-edit-btn" data-category="${cat.key}">
                                         <i class="fas fa-edit"></i>
                                         Configure
                                     </button>
@@ -3362,6 +3384,20 @@
                 }).join('')}
             </div>
         `;
+        
+        // Add event listeners for configure buttons
+        content.querySelectorAll('.service-edit-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const category = this.getAttribute('data-category');
+                if (category && typeof openServiceEdit === 'function') {
+                    openServiceEdit(category);
+                } else {
+                    console.error('openServiceEdit function not found or category missing');
+                }
+            });
+        });
     }
     
     function openServiceEdit(category) {
@@ -3635,6 +3671,20 @@
                 refreshServiceStatus();
             }
         }, 500);
+        
+        // Add event listener for main configure button (fallback)
+        const configureBtn = document.querySelector('button[onclick="openServiceConfigModal()"]');
+        if (configureBtn) {
+            configureBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof openServiceConfigModal === 'function') {
+                    openServiceConfigModal();
+                } else {
+                    console.error('openServiceConfigModal function not found');
+                }
+            });
+        }
     });
     
     // Also refresh when switching to settings section
@@ -4512,6 +4562,19 @@
         };
     })();
     
+    // Make service configuration functions globally accessible
+    if (typeof openServiceConfigModal === 'function') {
+        window.openServiceConfigModal = openServiceConfigModal;
+    }
+    if (typeof openServiceEdit === 'function') {
+        window.openServiceEdit = openServiceEdit;
+    }
+    if (typeof closeServiceConfigModal === 'function') {
+        window.closeServiceConfigModal = closeServiceConfigModal;
+    }
+    if (typeof closeServiceEditModal === 'function') {
+        window.closeServiceEditModal = closeServiceEditModal;
+    }
 
 </script>
 {% endblock %}
