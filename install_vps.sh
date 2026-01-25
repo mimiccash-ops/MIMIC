@@ -297,13 +297,23 @@ if [[ "$SKIP_REDIS" == false ]]; then
         # Configure Redis
         sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf || true
         
-        systemctl restart redis
-        systemctl enable redis
+        # Try different service names (Ubuntu 24.04 uses redis-server)
+        systemctl restart redis-server 2>/dev/null || systemctl restart redis 2>/dev/null || service redis start 2>/dev/null || true
+        systemctl enable redis-server 2>/dev/null || systemctl enable redis 2>/dev/null || true
+        
         echo -e "${GREEN}✅ Redis installed and started${NC}"
     else
         echo -e "${YELLOW}⚠️  Redis already installed${NC}"
-        systemctl start redis || true
-        systemctl enable redis || true
+        # Try to start Redis with different service names
+        systemctl start redis-server 2>/dev/null || systemctl start redis 2>/dev/null || service redis start 2>/dev/null || true
+        systemctl enable redis-server 2>/dev/null || systemctl enable redis 2>/dev/null || true
+    fi
+    
+    # Verify Redis is running
+    if redis-cli ping &> /dev/null; then
+        echo -e "${GREEN}✅ Redis is running${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Redis may not be running, check manually${NC}"
     fi
     echo ""
 else
@@ -347,6 +357,42 @@ else
     echo -e "${YELLOW}⚠️  .env file already exists${NC}"
 fi
 
+# Fix .env file - apply all fixes
+echo -e "${CYAN}ℹ️  Fixing .env file configuration...${NC}"
+
+# Fix Sentry DSN (remove invalid placeholder values)
+sed -i 's/^SENTRY_DSN=.*project-id.*/# SENTRY_DSN=  # Optional: Add your Sentry DSN here/' "$INSTALL_PATH/.env" 2>/dev/null || true
+sed -i 's/^SENTRY_DSN=.*your-sentry-dsn.*/# SENTRY_DSN=  # Optional: Add your Sentry DSN here/' "$INSTALL_PATH/.env" 2>/dev/null || true
+
+# Fix DATABASE_URL - change Docker hostnames to localhost
+sed -i 's|@db:|@localhost:|g' "$INSTALL_PATH/.env" 2>/dev/null || true
+sed -i 's|postgresql://.*@localhost:.*/brain_capital|postgresql://'"$DB_USER"':'"$DB_PASSWORD"'@localhost:5432/'"$DB_NAME"'|g' "$INSTALL_PATH/.env" 2>/dev/null || true
+sed -i 's|postgresql://brain_capital:.*@localhost|postgresql://'"$DB_USER"':'"$DB_PASSWORD"'@localhost|g' "$INSTALL_PATH/.env" 2>/dev/null || true
+
+# Fix stuck lines (START_MODE=dockerDATABASE_URL=...)
+sed -i 's/START_MODE=dockerDATABASE_URL=/START_MODE=docker\nDATABASE_URL=/g' "$INSTALL_PATH/.env" 2>/dev/null || true
+
+# Ensure DATABASE_URL is correct
+if [[ "$SKIP_DB" == false ]]; then
+    # Remove old DATABASE_URL lines
+    sed -i '/^DATABASE_URL=/d' "$INSTALL_PATH/.env" 2>/dev/null || true
+    # Add correct one on new line
+    echo "" >> "$INSTALL_PATH/.env"
+    echo "DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME" >> "$INSTALL_PATH/.env"
+fi
+
+# Fix REDIS_URL - change Docker hostname to localhost
+sed -i 's|redis://redis:|redis://localhost:|g' "$INSTALL_PATH/.env" 2>/dev/null || true
+
+# Ensure REDIS_URL exists
+if [[ "$SKIP_REDIS" == false ]]; then
+    if ! grep -q "^REDIS_URL=" "$INSTALL_PATH/.env"; then
+        echo "REDIS_URL=redis://localhost:6379/0" >> "$INSTALL_PATH/.env"
+    fi
+fi
+
+echo -e "${GREEN}✅ .env file fixed${NC}"
+
 # Create config.ini if it doesn't exist
 if [[ ! -f "$INSTALL_PATH/config.ini" ]]; then
     echo -e "${CYAN}ℹ️  Creating config.ini file...${NC}"
@@ -382,11 +428,51 @@ chown "$APP_USER:$APP_USER" "$INSTALL_PATH/logs"
 echo ""
 
 # ============================================================================
-# STEP 9: Run Database Migrations
+# STEP 9: Fix PostgreSQL User Password
 # ============================================================================
 if [[ "$SKIP_DB" == false ]]; then
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}STEP 9: Running Database Migrations${NC}"
+    echo -e "${BLUE}STEP 9: Fixing PostgreSQL User Password${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    # Ensure PostgreSQL is running
+    if ! systemctl is-active --quiet postgresql; then
+        echo -e "${CYAN}ℹ️  Starting PostgreSQL...${NC}"
+        systemctl start postgresql
+        sleep 2
+    fi
+
+    # Set password for database user
+    echo -e "${CYAN}ℹ️  Setting password for database user $DB_USER...${NC}"
+    sudo -u postgres psql << EOF > /dev/null 2>&1
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_user WHERE usename = '$DB_USER') THEN
+        CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
+    ELSE
+        ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
+    END IF;
+END
+\$\$;
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+\q
+EOF
+
+    if [[ $? -eq 0 ]]; then
+        echo -e "${GREEN}✅ PostgreSQL user password set${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Could not set password (may already be correct)${NC}"
+    fi
+    echo ""
+fi
+
+# ============================================================================
+# STEP 10: Run Database Migrations
+# ============================================================================
+if [[ "$SKIP_DB" == false ]]; then
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}STEP 10: Running Database Migrations${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
@@ -402,10 +488,10 @@ if [[ "$SKIP_DB" == false ]]; then
 fi
 
 # ============================================================================
-# STEP 10: Set Up Systemd Services
+# STEP 11: Set Up Systemd Services
 # ============================================================================
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}STEP 10: Setting Up Systemd Services${NC}"
+echo -e "${BLUE}STEP 11: Setting Up Systemd Services${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -442,10 +528,10 @@ fi
 echo ""
 
 # ============================================================================
-# STEP 11: Configure Firewall
+# STEP 12: Configure Firewall
 # ============================================================================
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}STEP 11: Configuring Firewall${NC}"
+echo -e "${BLUE}STEP 12: Configuring Firewall${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -458,11 +544,11 @@ echo -e "${GREEN}✅ Firewall configured${NC}"
 echo ""
 
 # ============================================================================
-# STEP 12: Nginx Setup (Optional)
+# STEP 13: Nginx Setup (Optional)
 # ============================================================================
 if [[ "$SKIP_NGINX" == false ]]; then
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}STEP 12: Setting Up Nginx (Optional)${NC}"
+    echo -e "${BLUE}STEP 13: Setting Up Nginx (Optional)${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
