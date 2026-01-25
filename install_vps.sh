@@ -192,6 +192,11 @@ else
 fi
 
 cd "$INSTALL_PATH"
+
+# Fix Git safe.directory issue
+echo -e "${CYAN}ℹ️  Configuring Git safe directory...${NC}"
+git config --global --add safe.directory "$INSTALL_PATH" 2>/dev/null || true
+
 echo -e "${GREEN}✅ Repository cloned/updated${NC}"
 echo ""
 
@@ -399,11 +404,27 @@ if [[ ! -f "$INSTALL_PATH/config.ini" ]]; then
     if [[ -f "$INSTALL_PATH/config.ini.example" ]]; then
         cp "$INSTALL_PATH/config.ini.example" "$INSTALL_PATH/config.ini"
         chown "$APP_USER:$APP_USER" "$INSTALL_PATH/config.ini"
-        chmod 600 "$INSTALL_PATH/config.ini"
+        chmod 644 "$INSTALL_PATH/config.ini"  # 644 for Docker container access
         echo -e "${GREEN}✅ config.ini file created (please edit with your API keys)${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  config.ini file already exists${NC}"
+    # Ensure config.ini has correct permissions for Docker
+    chmod 644 "$INSTALL_PATH/config.ini" 2>/dev/null || true
+fi
+
+# Ensure [Settings] section exists in config.ini
+if [[ -f "$INSTALL_PATH/config.ini" ]]; then
+    if ! grep -q "^\[Settings\]" "$INSTALL_PATH/config.ini"; then
+        echo -e "${CYAN}ℹ️  Adding [Settings] section to config.ini...${NC}"
+        cat >> "$INSTALL_PATH/config.ini" << 'EOF'
+
+[Settings]
+testnet = False
+max_open_positions = 10
+EOF
+        echo -e "${GREEN}✅ [Settings] section added${NC}"
+    fi
 fi
 
 # Create secrets directory
