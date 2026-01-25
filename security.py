@@ -627,7 +627,7 @@ def verify_session() -> bool:
     """Verify session integrity - lenient check for mobile devices and browser updates"""
     try:
         # If no fingerprint exists, initialize it (for sessions created before this security feature)
-        stored_fingerprint = session.get('fingerprint')
+    stored_fingerprint = session.get('fingerprint')
         if not stored_fingerprint:
             init_session_security()
             logger.debug("Session fingerprint initialized")
@@ -646,7 +646,7 @@ def verify_session() -> bool:
         if current_ua:
             session['user_agent'] = current_ua
             session['fingerprint'] = generate_session_fingerprint()
-        return True
+    return True
     
     # If no current User-Agent, allow (might be API request)
     if not current_ua:
