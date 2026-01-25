@@ -33,15 +33,34 @@ if [[ -f "$INSTALL_PATH/package.json" ]]; then
     fi
     
     # Create tailwind.input.css if it doesn't exist
-    if [[ ! -f "$INSTALL_PATH/static/css/tailwind.input.css" ]]; then
+    TAILWIND_INPUT="$INSTALL_PATH/static/css/tailwind.input.css"
+    if [[ ! -f "$TAILWIND_INPUT" ]]; then
         echo "Creating tailwind.input.css..."
         mkdir -p "$INSTALL_PATH/static/css"
-        cat > "$INSTALL_PATH/static/css/tailwind.input.css" << 'EOF'
+        cat > "$TAILWIND_INPUT" << 'EOF'
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles can be added here */
 EOF
-        echo "✅ Created tailwind.input.css"
+        echo "✅ Created tailwind.input.css at $TAILWIND_INPUT"
+    else
+        echo "✅ tailwind.input.css already exists at $TAILWIND_INPUT"
+    fi
+    
+    # Verify file exists (both absolute and relative paths)
+    if [[ ! -f "$TAILWIND_INPUT" ]]; then
+        echo "❌ Failed to create tailwind.input.css at $TAILWIND_INPUT"
+        exit 1
+    fi
+    
+    # Verify relative path from install directory
+    cd "$INSTALL_PATH"
+    if [[ ! -f "./static/css/tailwind.input.css" ]]; then
+        echo "❌ tailwind.input.css not found at ./static/css/tailwind.input.css"
+        echo "   Current directory: $(pwd)"
+        exit 1
     fi
     
     # Rebuild CSS
