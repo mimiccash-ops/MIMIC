@@ -446,12 +446,15 @@ http {
         location /static/ {
             alias /var/www/mimic/static/;
             
-            # Browser caching
-            expires 30d;
-            add_header Cache-Control "public, no-transform, immutable";
+            # Browser caching - allow revalidation for versioned files
+            expires 7d;
+            add_header Cache-Control "public, no-transform, must-revalidate";
             
             # Gzip for static files
             gzip_static on;
+            gzip on;
+            gzip_vary on;
+            gzip_types text/css text/javascript application/javascript application/json;
             
             # Security headers
             add_header X-Content-Type-Options "nosniff" always;
