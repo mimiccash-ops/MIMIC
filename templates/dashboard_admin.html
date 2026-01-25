@@ -254,15 +254,20 @@
         <!-- Admin Quick Links -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <!-- Tournament Management -->
-            <a href="{{ url_for('tournament_page') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
-               style="border-color: rgba(234, 179, 8, 0.2);">
+            <a href="#" onclick="showSection('tournaments'); return false;" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
+               style="border-color: rgba(234, 179, 8, 0.2); cursor: pointer;">
                 <div class="flex items-center gap-3">
                     <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-md);">
                         <i class="fas fa-medal" style="color: #eab308;"></i>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <div class="font-semibold text-sm" data-i18n="nav.tournaments">Tournaments</div>
                         <div class="text-xs text-muted" data-i18n="admin.createManage">Create & manage</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ url_for('tournament_page') }}" target="_blank" class="cyber-btn cyber-btn-outline cyber-btn-sm" onclick="event.stopPropagation();" title="View Public Tournament Page">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
                     </div>
                 </div>
             </a>
