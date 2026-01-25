@@ -1096,18 +1096,19 @@
                                     }
                                 });
                                 
-                                // Special handling for buttons with spans inside
-                                document.querySelectorAll('button[type="submit"], button.cyber-btn').forEach(function(btn) {
-                                    const span = btn.querySelector('span[data-i18n]');
-                                    if (span) {
+                                // Special handling for buttons with spans inside - must be after data-i18n processing
+                                document.querySelectorAll('button[type="submit"], button.cyber-btn, button.btn-primary, button.btn-secondary, .cyber-btn').forEach(function(btn) {
+                                    const spans = btn.querySelectorAll('span[data-i18n]');
+                                    spans.forEach(function(span) {
                                         const key = span.getAttribute('data-i18n');
                                         if (key && window.t) {
                                             const translation = window.t(key);
                                             if (translation && translation !== key) {
+                                                // Directly update text content, preserving any icons
                                                 span.textContent = translation;
                                             }
                                         }
-                                    }
+                                    });
                                 });
                             }
                             
@@ -1116,6 +1117,7 @@
                             setTimeout(applyTranslationsNow, 100);
                             setTimeout(applyTranslationsNow, 300);
                             setTimeout(applyTranslationsNow, 500);
+                            setTimeout(applyTranslationsNow, 800);
                             
                             // Play sound if available
                             if (window.playSound) {
@@ -1179,19 +1181,51 @@
                                 }
                             });
                             
-                            // Special handling for buttons with spans inside
-                            document.querySelectorAll('button[type="submit"], button.cyber-btn').forEach(function(btn) {
-                                const span = btn.querySelector('span[data-i18n]');
-                                if (span) {
+                            // Special handling for buttons with spans inside - must be after data-i18n processing
+                            document.querySelectorAll('button[type="submit"], button.cyber-btn, button.btn-primary, button.btn-secondary, .cyber-btn').forEach(function(btn) {
+                                const spans = btn.querySelectorAll('span[data-i18n]');
+                                spans.forEach(function(span) {
                                     const key = span.getAttribute('data-i18n');
                                     if (key && window.t) {
                                         const translation = window.t(key);
                                         if (translation && translation !== key) {
+                                            // Directly update text content, preserving any icons
                                             span.textContent = translation;
                                         }
                                     }
-                                }
+                                });
                             });
+                            
+                            // Also check for buttons that might have been missed - run multiple times
+                            setTimeout(function() {
+                                document.querySelectorAll('button[type="submit"], button.cyber-btn, .cyber-btn').forEach(function(btn) {
+                                    const spans = btn.querySelectorAll('span[data-i18n]');
+                                    spans.forEach(function(span) {
+                                        const key = span.getAttribute('data-i18n');
+                                        if (key && window.t) {
+                                            const translation = window.t(key);
+                                            if (translation && translation !== key) {
+                                                span.textContent = translation;
+                                            }
+                                        }
+                                    });
+                                });
+                            }, 500);
+                            
+                            setTimeout(function() {
+                                document.querySelectorAll('button[type="submit"], button.cyber-btn, .cyber-btn').forEach(function(btn) {
+                                    const spans = btn.querySelectorAll('span[data-i18n]');
+                                    spans.forEach(function(span) {
+                                        const key = span.getAttribute('data-i18n');
+                                        if (key && window.t) {
+                                            const translation = window.t(key);
+                                            if (translation && translation !== key) {
+                                                span.textContent = translation;
+                                            }
+                                        }
+                                    });
+                                });
+                            }, 1000);
                         }, 300);
                     }, 200);
             }
