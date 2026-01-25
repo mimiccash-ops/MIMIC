@@ -80,7 +80,7 @@ ExecStart=/var/www/mimic/venv/bin/gunicorn \
     --workers 1 \
     --threads 100 \
     --worker-connections 1000 \
-    --bind 127.0.0.1:8000 \
+    --bind 127.0.0.1:5000 \
     --timeout 120 \
     --keep-alive 65 \
     --max-requests 10000 \
