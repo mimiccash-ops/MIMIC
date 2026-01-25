@@ -263,19 +263,27 @@ class Config:
         )
         
         # Telegram settings - prefer env vars
-        TG_TOKEN = get_config_value(
-            'Telegram', 'bot_token',
-            'TELEGRAM_BOT_TOKEN'
-        )
-        TG_CHAT_ID = get_config_value(
-            'Telegram', 'chat_id',
-            'TELEGRAM_CHAT_ID'
-        )
-        TG_ENABLED = config['Telegram'].getboolean('enabled', False)
-        TG_DISABLE_POLLING = config['Telegram'].getboolean('disable_polling', False)
-        # Delay before starting Telegram polling (prevents 409 conflicts on service restart)
-        # Increased default from 15 to 30 seconds for more reliable conflict avoidance
-        TG_POLLING_STARTUP_DELAY = int(config['Telegram'].get('polling_startup_delay', 30))
+        if config.has_section('Telegram'):
+            TG_TOKEN = get_config_value(
+                'Telegram', 'bot_token',
+                'TELEGRAM_BOT_TOKEN'
+            )
+            TG_CHAT_ID = get_config_value(
+                'Telegram', 'chat_id',
+                'TELEGRAM_CHAT_ID'
+            )
+            TG_ENABLED = config['Telegram'].getboolean('enabled', False)
+            TG_DISABLE_POLLING = config['Telegram'].getboolean('disable_polling', False)
+            # Delay before starting Telegram polling (prevents 409 conflicts on service restart)
+            # Increased default from 15 to 30 seconds for more reliable conflict avoidance
+            TG_POLLING_STARTUP_DELAY = int(config['Telegram'].get('polling_startup_delay', 30))
+        else:
+            # Telegram section not found - use defaults or env vars
+            TG_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+            TG_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
+            TG_ENABLED = False
+            TG_DISABLE_POLLING = False
+            TG_POLLING_STARTUP_DELAY = 30
         
         IS_TESTNET = config['Settings'].getboolean('testnet', False)
         GLOBAL_MAX_POSITIONS = int(config['Settings'].get('max_open_positions', 10))
