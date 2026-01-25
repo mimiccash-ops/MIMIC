@@ -626,14 +626,57 @@ def verify_csrf_token(token: str) -> bool:
 def verify_session() -> bool:
     """Verify session integrity"""
     # Check session fingerprint
-    current_fingerprint = generate_session_fingerprint()
     stored_fingerprint = session.get('fingerprint')
     
-    if stored_fingerprint and stored_fingerprint != current_fingerprint:
-        logger.warning(f"Session fingerprint mismatch! Possible session hijacking.")
-        return False
+    # If no fingerprint exists, initialize it (for sessions created before this security feature)
+    if not stored_fingerprint:
+        init_session_security()
+        return True
+    
+    # Generate current fingerprint
+    current_fingerprint = generate_session_fingerprint()
+    
+    # Only check User-Agent for fingerprint (Accept-Language can change)
+    # This is more lenient but still provides basic session security
+    stored_ua = session.get('user_agent', '')
+    current_ua = request.headers.get('User-Agent', '')
+    
+    # If User-Agent changed significantly, it might be session hijacking
+    if stored_ua and current_ua and stored_ua != current_ua:
+        # Allow minor changes (browser updates, but not complete changes)
+        # Check if it's the same browser family
+        stored_browser = _extract_browser_family(stored_ua)
+        current_browser = _extract_browser_family(current_ua)
+        
+        if stored_browser != current_browser:
+            logger.warning(f"Session fingerprint mismatch! Browser changed from {stored_browser} to {current_browser}")
+            return False
+    
+    # Update stored User-Agent if it changed slightly (browser version update)
+    if current_ua and current_ua != stored_ua:
+        session['user_agent'] = current_ua
     
     return True
+
+
+def _extract_browser_family(user_agent: str) -> str:
+    """Extract browser family from User-Agent string"""
+    if not user_agent:
+        return ''
+    
+    ua_lower = user_agent.lower()
+    if 'chrome' in ua_lower and 'edg' not in ua_lower:
+        return 'chrome'
+    elif 'firefox' in ua_lower:
+        return 'firefox'
+    elif 'safari' in ua_lower and 'chrome' not in ua_lower:
+        return 'safari'
+    elif 'edg' in ua_lower:
+        return 'edge'
+    elif 'opera' in ua_lower:
+        return 'opera'
+    else:
+        return 'unknown'
 
 
 def generate_session_fingerprint() -> str:
@@ -649,6 +692,7 @@ def generate_session_fingerprint() -> str:
 def init_session_security():
     """Initialize session security on login"""
     session['fingerprint'] = generate_session_fingerprint()
+    session['user_agent'] = request.headers.get('User-Agent', '')
     session['created_at'] = time.time()
     session.permanent = True
 
