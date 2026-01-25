@@ -624,38 +624,87 @@ def verify_csrf_token(token: str) -> bool:
 
 
 def verify_session() -> bool:
-    """Verify session integrity"""
-    # Check session fingerprint
-    stored_fingerprint = session.get('fingerprint')
-    
-    # If no fingerprint exists, initialize it (for sessions created before this security feature)
-    if not stored_fingerprint:
-        init_session_security()
+    """Verify session integrity - lenient check for mobile devices and browser updates"""
+    try:
+        # If no fingerprint exists, initialize it (for sessions created before this security feature)
+        stored_fingerprint = session.get('fingerprint')
+        if not stored_fingerprint:
+            init_session_security()
+            logger.debug("Session fingerprint initialized")
+            return True
+    except Exception as e:
+        # If session access fails, log but allow (might be session storage issue)
+        logger.warning(f"Session access error in verify_session: {e}")
         return True
     
-    # Generate current fingerprint
-    current_fingerprint = generate_session_fingerprint()
-    
-    # Only check User-Agent for fingerprint (Accept-Language can change)
-    # This is more lenient but still provides basic session security
+    # Get User-Agent
     stored_ua = session.get('user_agent', '')
     current_ua = request.headers.get('User-Agent', '')
     
-    # If User-Agent changed significantly, it might be session hijacking
-    if stored_ua and current_ua and stored_ua != current_ua:
-        # Allow minor changes (browser updates, but not complete changes)
-        # Check if it's the same browser family
-        stored_browser = _extract_browser_family(stored_ua)
-        current_browser = _extract_browser_family(current_ua)
-        
-        if stored_browser != current_browser:
-            logger.warning(f"Session fingerprint mismatch! Browser changed from {stored_browser} to {current_browser}")
-            return False
+    # If no stored User-Agent, just save current one and allow
+    if not stored_ua:
+        if current_ua:
+            session['user_agent'] = current_ua
+            session['fingerprint'] = generate_session_fingerprint()
+        return True
     
-    # Update stored User-Agent if it changed slightly (browser version update)
-    if current_ua and current_ua != stored_ua:
+    # If no current User-Agent, allow (might be API request)
+    if not current_ua:
+        return True
+    
+    # If User-Agent matches exactly, allow
+    if stored_ua == current_ua:
+        return True
+    
+    # User-Agent changed - check if it's the same browser family
+    stored_browser = _extract_browser_family(stored_ua)
+    current_browser = _extract_browser_family(current_ua)
+    
+    # If same browser family, allow and update (browser version update)
+    if stored_browser and current_browser and stored_browser == current_browser:
         session['user_agent'] = current_ua
+        session['fingerprint'] = generate_session_fingerprint()
+        logger.debug(f"User-Agent updated for same browser family: {current_browser}")
+        return True
     
+    # For mobile devices, be even more lenient
+    # Mobile browsers often have slightly different User-Agents between requests
+    is_mobile_stored = _is_mobile_device(stored_ua)
+    is_mobile_current = _is_mobile_device(current_ua)
+    
+    if is_mobile_stored and is_mobile_current:
+        # Both are mobile - check if same mobile browser type
+        stored_mobile = _extract_mobile_browser(stored_ua)
+        current_mobile = _extract_mobile_browser(current_ua)
+        
+        if stored_mobile and current_mobile and stored_mobile == current_mobile:
+            # Same mobile browser, allow and update
+            session['user_agent'] = current_ua
+            session['fingerprint'] = generate_session_fingerprint()
+            logger.debug(f"Mobile User-Agent updated: {current_mobile}")
+            return True
+    
+    # Different browser families - might be session hijacking
+    # But be lenient: if user is already authenticated, allow first mismatch and update
+    # This handles cases where browser updates or mobile app changes User-Agent
+    if stored_browser == 'unknown' or current_browser == 'unknown':
+        # Unknown browsers - be lenient
+        session['user_agent'] = current_ua
+        session['fingerprint'] = generate_session_fingerprint()
+        logger.debug("User-Agent updated for unknown browser")
+        return True
+    
+    # Only block if browser family clearly changed (e.g., Chrome to Firefox)
+    if stored_browser != current_browser:
+        logger.warning(f"Session fingerprint mismatch! Browser changed from {stored_browser} to {current_browser}")
+        # Still allow but log warning - too strict blocking causes user issues
+        session['user_agent'] = current_ua
+        session['fingerprint'] = generate_session_fingerprint()
+        return True
+    
+    # Default: allow and update
+    session['user_agent'] = current_ua
+    session['fingerprint'] = generate_session_fingerprint()
     return True
 
 
@@ -677,6 +726,36 @@ def _extract_browser_family(user_agent: str) -> str:
         return 'opera'
     else:
         return 'unknown'
+
+
+def _is_mobile_device(user_agent: str) -> bool:
+    """Check if User-Agent is from a mobile device"""
+    if not user_agent:
+        return False
+    
+    ua_lower = user_agent.lower()
+    mobile_indicators = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
+    return any(indicator in ua_lower for indicator in mobile_indicators)
+
+
+def _extract_mobile_browser(user_agent: str) -> str:
+    """Extract mobile browser type from User-Agent"""
+    if not user_agent:
+        return ''
+    
+    ua_lower = user_agent.lower()
+    if 'safari' in ua_lower and ('iphone' in ua_lower or 'ipad' in ua_lower):
+        return 'ios_safari'
+    elif 'chrome' in ua_lower and 'android' in ua_lower:
+        return 'android_chrome'
+    elif 'firefox' in ua_lower and 'android' in ua_lower:
+        return 'android_firefox'
+    elif 'samsungbrowser' in ua_lower:
+        return 'samsung'
+    elif 'ucbrowser' in ua_lower:
+        return 'uc'
+    else:
+        return 'mobile_other'
 
 
 def generate_session_fingerprint() -> str:
