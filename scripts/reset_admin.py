@@ -6,8 +6,12 @@ This script resets the password for an admin user.
 
 Usage:
     python scripts/reset_admin.py <username> [new_password]
+    docker compose run --rm web python scripts/reset_admin.py <username> [new_password]
 
 If new_password is not provided, a random password will be generated.
+
+Note: If running locally and getting database connection errors, use Docker:
+    docker compose run --rm web python scripts/reset_admin.py admin
 """
 
 import sys
