@@ -355,41 +355,7 @@
 
         <nav class="mobile-nav">
             {% if current_user.is_authenticated %}
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-chart-line"></i>
-                <span data-i18n="nav.dashboard">Dashboard</span>
-            </a>
-            
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="nav.community">Community</div>
-            <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-trophy"></i>
-                <span data-i18n="nav.leaderboard">Leaderboard</span>
-            </a>
-            <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-vote-yea"></i>
-                <span data-i18n="nav.governance">Governance</span>
-            </a>
-            
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="nav.account">Account</div>
-            <a href="#" class="mobile-nav-item" onclick="closeMobileMenu(); showSection('subscription'); return false;">
-                <i class="fas fa-crown"></i>
-                <span data-i18n="nav.subscription">Subscription</span>
-            </a>
-            <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-envelope"></i>
-                <span data-i18n="nav.messages">Messages</span>
-                {% if unread_count and unread_count > 0 %}
-                <span class="mobile-badge">{{ unread_count }}</span>
-                {% endif %}
-            </a>
-            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-key"></i>
-                <span data-i18n="nav.changePassword">Security</span>
-            </a>
-            
-            {% if current_user.is_authenticated %}
+            {% block mobile_sections %}
             <div class="mobile-divider"></div>
             <div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
             <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
@@ -412,9 +378,36 @@
                 <i class="fas fa-cog"></i>
                 <span data-i18n="section.settings">Settings</span>
             </a>
-            {% endif %}
+            {% endblock %}
             
-            {% block mobile_sections %}{% endblock %}
+            <div class="mobile-divider"></div>
+            <div class="mobile-nav-label" data-i18n="nav.community">Community</div>
+            <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-trophy"></i>
+                <span data-i18n="nav.leaderboard">Leaderboard</span>
+            </a>
+            <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-vote-yea"></i>
+                <span data-i18n="nav.governance">Governance</span>
+            </a>
+            
+            <div class="mobile-divider"></div>
+            <div class="mobile-nav-label" data-i18n="nav.account">Account</div>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('subscription'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-crown"></i>
+                <span data-i18n="nav.subscription">Subscription</span>
+            </a>
+            <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-envelope"></i>
+                <span data-i18n="nav.messages">Messages</span>
+                {% if unread_count and unread_count > 0 %}
+                <span class="mobile-badge">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
+                <i class="fas fa-key"></i>
+                <span data-i18n="nav.changePassword">Security</span>
+            </a>
             
             {% if current_user.role == 'admin' %}
             <div class="mobile-divider"></div>

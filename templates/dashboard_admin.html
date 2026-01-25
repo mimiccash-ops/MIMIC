@@ -3,23 +3,24 @@
 
 {% block mobile_sections %}
 <div class="mobile-divider"></div>
-<a href="#" class="mobile-nav-item mobile-section-link active" data-section="overview" onclick="showSection('overview'); return false;">
+<div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
+<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-crown"></i>
     <span data-i18n="section.overview">Overview</span>
 </a>
-<a href="#" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="showSection('trading'); return false;">
+<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-chart-line"></i>
     <span data-i18n="section.trading">Trading</span>
 </a>
-<a href="#" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="showSection('exchange'); return false;">
+<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('exchange'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-cogs"></i>
     <span data-i18n="section.exchange">Exchange</span>
 </a>
-<a href="#" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="showSection('tasks'); return false;">
+<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-tasks"></i>
     <span data-i18n="section.tasks">Tasks</span>
 </a>
-<a href="#" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="showSection('settings'); return false;">
+<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('settings'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-sliders-h"></i>
     <span data-i18n="section.settings">Settings</span>
 </a>
