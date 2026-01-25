@@ -9,7 +9,7 @@
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 1000;
+    z-index: 999;
     font-family: var(--font-body, 'Space Grotesk', sans-serif);
 }
 

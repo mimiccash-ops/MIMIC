@@ -2901,20 +2901,31 @@
     }
     
     function loadSubscriptionStatus() {
+        console.log('Loading subscription status...');
         fetch('/api/subscription/status')
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                }
+                return r.json();
+            })
             .then(data => {
+                console.log('Subscription status data:', data);
                 if (!data.success) {
-                    console.error('Failed to load subscription status');
+                    console.error('Failed to load subscription status:', data.error);
+                    showToast('Failed to load subscription status: ' + (data.error || 'Unknown error'), 'error');
                     return;
                 }
                 
                 subscriptionData = data;
                 updateSubscriptionDisplay(data);
-                loadPaymentHistory(data.payment_history);
-                showPendingPayments(data.pending_payments);
+                loadPaymentHistory(data.payment_history || []);
+                showPendingPayments(data.pending_payments || []);
             })
-            .catch(err => console.error('Error loading subscription:', err));
+            .catch(err => {
+                console.error('Error loading subscription:', err);
+                showToast('Error loading subscription: ' + err.message, 'error');
+            });
     }
     
     function updateSubscriptionDisplay(data) {
@@ -3060,16 +3071,30 @@
     }
     
     function loadAvailablePlans() {
+        console.log('Loading available plans...');
         fetch('/api/subscription/available-networks')
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) return;
-                
-                availableNetworks = data.networks;
-                renderPlans(data.plans);
-                updateNetworkSelect(data.networks);
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                }
+                return r.json();
             })
-            .catch(err => console.error('Error loading plans:', err));
+            .then(data => {
+                console.log('Available plans data:', data);
+                if (!data.success) {
+                    console.error('Failed to load plans:', data.error);
+                    showToast('Failed to load plans: ' + (data.error || 'Unknown error'), 'error');
+                    return;
+                }
+                
+                availableNetworks = data.networks || [];
+                renderPlans(data.plans || []);
+                updateNetworkSelect(data.networks || []);
+            })
+            .catch(err => {
+                console.error('Error loading plans:', err);
+                showToast('Error loading plans: ' + err.message, 'error');
+            });
     }
     
     function renderPlans(plans) {
@@ -4350,7 +4375,7 @@
         });
     }
     
-    // Override showSection to load tasks when switching
+    // Override showSection to load tasks and subscription when switching
     const originalUserShowSection = window.showSection;
     window.showSection = function(section) {
         if (typeof originalUserShowSection === 'function') {
@@ -4359,6 +4384,10 @@
         if (section === 'tasks') {
             loadUserTasks();
             loadMyParticipations();
+        }
+        if (section === 'subscription') {
+            loadSubscriptionStatus();
+            loadAvailablePlans();
         }
     };
 </script>

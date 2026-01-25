@@ -212,7 +212,7 @@
 
                 <!-- Language -->
                 <button onclick="toggleLanguage()" class="action-btn" aria-label="Мова">
-                    <span class="lang-flag">🇺🇦</span>
+                    <span class="lang-code">UA</span>
                 </button>
 
                 {% if current_user.is_authenticated %}
@@ -389,6 +389,31 @@
                 <span data-i18n="nav.changePassword">Security</span>
             </a>
             
+            {% if current_user.is_authenticated %}
+            <div class="mobile-divider"></div>
+            <div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-tachometer-alt"></i>
+                <span data-i18n="section.overview">Overview</span>
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-chart-line"></i>
+                <span data-i18n="section.trading">Trading</span>
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('exchange'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-plug"></i>
+                <span data-i18n="section.exchange">Exchange</span>
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-tasks"></i>
+                <span data-i18n="section.tasks">Tasks</span>
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('settings'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+                <i class="fas fa-cog"></i>
+                <span data-i18n="section.settings">Settings</span>
+            </a>
+            {% endif %}
+            
             {% block mobile_sections %}{% endblock %}
             
             {% if current_user.role == 'admin' %}
@@ -410,13 +435,6 @@
             </a>
             {% endif %}
         </nav>
-
-        <div class="mobile-settings">
-            <button onclick="toggleLanguage()" class="mobile-setting-btn">
-                <span class="lang-flag">🇺🇦</span>
-                <span class="lang-code">UA</span>
-            </button>
-        </div>
 
         {% if current_user.is_authenticated %}
         <div class="mobile-footer">
@@ -747,9 +765,174 @@
             color: var(--neon-pink) !important;
         }
     </style>
+    
+    <!-- Fix FAB and Chat Button Positioning -->
+    <style>
+        /* Fix FAB button z-index and positioning to not overlap with chat button */
+        .fab-container {
+            z-index: 998 !important;
+            bottom: 100px !important; /* Position above chat button (60px + 24px + 16px margin) */
+        }
+        
+        /* Ensure chat button stays on top */
+        .chat-widget {
+            z-index: 999 !important;
+        }
+        
+        /* Mobile menu sections - always visible for authenticated users */
+        .mobile-nav .mobile-section-link {
+            display: flex !important;
+        }
+        
+        /* Language button styling - show only code (UA/EN) */
+        .action-btn .lang-code {
+            font-family: var(--font-display, 'Space Grotesk', sans-serif);
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-primary);
+        }
+        
+        .action-btn:hover .lang-code {
+            color: var(--neon-cyan);
+        }
+    </style>
 
     <!-- Main JavaScript - Loaded before closing body to ensure functions are available -->
     <script src="{{ static_version('js/main.min.js') }}"></script>
+    
+    <!-- Language Translation Fix -->
+    <script>
+    (function() {
+        // Wait for main.min.js to load and extend translations
+        setTimeout(function() {
+            // Check if translations object exists
+            if (typeof window.t === 'function' && window.currentLang) {
+                // Add missing translation keys
+                const missingTranslations = {
+                    en: {
+                        'section.tasks': 'Tasks',
+                        'nav.subscription': 'Subscription',
+                        'nav.payouts': 'Payouts',
+                        'nav.community': 'Community',
+                        'nav.account': 'Account',
+                        'nav.admin': 'Admin',
+                        'role.admin': 'Admin',
+                        'role.user': 'User'
+                    },
+                    ua: {
+                        'section.tasks': 'Завдання',
+                        'nav.subscription': 'Підписка',
+                        'nav.payouts': 'Виплати',
+                        'nav.community': 'Спільнота',
+                        'nav.account': 'Акаунт',
+                        'nav.admin': 'Адмін',
+                        'role.admin': 'Адмін',
+                        'role.user': 'Користувач'
+                    }
+                };
+                
+                // Extend translations if they exist in main.min.js
+                if (window.translations) {
+                    if (!window.translations.en) window.translations.en = {};
+                    if (!window.translations.ua) window.translations.ua = {};
+                    Object.assign(window.translations.en, missingTranslations.en);
+                    Object.assign(window.translations.ua, missingTranslations.ua);
+                }
+                
+                    // Override toggleLanguage to ensure proper translation and update language button
+                    const originalToggleLanguage = window.toggleLanguage;
+                    if (originalToggleLanguage) {
+                        window.toggleLanguage = function() {
+                            if (typeof originalToggleLanguage === 'function') {
+                                originalToggleLanguage();
+                            }
+                            
+                            // Update language button text (show only code: UA or EN)
+                            setTimeout(function() {
+                                const langCode = window.currentLang === 'ua' ? 'UA' : 'EN';
+                                document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
+                                    el.textContent = langCode;
+                                });
+                            }, 50);
+                            
+                            // Force re-apply translations with delay
+                            setTimeout(function() {
+                                // Use reapplyTranslations if available
+                                if (window.reapplyTranslations) {
+                                    window.reapplyTranslations();
+                                } else if (window.applyTranslations) {
+                                    window.applyTranslations();
+                                }
+                                
+                                // Manually update all data-i18n elements
+                                document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                                    const key = el.getAttribute('data-i18n');
+                                    if (key && window.t) {
+                                        const translation = window.t(key);
+                                        if (translation && translation !== key) {
+                                            // Preserve HTML structure (icons, etc.)
+                                            if (el.innerHTML.includes('<')) {
+                                                const iconMatch = el.innerHTML.match(/<i[^>]*>.*?<\/i>/);
+                                                const spanMatch = el.innerHTML.match(/<span[^>]*>.*?<\/span>/);
+                                                if (iconMatch) {
+                                                    el.innerHTML = iconMatch[0] + ' ' + translation;
+                                                } else if (spanMatch) {
+                                                    el.innerHTML = spanMatch[0].replace(/(<span[^>]*>).*?(<\/span>)/, '$1' + translation + '$2');
+                                                } else {
+                                                    el.innerHTML = translation;
+                                                }
+                                            } else {
+                                                el.textContent = translation;
+                                            }
+                                        }
+                                    }
+                                });
+                                
+                                // Update placeholders and titles
+                                document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+                                    const key = el.getAttribute('data-i18n-placeholder');
+                                    if (key && window.t) {
+                                        const translation = window.t(key);
+                                        if (translation && translation !== key) {
+                                            el.placeholder = translation;
+                                        }
+                                    }
+                                });
+                                
+                                document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+                                    const key = el.getAttribute('data-i18n-title');
+                                    if (key && window.t) {
+                                        const translation = window.t(key);
+                                        if (translation && translation !== key) {
+                                            el.title = translation;
+                                        }
+                                    }
+                                });
+                            }, 150);
+                        };
+                    }
+                    
+                    // Initialize language button text on page load
+                    setTimeout(function() {
+                        if (window.currentLang) {
+                            const langCode = window.currentLang === 'ua' ? 'UA' : 'EN';
+                            document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
+                                el.textContent = langCode;
+                            });
+                        }
+                    }, 200);
+                
+                // Initial translation apply
+                if (window.reapplyTranslations) {
+                    window.reapplyTranslations();
+                } else if (window.applyTranslations) {
+                    window.applyTranslations();
+                }
+            }
+        }, 100);
+    })();
+    </script>
     
     <!-- PWA & Push Notifications -->
     <script src="{{ static_version('js/push.js') }}"></script>
