@@ -805,6 +805,8 @@
                 const missingTranslations = {
                     en: {
                         'section.tasks': 'Tasks',
+                        'section.trading': 'Trading',
+                        'section.dashboard': 'Dashboard Sections',
                         'nav.subscription': 'Subscription',
                         'nav.payouts': 'Payouts',
                         'nav.community': 'Community',
@@ -815,6 +817,8 @@
                     },
                     ua: {
                         'section.tasks': 'Завдання',
+                        'section.trading': 'Торгівля',
+                        'section.dashboard': 'Секції панелі',
                         'nav.subscription': 'Підписка',
                         'nav.payouts': 'Виплати',
                         'nav.community': 'Спільнота',
@@ -837,20 +841,31 @@
                     const originalToggleLanguage = window.toggleLanguage;
                     if (originalToggleLanguage) {
                         window.toggleLanguage = function() {
+                            // Get current language before toggle
+                            const oldLang = window.currentLang || localStorage.getItem('lang') || 'en';
+                            const newLang = oldLang === 'en' ? 'ua' : 'en';
+                            
+                            // Update language immediately
+                            window.currentLang = newLang;
+                            localStorage.setItem('lang', newLang);
+                            
+                            // Call original function if it exists
                             if (typeof originalToggleLanguage === 'function') {
-                                originalToggleLanguage();
+                                try {
+                                    originalToggleLanguage();
+                                } catch(e) {
+                                    console.warn('Error calling original toggleLanguage:', e);
+                                }
                             }
                             
-                            // Update language button text (show only code: UA or EN)
-                            setTimeout(function() {
-                                const langCode = window.currentLang === 'ua' ? 'UA' : 'EN';
-                                document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
-                                    el.textContent = langCode;
-                                });
-                            }, 50);
+                            // Update language button text immediately
+                            const langCode = newLang === 'ua' ? 'UA' : 'EN';
+                            document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
+                                el.textContent = langCode;
+                            });
                             
-                            // Force re-apply translations with delay
-                            setTimeout(function() {
+                            // Force re-apply translations multiple times to ensure all elements are updated
+                            function applyTranslationsNow() {
                                 // Use reapplyTranslations if available
                                 if (window.reapplyTranslations) {
                                     window.reapplyTranslations();
@@ -858,7 +873,7 @@
                                     window.applyTranslations();
                                 }
                                 
-                                // Manually update all data-i18n elements
+                                // Manually update all data-i18n elements with better logic
                                 document.querySelectorAll('[data-i18n]').forEach(function(el) {
                                     const key = el.getAttribute('data-i18n');
                                     if (key && window.t) {
@@ -873,7 +888,24 @@
                                                 } else if (spanMatch) {
                                                     el.innerHTML = spanMatch[0].replace(/(<span[^>]*>).*?(<\/span>)/, '$1' + translation + '$2');
                                                 } else {
-                                                    el.innerHTML = translation;
+                                                    // Try to preserve existing structure
+                                                    const temp = document.createElement('div');
+                                                    temp.innerHTML = el.innerHTML;
+                                                    const textNodes = [];
+                                                    const walker = document.createTreeWalker(temp, NodeFilter.SHOW_TEXT, null, false);
+                                                    let node;
+                                                    while (node = walker.nextNode()) {
+                                                        textNodes.push(node);
+                                                    }
+                                                    if (textNodes.length > 0) {
+                                                        textNodes[0].textContent = translation;
+                                                        for (let i = 1; i < textNodes.length; i++) {
+                                                            textNodes[i].textContent = '';
+                                                        }
+                                                        el.innerHTML = temp.innerHTML;
+                                                    } else {
+                                                        el.innerHTML = translation;
+                                                    }
                                                 }
                                             } else {
                                                 el.textContent = translation;
@@ -902,26 +934,88 @@
                                         }
                                     }
                                 });
-                            }, 150);
+                                
+                                // Update labels
+                                document.querySelectorAll('.mobile-nav-label').forEach(function(el) {
+                                    const key = el.getAttribute('data-i18n');
+                                    if (key && window.t) {
+                                        const translation = window.t(key);
+                                        if (translation && translation !== key) {
+                                            el.textContent = translation;
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // Apply translations multiple times with delays to catch all elements
+                            applyTranslationsNow();
+                            setTimeout(applyTranslationsNow, 100);
+                            setTimeout(applyTranslationsNow, 300);
+                            setTimeout(applyTranslationsNow, 500);
+                            
+                            // Play sound if available
+                            if (window.playSound) {
+                                window.playSound('click');
+                            }
                         };
                     }
                     
-                    // Initialize language button text on page load
+                    // Initialize language button text and apply translations on page load
                     setTimeout(function() {
-                        if (window.currentLang) {
-                            const langCode = window.currentLang === 'ua' ? 'UA' : 'EN';
-                            document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
-                                el.textContent = langCode;
-                            });
+                        const savedLang = localStorage.getItem('lang') || 'en';
+                        if (window.currentLang !== savedLang) {
+                            window.currentLang = savedLang;
                         }
+                        const langCode = savedLang === 'ua' ? 'UA' : 'EN';
+                        document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
+                            el.textContent = langCode;
+                        });
+                        
+                        // Apply initial translations
+                        if (window.reapplyTranslations) {
+                            window.reapplyTranslations();
+                        } else if (window.applyTranslations) {
+                            window.applyTranslations();
+                        }
+                        
+                        // Also manually apply translations to ensure everything is translated
+                        setTimeout(function() {
+                            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                                const key = el.getAttribute('data-i18n');
+                                if (key && window.t) {
+                                    const translation = window.t(key);
+                                    if (translation && translation !== key) {
+                                        if (el.innerHTML.includes('<')) {
+                                            const iconMatch = el.innerHTML.match(/<i[^>]*>.*?<\/i>/);
+                                            if (iconMatch) {
+                                                el.innerHTML = iconMatch[0] + ' ' + translation;
+                                            } else {
+                                                const spanMatch = el.innerHTML.match(/<span[^>]*>.*?<\/span>/);
+                                                if (spanMatch) {
+                                                    el.innerHTML = spanMatch[0].replace(/(<span[^>]*>).*?(<\/span>)/, '$1' + translation + '$2');
+                                                } else {
+                                                    el.innerHTML = translation;
+                                                }
+                                            }
+                                        } else {
+                                            el.textContent = translation;
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            // Update labels
+                            document.querySelectorAll('.mobile-nav-label').forEach(function(el) {
+                                const key = el.getAttribute('data-i18n');
+                                if (key && window.t) {
+                                    const translation = window.t(key);
+                                    if (translation && translation !== key) {
+                                        el.textContent = translation;
+                                    }
+                                }
+                            });
+                        }, 300);
                     }, 200);
-                
-                // Initial translation apply
-                if (window.reapplyTranslations) {
-                    window.reapplyTranslations();
-                } else if (window.applyTranslations) {
-                    window.applyTranslations();
-                }
             }
         }, 100);
     })();
