@@ -760,14 +760,14 @@
         }
     </style>
 
-    <!-- Main JavaScript -->
-    <script src="{{ static_version('js/main.min.js') }}" defer></script>
+    <!-- Main JavaScript - Loaded before closing body to ensure functions are available -->
+    <script src="{{ static_version('js/main.min.js') }}"></script>
     
     <!-- PWA & Push Notifications -->
-    <script src="{{ static_version('js/push.js') }}" defer></script>
+    <script src="{{ static_version('js/push.js') }}"></script>
     
     <!-- Live Chat & AI Support Bot (available for all users) -->
-    <script src="{{ static_version('js/chat.js') }}" defer></script>
+    <script src="{{ static_version('js/chat.js') }}"></script>
     
     <!-- PWA Install Banner Styles -->
     <style>
