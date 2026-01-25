@@ -138,8 +138,8 @@
     <!-- VoltX Cyberpunk Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS (Production Build) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+    <!-- Tailwind CSS (Production Build) - Critical CSS loaded first -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}" crossorigin="anonymous">
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -150,7 +150,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- Main CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.min.css') }}">
     
     <!-- Live Chat CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
@@ -268,10 +268,6 @@
                         <i class="fas fa-trophy"></i>
                         <span data-i18n="nav.leaderboard">Leaderboard</span>
                     </a>
-                    <a href="{{ url_for('tournament_page') }}" class="dropdown-item">
-                        <i class="fas fa-medal"></i>
-                        <span data-i18n="nav.tournaments">Tournaments</span>
-                    </a>
                     <a href="{{ url_for('governance_page') }}" class="dropdown-item">
                         <i class="fas fa-vote-yea"></i>
                         <span data-i18n="nav.governance">Governance</span>
@@ -373,10 +369,6 @@
             <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-trophy"></i>
                 <span data-i18n="nav.leaderboard">Leaderboard</span>
-            </a>
-            <a href="{{ url_for('tournament_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-medal"></i>
-                <span data-i18n="nav.tournaments">Tournaments</span>
             </a>
             <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
                 <i class="fas fa-vote-yea"></i>
