@@ -969,6 +969,7 @@ def static_file_version(filename):
     """
     import os
     from datetime import datetime
+    from flask import has_request_context
     
     try:
         static_path = os.path.join(app.static_folder, filename)
@@ -984,7 +985,14 @@ def static_file_version(filename):
         logger.warning(f"Error getting file version for {filename}: {e}")
         version = int(datetime.now().timestamp())
     
-    return f"{url_for('static', filename=filename)}?v={version}"
+    # Use url_for if in request context, otherwise construct path manually
+    if has_request_context():
+        base_url = url_for('static', filename=filename)
+    else:
+        # Outside request context - construct path manually
+        base_url = f"/static/{filename}"
+    
+    return f"{base_url}?v={version}"
 
 
 @app.context_processor

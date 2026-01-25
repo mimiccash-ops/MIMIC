@@ -7,8 +7,10 @@ import os
 sys.path.insert(0, '/var/www/mimic')
 
 from app import app, static_file_version
+from flask import Flask
 
-with app.app_context():
+# Create a test request context
+with app.test_request_context('http://localhost/'):
     print("Testing static file versioning:")
     print(f"tailwind.css: {static_file_version('css/tailwind.css')}")
     print(f"main.min.css: {static_file_version('css/main.min.css')}")
