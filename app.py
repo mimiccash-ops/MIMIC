@@ -979,8 +979,9 @@ def static_file_version(filename):
         else:
             # Fallback: use current timestamp
             version = int(datetime.now().timestamp())
-    except Exception:
+    except Exception as e:
         # Fallback: use app version or timestamp
+        logger.warning(f"Error getting file version for {filename}: {e}")
         version = int(datetime.now().timestamp())
     
     return f"{url_for('static', filename=filename)}?v={version}"

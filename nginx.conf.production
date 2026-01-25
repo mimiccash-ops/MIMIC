@@ -446,9 +446,16 @@ http {
         location /static/ {
             alias /var/www/mimic/static/;
             
-            # Browser caching - allow revalidation for versioned files
-            expires 7d;
-            add_header Cache-Control "public, no-transform, must-revalidate";
+            # Browser caching - shorter cache for CSS/JS to allow updates
+            # Versioned files (?v=...) will have unique URLs, so can cache longer
+            if ($args ~ "v=") {
+                expires 30d;
+                add_header Cache-Control "public, no-transform, immutable";
+            }
+            if ($args !~ "v=") {
+                expires 1h;
+                add_header Cache-Control "public, no-transform, must-revalidate";
+            }
             
             # Gzip for static files
             gzip_static on;
