@@ -32,6 +32,18 @@ if [[ -f "$INSTALL_PATH/package.json" ]]; then
         echo "✅ node_modules exists"
     fi
     
+    # Create tailwind.input.css if it doesn't exist
+    if [[ ! -f "$INSTALL_PATH/static/css/tailwind.input.css" ]]; then
+        echo "Creating tailwind.input.css..."
+        mkdir -p "$INSTALL_PATH/static/css"
+        cat > "$INSTALL_PATH/static/css/tailwind.input.css" << 'EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+EOF
+        echo "✅ Created tailwind.input.css"
+    fi
+    
     # Rebuild CSS
     echo ""
     echo "Rebuilding CSS (this may take a minute)..."
