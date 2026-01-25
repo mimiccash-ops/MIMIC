@@ -139,7 +139,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS (Production Build) - Critical CSS loaded first -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ static_version('css/tailwind.css') }}" crossorigin="anonymous">
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -150,10 +150,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- Main CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.min.css') }}">
+    <link rel="stylesheet" href="{{ static_version('css/main.min.css') }}">
     
     <!-- Live Chat CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ static_version('css/chat.css') }}">
     
     <!-- Alternate Languages -->
     <link rel="alternate" hreflang="en" href="https://mimic.cash{{ request.path }}">
@@ -761,13 +761,13 @@
     </style>
 
     <!-- Main JavaScript -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ static_version('js/main.js') }}"></script>
     
     <!-- PWA & Push Notifications -->
-    <script src="{{ url_for('static', filename='js/push.js') }}"></script>
+    <script src="{{ static_version('js/push.js') }}"></script>
     
     <!-- Live Chat & AI Support Bot (available for all users) -->
-    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script src="{{ static_version('js/chat.js') }}"></script>
     
     <!-- PWA Install Banner Styles -->
     <style>

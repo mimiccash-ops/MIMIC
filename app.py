@@ -962,10 +962,37 @@ def handle_exception(e):
     return app.handle_exception(e)
 
 
+def static_file_version(filename):
+    """
+    Generate a versioned URL for static files to bust browser cache.
+    Uses file modification time or app version.
+    """
+    import os
+    from datetime import datetime
+    
+    try:
+        static_path = os.path.join(app.static_folder, filename)
+        if os.path.exists(static_path):
+            # Use file modification time as version
+            mtime = os.path.getmtime(static_path)
+            version = int(mtime)
+        else:
+            # Fallback: use current timestamp
+            version = int(datetime.now().timestamp())
+    except Exception:
+        # Fallback: use app version or timestamp
+        version = int(datetime.now().timestamp())
+    
+    return f"{url_for('static', filename=filename)}?v={version}"
+
+
 @app.context_processor
 def inject_csrf_token():
-    """Inject CSRF token into templates"""
-    return {'csrf_token': generate_csrf_token}
+    """Inject CSRF token and static file versioning into templates"""
+    return {
+        'csrf_token': generate_csrf_token,
+        'static_version': static_file_version
+    }
 
 
 # ==================== SOCKET EVENTS ====================
