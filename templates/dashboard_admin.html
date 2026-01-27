@@ -80,9 +80,17 @@
         transition: opacity 0.3s ease, visibility 0.3s ease;
     }
     
-    .modal-overlay.show,
+    .modal-overlay.show {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Ensure modal is visible when display is set via inline style */
     .modal-overlay[style*="display: flex"],
-    .modal-overlay[style*="display:flex"] {
+    .modal-overlay[style*="display:flex"],
+    .modal-overlay[style*="display: flex !important"],
+    .modal-overlay[style*="display:flex !important"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -1476,14 +1484,14 @@
 </div>
 
 <!-- Service Configuration Modal -->
-<div id="serviceConfigModal" class="modal-overlay" onclick="if(event.target===this)closeServiceConfigModal()">
+<div id="serviceConfigModal" class="modal-overlay" onclick="if(event.target===this && typeof window.closeServiceConfigModal === 'function') window.closeServiceConfigModal()">
     <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
         <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
             <div class="modal-title">
                 <i class="fas fa-cogs text-cyan"></i>
                 <span>Service Configuration</span>
             </div>
-            <button onclick="closeServiceConfigModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+            <button onclick="if(typeof window.closeServiceConfigModal === 'function') window.closeServiceConfigModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -3384,9 +3392,15 @@
             return;
         }
         console.log('Opening serviceConfigModal');
-        // Use !important to ensure modal is visible
-        modal.style.cssText = 'display: flex !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; position: fixed !important; inset: 0 !important;';
+        // Add show class first
         modal.classList.add('show');
+        // Then set inline styles to override any conflicting styles
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.zIndex = '99999';
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
         // Prevent body scroll
@@ -3400,11 +3414,16 @@
     function closeServiceConfigModal() {
         const modal = document.getElementById('serviceConfigModal');
         if (modal) {
-            modal.style.cssText = 'display: none !important; visibility: hidden !important;';
             modal.classList.remove('show');
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.style.opacity = '0';
             document.body.style.overflow = '';
         }
     }
+    
+    // Make closeServiceConfigModal globally available
+    window.closeServiceConfigModal = closeServiceConfigModal;
     
     async function loadAllServicesConfig() {
         const content = document.getElementById('serviceConfigContent');
@@ -3884,15 +3903,27 @@
                 const refreshBtn = document.querySelector('button[onclick*="refreshServiceStatus"]');
                 if (refreshBtn) {
                     console.log('Found refresh button, adding listener');
+                    // Keep onclick but also add event listener as backup
+                    const originalOnclick = refreshBtn.getAttribute('onclick');
                     refreshBtn.addEventListener('click', function(e) {
                         console.log('Refresh button clicked (direct listener)');
-                        e.stopPropagation(); // Don't prevent default, let onclick work too
+                        // Call the function directly
                         if (typeof window.refreshServiceStatus === 'function') {
                             window.refreshServiceStatus();
+                        } else if (typeof refreshServiceStatus === 'function') {
+                            refreshServiceStatus();
                         } else {
-                            console.error('window.refreshServiceStatus not available');
+                            console.error('refreshServiceStatus function not available');
+                            // Try to execute original onclick as fallback
+                            if (originalOnclick) {
+                                try {
+                                    eval(originalOnclick);
+                                } catch (err) {
+                                    console.error('Failed to execute original onclick:', err);
+                                }
+                            }
                         }
-                    }, true); // Use capture phase
+                    }, false);
                 } else {
                     console.warn('Refresh button not found');
                 }
@@ -3900,19 +3931,27 @@
                 const configureBtn = document.querySelector('button[onclick*="openServiceConfigModal"]');
                 if (configureBtn) {
                     console.log('Found configure button, adding listener');
-                    // Add event listener that will work alongside onclick
+                    // Keep onclick but also add event listener as backup
+                    const originalOnclick = configureBtn.getAttribute('onclick');
                     configureBtn.addEventListener('click', function(e) {
                         console.log('Configure button clicked (direct listener)');
-                        // Don't prevent default - let onclick work too, but ensure our handler runs
+                        // Call the function directly
                         if (typeof window.openServiceConfigModal === 'function') {
-                            // Small delay to ensure onclick also works
-                            setTimeout(() => {
-                                window.openServiceConfigModal();
-                            }, 10);
+                            window.openServiceConfigModal();
+                        } else if (typeof openServiceConfigModal === 'function') {
+                            openServiceConfigModal();
                         } else {
-                            console.error('window.openServiceConfigModal not available');
+                            console.error('openServiceConfigModal function not available');
+                            // Try to execute original onclick as fallback
+                            if (originalOnclick) {
+                                try {
+                                    eval(originalOnclick);
+                                } catch (err) {
+                                    console.error('Failed to execute original onclick:', err);
+                                }
+                            }
                         }
-                    }, false); // Use bubble phase, not capture
+                    }, false);
                 } else {
                     console.warn('Configure button not found');
                 }
