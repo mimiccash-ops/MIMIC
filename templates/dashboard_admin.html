@@ -69,15 +69,18 @@
         inset: 0 !important;
         background: rgba(0, 0, 0, 0.8) !important;
         backdrop-filter: blur(8px);
-        display: none;
+        -webkit-backdrop-filter: blur(8px);
+        display: none !important;
         align-items: center;
         justify-content: center;
         z-index: 99999 !important;
         padding: 20px;
-        opacity: 1 !important;
-        visibility: visible;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
     
+    .modal-overlay.show,
     .modal-overlay[style*="display: flex"],
     .modal-overlay[style*="display:flex"] {
         display: flex !important;
@@ -3300,12 +3303,12 @@
         }
         console.log('Opening serviceConfigModal');
         // Use !important to ensure modal is visible
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.setProperty('z-index', '99999', 'important');
-        modal.style.setProperty('opacity', '1', 'important');
-        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.cssText = 'display: flex !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; position: fixed !important; inset: 0 !important;';
+        modal.classList.add('show');
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
         loadAllServicesConfig();
     }
     
@@ -3315,8 +3318,9 @@
     function closeServiceConfigModal() {
         const modal = document.getElementById('serviceConfigModal');
         if (modal) {
-            modal.style.setProperty('display', 'none', 'important');
-            modal.style.setProperty('visibility', 'hidden', 'important');
+            modal.style.cssText = 'display: none !important; visibility: hidden !important;';
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
         }
     }
     
@@ -3445,10 +3449,10 @@
         }
         console.log('Opening serviceEditModal for category:', category);
         // Use !important to ensure modal is visible
-        modal.style.setProperty('display', 'flex', 'important');
-        modal.style.setProperty('z-index', '99999', 'important');
-        modal.style.setProperty('opacity', '1', 'important');
-        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.cssText = 'display: flex !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; position: fixed !important; inset: 0 !important;';
+        modal.classList.add('show');
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
         loadServiceSettings(category);
@@ -3460,8 +3464,9 @@
     function closeServiceEditModal() {
         const modal = document.getElementById('serviceEditModal');
         if (modal) {
-            modal.style.setProperty('display', 'none', 'important');
-            modal.style.setProperty('visibility', 'hidden', 'important');
+            modal.style.cssText = 'display: none !important; visibility: hidden !important;';
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
         }
         currentEditingCategory = null;
     }
@@ -3762,14 +3767,13 @@
                 // Handle configure all services button
                 if (onclick && onclick.includes('openServiceConfigModal')) {
                     console.log('Configure All Services button clicked via delegation');
-                    // Don't prevent default - let onclick work
-                    if (typeof window.openServiceConfigModal === 'function') {
-                        console.log('Calling window.openServiceConfigModal');
-                        window.openServiceConfigModal();
-                        return true;
-                    } else {
+                    // Don't prevent default or stop propagation - let onclick work
+                    // Just ensure the function exists
+                    if (typeof window.openServiceConfigModal !== 'function') {
                         console.error('window.openServiceConfigModal is not a function');
                     }
+                    // Return false to let onclick handler execute
+                    return false;
                 }
             }
             
@@ -3814,15 +3818,19 @@
                 const configureBtn = document.querySelector('button[onclick*="openServiceConfigModal"]');
                 if (configureBtn) {
                     console.log('Found configure button, adding listener');
+                    // Add event listener that will work alongside onclick
                     configureBtn.addEventListener('click', function(e) {
                         console.log('Configure button clicked (direct listener)');
-                        e.stopPropagation();
+                        // Don't prevent default - let onclick work too, but ensure our handler runs
                         if (typeof window.openServiceConfigModal === 'function') {
-                            window.openServiceConfigModal();
+                            // Small delay to ensure onclick also works
+                            setTimeout(() => {
+                                window.openServiceConfigModal();
+                            }, 10);
                         } else {
                             console.error('window.openServiceConfigModal not available');
                         }
-                    }, true); // Use capture phase
+                    }, false); // Use bubble phase, not capture
                 } else {
                     console.warn('Configure button not found');
                 }
@@ -3835,13 +3843,14 @@
                     console.log('Adding listener to service card:', category);
                     card.addEventListener('click', function(e) {
                         console.log('Service card clicked (direct listener):', category);
+                        e.preventDefault();
                         e.stopPropagation();
                         if (category && typeof window.openServiceEdit === 'function') {
                             window.openServiceEdit(category);
                         } else {
                             console.error('Cannot open service edit:', {category, hasFunction: typeof window.openServiceEdit === 'function'});
                         }
-                    }, true); // Use capture phase
+                    }, false); // Use bubble phase, not capture
                 });
             }, 100);
         }
