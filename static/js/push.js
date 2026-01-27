@@ -55,11 +55,62 @@ const PushManager = {
         }
     },
     
+    // ==================== FETCH WITH RETRY ====================
+    async fetchWithRetry(url, options = {}, maxRetries = 3, retryDelay = 2000) {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await fetch(url, options);
+                
+                // If 429, wait and retry
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : retryDelay * Math.pow(2, attempt);
+                    
+                    if (attempt < maxRetries - 1) {
+                        console.log(`[Push] Rate limited (429), retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    } else {
+                        console.warn('[Push] Rate limit exceeded, max retries reached');
+                        return null;
+                    }
+                }
+                
+                return response;
+            } catch (err) {
+                // Network errors - retry
+                if (attempt < maxRetries - 1) {
+                    const waitTime = retryDelay * Math.pow(2, attempt);
+                    console.log(`[Push] Network error, retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue;
+                } else {
+                    throw err;
+                }
+            }
+        }
+        return null;
+    },
+    
     // ==================== VAPID KEY ====================
     async fetchVapidKey() {
         try {
-            const response = await fetch('/api/push/vapid-key');
+            const response = await this.fetchWithRetry('/api/push/vapid-key');
+            if (!response) {
+                // Rate limited - silently fail, push will be disabled
+                this.isSupported = false;
+                return;
+            }
+            
             if (response.ok) {
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('[Push] Received non-JSON response, disabling push');
+                    this.isSupported = false;
+                    return;
+                }
+                
                 const data = await response.json();
                 if (data.success && data.publicKey) {
                     this.vapidPublicKey = data.publicKey;

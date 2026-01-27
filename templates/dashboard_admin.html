@@ -1673,6 +1673,52 @@
     function translateStatus(status) {
         return statusTranslations[status] || status;
     }
+    
+    // ==================== FETCH WITH RETRY FOR RATE LIMITING ====================
+    async function fetchWithRetry(url, options = {}, maxRetries = 3, retryDelay = 2000) {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await fetch(url, options);
+                
+                // If 429, wait and retry
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : retryDelay * Math.pow(2, attempt);
+                    
+                    if (attempt < maxRetries - 1) {
+                        console.log(`Rate limited (429), retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    } else {
+                        console.warn('Rate limit exceeded, max retries reached');
+                        return null;
+                    }
+                }
+                
+                // If not JSON response (e.g., HTML error page), return null
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    if (response.status === 429) {
+                        console.warn('Received non-JSON response for 429, likely rate limited');
+                        return null;
+                    }
+                }
+                
+                return response;
+            } catch (err) {
+                // Network errors - retry
+                if (attempt < maxRetries - 1) {
+                    const waitTime = retryDelay * Math.pow(2, attempt);
+                    console.log(`Network error, retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue;
+                } else {
+                    throw err;
+                }
+            }
+        }
+        return null;
+    }
 
     // Wait for Socket.io to load
     function initSocket() {
@@ -1683,16 +1729,52 @@
         // Configure Socket.IO with reconnection throttling to prevent spam
         socket = io({
             reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 1000,      // Start with 1 second
-            reconnectionDelayMax: 30000,  // Max 30 seconds between attempts
+            reconnectionAttempts: 5,      // Reduced to prevent spam
+            reconnectionDelay: 2000,       // Start with 2 seconds
+            reconnectionDelayMax: 60000,   // Max 60 seconds between attempts
             randomizationFactor: 0.5,     // Add randomness
             timeout: 20000,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            forceNew: false,               // Reuse existing connection if available
+            autoConnect: true
         });
-        socket.on('connect', () => { console.log('Admin connected'); showToast(t('admin.connected'), 'success', 2000); });
-        socket.on('connect_error', (err) => { console.warn('Socket error:', err.message); });
-        socket.on('disconnect', (reason) => { console.log('Disconnected:', reason); });
+        
+        socket.on('connect', () => { 
+            console.log('✅ Admin connected to WebSocket');
+            showToast(t('admin.connected'), 'success', 2000); 
+        });
+        
+        socket.on('connect_error', (err) => { 
+            // Only log if not already reconnecting
+            if (!socket.reconnecting) {
+                console.warn('⚠️ Socket connection error:', err.message);
+            }
+        });
+        
+        socket.on('disconnect', (reason) => { 
+            console.log('🔌 Disconnected:', reason);
+            // Don't show error for normal disconnects
+            if (reason === 'io server disconnect') {
+                // Server disconnected, try to reconnect after delay
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        socket.connect();
+                    }
+                }, 2000);
+            }
+        });
+        
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`🔄 Reconnection attempt ${attemptNumber}`);
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.warn('❌ Reconnection failed, will retry later');
+        });
         socket.on('master_data', (data) => {
             const balanceEl = document.getElementById('master-balance');
             if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
@@ -4250,7 +4332,9 @@
         const status = document.getElementById('admin-task-status-filter')?.value || 'active';
         
         try {
-            const response = await fetch(`/api/admin/tasks?status=${status}`);
+            const response = await fetchWithRetry(`/api/admin/tasks?status=${status}`);
+            if (!response) return;
+            
             const data = await response.json();
             
             if (data.success) {
@@ -4262,12 +4346,18 @@
             }
         } catch (err) {
             console.error('Error loading tasks:', err);
+            // Don't show error for rate limiting - it's expected
+            if (!err.message || !err.message.includes('429')) {
+                showToast('Помилка завантаження завдань', 'error');
+            }
         }
     }
     
     async function loadPendingReviews() {
         try {
-            const response = await fetch('/api/admin/tasks/pending-reviews');
+            const response = await fetchWithRetry('/api/admin/tasks/pending-reviews');
+            if (!response) return;
+            
             const data = await response.json();
             
             if (data.success) {
