@@ -3214,6 +3214,9 @@
         }
     }
     
+    // Make refreshServiceStatus globally available immediately
+    window.refreshServiceStatus = refreshServiceStatus;
+    
     function renderServicesGrid(services) {
         const container = document.getElementById('services-grid');
         if (!services || services.length === 0) {
@@ -3284,6 +3287,9 @@
         modal.style.display = 'flex';
         loadAllServicesConfig();
     }
+    
+    // Make openServiceConfigModal globally available immediately
+    window.openServiceConfigModal = openServiceConfigModal;
     
     function closeServiceConfigModal() {
         document.getElementById('serviceConfigModal').style.display = 'none';
@@ -3402,9 +3408,17 @@
     
     function openServiceEdit(category) {
         currentEditingCategory = category;
-        document.getElementById('serviceEditModal').style.display = 'flex';
+        const modal = document.getElementById('serviceEditModal');
+        if (!modal) {
+            console.error('serviceEditModal element not found');
+            return;
+        }
+        modal.style.display = 'flex';
         loadServiceSettings(category);
     }
+    
+    // Make openServiceEdit globally available immediately
+    window.openServiceEdit = openServiceEdit;
     
     function closeServiceEditModal() {
         document.getElementById('serviceEditModal').style.display = 'none';
@@ -3663,64 +3677,108 @@
         }
     }
     
+    // Add event delegation for service cards immediately (works for both static and dynamic cards)
+    // This uses document-level delegation so it works even before DOMContentLoaded
+    (function() {
+        function handleServiceClick(e) {
+            // Handle service card clicks
+            const serviceCard = e.target.closest('.service-card');
+            if (serviceCard) {
+                e.preventDefault();
+                e.stopPropagation();
+                const category = serviceCard.getAttribute('data-category');
+                if (category && typeof window.openServiceEdit === 'function') {
+                    window.openServiceEdit(category);
+                    return true;
+                }
+            }
+            
+            // Handle refresh button clicks
+            const target = e.target;
+            const button = target.closest('button');
+            if (button) {
+                const onclick = button.getAttribute('onclick');
+                if (onclick && onclick.includes('refreshServiceStatus')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.refreshServiceStatus === 'function') {
+                        window.refreshServiceStatus();
+                        return true;
+                    }
+                }
+                
+                // Handle configure all services button
+                if (onclick && onclick.includes('openServiceConfigModal')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.openServiceConfigModal === 'function') {
+                        window.openServiceConfigModal();
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // Add listener as early as possible
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('click', handleServiceClick);
+                // Also add direct event listeners as fallback
+                setupDirectEventListeners();
+            });
+        } else {
+            document.addEventListener('click', handleServiceClick);
+            // Also add direct event listeners as fallback
+            setupDirectEventListeners();
+        }
+        
+        function setupDirectEventListeners() {
+            // Setup direct listeners for buttons (fallback if onclick doesn't work)
+            setTimeout(function() {
+                const refreshBtn = document.querySelector('button[onclick*="refreshServiceStatus"]');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', function(e) {
+                        if (typeof window.refreshServiceStatus === 'function') {
+                            window.refreshServiceStatus();
+                        }
+                    });
+                }
+                
+                const configureBtn = document.querySelector('button[onclick*="openServiceConfigModal"]');
+                if (configureBtn) {
+                    configureBtn.addEventListener('click', function(e) {
+                        if (typeof window.openServiceConfigModal === 'function') {
+                            window.openServiceConfigModal();
+                        }
+                    });
+                }
+                
+                // Setup listeners for all service cards
+                const serviceCards = document.querySelectorAll('.service-card');
+                serviceCards.forEach(function(card) {
+                    card.addEventListener('click', function(e) {
+                        const category = this.getAttribute('data-category');
+                        if (category && typeof window.openServiceEdit === 'function') {
+                            window.openServiceEdit(category);
+                        }
+                    });
+                });
+            }, 100);
+        }
+    })();
+    
     // Load service status on page load when in settings section
     document.addEventListener('DOMContentLoaded', function() {
         // Load service status if on settings section
         setTimeout(() => {
             if (document.querySelector('[data-section="settings"].active')) {
-                refreshServiceStatus();
+                if (typeof window.refreshServiceStatus === 'function') {
+                    window.refreshServiceStatus();
+                }
             }
         }, 500);
-        
-        // Add event delegation for service cards (works for both static and dynamic cards)
-        const servicesGrid = document.getElementById('services-grid');
-        if (servicesGrid) {
-            servicesGrid.addEventListener('click', function(e) {
-                const serviceCard = e.target.closest('.service-card');
-                if (serviceCard) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const category = serviceCard.getAttribute('data-category');
-                    if (category) {
-                        if (typeof openServiceEdit === 'function') {
-                            openServiceEdit(category);
-                        } else {
-                            console.error('openServiceEdit function not found');
-                        }
-                    } else {
-                        console.error('Service card missing data-category attribute');
-                    }
-                }
-            });
-        }
-        
-        // Add event listener for main configure button (fallback)
-        const configureBtn = document.querySelector('button[onclick="openServiceConfigModal()"]');
-        if (configureBtn) {
-            configureBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (typeof openServiceConfigModal === 'function') {
-                    openServiceConfigModal();
-                } else {
-                    console.error('openServiceConfigModal function not found');
-                }
-            });
-        }
-        
-        // Add event listener for refresh button (fallback)
-        const refreshBtn = document.querySelector('button[onclick="refreshServiceStatus()"]');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (typeof refreshServiceStatus === 'function') {
-                    refreshServiceStatus();
-                } else {
-                    console.error('refreshServiceStatus function not found');
-                }
-            });
-        }
     });
     
     // Also refresh when switching to settings section
