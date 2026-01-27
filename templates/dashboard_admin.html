@@ -950,7 +950,7 @@
                     <i class="fas fa-plug text-cyan"></i>
                     <span>Service Configuration</span>
                 </h2>
-                <button onclick="refreshServiceStatus()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                <button class="cyber-btn cyber-btn-outline cyber-btn-sm" id="service-refresh-btn">
                     <i class="fas fa-sync" id="service-refresh-icon"></i>
                     <span>Refresh</span>
                 </button>
@@ -965,7 +965,7 @@
             
             <!-- Configure Button -->
             <div class="text-center pt-4 border-t border-[var(--color-border)]">
-                <button onclick="openServiceConfigModal()" class="cyber-btn cyber-btn-gradient-blue">
+                <button class="cyber-btn cyber-btn-gradient-blue" id="service-configure-btn">
                     <i class="fas fa-cogs"></i>
                     <span>Configure All Services</span>
                 </button>
@@ -3410,22 +3410,50 @@
         const modal = document.getElementById('serviceConfigModal');
         if (!modal) {
             console.error('serviceConfigModal element not found');
+            alert('Помилка: модальне вікно не знайдено');
             return;
         }
+        
         console.log('Opening serviceConfigModal');
-        // Add show class first
+        
+        // Force all styles with !important via inline style
+        modal.setAttribute('style', `
+            position: fixed !important;
+            inset: 0 !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 99999 !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 20px !important;
+        `);
+        
+        // Also add show class
         modal.classList.add('show');
-        // Then set inline styles to override any conflicting styles
-        modal.style.display = 'flex';
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
-        modal.style.zIndex = '99999';
-        modal.style.position = 'fixed';
-        modal.style.inset = '0';
-        console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
-        console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+        
+        // Verify it's visible
+        const computedStyle = window.getComputedStyle(modal);
+        console.log('Modal styles after opening:');
+        console.log('  display:', computedStyle.display);
+        console.log('  visibility:', computedStyle.visibility);
+        console.log('  opacity:', computedStyle.opacity);
+        console.log('  z-index:', computedStyle.zIndex);
+        console.log('  position:', computedStyle.position);
+        
+        // Check if modal is actually visible
+        if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
+            console.error('Modal is still not visible!');
+            alert('Помилка: модальне вікно не відображається. Перевірте консоль.');
+        }
+        
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
+        
+        // Load content
         loadAllServicesConfig();
     }
     
@@ -3436,9 +3464,7 @@
         const modal = document.getElementById('serviceConfigModal');
         if (modal) {
             modal.classList.remove('show');
-            modal.style.display = 'none';
-            modal.style.visibility = 'hidden';
-            modal.style.opacity = '0';
+            modal.setAttribute('style', 'display: none !important; visibility: hidden !important; opacity: 0 !important;');
             document.body.style.overflow = '';
         }
     }
@@ -4008,60 +4034,64 @@
             // Setup direct listeners for buttons (fallback if onclick doesn't work)
             setTimeout(function() {
                 console.log('Setting up direct event listeners');
-                const refreshBtn = document.querySelector('button[onclick*="refreshServiceStatus"]');
+                // Setup refresh button
+                const refreshBtn = document.getElementById('service-refresh-btn');
                 if (refreshBtn) {
-                    console.log('Found refresh button, adding listener');
-                    // Keep onclick but also add event listener as backup
-                    const originalOnclick = refreshBtn.getAttribute('onclick');
+                    console.log('Found refresh button by ID, adding listener');
                     refreshBtn.addEventListener('click', function(e) {
-                        console.log('Refresh button clicked (direct listener)');
-                        // Call the function directly
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Refresh button clicked');
                         if (typeof window.refreshServiceStatus === 'function') {
                             window.refreshServiceStatus();
-                        } else if (typeof refreshServiceStatus === 'function') {
-                            refreshServiceStatus();
                         } else {
                             console.error('refreshServiceStatus function not available');
-                            // Try to execute original onclick as fallback
-                            if (originalOnclick) {
-                                try {
-                                    eval(originalOnclick);
-                                } catch (err) {
-                                    console.error('Failed to execute original onclick:', err);
-                                }
-                            }
+                            alert('Помилка: функція refreshServiceStatus не знайдена');
                         }
                     }, false);
                 } else {
-                    console.warn('Refresh button not found');
+                    console.warn('Refresh button not found by ID, trying selector');
+                    const refreshBtnAlt = document.querySelector('button[onclick*="refreshServiceStatus"]');
+                    if (refreshBtnAlt) {
+                        refreshBtnAlt.removeAttribute('onclick');
+                        refreshBtnAlt.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (typeof window.refreshServiceStatus === 'function') {
+                                window.refreshServiceStatus();
+                            }
+                        }, false);
+                    }
                 }
                 
-                const configureBtn = document.querySelector('button[onclick*="openServiceConfigModal"]');
+                // Setup configure button
+                const configureBtn = document.getElementById('service-configure-btn');
                 if (configureBtn) {
-                    console.log('Found configure button, adding listener');
-                    // Keep onclick but also add event listener as backup
-                    const originalOnclick = configureBtn.getAttribute('onclick');
+                    console.log('Found configure button by ID, adding listener');
                     configureBtn.addEventListener('click', function(e) {
-                        console.log('Configure button clicked (direct listener)');
-                        // Call the function directly
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Configure button clicked');
                         if (typeof window.openServiceConfigModal === 'function') {
                             window.openServiceConfigModal();
-                        } else if (typeof openServiceConfigModal === 'function') {
-                            openServiceConfigModal();
                         } else {
                             console.error('openServiceConfigModal function not available');
-                            // Try to execute original onclick as fallback
-                            if (originalOnclick) {
-                                try {
-                                    eval(originalOnclick);
-                                } catch (err) {
-                                    console.error('Failed to execute original onclick:', err);
-                                }
-                            }
+                            alert('Помилка: функція openServiceConfigModal не знайдена');
                         }
                     }, false);
                 } else {
-                    console.warn('Configure button not found');
+                    console.warn('Configure button not found by ID, trying selector');
+                    const configureBtnAlt = document.querySelector('button[onclick*="openServiceConfigModal"]');
+                    if (configureBtnAlt) {
+                        configureBtnAlt.removeAttribute('onclick');
+                        configureBtnAlt.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (typeof window.openServiceConfigModal === 'function') {
+                                window.openServiceConfigModal();
+                            }
+                        }, false);
+                    }
                 }
                 
                 // Setup listeners for all service cards
