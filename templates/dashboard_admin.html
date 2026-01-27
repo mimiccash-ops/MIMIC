@@ -1485,7 +1485,7 @@
 
 <!-- Service Configuration Modal -->
 <div id="serviceConfigModal" class="modal-overlay" onclick="if(event.target===this && typeof window.closeServiceConfigModal === 'function') window.closeServiceConfigModal()">
-    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto;">
+    <div id="serviceConfigModalContent" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; z-index: 100000;">
         <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
             <div class="modal-title">
                 <i class="fas fa-cogs text-cyan"></i>
@@ -3443,15 +3443,50 @@
         console.log('  opacity:', computedStyle.opacity);
         console.log('  z-index:', computedStyle.zIndex);
         console.log('  position:', computedStyle.position);
+        console.log('  width:', computedStyle.width);
+        console.log('  height:', computedStyle.height);
+        
+        // Check modal dimensions and position
+        const rect = modal.getBoundingClientRect();
+        console.log('Modal bounding rect:', {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            visible: rect.width > 0 && rect.height > 0
+        });
         
         // Check if modal is actually visible
         if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
             console.error('Modal is still not visible!');
             alert('Помилка: модальне вікно не відображається. Перевірте консоль.');
+            return;
+        }
+        
+        // Check if modal has dimensions
+        if (rect.width === 0 || rect.height === 0) {
+            console.error('Modal has no dimensions!');
+            alert('Помилка: модальне вікно не має розмірів. Перевірте консоль.');
+            return;
+        }
+        
+        // Check inner content
+        const modalContent = modal.querySelector('div');
+        if (modalContent) {
+            const contentStyle = window.getComputedStyle(modalContent);
+            console.log('Modal content styles:');
+            console.log('  display:', contentStyle.display);
+            console.log('  visibility:', contentStyle.visibility);
+            console.log('  opacity:', contentStyle.opacity);
+            console.log('  width:', contentStyle.width);
+            console.log('  height:', contentStyle.height);
         }
         
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
+        
+        // Force focus to modal for accessibility
+        modal.focus();
         
         // Load content
         loadAllServicesConfig();
