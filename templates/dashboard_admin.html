@@ -3672,6 +3672,28 @@
             }
         }, 500);
         
+        // Add event delegation for service cards (works for both static and dynamic cards)
+        const servicesGrid = document.getElementById('services-grid');
+        if (servicesGrid) {
+            servicesGrid.addEventListener('click', function(e) {
+                const serviceCard = e.target.closest('.service-card');
+                if (serviceCard) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const category = serviceCard.getAttribute('data-category');
+                    if (category) {
+                        if (typeof openServiceEdit === 'function') {
+                            openServiceEdit(category);
+                        } else {
+                            console.error('openServiceEdit function not found');
+                        }
+                    } else {
+                        console.error('Service card missing data-category attribute');
+                    }
+                }
+            });
+        }
+        
         // Add event listener for main configure button (fallback)
         const configureBtn = document.querySelector('button[onclick="openServiceConfigModal()"]');
         if (configureBtn) {
@@ -3682,6 +3704,20 @@
                     openServiceConfigModal();
                 } else {
                     console.error('openServiceConfigModal function not found');
+                }
+            });
+        }
+        
+        // Add event listener for refresh button (fallback)
+        const refreshBtn = document.querySelector('button[onclick="refreshServiceStatus()"]');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof refreshServiceStatus === 'function') {
+                    refreshServiceStatus();
+                } else {
+                    console.error('refreshServiceStatus function not found');
                 }
             });
         }
@@ -4565,6 +4601,9 @@
     // Make service configuration functions globally accessible
     if (typeof openServiceConfigModal === 'function') {
         window.openServiceConfigModal = openServiceConfigModal;
+    }
+    if (typeof refreshServiceStatus === 'function') {
+        window.refreshServiceStatus = refreshServiceStatus;
     }
     if (typeof openServiceEdit === 'function') {
         window.openServiceEdit = openServiceEdit;
