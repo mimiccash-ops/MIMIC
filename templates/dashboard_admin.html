@@ -3194,16 +3194,20 @@
     let servicesData = null;
     
     async function refreshServiceStatus() {
+        console.log('refreshServiceStatus called');
         const icon = document.getElementById('service-refresh-icon');
         if (icon) icon.classList.add('fa-spin');
         
         try {
+            console.log('Fetching service status...');
             const response = await fetch('/api/admin/system-settings/service-status');
             const result = await response.json();
             
             if (result.success) {
+                console.log('Service status loaded successfully, rendering grid');
                 renderServicesGrid(result.services);
             } else {
+                console.error('Failed to load services:', result);
                 showToast('Failed to load services', 'error');
             }
         } catch (err) {
@@ -3279,12 +3283,15 @@
     }
     
     function openServiceConfigModal() {
+        console.log('openServiceConfigModal called');
         const modal = document.getElementById('serviceConfigModal');
         if (!modal) {
             console.error('serviceConfigModal element not found');
             return;
         }
+        console.log('Opening serviceConfigModal');
         modal.style.display = 'flex';
+        console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         loadAllServicesConfig();
     }
     
@@ -3407,13 +3414,20 @@
     }
     
     function openServiceEdit(category) {
+        console.log('openServiceEdit called with category:', category);
+        if (!category) {
+            console.error('No category provided to openServiceEdit');
+            return;
+        }
         currentEditingCategory = category;
         const modal = document.getElementById('serviceEditModal');
         if (!modal) {
             console.error('serviceEditModal element not found');
             return;
         }
+        console.log('Opening serviceEditModal for category:', category);
         modal.style.display = 'flex';
+        console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         loadServiceSettings(category);
     }
     
@@ -3684,12 +3698,20 @@
             // Handle service card clicks
             const serviceCard = e.target.closest('.service-card');
             if (serviceCard) {
-                e.preventDefault();
-                e.stopPropagation();
+                console.log('Service card clicked (delegation)');
+                // Don't prevent default - let other handlers work too
                 const category = serviceCard.getAttribute('data-category');
-                if (category && typeof window.openServiceEdit === 'function') {
-                    window.openServiceEdit(category);
-                    return true;
+                console.log('Service card category:', category);
+                if (category) {
+                    if (typeof window.openServiceEdit === 'function') {
+                        console.log('Calling window.openServiceEdit');
+                        window.openServiceEdit(category);
+                        return true;
+                    } else {
+                        console.error('window.openServiceEdit is not a function');
+                    }
+                } else {
+                    console.error('Service card has no data-category attribute');
                 }
             }
             
@@ -3699,21 +3721,27 @@
             if (button) {
                 const onclick = button.getAttribute('onclick');
                 if (onclick && onclick.includes('refreshServiceStatus')) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    console.log('Refresh button clicked via delegation');
+                    // Don't prevent default - let onclick work
                     if (typeof window.refreshServiceStatus === 'function') {
+                        console.log('Calling window.refreshServiceStatus');
                         window.refreshServiceStatus();
                         return true;
+                    } else {
+                        console.error('window.refreshServiceStatus is not a function');
                     }
                 }
                 
                 // Handle configure all services button
                 if (onclick && onclick.includes('openServiceConfigModal')) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    console.log('Configure All Services button clicked via delegation');
+                    // Don't prevent default - let onclick work
                     if (typeof window.openServiceConfigModal === 'function') {
+                        console.log('Calling window.openServiceConfigModal');
                         window.openServiceConfigModal();
                         return true;
+                    } else {
+                        console.error('window.openServiceConfigModal is not a function');
                     }
                 }
             }
@@ -3724,12 +3752,14 @@
         // Add listener as early as possible
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                document.addEventListener('click', handleServiceClick);
+                console.log('DOMContentLoaded - setting up service event handlers');
+                document.addEventListener('click', handleServiceClick, true); // Use capture phase
                 // Also add direct event listeners as fallback
                 setupDirectEventListeners();
             });
         } else {
-            document.addEventListener('click', handleServiceClick);
+            console.log('Document already loaded - setting up service event handlers');
+            document.addEventListener('click', handleServiceClick, true); // Use capture phase
             // Also add direct event listeners as fallback
             setupDirectEventListeners();
         }
@@ -3737,33 +3767,54 @@
         function setupDirectEventListeners() {
             // Setup direct listeners for buttons (fallback if onclick doesn't work)
             setTimeout(function() {
+                console.log('Setting up direct event listeners');
                 const refreshBtn = document.querySelector('button[onclick*="refreshServiceStatus"]');
                 if (refreshBtn) {
+                    console.log('Found refresh button, adding listener');
                     refreshBtn.addEventListener('click', function(e) {
+                        console.log('Refresh button clicked (direct listener)');
+                        e.stopPropagation(); // Don't prevent default, let onclick work too
                         if (typeof window.refreshServiceStatus === 'function') {
                             window.refreshServiceStatus();
+                        } else {
+                            console.error('window.refreshServiceStatus not available');
                         }
-                    });
+                    }, true); // Use capture phase
+                } else {
+                    console.warn('Refresh button not found');
                 }
                 
                 const configureBtn = document.querySelector('button[onclick*="openServiceConfigModal"]');
                 if (configureBtn) {
+                    console.log('Found configure button, adding listener');
                     configureBtn.addEventListener('click', function(e) {
+                        console.log('Configure button clicked (direct listener)');
+                        e.stopPropagation();
                         if (typeof window.openServiceConfigModal === 'function') {
                             window.openServiceConfigModal();
+                        } else {
+                            console.error('window.openServiceConfigModal not available');
                         }
-                    });
+                    }, true); // Use capture phase
+                } else {
+                    console.warn('Configure button not found');
                 }
                 
                 // Setup listeners for all service cards
                 const serviceCards = document.querySelectorAll('.service-card');
+                console.log('Found', serviceCards.length, 'service cards');
                 serviceCards.forEach(function(card) {
+                    const category = card.getAttribute('data-category');
+                    console.log('Adding listener to service card:', category);
                     card.addEventListener('click', function(e) {
-                        const category = this.getAttribute('data-category');
+                        console.log('Service card clicked (direct listener):', category);
+                        e.stopPropagation();
                         if (category && typeof window.openServiceEdit === 'function') {
                             window.openServiceEdit(category);
+                        } else {
+                            console.error('Cannot open service edit:', {category, hasFunction: typeof window.openServiceEdit === 'function'});
                         }
-                    });
+                    }, true); // Use capture phase
                 });
             }, 100);
         }
@@ -4659,12 +4710,15 @@
     // Make service configuration functions globally accessible
     if (typeof openServiceConfigModal === 'function') {
         window.openServiceConfigModal = openServiceConfigModal;
+        console.log('openServiceConfigModal made globally available');
     }
     if (typeof refreshServiceStatus === 'function') {
         window.refreshServiceStatus = refreshServiceStatus;
+        console.log('refreshServiceStatus made globally available');
     }
     if (typeof openServiceEdit === 'function') {
         window.openServiceEdit = openServiceEdit;
+        console.log('openServiceEdit made globally available');
     }
     if (typeof closeServiceConfigModal === 'function') {
         window.closeServiceConfigModal = closeServiceConfigModal;
@@ -4672,6 +4726,13 @@
     if (typeof closeServiceEditModal === 'function') {
         window.closeServiceEditModal = closeServiceEditModal;
     }
+    
+    // Debug: Check if functions are available
+    console.log('Service functions check:', {
+        refreshServiceStatus: typeof window.refreshServiceStatus,
+        openServiceConfigModal: typeof window.openServiceConfigModal,
+        openServiceEdit: typeof window.openServiceEdit
+    });
 
 </script>
 {% endblock %}
