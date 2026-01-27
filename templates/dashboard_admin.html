@@ -1513,14 +1513,14 @@
 </div>
 
 <!-- Single Service Edit Modal -->
-<div id="serviceEditModal" class="modal-overlay" onclick="if(event.target===this)closeServiceEditModal()">
+<div id="serviceEditModal" class="modal-overlay" onclick="if(event.target===this && typeof window.closeServiceEditModal === 'function') window.closeServiceEditModal()">
     <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto;">
         <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
             <div class="modal-title">
                 <i id="service-edit-icon" class="fas fa-cog text-cyan"></i>
                 <span id="service-edit-title">Configure Service</span>
             </div>
-            <button onclick="closeServiceEditModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+            <button onclick="if(typeof window.closeServiceEditModal === 'function') window.closeServiceEditModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -3751,12 +3751,21 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const category = this.getAttribute('data-category');
-                if (category && typeof openServiceEdit === 'function') {
-                    openServiceEdit(category);
+                console.log('Configure button clicked for category:', category);
+                if (category) {
+                    if (typeof window.openServiceEdit === 'function') {
+                        window.openServiceEdit(category);
+                    } else if (typeof openServiceEdit === 'function') {
+                        openServiceEdit(category);
+                    } else {
+                        console.error('openServiceEdit function not found');
+                        alert('Помилка: функція openServiceEdit не знайдена');
+                    }
                 } else {
-                    console.error('openServiceEdit function not found or category missing');
+                    console.error('Category missing from button');
+                    alert('Помилка: категорія не вказана');
                 }
-            });
+            }, false);
         });
     }
     
@@ -3770,16 +3779,91 @@
         const modal = document.getElementById('serviceEditModal');
         if (!modal) {
             console.error('serviceEditModal element not found');
+            alert('Помилка: модальне вікно редагування не знайдено');
             return;
         }
+        
         console.log('Opening serviceEditModal for category:', category);
-        // Use !important to ensure modal is visible
-        modal.style.cssText = 'display: flex !important; z-index: 99999 !important; opacity: 1 !important; visibility: visible !important; position: fixed !important; inset: 0 !important;';
+        
+        // Move modal to body if it's not already there (to avoid parent container issues)
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        
+        // Force all styles with !important via inline style
+        // Use explicit width/height instead of inset to avoid dimension issues
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        
+        modal.setAttribute('style', `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: ${viewportWidth}px !important;
+            height: ${viewportHeight}px !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 99999 !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 20px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+        `);
+        
+        // Also add show class
         modal.classList.add('show');
+        
+        // Verify it's visible
+        const computedStyle = window.getComputedStyle(modal);
+        console.log('ServiceEditModal styles after opening:');
+        console.log('  display:', computedStyle.display);
+        console.log('  visibility:', computedStyle.visibility);
+        console.log('  opacity:', computedStyle.opacity);
+        console.log('  z-index:', computedStyle.zIndex);
+        console.log('  position:', computedStyle.position);
+        console.log('  width:', computedStyle.width);
+        console.log('  height:', computedStyle.height);
+        
+        // Check modal dimensions and position
+        const rect = modal.getBoundingClientRect();
+        console.log('ServiceEditModal bounding rect:', {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            visible: rect.width > 0 && rect.height > 0
+        });
+        
+        // Check if modal has dimensions - if not, force them immediately
+        if (rect.width === 0 || rect.height === 0) {
+            console.error('ServiceEditModal has no dimensions! Forcing dimensions...');
+            modal.style.width = viewportWidth + 'px';
+            modal.style.height = viewportHeight + 'px';
+            modal.style.minWidth = viewportWidth + 'px';
+            modal.style.minHeight = viewportHeight + 'px';
+            modal.style.maxWidth = viewportWidth + 'px';
+            modal.style.maxHeight = viewportHeight + 'px';
+        }
+        
         // Prevent body scroll
         document.body.style.overflow = 'hidden';
+        
+        // Force focus to modal for accessibility
+        modal.focus();
+        
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
         console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+        
+        // Load content
         loadServiceSettings(category);
     }
     
@@ -3789,12 +3873,15 @@
     function closeServiceEditModal() {
         const modal = document.getElementById('serviceEditModal');
         if (modal) {
-            modal.style.cssText = 'display: none !important; visibility: hidden !important;';
             modal.classList.remove('show');
+            modal.setAttribute('style', 'display: none !important; visibility: hidden !important; opacity: 0 !important;');
             document.body.style.overflow = '';
         }
         currentEditingCategory = null;
     }
+    
+    // Make closeServiceEditModal globally available
+    window.closeServiceEditModal = closeServiceEditModal;
     
     async function loadServiceSettings(category) {
         const content = document.getElementById('serviceEditContent');
