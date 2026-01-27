@@ -65,15 +65,24 @@
     
     /* Modal Overlay Styles */
     .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.8) !important;
         backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 9999;
+        z-index: 99999 !important;
         padding: 20px;
+        opacity: 1 !important;
+        visibility: visible;
+    }
+    
+    .modal-overlay[style*="display: flex"],
+    .modal-overlay[style*="display:flex"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     .modal-header {
@@ -3290,8 +3299,13 @@
             return;
         }
         console.log('Opening serviceConfigModal');
-        modal.style.display = 'flex';
+        // Use !important to ensure modal is visible
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('z-index', '99999', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
+        console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
         loadAllServicesConfig();
     }
     
@@ -3299,7 +3313,11 @@
     window.openServiceConfigModal = openServiceConfigModal;
     
     function closeServiceConfigModal() {
-        document.getElementById('serviceConfigModal').style.display = 'none';
+        const modal = document.getElementById('serviceConfigModal');
+        if (modal) {
+            modal.style.setProperty('display', 'none', 'important');
+            modal.style.setProperty('visibility', 'hidden', 'important');
+        }
     }
     
     async function loadAllServicesConfig() {
@@ -3426,8 +3444,13 @@
             return;
         }
         console.log('Opening serviceEditModal for category:', category);
-        modal.style.display = 'flex';
+        // Use !important to ensure modal is visible
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('z-index', '99999', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+        modal.style.setProperty('visibility', 'visible', 'important');
         console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
+        console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
         loadServiceSettings(category);
     }
     
@@ -3435,7 +3458,11 @@
     window.openServiceEdit = openServiceEdit;
     
     function closeServiceEditModal() {
-        document.getElementById('serviceEditModal').style.display = 'none';
+        const modal = document.getElementById('serviceEditModal');
+        if (modal) {
+            modal.style.setProperty('display', 'none', 'important');
+            modal.style.setProperty('visibility', 'hidden', 'important');
+        }
         currentEditingCategory = null;
     }
     
