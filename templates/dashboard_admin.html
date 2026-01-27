@@ -3303,6 +3303,27 @@
         try {
             console.log('Fetching service status...');
             const response = await fetch('/api/admin/system-settings/service-status');
+            
+            // Check if response is OK
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorJson.message || errorMessage;
+                } catch (e) {
+                    if (errorText) {
+                        errorMessage = errorText.substring(0, 100);
+                    }
+                }
+                
+                console.error('Failed to load services:', errorMessage);
+                showToast(`Помилка: ${errorMessage}`, 'error');
+                if (icon) icon.classList.remove('fa-spin');
+                return;
+            }
+            
             const result = await response.json();
             
             if (result.success) {
@@ -3310,11 +3331,11 @@
                 renderServicesGrid(result.services);
             } else {
                 console.error('Failed to load services:', result);
-                showToast('Failed to load services', 'error');
+                showToast(result.error || 'Не вдалося завантажити статус сервісів', 'error');
             }
         } catch (err) {
             console.error('Error loading services:', err);
-            showToast(t('dash.networkError'), 'error');
+            showToast(`Помилка мережі: ${err.message || 'Не вдалося підключитися'}`, 'error');
         } finally {
             if (icon) icon.classList.remove('fa-spin');
         }
@@ -3425,16 +3446,78 @@
     // Make closeServiceConfigModal globally available
     window.closeServiceConfigModal = closeServiceConfigModal;
     
-    async function loadAllServicesConfig() {
+    async function loadAllServicesConfig(retryCount = 0) {
         const content = document.getElementById('serviceConfigContent');
-        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
+        if (!content) {
+            console.error('serviceConfigContent element not found');
+            return;
+        }
+        
+        // Show loading only on first attempt
+        if (retryCount === 0) {
+            content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
+        }
         
         try {
             const response = await fetch('/api/admin/system-settings');
+            
+            // Handle rate limiting (429) with retry
+            if (response.status === 429 && retryCount < 3) {
+                const retryAfter = response.headers.get('Retry-After') || (retryCount + 1) * 2;
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <i class="fas fa-clock text-yellow text-3xl mb-3"></i>
+                        <div class="text-yellow font-semibold mb-2">Забагато запитів</div>
+                        <div class="text-muted text-sm">Очікування ${retryAfter} секунд перед повторною спробою...</div>
+                    </div>
+                `;
+                
+                await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                return loadAllServicesConfig(retryCount + 1);
+            }
+            
+            // Check if response is OK before parsing JSON
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                
+                // Try to parse error as JSON if possible
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.error || errorJson.message || errorMessage;
+                } catch (e) {
+                    // If not JSON, use the text or status
+                    if (errorText) {
+                        errorMessage = errorText.substring(0, 200); // Limit length
+                    }
+                }
+                
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
+                        <div class="text-red font-semibold mb-2">Помилка завантаження</div>
+                        <div class="text-muted text-sm">${errorMessage}</div>
+                        <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
+                            <i class="fas fa-redo"></i> Спробувати знову
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
             const result = await response.json();
             
             if (!result.success) {
-                content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> ${result.error || 'Failed to load'}</div>`;
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
+                        <div class="text-red font-semibold mb-2">Помилка</div>
+                        <div class="text-muted text-sm">${result.error || 'Не вдалося завантажити налаштування'}</div>
+                        <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
+                            <i class="fas fa-redo"></i> Спробувати знову
+                        </button>
+                    </div>
+                `;
                 return;
             }
             
@@ -3442,9 +3525,34 @@
             renderAllServicesConfig(result.categories);
         } catch (err) {
             console.error('Error loading services config:', err);
-            content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> Network error</div>`;
+            
+            // Retry on network errors
+            if (retryCount < 2 && (err.message.includes('fetch') || err.message.includes('network'))) {
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <i class="fas fa-spinner fa-spin text-3xl text-muted mb-3"></i>
+                        <div class="text-muted text-sm">Повторна спроба...</div>
+                    </div>
+                `;
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return loadAllServicesConfig(retryCount + 1);
+            }
+            
+            content.innerHTML = `
+                <div class="text-center py-6">
+                    <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
+                    <div class="text-red font-semibold mb-2">Помилка мережі</div>
+                    <div class="text-muted text-sm">${err.message || 'Не вдалося підключитися до сервера'}</div>
+                    <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
+                        <i class="fas fa-redo"></i> Спробувати знову
+                    </button>
+                </div>
+            `;
         }
     }
+    
+    // Make loadAllServicesConfig globally available
+    window.loadAllServicesConfig = loadAllServicesConfig;
     
     function renderAllServicesConfig(categories) {
         const content = document.getElementById('serviceConfigContent');
