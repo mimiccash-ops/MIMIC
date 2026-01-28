@@ -3285,12 +3285,28 @@ def dashboard():
         
         # Get master balance
         m_bal = "N/A"  # Default when no exchanges configured
-        
-        # Check if any master exchanges are configured
+
+        # Check if any master exchanges are configured in DB
+        enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+        has_enabled_configs = bool(enabled_configs)
+
+        # Check if any master exchanges are loaded in the engine
         has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
-        
+
+        # If configs exist but engine not initialized in this process, try a safe init (throttled)
+        if not has_master_exchanges and has_enabled_configs:
+            last_attempt = getattr(engine, "_last_master_init_attempt", 0)
+            now = time.time()
+            if now - last_attempt > 60:
+                engine._last_master_init_attempt = now
+                try:
+                    engine.init_master()
+                except Exception as e:
+                    logger.warning(f"Failed to init master exchanges in dashboard: {e}")
+            has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+
         if not has_master_exchanges:
-            m_bal = "No exchanges configured"
+            m_bal = "No exchanges configured" if not has_enabled_configs else "Master exchanges not connected"
         elif engine.master_client:
             try:
                 balances = engine.master_client.futures_account_balance()
