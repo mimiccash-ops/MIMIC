@@ -3571,7 +3571,7 @@
         
         // Show loading only on first attempt
         if (retryCount === 0) {
-            content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
+        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
         }
         
         try {
@@ -3756,8 +3756,8 @@
                     if (typeof window.openServiceEdit === 'function') {
                         window.openServiceEdit(category);
                     } else if (typeof openServiceEdit === 'function') {
-                        openServiceEdit(category);
-                    } else {
+                    openServiceEdit(category);
+                } else {
                         console.error('openServiceEdit function not found');
                         alert('Помилка: функція openServiceEdit не знайдена');
                     }
@@ -4250,7 +4250,7 @@
                         e.stopPropagation();
                         console.log('Configure button clicked');
                         if (typeof window.openServiceConfigModal === 'function') {
-                            window.openServiceConfigModal();
+                                window.openServiceConfigModal();
                         } else {
                             console.error('openServiceConfigModal function not available');
                             alert('Помилка: функція openServiceConfigModal не знайдена');

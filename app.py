@@ -8952,9 +8952,8 @@ def admin_get_system_settings():
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
         
-        # Ensure defaults are initialized
-        if SystemSetting.query.count() == 0:
-            SystemSetting.initialize_defaults()
+        # Ensure defaults are initialized (also backfills missing keys after updates)
+        SystemSetting.initialize_defaults()
         
         settings = SystemSetting.get_all_grouped()
         
@@ -8999,6 +8998,8 @@ def admin_get_category_settings(category):
     try:
         from models import SystemSetting, SERVICE_CATEGORIES
         
+        # Ensure defaults exist for this category (and any newly added keys)
+        SystemSetting.initialize_defaults()
         settings = SystemSetting.query.filter_by(category=category).all()
         meta = SERVICE_CATEGORIES.get(category, {
             'name': category.title(),
