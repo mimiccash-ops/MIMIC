@@ -136,9 +136,16 @@ def validate_and_connect(
             'secret': api_secret,
             'enableRateLimit': True,
             'options': {
-                'defaultType': 'future',  # Use futures by default
+                # Align with trading engine defaults for perpetual futures
+                'defaultType': 'swap',
+                'forcePublicIPv4': True,
             }
         }
+
+        # OKX-specific options for consistent futures behavior
+        if exchange_name_lower == 'okx':
+            exchange_config['options']['defaultMarginMode'] = 'cross'
+            exchange_config['options']['positionMode'] = 'net_mode'
         
         # Add passphrase if provided (required for OKX, KuCoin)
         if passphrase:
@@ -172,8 +179,9 @@ def validate_and_connect(
         except AuthenticationError as e:
             logger.error(f"❌ Authentication failed for {exchange_name}: {e}")
             raise ExchangeConnectionError(
-                f"Authentication failed: Invalid API credentials. "
-                f"Please check your API key, secret, and passphrase (if required)."
+                "Authentication failed: Invalid API credentials or insufficient permissions. "
+                "Check API key/secret, passphrase (if required), and ensure futures/perpetual "
+                "permissions + IP whitelist are set."
             )
         
         except NetworkError as e:
@@ -210,6 +218,9 @@ def validate_and_connect(
                     f"Please verify your API credentials and exchange settings."
                 )
         
+    except (ExchangeValidationError, ExchangeConnectionError):
+        raise
+
     except AttributeError:
         raise ExchangeValidationError(
             f"Exchange '{exchange_name}' (CCXT class: '{ccxt_class_name}') is not available in your CCXT installation. "

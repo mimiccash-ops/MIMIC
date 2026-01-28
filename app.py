@@ -701,7 +701,9 @@ def _fetch_user_exchange_balances(user_id: int) -> dict:
                         'secret': ue.get_api_secret(),
                         'enableRateLimit': True,
                         'options': {
-                            'defaultType': 'future',
+                            # Align with trading engine defaults for perpetual futures
+                            'defaultType': 'swap',
+                            'forcePublicIPv4': True,
                         }
                     }
                     
@@ -7959,9 +7961,19 @@ def admin_verify_exchange(exchange_name):
             config.verification_error = str(e)
             db.session.commit()
             logger.warning(f"Exchange connection error: {e}")
+            error_msg = str(e)
+            if 'Authentication' in error_msg or 'Invalid' in error_msg:
+                return jsonify({
+                    'success': False,
+                    'error': (
+                        f'❌ Невірні API ключі або немає дозволів для {config.display_name}. '
+                        'Перевірте API Key/Secret, passphrase (якщо потрібен), '
+                        'доступ до фʼючерсів/деривативів та IP whitelist.'
+                    )
+                }), 400
             return jsonify({
                 'success': False,
-                'error': f'❌ Помилка підключення: {str(e)}'
+                'error': f'❌ Помилка підключення: {error_msg}'
             }), 400
             
         except ExchangeValidationError as e:
