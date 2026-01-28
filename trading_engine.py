@@ -579,6 +579,101 @@ class TradingEngine:
         self.sentiment_manager = sentiment_manager
         logger.info("🧠 AI Sentiment Manager initialized")
 
+    def _fetch_balance_sync(self, exchange_name: str, api_key: str, api_secret: str, passphrase: str = None) -> dict:
+        """Fetch balance using synchronous CCXT to avoid asyncio loop conflicts."""
+        exchange_name = (exchange_name or '').lower()
+        ccxt_class_name = SUPPORTED_EXCHANGES.get(exchange_name, exchange_name)
+        if not hasattr(ccxt_sync, ccxt_class_name):
+            return {
+                'exchange': exchange_name.upper() if exchange_name else 'UNKNOWN',
+                'balance': None,
+                'error': f"Exchange {ccxt_class_name} not supported"
+            }
+
+        config = {
+            'apiKey': api_key,
+            'secret': api_secret,
+            'enableRateLimit': True,
+            'options': {
+                'defaultType': 'swap',
+                'forcePublicIPv4': True,
+            }
+        }
+        if passphrase:
+            config['password'] = passphrase
+        if exchange_name == 'okx':
+            config['options']['defaultMarginMode'] = 'cross'
+            config['options']['positionMode'] = 'net_mode'
+
+        exchange_class = getattr(ccxt_sync, ccxt_class_name)
+        exchange = exchange_class(config)
+        try:
+            balance = exchange.fetch_balance()
+            usdt_balance = 0.0
+            for asset in ['USDT', 'USD', 'USDC', 'BUSD']:
+                if asset in balance.get('free', {}):
+                    usdt_balance = float(balance['free'][asset] or 0)
+                    break
+                if asset in balance and isinstance(balance[asset], dict):
+                    usdt_balance = float(balance[asset].get('free', 0) or 0)
+                    break
+                if asset in balance.get('total', {}):
+                    usdt_balance = float(balance['total'][asset] or 0)
+                    break
+            return {
+                'exchange': exchange_name.upper(),
+                'balance': usdt_balance,
+                'error': None
+            }
+        except Exception as e:
+            return {
+                'exchange': exchange_name.upper(),
+                'balance': None,
+                'error': str(e)
+            }
+        finally:
+            try:
+                exchange.close()
+            except Exception:
+                pass
+
+    def _get_master_balances_sync(self) -> list:
+        """Sync fallback for master balances using CCXT (avoids asyncio issues)."""
+        balances = []
+        with self.app.app_context():
+            try:
+                from models import ExchangeConfig
+                configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+            except Exception as e:
+                logger.warning(f"Failed to load exchange configs for balances: {e}")
+                return balances
+
+            for config in configs:
+                exchange_name = config.exchange_name.lower()
+                api_key = config.admin_api_key
+                api_secret = config.get_admin_api_secret()
+                passphrase = config.get_admin_passphrase()
+
+                display_name = config.display_name or exchange_name.upper()
+                if not api_key or not api_secret:
+                    balances.append({
+                        'id': f'cfg_{exchange_name}',
+                        'exchange': display_name,
+                        'balance': None,
+                        'error': 'Admin API keys not configured'
+                    })
+                    continue
+
+                result = self._fetch_balance_sync(exchange_name, api_key, api_secret, passphrase)
+                balances.append({
+                    'id': f'cfg_{exchange_name}',
+                    'exchange': display_name,
+                    'balance': result.get('balance'),
+                    'error': result.get('error')
+                })
+
+        return balances
+
     def set_redis_client(self, redis_client, redis_url: str = None):
         """Set Redis client for Smart Features (trailing SL, DCA tracking, risk guardrails)"""
         self._redis_client = redis_client
@@ -1115,25 +1210,14 @@ class TradingEngine:
                         
                         if passphrase and exchange_name in PASSPHRASE_EXCHANGES:
                             config['password'] = passphrase
-                        
-                        ccxt_client = exchange_class(config)
-                        
-                        # Test connection (sync for init, will use async in trading)
-                        try:
-                            # Run async fetch_balance in sync context for initialization
-                            loop = asyncio.new_event_loop()
-                            balance = loop.run_until_complete(ccxt_client.fetch_balance())
-                            loop.close()
-                            logger.info(f"📊 Master {exchange_name.upper()} balance fetched successfully")
-                        except Exception as e:
-                            logger.error(f"⚠️ Master {exchange_name.upper()} connection failed: {e}")
-                            try:
-                                loop = asyncio.new_event_loop()
-                                loop.run_until_complete(ccxt_client.close())
-                                loop.close()
-                            except:
-                                pass
+
+                        # Validate credentials using sync CCXT to avoid asyncio loop conflicts
+                        validation = self._fetch_balance_sync(exchange_name, api_key, api_secret, passphrase)
+                        if validation.get('error'):
+                            logger.error(f"⚠️ Master {exchange_name.upper()} connection failed: {validation['error']}")
                             continue
+
+                        ccxt_client = exchange_class(config)
                         
                         self.master_clients.append({
                             'id': f'master_{exchange_name}',
@@ -1611,19 +1695,9 @@ class TradingEngine:
         has_async = any(m.get('is_async') for m in self.master_clients)
         
         if has_async:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Return cached/tracked positions if loop is running
-                    with self.positions_lock:
-                        return [{'symbol': s, **d} for s, d in self.master_positions.items()]
-                return loop.run_until_complete(self.get_all_master_positions_async())
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                try:
-                    return loop.run_until_complete(self.get_all_master_positions_async())
-                finally:
-                    loop.close()
+            # Avoid asyncio loop conflicts by returning cached positions
+            with self.positions_lock:
+                return [{'symbol': s, **d} for s, d in self.master_positions.items()]
         
         # Legacy sync implementation
         all_positions = []
@@ -1736,23 +1810,11 @@ class TradingEngine:
         has_async = any(m.get('is_async') for m in self.master_clients)
         
         if has_async:
+            # Prefer sync fallback for stability in mixed async environments
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Event loop is running - use thread pool to run async code
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        future = executor.submit(self._run_async_balances_in_thread)
-                        return future.result(timeout=15)
-                return loop.run_until_complete(self.get_all_master_balances_async())
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                try:
-                    return loop.run_until_complete(self.get_all_master_balances_async())
-                finally:
-                    loop.close()
+                return self._get_master_balances_sync()
             except Exception as e:
-                logger.warning(f"Error fetching async balances: {e}")
+                logger.warning(f"Sync fallback for balances failed: {e}")
                 return []
         
         # Legacy sync implementation for non-async clients
