@@ -3373,6 +3373,10 @@ def dashboard():
         if has_master_exchanges:
             try:
                 master_positions = engine.get_all_master_positions()
+            except Exception as e:
+                logger.warning(f"Failed to fetch master positions: {e}")
+            
+            try:
                 master_exchange_balances = engine.get_all_master_balances()
                 # Update m_bal with total from all exchanges
                 total_balance = sum(b['balance'] for b in master_exchange_balances if b['balance'] is not None)
@@ -3382,8 +3386,8 @@ def dashboard():
                     # Exchanges connected but balance is 0
                     m_bal = "0.00"
             except Exception as e:
-                logger.warning(f"Failed to fetch master data: {e}")
-                m_bal = "Error fetching data"
+                logger.warning(f"Failed to fetch master balances: {e}")
+                m_bal = "Error fetching balances"
         
         return render_template('dashboard_admin.html',
                              users=users,
@@ -4069,8 +4073,52 @@ def get_master_exchange_balances():
         return jsonify({'error': 'Доступ заборонено'}), 403
     
     try:
+        # Ensure master clients are initialized if configs exist
+        enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+        if not engine.master_clients and enabled_configs:
+            last_attempt = getattr(engine, "_last_master_init_attempt", 0)
+            now = time.time()
+            if now - last_attempt > 60:
+                engine._last_master_init_attempt = now
+                try:
+                    engine.init_master()
+                except Exception as e:
+                    logger.warning(f"Failed to init master exchanges in balances API: {e}")
+
         balances = engine.get_all_master_balances()
-        total_balance = sum(b['balance'] for b in balances if b['balance'] is not None)
+        total_balance = sum(b['balance'] for b in balances if b.get('balance') is not None)
+
+        # Add placeholders for enabled configs not loaded into master_clients
+        display_map = {c.exchange_name.lower(): c.display_name for c in enabled_configs}
+        balances_by_name = {b.get('exchange', '').lower(): b for b in balances if b.get('exchange')}
+        loaded_names = {m.get('exchange_name', '').lower() for m in engine.master_clients}
+        for config in enabled_configs:
+            key = config.exchange_name.lower()
+            if key in balances_by_name:
+                # Normalize display name if available
+                balances_by_name[key]['exchange'] = display_map.get(key, balances_by_name[key].get('exchange'))
+                continue
+
+            # Diagnose likely cause for missing balance
+            error = None
+            has_api_key = bool(config.admin_api_key)
+            has_secret_stored = bool(config.admin_api_secret)
+            decrypted_secret = config.get_admin_api_secret()
+            if not has_api_key or not has_secret_stored:
+                error = 'Admin API keys not stored'
+            elif has_secret_stored and not decrypted_secret:
+                error = 'Cannot decrypt admin API secret (check MASTER_KEY_ENCRYPTION)'
+            elif key not in loaded_names:
+                error = 'Master client not initialized in this process'
+            else:
+                error = 'Balance not available'
+
+            balances.append({
+                'id': f'cfg_{config.exchange_name}',
+                'exchange': display_map.get(key, config.exchange_name.upper()),
+                'balance': None,
+                'error': error
+            })
         
         return jsonify({
             'success': True,

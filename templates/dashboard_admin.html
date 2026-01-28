@@ -1830,6 +1830,35 @@
         socket.on('new_message', (msg) => { if (!msg.is_from_admin) { showToast(`📩 New message from ${msg.sender_name}`, 'info'); loadUnreadCount(); } });
     }
     initSocket();
+
+    async function refreshMasterBalances() {
+        try {
+            const res = await fetch('/api/master/exchange_balances');
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load balances');
+            }
+
+            const balanceEl = document.getElementById('master-balance');
+            if (balanceEl) {
+                if (data.total_balance > 0) {
+                    balanceEl.innerHTML = '$' + data.total_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    balanceEl.classList.remove('text-muted');
+                } else if (data.exchanges && data.exchanges.length > 0) {
+                    balanceEl.innerHTML = '<span class="text-muted">0.00</span>';
+                } else {
+                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
+                }
+            }
+            renderExchangeBalances(data.exchanges || []);
+        } catch (err) {
+            console.warn('Failed to refresh master balances:', err);
+            const balanceEl = document.getElementById('master-balance');
+            if (balanceEl) {
+                balanceEl.innerHTML = '<span class="text-muted">Error fetching balances</span>';
+            }
+        }
+    }
     
     function renderMasterPositions(positions) {
         const container = document.getElementById('master-positions-container');
@@ -1862,15 +1891,23 @@
             return;
         }
         
-        container.innerHTML = balances.map(ex => `
+        container.innerHTML = balances.map(ex => {
+            const errorTitle = ex.error ? ` title="${escapeHtml(ex.error)}"` : '';
+            const balanceClass = ex.balance !== null ? (ex.balance > 0 ? 'text-green' : 'text-muted') : (ex.error ? 'text-red' : 'text-muted');
+            const balanceText = ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...');
+            return `
             <div class="flex items-center justify-between p-2 rounded" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                 <span class="text-xs font-semibold">${ex.exchange}</span>
-                <span class="font-mono text-sm ${ex.balance > 0 ? 'text-green' : 'text-muted'} font-bold">
-                    ${ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...')}
+                <span class="font-mono text-sm ${balanceClass} font-bold"${errorTitle}>
+                    ${balanceText}
                 </span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
+
+    // Initial fetch to avoid empty UI if socket updates lag or fail
+    setTimeout(refreshMasterBalances, 800);
 
 
     function confirmPanic() {
