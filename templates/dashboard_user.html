@@ -1408,7 +1408,7 @@
         <div id="positions-container" 
              class="positions-list"
              hx-get="/api/positions"
-             hx-trigger="load, every 2s"
+             hx-trigger="load, every 5s, refresh"
              hx-swap="innerHTML">
             <div class="empty-positions">
                 <div class="icon"><i class="fas fa-satellite-dish"></i></div>
@@ -2362,12 +2362,23 @@
             crosshairMarkerBorderColor: '#000',
         });
 
-        // Handle resize
-        window.addEventListener('resize', () => {
+        // Handle resize (throttled)
+        const handleResize = window.throttleRaf ? window.throttleRaf(() => {
             if (tvChart && container) {
                 tvChart.applyOptions({ width: container.clientWidth });
             }
-        });
+        }) : () => {
+            if (tvChart && container) {
+                tvChart.applyOptions({ width: container.clientWidth });
+            }
+        };
+
+        if ('ResizeObserver' in window) {
+            const ro = new ResizeObserver(handleResize);
+            ro.observe(container);
+        } else {
+            window.addEventListener('resize', handleResize);
+        }
 
         loadChartData();
     }
@@ -2425,6 +2436,31 @@
                 }
             })
             .catch(console.error);
+    }
+
+    function setupPositionsPolling() {
+        const positionsContainer = document.getElementById('positions-container');
+        if (!positionsContainer || !window.htmx) return;
+
+        const activeTrigger = 'load, every 5s, refresh';
+        const pausedTrigger = 'load, refresh';
+
+        positionsContainer.setAttribute('hx-trigger', activeTrigger);
+
+        const togglePolling = () => {
+            if (document.hidden) {
+                positionsContainer.setAttribute('hx-trigger', pausedTrigger);
+            } else {
+                positionsContainer.setAttribute('hx-trigger', activeTrigger);
+                try {
+                    htmx.trigger(positionsContainer, 'refresh');
+                } catch (err) {
+                    console.debug('HTMX refresh skipped:', err);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', togglePolling);
     }
 
     // ==================== ANIMATED PROFIT COUNTER ====================
@@ -4001,19 +4037,32 @@
         initTVChart();
         loadStats();
         loadExchanges();
+        setupPositionsPolling();
         loadSentiment();
         loadStrategies();
         loadSafetyPool();
         loadGamification();
         
         // Refresh sentiment every 5 minutes
-        setInterval(loadSentiment, 5 * 60 * 1000);
+        if (window.createVisibilityInterval) {
+            window.createVisibilityInterval(loadSentiment, 5 * 60 * 1000, { immediate: false });
+        } else {
+            setInterval(loadSentiment, 5 * 60 * 1000);
+        }
         
         // Refresh Safety Pool every 5 minutes
-        setInterval(loadSafetyPool, 5 * 60 * 1000);
+        if (window.createVisibilityInterval) {
+            window.createVisibilityInterval(loadSafetyPool, 5 * 60 * 1000, { immediate: false });
+        } else {
+            setInterval(loadSafetyPool, 5 * 60 * 1000);
+        }
         
         // Refresh Gamification every 5 minutes
-        setInterval(loadGamification, 5 * 60 * 1000);
+        if (window.createVisibilityInterval) {
+            window.createVisibilityInterval(loadGamification, 5 * 60 * 1000, { immediate: false });
+        } else {
+            setInterval(loadGamification, 5 * 60 * 1000);
+        }
         
         // Initial progress ring update
         const balanceEl = document.getElementById('balance-value');

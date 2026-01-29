@@ -35,6 +35,65 @@
     .log-error { border-left-color: var(--neon-red); background: rgba(255, 0, 68, 0.04); }
     .log-info { border-left-color: var(--neon-cyan); background: rgba(0, 245, 255, 0.02); }
     .master-balance { font-size: clamp(1.2rem, 5vw, 1.6rem); font-weight: 700; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 12px rgba(0, 245, 255, 0.25)); letter-spacing: -0.5px; line-height: 1; }
+    .master-balance-card {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(0, 245, 255, 0.08), rgba(255, 0, 212, 0.08));
+        border: 1px solid rgba(0, 245, 255, 0.32);
+        box-shadow: 0 12px 28px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(0, 245, 255, 0.08);
+    }
+    .master-balance-label {
+        font-size: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .master-balance-value {
+        font-size: clamp(1.4rem, 5vw, 1.9rem);
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 16px rgba(0, 245, 255, 0.25));
+        letter-spacing: -0.6px;
+        line-height: 1;
+    }
+    .exchange-balance-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .exchange-balance-pill {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(10, 20, 28, 0.6);
+        border: 1px solid rgba(0, 245, 255, 0.18);
+        box-shadow: inset 0 0 10px rgba(0, 245, 255, 0.06);
+        min-width: 120px;
+    }
+    .exchange-balance-pill.is-error {
+        border-color: rgba(255, 0, 85, 0.3);
+        box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.08);
+    }
+    .exchange-balance-pill .name {
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .exchange-balance-pill .value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
     .stat-number { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: clamp(0.85rem, 3vw, 1.2rem); letter-spacing: -0.3px; }
     .node-card { transition: all 0.15s ease; border-left: 2px solid transparent; }
     .node-card:hover { transform: translateX(3px); background: rgba(0, 245, 255, 0.02); border-left-color: var(--neon-cyan); }
@@ -195,14 +254,23 @@
                             <span class="live-text" data-i18n="dash.live">LIVE</span>
                     </div>
                     </div>
-                    <p id="master-balance" class="balance-amount">{% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A'] %}${{ master_balance }}{% else %}<span class="text-muted">{{ master_balance or 'No exchanges configured' }}</span>{% endif %}</p>
+                    <div class="master-balance-card">
+                        <div class="master-balance-label">Загальний баланс</div>
+                        <div id="master-balance" class="master-balance-value">
+                            {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A'] %}
+                                ${{ master_balance }}
+                            {% else %}
+                                <span class="text-muted">{{ master_balance or 'No exchanges configured' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
                     <!-- Exchange Balances -->
-                    <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2">
+                    <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2 exchange-balance-list">
                         {% if master_exchange_balances %}
                             {% for ex in master_exchange_balances %}
-                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                                <span class="text-xs font-semibold text-muted">{{ ex.exchange }}</span>
-                                <span class="font-mono text-sm {{ 'text-green' if ex.balance and ex.balance > 0 else 'text-muted' }} font-bold">
+                            <div class="exchange-balance-pill {{ 'is-error' if ex.error }}" {% if ex.error %}title="{{ ex.error }}"{% endif %}>
+                                <span class="name">{{ ex.exchange }}</span>
+                                <span class="value {{ 'text-red' if ex.error else ('text-green' if ex.balance and ex.balance > 0 else 'text-muted') }}">
                                     {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
                                 </span>
                             </div>
@@ -1893,14 +1961,13 @@
         
         container.innerHTML = balances.map(ex => {
             const errorTitle = ex.error ? ` title="${escapeHtml(ex.error)}"` : '';
+            const errorClass = ex.error ? 'is-error' : '';
             const balanceClass = ex.balance !== null ? (ex.balance > 0 ? 'text-green' : 'text-muted') : (ex.error ? 'text-red' : 'text-muted');
             const balanceText = ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...');
             return `
-            <div class="flex items-center justify-between p-2 rounded" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <span class="text-xs font-semibold">${ex.exchange}</span>
-                <span class="font-mono text-sm ${balanceClass} font-bold"${errorTitle}>
-                    ${balanceText}
-                </span>
+            <div class="exchange-balance-pill ${errorClass}"${errorTitle}>
+                <span class="name">${ex.exchange}</span>
+                <span class="value ${balanceClass}">${balanceText}</span>
             </div>
         `;
         }).join('');
@@ -2125,7 +2192,11 @@
             .catch(err => console.log('Admin Safety Pool fetch error:', err));
     }
     // Refresh Safety Pool every 5 minutes
-    setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
+    if (window.createVisibilityInterval) {
+        window.createVisibilityInterval(loadAdminSafetyPool, 5 * 60 * 1000, { immediate: false });
+    } else {
+        setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
+    }
     
     // Admin Platform Stats
     function loadAdminPlatformStats() {

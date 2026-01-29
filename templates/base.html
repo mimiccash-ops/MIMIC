@@ -791,6 +791,89 @@
         }
     </style>
 
+    <!-- Performance + Responsive Overrides -->
+    <style>
+        img, video, canvas, svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .app-container {
+            padding-left: clamp(12px, 3vw, 24px);
+            padding-right: clamp(12px, 3vw, 24px);
+        }
+
+        @media (max-width: 768px) {
+            .app-main {
+                padding-top: calc(var(--header-height) + 12px);
+                padding-bottom: 60px;
+            }
+
+            .card,
+            .stat-card,
+            .hero-card,
+            .section-card,
+            .chart-terminal,
+            .positions-panel {
+                backdrop-filter: none !important;
+            }
+
+            .app-bg::before,
+            .app-bg::after,
+            .app-noise,
+            .app-glow,
+            .app-glow-1,
+            .app-glow-2,
+            .app-glow-3 {
+                animation: none !important;
+            }
+
+            .app-glow,
+            .app-glow-1,
+            .app-glow-2,
+            .app-glow-3 {
+                opacity: 0.08 !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .stat-card,
+            .stat-card-cyber {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .stat-value {
+                font-size: clamp(1.2rem, 6vw, 1.6rem);
+            }
+
+            .btn-primary,
+            .btn-secondary,
+            .cyber-btn {
+                padding: 12px 18px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
+            }
+
+            .app-bg::before,
+            .app-bg::after,
+            .app-noise,
+            .app-glow,
+            .app-glow-1,
+            .app-glow-2,
+            .app-glow-3 {
+                animation: none !important;
+            }
+        }
+    </style>
+
     <!-- Main JavaScript - Loaded before closing body to ensure functions are available -->
     <script src="{{ static_version('js/main.min.js') }}"></script>
     
@@ -1498,6 +1581,69 @@
         }
     </style>
     
+    <script>
+        (function() {
+            const listeners = new Set();
+            let isVisible = !document.hidden;
+
+            function notify() {
+                listeners.forEach((fn) => fn(isVisible));
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                isVisible = !document.hidden;
+                notify();
+            });
+
+            window.createVisibilityInterval = function(fn, intervalMs, opts = {}) {
+                const { immediate = true } = opts;
+                let timer = null;
+
+                const run = () => {
+                    if (!isVisible) return;
+                    fn();
+                };
+
+                const start = () => {
+                    if (timer) return;
+                    timer = setInterval(run, intervalMs);
+                    if (immediate) run();
+                };
+
+                const stop = () => {
+                    if (!timer) return;
+                    clearInterval(timer);
+                    timer = null;
+                };
+
+                const handleVisibility = (visible) => {
+                    if (visible) start();
+                    else stop();
+                };
+
+                listeners.add(handleVisibility);
+                if (isVisible) start();
+
+                return () => {
+                    stop();
+                    listeners.delete(handleVisibility);
+                };
+            };
+
+            window.throttleRaf = function(fn) {
+                let scheduled = false;
+                return function(...args) {
+                    if (scheduled) return;
+                    scheduled = true;
+                    requestAnimationFrame(() => {
+                        scheduled = false;
+                        fn.apply(this, args);
+                    });
+                };
+            };
+        })();
+    </script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
