@@ -35,7 +35,7 @@ Code Audit Date: January 18, 2026
 - Receives TradingView signals via webhook
 - Mirrors trades across connected exchange accounts (30+ exchanges via CCXT)
 - Provides user management, risk controls, and real-time dashboards
-- Includes Telegram notifications, AI support bot, and gamification features
+- Includes Telegram notifications and gamification features
 
 ---
 
@@ -84,8 +84,6 @@ MIMIC/
 │
 ├── telegram_notifier.py    # Telegram notifications + Email sender
 ├── telegram_bot.py         # Telegram bot commands + kill switch
-├── support_bot.py          # RAG AI support bot (OpenAI)
-├── sentiment.py            # AI sentiment analysis
 ├── smart_features.py       # Trailing SL, DCA, Risk Guardrails
 ├── compliance.py           # Geo-blocking + TOS consent
 ├── banner_generator.py     # Referral banner generation (Pillow)
@@ -286,10 +284,7 @@ docker compose --profile migration up migrate
 | `BINANCE_MASTER_API_KEY` | ❌ | Master account API key |
 | `BINANCE_MASTER_API_SECRET` | ❌ | Master account API secret |
 | `WEBHOOK_PASSPHRASE` | ❌ | TradingView webhook secret |
-| `GOOGLE_CLIENT_ID` | ❌ | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | ❌ | Google OAuth secret |
 | `WEBAUTHN_RP_ID` | ❌ | WebAuthn relying party ID |
-| `OPENAI_API_KEY` | ❌ | OpenAI API key (support bot) |
 | `SENTRY_DSN` | ❌ | Sentry error tracking DSN |
 
 ### Master Encryption Key
@@ -316,7 +311,6 @@ The master key for API key encryption is loaded in this order:
 | `[Twitter]` | Auto-posting credentials |
 | `[Compliance]` | Geo-blocking, TOS version |
 | `[Payment]` | Plisio payment gateway |
-| `[SupportBot]` | OpenAI/RAG configuration |
 
 ---
 
@@ -386,7 +380,6 @@ Tasks are queued via Redis and processed by `worker.py`:
 | `check_subscription_expiry_task` | Check/deactivate expired subscriptions |
 | `execute_dca_check_task` | DCA order execution |
 | `monitor_trailing_stops_task` | Trailing stop-loss monitoring |
-| `update_market_sentiment_task` | AI sentiment updates |
 | `calculate_user_xp_task` | Gamification XP calculation |
 | `update_tournament_status_task` | Tournament lifecycle |
 
@@ -398,7 +391,6 @@ Tasks are queued via Redis and processed by `worker.py`:
 | Daily 0:00 UTC | Reset daily balances (risk guardrails) |
 | Daily 1:00 UTC | Calculate user XP |
 | Every 5 minutes | DCA checks, tournament ROI |
-| Every hour | Market sentiment update |
 | Every minute | Tournament status updates |
 
 ---
@@ -457,7 +449,6 @@ pytest tests/test_trading.py -v
 ### Authentication
 
 - Password hashing (bcrypt)
-- Google OAuth 2.0
 - WebAuthn/Passkeys
 - Session security (HTTP-only, SameSite cookies)
 
@@ -604,7 +595,6 @@ Use this after changes to validate backend + frontend behavior:
 | `clear_pending.py` | Clear stuck symbols in Redis | `python clear_pending.py` |
 | `check_outgoing_ip.py` | Verify outgoing IP for Binance | `python check_outgoing_ip.py` |
 | `test_binance_keys.py` | Test Binance API permissions | `python test_binance_keys.py` |
-| `ingest_docs.py` | Ingest docs for RAG support bot | `python ingest_docs.py` |
 | `migrate_sqlite_to_postgres.py` | Migrate data to PostgreSQL | `python migrate_sqlite_to_postgres.py` |
 
 ### Shell Scripts
@@ -621,7 +611,7 @@ Use this after changes to validate backend + frontend behavior:
 
 ## 📞 Support
 
-1. **AI Support Bot:** Click chat icon in dashboard
+1. **Live Chat:** Click chat icon in dashboard
 2. **Logs:** Check `logs/` directory
 3. **Documentation:**
    - `README.md` - Quick start guide

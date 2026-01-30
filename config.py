@@ -365,11 +365,6 @@ class Config:
         
         WEBPUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
 
-        # --- GOOGLE OAUTH (Authentication) ---
-        GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
-        GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-        GOOGLE_OAUTH_REDIRECT_URL = os.environ.get('GOOGLE_OAUTH_REDIRECT_URL', '')
-
         # --- WEBAUTHN / PASSKEYS ---
         WEBAUTHN_RP_ID = os.environ.get('WEBAUTHN_RP_ID', '')
         WEBAUTHN_RP_NAME = os.environ.get('WEBAUTHN_RP_NAME', 'MIMIC')
@@ -417,50 +412,6 @@ class Config:
         ) if config.has_section('Twitter') else os.environ.get('SITE_URL', 'https://mimic.cash')
         
         TWITTER_ENABLED = bool(TWITTER_API_KEY and TWITTER_API_SECRET and TWITTER_ACCESS_TOKEN and TWITTER_ACCESS_SECRET)
-        
-        # --- RAG SUPPORT BOT SETTINGS (OpenAI + LangChain) ---
-        # Get OpenAI API key from environment or config.ini
-        # Sign up at https://platform.openai.com to get an API key
-        OPENAI_API_KEY = get_config_value(
-            'SupportBot', 'openai_api_key',
-            'OPENAI_API_KEY',
-            ''
-        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_API_KEY', '')
-        
-        # OpenAI model settings
-        OPENAI_EMBEDDING_MODEL = get_config_value(
-            'SupportBot', 'embedding_model',
-            'OPENAI_EMBEDDING_MODEL',
-            'text-embedding-3-small'
-        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
-        
-        OPENAI_CHAT_MODEL = get_config_value(
-            'SupportBot', 'chat_model',
-            'OPENAI_CHAT_MODEL',
-            'gpt-4o-mini'
-        ) if config.has_section('SupportBot') else os.environ.get('OPENAI_CHAT_MODEL', 'gpt-4o-mini')
-        
-        # RAG configuration
-        RAG_CONFIDENCE_THRESHOLD = float(get_config_value(
-            'SupportBot', 'confidence_threshold',
-            'RAG_CONFIDENCE_THRESHOLD',
-            '0.7'
-        ) if config.has_section('SupportBot') else os.environ.get('RAG_CONFIDENCE_THRESHOLD', '0.7'))
-        
-        RAG_CHUNK_SIZE = int(get_config_value(
-            'SupportBot', 'chunk_size',
-            'RAG_CHUNK_SIZE',
-            '500'
-        ) if config.has_section('SupportBot') else os.environ.get('RAG_CHUNK_SIZE', '500'))
-        
-        RAG_CHUNK_OVERLAP = int(get_config_value(
-            'SupportBot', 'chunk_overlap',
-            'RAG_CHUNK_OVERLAP',
-            '50'
-        ) if config.has_section('SupportBot') else os.environ.get('RAG_CHUNK_OVERLAP', '50'))
-        
-        # Enable/disable support bot
-        SUPPORT_BOT_ENABLED = bool(OPENAI_API_KEY)
         
         # --- COMPLIANCE SETTINGS (Geo-blocking & TOS) ---
         # Current Terms of Service version - increment when TOS changes to force re-consent

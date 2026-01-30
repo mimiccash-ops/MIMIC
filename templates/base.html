@@ -308,137 +308,9 @@
                 <a href="{{ url_for('login') }}" class="cyber-btn cyber-btn-sm" data-i18n="nav.login">Login</a>
                 {% endif %}
 
-                <!-- Mobile Menu Button -->
-                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Menu">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
             </div>
         </div>
     </header>
-
-    <!-- ==================== MOBILE MENU ==================== -->
-    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileMenu()"></div>
-    <aside class="mobile-menu" id="mobileMenu">
-        <div class="mobile-menu-header">
-            <div class="app-logo">
-                <div class="logo-mark">
-                    <svg viewBox="0 0 32 32" fill="none">
-                        <path d="M6 6L14 16L6 26V6Z" fill="#00f0ff"/>
-                        <path d="M26 6L18 16L26 26V6Z" fill="#00f0ff"/>
-                        <rect x="14" y="12" width="4" height="8" rx="0" fill="#ff2d92"/>
-                    </svg>
-                </div>
-                <span class="logo-text">MIMIC</span>
-            </div>
-            <button onclick="closeMobileMenu()" class="mobile-close">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        {% if current_user.is_authenticated %}
-        <div class="mobile-user">
-            <div class="mobile-user-avatar">
-                {% if current_user.avatar_type == 'image' and current_user.avatar %}
-                <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
-                {% else %}
-                <span>{{ current_user.avatar or '🧑‍💻' }}</span>
-                {% endif %}
-            </div>
-            <div class="mobile-user-info">
-                <span class="mobile-user-name">{{ current_user.first_name or current_user.username }}</span>
-                <span class="mobile-user-role {% if current_user.role == 'admin' %}admin{% endif %}"><span data-i18n="role.{{ current_user.role }}">{{ current_user.role|capitalize }}</span></span>
-            </div>
-        </div>
-        {% endif %}
-
-        <nav class="mobile-nav">
-            {% if current_user.is_authenticated %}
-            {% block mobile_sections %}
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-tachometer-alt"></i>
-                <span data-i18n="section.overview">Overview</span>
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-chart-line"></i>
-                <span data-i18n="section.trading">Trading</span>
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('exchange'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-plug"></i>
-                <span data-i18n="section.exchange">Exchange</span>
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-tasks"></i>
-                <span data-i18n="section.tasks">Tasks</span>
-            </a>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('settings'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-cog"></i>
-                <span data-i18n="section.settings">Settings</span>
-            </a>
-            {% endblock %}
-            
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="nav.community">Community</div>
-            <a href="{{ url_for('leaderboard') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-trophy"></i>
-                <span data-i18n="nav.leaderboard">Leaderboard</span>
-            </a>
-            <a href="{{ url_for('governance_page') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-vote-yea"></i>
-                <span data-i18n="nav.governance">Governance</span>
-            </a>
-            
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="nav.account">Account</div>
-            <a href="{{ url_for('dashboard') }}" class="mobile-nav-item" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('subscription'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-                <i class="fas fa-crown"></i>
-                <span data-i18n="nav.subscription">Subscription</span>
-            </a>
-            <a href="{{ url_for('messages') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-envelope"></i>
-                <span data-i18n="nav.messages">Messages</span>
-                {% if unread_count and unread_count > 0 %}
-                <span class="mobile-badge">{{ unread_count }}</span>
-                {% endif %}
-            </a>
-            <a href="{{ url_for('change_password') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-key"></i>
-                <span data-i18n="nav.changePassword">Security</span>
-            </a>
-            
-            {% if current_user.role == 'admin' %}
-            <div class="mobile-divider"></div>
-            <div class="mobile-nav-label" data-i18n="nav.admin">Admin</div>
-            <a href="{{ url_for('admin_payouts') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-wallet"></i>
-                <span data-i18n="nav.payouts">Payouts</span>
-            </a>
-            {% endif %}
-            {% else %}
-            <a href="{{ url_for('login') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-sign-in-alt"></i>
-                <span data-i18n="nav.login">Login</span>
-            </a>
-            <a href="{{ url_for('register') }}" class="mobile-nav-item" onclick="closeMobileMenu()">
-                <i class="fas fa-user-plus"></i>
-                <span data-i18n="nav.register">Register</span>
-            </a>
-            {% endif %}
-        </nav>
-
-        {% if current_user.is_authenticated %}
-        <div class="mobile-footer">
-            <a href="{{ url_for('logout') }}" class="mobile-logout">
-                <i class="fas fa-power-off"></i>
-                <span data-i18n="nav.logout">Logout</span>
-            </a>
-        </div>
-        {% endif %}
-    </aside>
-
     <!-- ==================== FLASH MESSAGES ==================== -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -852,6 +724,161 @@
             .btn-secondary,
             .cyber-btn {
                 padding: 12px 18px;
+            }
+        }
+
+        /* Responsive menu improvements */
+        .user-name {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .header-actions {
+            position: relative;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            left: auto;
+            bottom: auto;
+            max-height: min(70vh, 520px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .user-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .user-dropdown::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 3px;
+        }
+
+        .mobile-menu {
+            width: min(360px, 92vw);
+            overflow: hidden;
+        }
+
+        .mobile-menu-header,
+        .mobile-user,
+        .mobile-footer {
+            flex-shrink: 0;
+        }
+
+        .mobile-nav {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .mobile-nav-label {
+            display: block;
+            margin: 8px 16px 4px;
+            font-size: 0.65rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .mobile-nav-item {
+            gap: clamp(8px, 2.6vw, 12px);
+            padding: clamp(10px, 2.8vw, 14px) clamp(12px, 3.6vw, 16px);
+            font-size: clamp(0.82rem, 3.2vw, 0.9375rem);
+            line-height: 1.2;
+            min-height: 44px;
+        }
+
+        .mobile-nav-item span:not(.mobile-badge) {
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: normal;
+        }
+
+        .mobile-nav-item i {
+            font-size: clamp(0.9rem, 3.6vw, 1rem);
+        }
+
+        .mobile-user {
+            padding: clamp(14px, 3.4vw, 20px);
+            gap: clamp(10px, 3vw, 12px);
+        }
+
+        .mobile-user-name {
+            font-size: clamp(0.9rem, 3.4vw, 1rem);
+        }
+
+        .mobile-user-role {
+            font-size: 0.7rem;
+        }
+
+        .mobile-menu-header {
+            padding: clamp(12px, 3vw, 16px) clamp(16px, 4vw, 20px);
+        }
+
+        .mobile-menu .logo-text {
+            font-size: clamp(0.95rem, 4vw, 1.25rem);
+            letter-spacing: 0.06em;
+        }
+
+        .mobile-close {
+            width: 32px;
+            height: 32px;
+        }
+
+        @media (max-width: 960px) {
+            .user-name {
+                max-width: 120px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .user-name {
+                max-width: 84px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .mobile-divider {
+                margin: 6px 12px;
+            }
+
+            .mobile-menu {
+                width: 100vw;
+                border-left: none;
+            }
+
+            .mobile-nav {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            .mobile-nav-item:hover {
+                transform: translateX(2px);
+            }
+        }
+
+        @media (max-height: 640px) {
+            .mobile-menu-header {
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+
+            .mobile-user {
+                padding-top: 12px;
+                padding-bottom: 12px;
+            }
+
+            .mobile-nav-item {
+                padding-top: 10px;
+                padding-bottom: 10px;
             }
         }
 
@@ -1319,7 +1346,7 @@
     <!-- PWA & Push Notifications -->
     <script src="{{ static_version('js/push.js') }}"></script>
     
-    <!-- Live Chat & AI Support Bot (available for all users) -->
+    <!-- Live Chat (available for all users) -->
     <script src="{{ static_version('js/chat.js') }}"></script>
     
     <!-- PWA Install Banner Styles -->

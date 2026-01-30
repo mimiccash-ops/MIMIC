@@ -42,7 +42,6 @@ These files are **not imported by any active part of the application** and serve
 | `validate_settings.py` | ⚠️ ORPHANED | Standalone CLI tool for `admin_settings.ini` (file doesn't exist) | No imports found |
 | `migrate_sqlite_to_postgres.py` | ⚠️ ORPHANED | One-time migration script | No imports found |
 | `setup_env.py` | ⚠️ ORPHANED | Standalone `.env` generator | No imports found |
-| `ingest_docs.py` | ⚠️ ORPHANED | Standalone RAG document ingestion | No imports found |
 
 **Note:** `run_bot.py` is an entry point script (executed directly), not orphaned.
 
@@ -70,7 +69,7 @@ Based on import analysis, all major exports from core modules (`config.py`, `mod
 - ✅ python-binance, ccxt, redis, arq
 - ✅ prometheus-client, python-json-logger
 - ✅ python-telegram-bot, pyotp, pywebpush
-- ✅ tweepy, openai, langchain-text-splitters
+- ✅ tweepy
 - ✅ cryptography, bleach, Pillow
 - ✅ geoip2, sentry-sdk
 
@@ -270,7 +269,6 @@ The core Python modules are **well-structured** and follow separation of concern
 | File | Reason |
 |------|--------|
 | `migrate_sqlite_to_postgres.py` | One-time migration - may be needed for future deployments |
-| `ingest_docs.py` | RAG bot dependency - required if Support Bot is used |
 | `alembic` (in requirements.txt) | Verify if any Alembic migrations exist elsewhere |
 
 ---
@@ -329,7 +327,6 @@ After optimization, verify:
 - [ ] Push notifications still function
 - [ ] Telegram bot connects successfully
 - [ ] Trading signals process correctly
-- [ ] AI Support Bot responds
 - [ ] Admin dashboard accessible
 
 ---

@@ -1,7 +1,7 @@
 /**
- * MIMIC Live Chat - WebSocket Real-Time Chat + AI Support Bot
- * Socket.IO based chat for subscribers + RAG-powered AI support
- * 🗨️ SOCIAL TRADING FEED + 🤖 AI SUPPORT 🗨️
+ * MIMIC Live Chat - WebSocket Real-Time Chat
+ * Socket.IO based chat for subscribers
+ * 🗨️ SOCIAL TRADING FEED 🗨️
  */
 
 class MimicChat {
@@ -18,13 +18,6 @@ class MimicChat {
         this.messages = [];
         this.unreadCount = 0;
         this.contextMenu = null;
-        
-        // Support mode properties
-        this.mode = 'chat'; // 'chat' or 'support'
-        this.supportSessionId = null;
-        this.supportMessages = [];
-        this.supportAvailable = false;
-        this.isTyping = false;
         
         this.elements = {};
         
@@ -76,23 +69,10 @@ class MimicChat {
                             </div>
                         </div>
                         <div class="chat-header-actions">
-                            <button class="chat-mode-btn" id="chatModeBtn" title="Перейти до AI підтримки">
-                                <i class="fas fa-robot"></i>
-                            </button>
                             <button class="chat-close-btn" id="chatCloseBtn" aria-label="Закрити чат">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-                    </div>
-                    
-                    <!-- Mode tabs -->
-                    <div class="chat-mode-tabs" id="chatModeTabs">
-                        <button class="chat-mode-tab active" data-mode="chat" id="tabChat">
-                            <i class="fas fa-comments"></i> Живий чат
-                        </button>
-                        <button class="chat-mode-tab" data-mode="support" id="tabSupport">
-                            <i class="fas fa-robot"></i> AI Підтримка
-                        </button>
                     </div>
                     
                     <div class="chat-messages" id="chatMessages">
@@ -146,10 +126,6 @@ class MimicChat {
             unreadBadge: document.getElementById('chatUnreadBadge'),
             window: document.getElementById('chatWindow'),
             closeBtn: document.getElementById('chatCloseBtn'),
-            modeBtn: document.getElementById('chatModeBtn'),
-            modeTabs: document.getElementById('chatModeTabs'),
-            tabChat: document.getElementById('tabChat'),
-            tabSupport: document.getElementById('tabSupport'),
             headerIcon: document.getElementById('chatHeaderIcon'),
             headerTitle: document.getElementById('chatHeaderTitle'),
             onlineDot: document.getElementById('chatOnlineDot'),
@@ -163,8 +139,6 @@ class MimicChat {
             contextMenu: document.getElementById('chatContextMenu')
         };
         
-        // Check if support bot is available
-        this.checkSupportStatus();
     }
     
     bindEvents() {
@@ -172,19 +146,10 @@ class MimicChat {
         this.elements.toggleBtn.addEventListener('click', () => this.toggleChat());
         this.elements.closeBtn.addEventListener('click', () => this.closeChat());
         
-        // Mode switching
-        this.elements.modeBtn.addEventListener('click', () => this.toggleMode());
-        this.elements.tabChat.addEventListener('click', () => this.switchMode('chat'));
-        this.elements.tabSupport.addEventListener('click', () => this.switchMode('support'));
-        
         // Send message
         this.elements.inputForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            if (this.mode === 'support') {
-                this.sendSupportMessage();
-            } else {
-                this.sendMessage();
-            }
+            this.sendMessage();
         });
         
         // Close context menu on click outside
@@ -210,81 +175,6 @@ class MimicChat {
         });
     }
     
-    async checkSupportStatus() {
-        try {
-            const response = await fetch('/api/support/status');
-            const data = await response.json();
-            
-            if (data.success && data.available) {
-                this.supportAvailable = true;
-                this.elements.modeBtn.style.display = 'block';
-                this.elements.modeTabs.style.display = 'flex';
-            } else {
-                // Hide support options if not available
-                this.elements.modeBtn.style.display = 'none';
-                this.elements.modeTabs.style.display = 'none';
-            }
-        } catch (err) {
-            console.log('Support bot not available');
-            this.elements.modeBtn.style.display = 'none';
-            this.elements.modeTabs.style.display = 'none';
-        }
-    }
-    
-    toggleMode() {
-        if (this.mode === 'chat') {
-            this.switchMode('support');
-        } else {
-            this.switchMode('chat');
-        }
-    }
-    
-    switchMode(newMode) {
-        if (this.mode === newMode) return;
-        
-        this.mode = newMode;
-        
-        // Update tabs
-        this.elements.tabChat.classList.toggle('active', newMode === 'chat');
-        this.elements.tabSupport.classList.toggle('active', newMode === 'support');
-        
-        // Update header
-        if (newMode === 'support') {
-            this.elements.headerIcon.innerHTML = '<i class="fas fa-robot"></i>';
-            this.elements.headerTitle.textContent = 'AI Підтримка';
-            this.elements.onlineCount.textContent = 'Запитуй що завгодно!';
-            this.elements.onlineDot.style.background = '#9b59b6'; // Purple for AI
-            this.elements.modeBtn.innerHTML = '<i class="fas fa-comments"></i>';
-            this.elements.modeBtn.title = 'Перейти до живого чату';
-            this.elements.input.placeholder = 'Задай питання про MIMIC...';
-            
-            // Show support messages
-            this.renderSupportMessages();
-            
-            // Enable input for support (no subscription required)
-            this.elements.input.disabled = false;
-            this.elements.sendBtn.disabled = false;
-        } else {
-            this.elements.headerIcon.innerHTML = '<i class="fas fa-comments"></i>';
-            this.elements.headerTitle.textContent = 'Живий чат';
-            this.elements.onlineCount.textContent = this.canChat ? 'Загальна кімната' : 'Підключення...';
-            this.elements.onlineDot.style.background = '#2ecc71'; // Green for online
-            this.elements.modeBtn.innerHTML = '<i class="fas fa-robot"></i>';
-            this.elements.modeBtn.title = 'Перейти до AI підтримки';
-            this.elements.input.placeholder = 'Напиши повідомлення...';
-            
-            // Show chat messages
-            this.renderMessages();
-            
-            // Restore chat input state
-            if (this.canChat) {
-                this.enableInput();
-            } else {
-                this.disableInput();
-            }
-        }
-    }
-    
     async checkChatStatus() {
         try {
             const response = await fetch('/api/chat/status');
@@ -300,52 +190,16 @@ class MimicChat {
                 } else if (data.is_banned) {
                     this.showBannedStatus(data.ban_type, data.ban_reason, data.ban_expires_at);
                 } else if (!this.isAuthenticated) {
-                    // Non-authenticated users: hide live chat, show only AI Support
-                    this.hideliveChatForGuests();
+                    this.showLoginRequired();
                 } else if (!data.has_subscription) {
                     this.showSubscriptionRequired();
                 }
             }
         } catch (err) {
             console.error('Chat status check failed:', err);
-            // For non-authenticated users or errors, default to support-only mode
             this.isAuthenticated = false;
-            this.hideliveChatForGuests();
+            this.showLoginRequired();
         }
-    }
-    
-    hideliveChatForGuests() {
-        // For non-authenticated users, only show AI Support mode
-        this.mode = 'support';
-        
-        // Hide the Live Chat tab
-        if (this.elements.tabChat) {
-            this.elements.tabChat.style.display = 'none';
-        }
-        
-        // Set the support tab as active
-        if (this.elements.tabSupport) {
-            this.elements.tabSupport.classList.add('active');
-        }
-        
-        // Hide mode toggle button (no need to switch)
-        if (this.elements.modeBtn) {
-            this.elements.modeBtn.style.display = 'none';
-        }
-        
-        // Update header for support mode
-        this.elements.headerIcon.innerHTML = '<i class="fas fa-robot"></i>';
-        this.elements.headerTitle.textContent = 'AI Підтримка';
-        this.elements.onlineCount.textContent = 'Запитуй що завгодно!';
-        this.elements.onlineDot.style.background = '#9b59b6';
-        this.elements.input.placeholder = 'Задай питання про MIMIC...';
-        
-        // Enable input for AI Support (no auth required)
-        this.elements.input.disabled = false;
-        this.elements.sendBtn.disabled = false;
-        
-        // Render support welcome message
-        this.renderSupportMessages();
     }
     
     initSocket() {
@@ -513,210 +367,6 @@ class MimicChat {
         this.elements.input.value = '';
     }
     
-    // ==================== AI Support Bot Methods ====================
-    
-    async sendSupportMessage() {
-        const text = this.elements.input.value.trim();
-        if (!text || this.isTyping) return;
-        
-        // Clear input immediately
-        this.elements.input.value = '';
-        
-        // Add user message to display
-        const userMsg = {
-            role: 'user',
-            content: text,
-            created_at: new Date().toISOString()
-        };
-        this.supportMessages.push(userMsg);
-        this.appendSupportMessage(userMsg);
-        this.scrollToBottom();
-        
-        // Show typing indicator
-        this.showTypingIndicator();
-        
-        try {
-            const response = await fetch('/api/support/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: text,
-                    session_id: this.supportSessionId
-                })
-            });
-            
-            const data = await response.json();
-            
-            this.hideTypingIndicator();
-            
-            if (data.success) {
-                // Save session ID for conversation continuity
-                this.supportSessionId = data.session_id;
-                
-                // Add AI response
-                const aiMsg = {
-                    role: 'assistant',
-                    content: data.answer,
-                    confidence: data.confidence,
-                    sources: data.sources,
-                    needs_human_review: data.needs_human_review,
-                    created_at: new Date().toISOString()
-                };
-                this.supportMessages.push(aiMsg);
-                this.appendSupportMessage(aiMsg);
-            } else {
-                // Show error message
-                this.appendSupportMessage({
-                    role: 'system',
-                    content: data.error || 'Вибачте, сталася помилка. Спробуйте ще раз.',
-                    created_at: new Date().toISOString()
-                });
-            }
-            
-            this.scrollToBottom();
-            
-        } catch (err) {
-            this.hideTypingIndicator();
-            console.error('Support chat error:', err);
-            this.appendSupportMessage({
-                role: 'system',
-                content: 'Не вдалося підключитися до AI підтримки. Спробуйте пізніше.',
-                created_at: new Date().toISOString()
-            });
-            this.scrollToBottom();
-        }
-    }
-    
-    renderSupportMessages() {
-        this.elements.messages.innerHTML = '';
-        
-        if (this.supportMessages.length === 0) {
-            // Show welcome message for support
-            this.elements.messages.innerHTML = `
-                <div class="chat-status support-welcome">
-                    <div class="chat-status-icon">🤖</div>
-                    <div class="chat-status-text">
-                        <strong>AI Підтримка</strong><br>
-                        Запитуй що завгодно про платформу MIMIC!<br><br>
-                        <small>Спробуй такі питання:</small>
-                        <ul class="support-suggestions">
-                            <li onclick="mimicChat.askSuggestion('Як підключити мій Binance акаунт?')">Як підключити мій Binance акаунт?</li>
-                            <li onclick="mimicChat.askSuggestion('Що таке DCA?')">Що таке DCA?</li>
-                            <li onclick="mimicChat.askSuggestion('Як працює реферальна система?')">Як працює реферальна система?</li>
-                        </ul>
-                    </div>
-                </div>
-            `;
-            return;
-        }
-        
-        this.supportMessages.forEach(msg => this.appendSupportMessage(msg));
-    }
-    
-    appendSupportMessage(msg) {
-        const isUser = msg.role === 'user';
-        const isSystem = msg.role === 'system';
-        const isAssistant = msg.role === 'assistant';
-        
-        let confidenceHtml = '';
-        if (isAssistant && msg.confidence !== undefined) {
-            const confPercent = Math.round(msg.confidence * 100);
-            let confClass = 'high';
-            if (msg.confidence < 0.6) confClass = 'low';
-            else if (msg.confidence < 0.8) confClass = 'medium';
-            
-            confidenceHtml = `
-                <div class="support-confidence ${confClass}">
-                    <span class="confidence-bar" style="width: ${confPercent}%"></span>
-                    <span class="confidence-text">${confPercent}% confidence</span>
-                </div>
-            `;
-            
-            if (msg.needs_human_review) {
-                confidenceHtml += `
-                    <div class="support-review-note">
-                        <i class="fas fa-user-clock"></i> 
-                        Позначено для перевірки людиною
-                    </div>
-                `;
-            }
-        }
-        
-        const msgHTML = `
-            <div class="chat-message support-message ${isUser ? 'own' : ''} ${isSystem ? 'system' : ''}">
-                <div class="chat-avatar">
-                    ${isUser ? '<span>👤</span>' : isSystem ? '<span>⚠️</span>' : '<span>🤖</span>'}
-                </div>
-                <div class="chat-message-content">
-                    <div class="chat-message-header">
-                        <span class="chat-username">${isUser ? 'Ти' : isSystem ? 'Система' : 'AI Підтримка'}</span>
-                        <span class="chat-timestamp">${this.formatTime(msg.created_at)}</span>
-                    </div>
-                    <div class="chat-bubble">${this.formatSupportContent(msg.content)}</div>
-                    ${confidenceHtml}
-                </div>
-            </div>
-        `;
-        
-        this.elements.messages.insertAdjacentHTML('beforeend', msgHTML);
-    }
-    
-    askSuggestion(question) {
-        this.elements.input.value = question;
-        this.sendSupportMessage();
-    }
-    
-    showTypingIndicator() {
-        this.isTyping = true;
-        const indicator = document.createElement('div');
-        indicator.className = 'chat-message support-message typing-indicator';
-        indicator.id = 'typingIndicator';
-        indicator.innerHTML = `
-            <div class="chat-avatar"><span>🤖</span></div>
-            <div class="chat-message-content">
-                <div class="chat-bubble typing">
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                    <span class="typing-dot"></span>
-                </div>
-            </div>
-        `;
-        this.elements.messages.appendChild(indicator);
-        this.scrollToBottom();
-    }
-    
-    hideTypingIndicator() {
-        this.isTyping = false;
-        const indicator = document.getElementById('typingIndicator');
-        if (indicator) indicator.remove();
-    }
-    
-    formatTime(isoString) {
-        if (!isoString) return '';
-        const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    formatSupportContent(content) {
-        // Escape HTML first
-        let formatted = this.escapeHtml(content);
-        
-        // Convert markdown-like formatting
-        // Bold: **text** -> <strong>text</strong>
-        formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        
-        // Code: `code` -> <code>code</code>
-        formatted = formatted.replace(/`(.+?)`/g, '<code>$1</code>');
-        
-        // Links: [text](url) -> <a href="url">text</a>
-        formatted = formatted.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
-        
-        // Line breaks
-        formatted = formatted.replace(/\n/g, '<br>');
-        
-        return formatted;
-    }
-    
     renderMessages() {
         // Clear current messages
         this.elements.messages.innerHTML = '';
@@ -793,6 +443,21 @@ class MimicChat {
         this.elements.input.disabled = true;
         this.elements.sendBtn.disabled = true;
         this.elements.input.placeholder = 'Чат вимкнено';
+    }
+
+    showLoginRequired() {
+        this.elements.status.innerHTML = `
+            <div class="chat-status-icon">🔒</div>
+            <div class="chat-status-text">
+                <strong>Потрібен вхід</strong><br>
+                Увійдіть, щоб користуватись чатом.
+            </div>
+            <a href="/login" class="chat-status-btn">Увійти</a>
+        `;
+        this.elements.status.style.display = 'flex';
+        this.elements.messages.innerHTML = '';
+        this.elements.messages.appendChild(this.elements.status);
+        this.disableInput();
     }
     
     showSubscriptionRequired() {
@@ -962,7 +627,6 @@ class MimicChat {
 // Initialize chat when script loads
 let mimicChat;
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize chat widget for all users (AI Support available to everyone)
-    // Live Chat requires authentication, but AI Support is public
+    // Initialize chat widget for all users
     mimicChat = new MimicChat();
 });

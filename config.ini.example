@@ -127,14 +127,3 @@ webhook_secret = ${PLISIO_WEBHOOK_SECRET}
 # Enable/disable payment functionality
 enabled = True
 
-[SupportBot]
-# OpenAI API key for RAG support bot
-# Sign up at: https://platform.openai.com
-openai_api_key = ${OPENAI_API_KEY}
-# OpenAI model settings
-embedding_model = text-embedding-3-small
-chat_model = gpt-4o-mini
-# RAG settings
-confidence_threshold = 0.7
-chunk_size = 500
-chunk_overlap = 50

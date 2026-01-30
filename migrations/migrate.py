@@ -88,9 +88,7 @@ def apply_schema_updates(connection, db_type: str) -> int:
     inspector = inspect(db.engine)
     logger.info("📋 Ensuring columns exist on core tables...")
     user_columns = [
-        # Google OAuth / WebAuthn columns (CRITICAL - must come first)
-        ("google_sub", "VARCHAR(255)", "VARCHAR(255)", None, None),
-        ("google_email_verified", "BOOLEAN", "BOOLEAN", "0", "FALSE"),
+        # Auth / WebAuthn columns (CRITICAL - must come first)
         ("auth_provider", "VARCHAR(20)", "VARCHAR(20)", "'local'", "'local'"),
         ("webauthn_enabled", "BOOLEAN", "BOOLEAN", "0", "FALSE"),
         # Other columns
@@ -492,14 +490,6 @@ def apply_core_indexes(connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_api_keys_active ON api_keys(is_active)",
         "CREATE INDEX IF NOT EXISTS idx_api_keys_user_active ON api_keys(user_id, is_active)",
         "CREATE INDEX IF NOT EXISTS idx_api_keys_expires ON api_keys(expires_at)",
-        "CREATE INDEX IF NOT EXISTS idx_document_chunks_source ON document_chunks(source_file)",
-        "CREATE INDEX IF NOT EXISTS idx_support_conv_session ON support_conversations(session_id)",
-        "CREATE INDEX IF NOT EXISTS idx_support_conv_user ON support_conversations(user_id)",
-        "CREATE INDEX IF NOT EXISTS idx_support_conv_resolved ON support_conversations(is_resolved)",
-        "CREATE INDEX IF NOT EXISTS idx_support_msg_conv ON support_messages(conversation_id, created_at)",
-        "CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status, created_at)",
-        "CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_id)",
-        "CREATE INDEX IF NOT EXISTS idx_support_tickets_priority ON support_tickets(priority)",
         "CREATE INDEX IF NOT EXISTS idx_tournaments_status ON tournaments(status)",
         "CREATE INDEX IF NOT EXISTS idx_tournaments_start ON tournaments(start_date)",
         "CREATE INDEX IF NOT EXISTS idx_tournaments_end ON tournaments(end_date)",

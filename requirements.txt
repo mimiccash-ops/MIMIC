@@ -67,15 +67,6 @@ pywebpush>=1.14.0
 # Twitter/X API for social sharing
 tweepy>=4.14.0
 
-# RAG Support Bot (LangChain + OpenAI + pgvector)
-# Requires OPENAI_API_KEY env var for runtime access
-langchain>=0.3.0
-langchain-openai>=0.2.0
-langchain-postgres>=0.0.6
-openai>=1.0.0
-pgvector>=0.2.0
-tiktoken>=0.5.0
-
 # GeoIP for compliance (geo-blocking)
 geoip2>=4.8.0
 

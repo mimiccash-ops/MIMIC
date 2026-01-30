@@ -18,10 +18,9 @@ MIMIC receives TradingView webhook signals and mirrors trades across connected u
 - 📱 **Telegram Notifications** - Real-time alerts and bot commands
 - 📈 **Real-time Dashboard** - Socket.IO live updates
 - 🛡️ **Risk Controls** - TP/SL, leverage limits, position caps
-- 🧠 **Smart Features** - Trailing SL, DCA, AI sentiment filter
+- 🧠 **Smart Features** - Trailing SL, DCA, risk guardrails
 - 🏆 **Gamification** - XP, levels, achievements, tournaments
 - 💳 **Crypto Payments** - Plisio integration for subscriptions
-- 🤖 **AI Support Bot** - RAG-powered chat support (OpenAI)
 - 🌍 **Multi-Exchange** - 30+ exchanges via CCXT
 - 🐳 **Docker Ready** - Full Docker Compose stack with monitoring
 
@@ -286,7 +285,7 @@ MIT License - see `LICENSE`
 
 ## 📞 Support
 
-1. **AI Chat:** Click the chat icon in the dashboard
+1. **Live Chat:** Click the chat icon in the dashboard
 2. **Documentation:** Read [DEV_MANUAL.md](DEV_MANUAL.md)
 3. **FAQ:** Check [FAQ.md](FAQ.md)
 4. **Logs:** Review `logs/` directory

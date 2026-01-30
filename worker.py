@@ -296,19 +296,6 @@ async def startup(ctx: dict):
         await engine.start_trailing_sl_monitor()
         logger.info("🎯 Trailing stop-loss monitor started")
         
-        # Initialize AI Sentiment Manager
-        try:
-            from sentiment import SentimentManager, set_sentiment_manager
-            sentiment_manager = SentimentManager(redis_client)
-            set_sentiment_manager(sentiment_manager)
-            engine.set_sentiment_manager(sentiment_manager)
-            
-            # Fetch initial sentiment on startup
-            initial_sentiment = await sentiment_manager.update_sentiment()
-            logger.info(f"🧠 AI Sentiment Filter initialized: Fear & Greed Index = {initial_sentiment.get('value')}")
-        except Exception as sentiment_e:
-            logger.warning(f"⚠️ AI Sentiment Filter not available: {sentiment_e}")
-            
     except Exception as e:
         logger.warning(f"⚠️ Smart Features not available: {e}")
     
@@ -412,9 +399,6 @@ from tasks import (
     # Risk Guardrails tasks
     reset_daily_balances_task,
     check_risk_guardrails_status_task,
-    # AI Sentiment Filter tasks
-    update_market_sentiment_task,
-    get_sentiment_status_task,
     # Gamification tasks
     calculate_user_xp_task,
     check_achievements_task,
@@ -441,9 +425,6 @@ class WorkerSettings:
         # Risk Guardrails tasks
         reset_daily_balances_task,
         check_risk_guardrails_status_task,
-        # AI Sentiment Filter tasks
-        update_market_sentiment_task,
-        get_sentiment_status_task,
         # Gamification tasks
         calculate_user_xp_task,
         check_achievements_task,
@@ -458,8 +439,6 @@ class WorkerSettings:
         cron(execute_dca_check_task, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
         # Reset daily balances at 00:00 UTC (midnight) - Risk Guardrails
         cron(reset_daily_balances_task, hour=0, minute=0),
-        # Update market sentiment every hour (AI Sentiment Filter)
-        cron(update_market_sentiment_task, minute=0),
         # Calculate user XP daily at 01:00 UTC (Gamification)
         cron(calculate_user_xp_task, hour=1, minute=0),
     ]

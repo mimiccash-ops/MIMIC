@@ -570,14 +570,6 @@ class TradingEngine:
         
         # Risk Guardrails Manager (Daily Drawdown/Profit Protection)
         self.risk_guardrails: RiskGuardrailsManager = None
-        
-        # AI Sentiment Manager (Fear & Greed Index based risk adjustment)
-        self.sentiment_manager = None
-    
-    def set_sentiment_manager(self, sentiment_manager):
-        """Set the AI Sentiment Manager for risk adjustment based on Fear & Greed Index"""
-        self.sentiment_manager = sentiment_manager
-        logger.info("🧠 AI Sentiment Manager initialized")
 
     def _fetch_balance_sync(self, exchange_name: str, api_key: str, api_secret: str, passphrase: str = None) -> dict:
         """Fetch balance using synchronous CCXT to avoid asyncio loop conflicts."""
@@ -2872,29 +2864,6 @@ class TradingEngine:
                         margin = margin * (allocation_percent / 100.0)
                         logger.info(f"   📊 Strategy Allocation: {allocation_percent}% applied (margin now: ${margin:.2f})")
                     
-                    # === AI SENTIMENT FILTER ===
-                    # Adjust risk based on Fear & Greed Index:
-                    # - Extreme Greed (>80) + LONG = reduce risk by 20% (prevent buying tops)
-                    # - Extreme Fear (<20) + SHORT = reduce risk by 20% (prevent selling bottoms)
-                    ai_adjustment_reason = None
-                    if self.sentiment_manager and client_data.get('ai_sentiment_enabled', True):
-                        try:
-                            trade_side = 'LONG' if action == 'long' else 'SHORT'
-                            # Calculate the original margin as the base
-                            original_margin = margin
-                            adjusted_risk, ai_adjustment_reason = await self.sentiment_manager.calculate_risk_adjustment(
-                                trade_side, 100.0  # Use 100 as base to get percentage factor
-                            )
-                            
-                            if adjusted_risk != 100.0 and ai_adjustment_reason:
-                                # Apply the sentiment-based reduction
-                                sentiment_factor = adjusted_risk / 100.0  # e.g., 80% = 0.8
-                                margin = margin * sentiment_factor
-                                logger.info(f"   🧠 AI SENTIMENT FILTER: {ai_adjustment_reason}")
-                                logger.info(f"   🧠 Margin adjusted: ${original_margin:.2f} → ${margin:.2f} ({sentiment_factor*100:.0f}%)")
-                        except Exception as sentiment_err:
-                            logger.warning(f"   ⚠️ AI Sentiment check failed: {sentiment_err}")
-                    
                     if leverage < 1:
                         leverage = 1
                     
@@ -3696,15 +3665,6 @@ class TradingEngine:
                     margin = margin * (allocation_percent / 100.0)
                     logger.info(f"   📊 Strategy Allocation: {allocation_percent}% applied (margin now: ${margin:.2f})")
                 
-                # === AI SENTIMENT FILTER (SYNC) ===
-                # NOTE: Sentiment adjustment is skipped in sync context to avoid event loop conflicts
-                # Redis clients are bound to the async worker loop, not the sync executor thread
-                # This is a non-critical feature - trades proceed normally without sentiment adjustment in sync context
-                if self.sentiment_manager and client_data.get('ai_sentiment_enabled', True):
-                    # Skip sentiment adjustment in sync Binance handler to avoid event loop conflicts
-                    # Sentiment adjustment works fine in async CCXT handlers
-                    logger.debug("   ℹ️ AI Sentiment adjustment skipped in sync context (event loop conflict prevention)")
-
                 # Ensure leverage is valid (must be >= 1)
                 if leverage < 1:
                     leverage = 1

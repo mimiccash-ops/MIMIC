@@ -345,159 +345,8 @@
             </div>
         </div>
 
-        <!-- Admin Quick Links -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <!-- Leaderboard -->
-            <a href="{{ url_for('leaderboard') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
-               style="border-color: rgba(168, 85, 247, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: var(--radius-md);">
-                        <i class="fas fa-trophy" style="color: #a855f7;"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold text-sm" data-i18n="nav.leaderboard">Leaderboard</div>
-                        <div class="text-xs text-muted" data-i18n="admin.topTraders">Top traders</div>
-                    </div>
-                </div>
-            </a>
-            
-            <!-- Governance -->
-            <a href="{{ url_for('governance_page') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
-               style="border-color: rgba(59, 130, 246, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md);">
-                        <i class="fas fa-vote-yea" style="color: #3b82f6;"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold text-sm" data-i18n="nav.governance">Governance</div>
-                        <div class="text-xs text-muted" data-i18n="admin.proposalsVotes">Proposals & votes</div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Payment Management Menu -->
-        <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-credit-card text-purple"></i>
-                    <span>Payment Management</span>
-                </h2>
-                <span class="text-xs text-muted">Subscriptions, wallets, payouts</span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <button type="button" onclick="openSectionAndScroll('settings', 'admin-subscription-management')" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(234, 179, 8, 0.2);">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-md);">
-                            <i class="fas fa-crown" style="color: #eab308;"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm">Subscription Settings</div>
-                            <div class="text-xs text-muted">Plans, access, revenue</div>
-                        </div>
-                    </div>
-                </button>
-                <button type="button" onclick="openSectionAndScroll('settings', 'wallet-addresses-grid', openWalletSettingsModal)" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(139, 92, 246, 0.2);">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-md);">
-                            <i class="fas fa-wallet" style="color: #8b5cf6;"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm">Wallet Settings</div>
-                            <div class="text-xs text-muted">Payment addresses</div>
-                        </div>
-                    </div>
-                </button>
-                <button type="button" onclick="openSectionAndScroll('settings', 'pending-payments-list')" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(251, 191, 36, 0.2);">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-md);">
-                            <i class="fas fa-clock" style="color: #fbbf24;"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm">Pending Payments</div>
-                            <div class="text-xs text-muted">Verify user payments</div>
-                        </div>
-                    </div>
-                </button>
-                <a href="{{ url_for('admin_payouts') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
-                   style="border-color: rgba(34, 197, 94, 0.2);">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: var(--radius-md);">
-                            <i class="fas fa-hand-holding-usd" style="color: #22c55e;"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-sm">Payouts</div>
-                            <div class="text-xs text-muted">Referral withdrawals</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <!-- Platform Stats Row -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="card p-4" style="border-color: rgba(251, 146, 60, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(251, 146, 60, 0.1); border-radius: var(--radius-sm);">
-                        <i class="fas fa-user-plus text-sm" style="color: #fb923c;"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs text-muted" data-i18n="admin.totalReferrals">Total Referrals</div>
-                        <div class="font-mono font-bold text-lg" id="admin-total-referrals">--</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card p-4" style="border-color: rgba(139, 92, 246, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(139, 92, 246, 0.1); border-radius: var(--radius-sm);">
-                        <i class="fas fa-crown text-sm" style="color: #8b5cf6;"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs text-muted" data-i18n="admin.premiumUsers">Premium Users</div>
-                        <div class="font-mono font-bold text-lg" id="admin-premium-users">--</div>
-                    </div>
-                </div>
-            </div>
-            <div class="card p-4" style="border-color: rgba(6, 182, 212, 0.2);">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center" style="width: 36px; height: 36px; background: rgba(6, 182, 212, 0.1); border-radius: var(--radius-sm);">
-                        <i class="fas fa-dollar-sign text-sm" style="color: #06b6d4;"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs text-muted" data-i18n="admin.pendingPayouts">Pending Payouts</div>
-                        <div class="font-mono font-bold text-lg" id="admin-pending-payouts">$--</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Logs -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-stream text-cyan"></i>
-                    <span data-i18n="admin.liveLogs">Live Logs</span>
-                    <span class="live-dot"></span>
-                </h2>
-                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
-                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
-                    <span class="text-cyan">[SYSTEM]</span>
-                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
     </div>
-                    </div>
-                </div>
-            </div>
-            
+
     <!-- ==================== TRADING (Stats + Positions + History) ==================== -->
     <div class="section-content" data-section="trading">
         <!-- Stats -->
@@ -535,6 +384,26 @@
             
             <div style="height: 200px; position: relative;">
                 <canvas id="masterChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-stream text-cyan"></i>
+                    <span data-i18n="admin.liveLogs">Live Logs</span>
+                    <span class="live-dot"></span>
+                </h2>
+                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
+                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
+                    <span class="text-cyan">[SYSTEM]</span>
+                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
+                </div>
             </div>
         </div>
 
@@ -1017,35 +886,6 @@
                         <i class="fas fa-spinner fa-spin"></i> Завантаження...
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- ==================== SERVICE CONFIGURATION ==================== -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-plug text-cyan"></i>
-                    <span>Service Configuration</span>
-                </h2>
-                <button class="cyber-btn cyber-btn-outline cyber-btn-sm" id="service-refresh-btn">
-                    <i class="fas fa-sync" id="service-refresh-icon"></i>
-                    <span>Refresh</span>
-                </button>
-            </div>
-            
-            <!-- Service Status Overview -->
-            <div id="services-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div class="flex items-center justify-center py-6">
-                    <i class="fas fa-spinner fa-spin text-2xl text-muted"></i>
-                </div>
-            </div>
-            
-            <!-- Configure Button -->
-            <div class="text-center pt-4 border-t border-[var(--color-border)]">
-                <button class="cyber-btn cyber-btn-gradient-blue" id="service-configure-btn">
-                    <i class="fas fa-cogs"></i>
-                    <span>Configure All Services</span>
-                </button>
             </div>
         </div>
         
@@ -1560,46 +1400,6 @@
     </div>
 </div>
 
-<!-- Service Configuration Modal -->
-<div id="serviceConfigModal" class="modal-overlay" onclick="if(event.target===this && typeof window.closeServiceConfigModal === 'function') window.closeServiceConfigModal()">
-    <div id="serviceConfigModalContent" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; z-index: 100000;">
-        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
-            <div class="modal-title">
-                <i class="fas fa-cogs text-cyan"></i>
-                <span>Service Configuration</span>
-            </div>
-            <button onclick="if(typeof window.closeServiceConfigModal === 'function') window.closeServiceConfigModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" id="serviceConfigContent">
-            <div class="flex items-center justify-center py-12">
-                <i class="fas fa-spinner fa-spin text-3xl text-muted"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Single Service Edit Modal -->
-<div id="serviceEditModal" class="modal-overlay" onclick="if(event.target===this && typeof window.closeServiceEditModal === 'function') window.closeServiceEditModal()">
-    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 550px; max-height: 85vh; overflow-y: auto;">
-        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
-            <div class="modal-title">
-                <i id="service-edit-icon" class="fas fa-cog text-cyan"></i>
-                <span id="service-edit-title">Configure Service</span>
-            </div>
-            <button onclick="if(typeof window.closeServiceEditModal === 'function') window.closeServiceEditModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" id="serviceEditContent">
-            <div class="flex items-center justify-center py-12">
-                <i class="fas fa-spinner fa-spin text-3xl text-muted"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Wallet Settings Modal -->
 <div id="walletSettingsModal" class="modal-overlay" onclick="if(event.target===this)closeWalletSettingsModal()">
     <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto;">
@@ -1862,15 +1662,24 @@
         });
         socket.on('master_data', (data) => {
             const balanceEl = document.getElementById('master-balance');
+            let totalBalance = null;
             if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
                 balanceEl.innerHTML = '$' + data.balance;
                 balanceEl.classList.remove('text-muted');
+                const parsed = parseFloat(String(data.balance).replace(/,/g, ''));
+                if (Number.isFinite(parsed)) {
+                    totalBalance = parsed;
+                }
             } else if (data.exchange_balances && data.exchange_balances.length > 0) {
                 // Calculate total from exchange balances
                 const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
                 balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
+                totalBalance = total;
             } else {
                 balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
+            }
+            if (totalBalance !== null) {
+                updateSafetyPoolDisplay(totalBalance);
             }
             if (data.positions) renderMasterPositions(data.positions);
             if (data.exchange_balances) renderExchangeBalances(data.exchange_balances);
@@ -1908,15 +1717,21 @@
             }
 
             const balanceEl = document.getElementById('master-balance');
+            let totalBalance = null;
             if (balanceEl) {
                 if (data.total_balance > 0) {
                     balanceEl.innerHTML = '$' + data.total_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     balanceEl.classList.remove('text-muted');
+                    totalBalance = data.total_balance;
                 } else if (data.exchanges && data.exchanges.length > 0) {
                     balanceEl.innerHTML = '<span class="text-muted">0.00</span>';
+                    totalBalance = 0;
                 } else {
                     balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
                 }
+            }
+            if (totalBalance !== null) {
+                updateSafetyPoolDisplay(totalBalance);
             }
             renderExchangeBalances(data.exchanges || []);
         } catch (err) {
@@ -2178,18 +1993,40 @@
     document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); loadAdminStrategies(); loadChatUsers(); refreshChatBans(); loadAdminSafetyPool(); loadAdminPlatformStats(); });
     
     // Safety Pool / Insurance Fund
+    function formatUsd(value) {
+        return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function updateSafetyPoolDisplay(balanceValue) {
+        if (!Number.isFinite(balanceValue)) return;
+        const formatted = formatUsd(balanceValue);
+        const poolEl = document.getElementById('admin-safety-pool');
+        if (poolEl) {
+            poolEl.textContent = formatted;
+        }
+        const fundEl = document.getElementById('admin-insurance-fund');
+        if (fundEl) {
+            fundEl.textContent = formatted;
+        }
+    }
+
+    function parseBalanceValue(rawText) {
+        if (!rawText) return null;
+        const parsed = parseFloat(String(rawText).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function syncSafetyPoolFromMasterBalance() {
+        const balanceEl = document.getElementById('master-balance');
+        if (!balanceEl) return;
+        const parsed = parseBalanceValue(balanceEl.textContent);
+        if (parsed !== null) {
+            updateSafetyPoolDisplay(parsed);
+        }
+    }
+
     function loadAdminSafetyPool() {
-        fetch('/api/insurance-fund')
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.insurance_fund) {
-                    const poolEl = document.getElementById('admin-safety-pool');
-                    if (poolEl) {
-                        poolEl.textContent = data.insurance_fund.formatted_balance;
-                    }
-                }
-            })
-            .catch(err => console.log('Admin Safety Pool fetch error:', err));
+        syncSafetyPoolFromMasterBalance();
     }
     // Refresh Safety Pool every 5 minutes
     if (window.createVisibilityInterval) {
@@ -3408,1023 +3245,18 @@
         }
     }
     
-    // ==================== SERVICE CONFIGURATION ====================
-    
-    let servicesData = null;
-    
-    async function refreshServiceStatus() {
-        console.log('refreshServiceStatus called');
-        const icon = document.getElementById('service-refresh-icon');
-        if (icon) icon.classList.add('fa-spin');
-        
-        try {
-            console.log('Fetching service status...');
-            const response = await fetch('/api/admin/system-settings/service-status');
-            
-            // Check if response is OK
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    errorMessage = errorJson.error || errorJson.message || errorMessage;
-                } catch (e) {
-                    if (errorText) {
-                        errorMessage = errorText.substring(0, 100);
-                    }
-                }
-                
-                console.error('Failed to load services:', errorMessage);
-                showToast(`Помилка: ${errorMessage}`, 'error');
-                if (icon) icon.classList.remove('fa-spin');
-                return;
-            }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                console.log('Service status loaded successfully, rendering grid');
-                renderServicesGrid(result.services);
-            } else {
-                console.error('Failed to load services:', result);
-                showToast(result.error || 'Не вдалося завантажити статус сервісів', 'error');
-            }
-        } catch (err) {
-            console.error('Error loading services:', err);
-            showToast(`Помилка мережі: ${err.message || 'Не вдалося підключитися'}`, 'error');
-        } finally {
-            if (icon) icon.classList.remove('fa-spin');
-        }
-    }
-    
-    // Make refreshServiceStatus globally available immediately
-    window.refreshServiceStatus = refreshServiceStatus;
-    
-    function renderServicesGrid(services) {
-        const container = document.getElementById('services-grid');
-        if (!services || services.length === 0) {
-            container.innerHTML = `
-                <div class="col-span-full text-center py-6 text-muted">
-                    <i class="fas fa-plug text-3xl opacity-30 mb-2"></i>
-                    <p class="text-sm" data-i18n="admin.noServicesConfigured">Сервіси не налаштовані</p>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = services.map(service => {
-            const statusColors = {
-                active: 'var(--neon-green)',
-                configured: 'var(--neon-yellow)',
-                unconfigured: 'var(--text-muted)'
-            };
-            const statusColor = statusColors[service.status] || statusColors.unconfigured;
-            const statusLabel = service.status === 'active' ? 'Активний' : 
-                              service.status === 'configured' ? 'Готовий' : 'Не налаштовано';
-            
-            // Escape category for use in data attribute
-            const categoryEscaped = service.category.replace(/'/g, "\\'");
-            
-            return `
-                <div class="service-card p-3 bg-[var(--color-surface-2)] border rounded-lg cursor-pointer transition-all duration-200 hover:border-[var(--neon-cyan)] hover:scale-[1.02]"
-                     style="border-color: ${service.is_enabled ? service.color + '40' : 'var(--color-border)'};"
-                     data-category="${categoryEscaped}">
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center justify-center" 
-                             style="width: 36px; height: 36px; background: ${service.color}15; border: 1px solid ${service.color}30; border-radius: var(--radius-sm);">
-                            <i class="${service.icon}" style="color: ${service.color};"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-sm text-bright truncate">${service.name}</div>
-                            <div class="flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full" style="background: ${statusColor};"></span>
-                                <span class="text-xxs" style="color: ${statusColor};">${statusLabel}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        // Add event delegation for service cards
-        container.querySelectorAll('.service-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const category = this.getAttribute('data-category');
-                if (category && typeof openServiceEdit === 'function') {
-                    openServiceEdit(category);
-                } else {
-                    console.error('openServiceEdit function not found or category missing');
-                }
-            });
-        });
-    }
-    
-    function openServiceConfigModal() {
-        console.log('openServiceConfigModal called');
-        const modal = document.getElementById('serviceConfigModal');
-        if (!modal) {
-            console.error('serviceConfigModal element not found');
-            alert('Помилка: модальне вікно не знайдено');
-            return;
-        }
-        
-        console.log('Opening serviceConfigModal');
-        
-        // Move modal to body if it's not already there (to avoid parent container issues)
-        if (modal.parentElement !== document.body) {
-            document.body.appendChild(modal);
-        }
-        
-        // Force all styles with !important via inline style
-        // Use explicit width/height instead of inset to avoid dimension issues
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-        
-        modal.setAttribute('style', `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: ${viewportWidth}px !important;
-            height: ${viewportHeight}px !important;
-            min-width: 100vw !important;
-            min-height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            z-index: 99999 !important;
-            background: rgba(0, 0, 0, 0.8) !important;
-            backdrop-filter: blur(8px) !important;
-            -webkit-backdrop-filter: blur(8px) !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 20px !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-            overflow: auto !important;
-        `);
-        
-        // Also add show class
-        modal.classList.add('show');
-        
-        // Verify it's visible
-        const computedStyle = window.getComputedStyle(modal);
-        console.log('Modal styles after opening:');
-        console.log('  display:', computedStyle.display);
-        console.log('  visibility:', computedStyle.visibility);
-        console.log('  opacity:', computedStyle.opacity);
-        console.log('  z-index:', computedStyle.zIndex);
-        console.log('  position:', computedStyle.position);
-        console.log('  width:', computedStyle.width);
-        console.log('  height:', computedStyle.height);
-        
-        // Check modal dimensions and position
-        const rect = modal.getBoundingClientRect();
-        console.log('Modal bounding rect:', {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            visible: rect.width > 0 && rect.height > 0
-        });
-        
-        // Check if modal is actually visible
-        if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden' || computedStyle.opacity === '0') {
-            console.error('Modal is still not visible!');
-            alert('Помилка: модальне вікно не відображається. Перевірте консоль.');
-            return;
-        }
-        
-        // Check if modal has dimensions - if not, force them immediately
-        if (rect.width === 0 || rect.height === 0) {
-            console.error('Modal has no dimensions! Forcing dimensions...');
-            const vw = window.innerWidth || document.documentElement.clientWidth;
-            const vh = window.innerHeight || document.documentElement.clientHeight;
-            
-            // Force explicit pixel dimensions
-            modal.style.width = vw + 'px';
-            modal.style.height = vh + 'px';
-            modal.style.minWidth = vw + 'px';
-            modal.style.minHeight = vh + 'px';
-            modal.style.maxWidth = vw + 'px';
-            modal.style.maxHeight = vh + 'px';
-            
-            // Also ensure parent doesn't constrain it
-            if (modal.parentElement && modal.parentElement !== document.body) {
-                const parentStyle = window.getComputedStyle(modal.parentElement);
-                console.warn('Modal parent:', modal.parentElement.tagName, modal.parentElement.className);
-                console.warn('Parent overflow:', parentStyle.overflow);
-                console.warn('Parent position:', parentStyle.position);
-            }
-            
-            // Check again after a brief delay
-            requestAnimationFrame(() => {
-                const newRect = modal.getBoundingClientRect();
-                if (newRect.width === 0 || newRect.height === 0) {
-                    console.error('Modal still has no dimensions after fix attempt');
-                    console.error('Parent element:', modal.parentElement);
-                } else {
-                    console.log('Modal dimensions fixed:', newRect);
-                }
-            });
-        }
-        
-        // Check inner content
-        const modalContent = modal.querySelector('div');
-        if (modalContent) {
-            const contentStyle = window.getComputedStyle(modalContent);
-            console.log('Modal content styles:');
-            console.log('  display:', contentStyle.display);
-            console.log('  visibility:', contentStyle.visibility);
-            console.log('  opacity:', contentStyle.opacity);
-            console.log('  width:', contentStyle.width);
-            console.log('  height:', contentStyle.height);
-        }
-        
-        // Prevent body scroll
-        document.body.style.overflow = 'hidden';
-        
-        // Force focus to modal for accessibility
-        modal.focus();
-        
-        // Load content
-        loadAllServicesConfig();
-    }
-    
-    // Make openServiceConfigModal globally available immediately
-    window.openServiceConfigModal = openServiceConfigModal;
-    
-    function closeServiceConfigModal() {
-        const modal = document.getElementById('serviceConfigModal');
-        if (modal) {
-            modal.classList.remove('show');
-            modal.setAttribute('style', 'display: none !important; visibility: hidden !important; opacity: 0 !important;');
-            document.body.style.overflow = '';
-        }
-    }
-    
-    // Make closeServiceConfigModal globally available
-    window.closeServiceConfigModal = closeServiceConfigModal;
-    
-    async function loadAllServicesConfig(retryCount = 0) {
-        const content = document.getElementById('serviceConfigContent');
-        if (!content) {
-            console.error('serviceConfigContent element not found');
-            return;
-        }
-        
-        // Show loading only on first attempt
-        if (retryCount === 0) {
-        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
-        }
-        
-        try {
-            const response = await fetch('/api/admin/system-settings');
-            
-            // Handle rate limiting (429) with retry
-            if (response.status === 429 && retryCount < 3) {
-                const retryAfter = response.headers.get('Retry-After') || (retryCount + 1) * 2;
-                content.innerHTML = `
-                    <div class="text-center py-6">
-                        <i class="fas fa-clock text-yellow text-3xl mb-3"></i>
-                        <div class="text-yellow font-semibold mb-2">Забагато запитів</div>
-                        <div class="text-muted text-sm">Очікування ${retryAfter} секунд перед повторною спробою...</div>
-                    </div>
-                `;
-                
-                await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-                return loadAllServicesConfig(retryCount + 1);
-            }
-            
-            // Check if response is OK before parsing JSON
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-                
-                // Try to parse error as JSON if possible
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    errorMessage = errorJson.error || errorJson.message || errorMessage;
-                } catch (e) {
-                    // If not JSON, use the text or status
-                    if (errorText) {
-                        errorMessage = errorText.substring(0, 200); // Limit length
-                    }
-                }
-                
-                content.innerHTML = `
-                    <div class="text-center py-6">
-                        <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
-                        <div class="text-red font-semibold mb-2">Помилка завантаження</div>
-                        <div class="text-muted text-sm">${errorMessage}</div>
-                        <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
-                            <i class="fas fa-redo"></i> Спробувати знову
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-            
-            const result = await response.json();
-            
-            if (!result.success) {
-                content.innerHTML = `
-                    <div class="text-center py-6">
-                        <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
-                        <div class="text-red font-semibold mb-2">Помилка</div>
-                        <div class="text-muted text-sm">${result.error || 'Не вдалося завантажити налаштування'}</div>
-                        <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
-                            <i class="fas fa-redo"></i> Спробувати знову
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-            
-            servicesData = result.categories;
-            renderAllServicesConfig(result.categories);
-        } catch (err) {
-            console.error('Error loading services config:', err);
-            
-            // Retry on network errors
-            if (retryCount < 2 && (err.message.includes('fetch') || err.message.includes('network'))) {
-                content.innerHTML = `
-                    <div class="text-center py-6">
-                        <i class="fas fa-spinner fa-spin text-3xl text-muted mb-3"></i>
-                        <div class="text-muted text-sm">Повторна спроба...</div>
-                    </div>
-                `;
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                return loadAllServicesConfig(retryCount + 1);
-            }
-            
-            content.innerHTML = `
-                <div class="text-center py-6">
-                    <i class="fas fa-exclamation-circle text-red text-3xl mb-3"></i>
-                    <div class="text-red font-semibold mb-2">Помилка мережі</div>
-                    <div class="text-muted text-sm">${err.message || 'Не вдалося підключитися до сервера'}</div>
-                    <button onclick="loadAllServicesConfig()" class="cyber-btn cyber-btn-outline mt-4">
-                        <i class="fas fa-redo"></i> Спробувати знову
-                    </button>
-                </div>
-            `;
-        }
-    }
-    
-    // Make loadAllServicesConfig globally available
-    window.loadAllServicesConfig = loadAllServicesConfig;
-    
-    function renderAllServicesConfig(categories) {
-        const content = document.getElementById('serviceConfigContent');
-        
-        const serviceOrder = ['telegram', 'email', 'payment', 'binance', 'webhook', 'twitter', 'openai', 'webpush', 'compliance', 'proxy', 'panic', 'general'];
-        const sortedCategories = serviceOrder
-            .filter(cat => categories[cat])
-            .map(cat => ({ key: cat, ...categories[cat] }));
-        
-        content.innerHTML = `
-            <div class="space-y-4">
-                ${sortedCategories.map(cat => {
-                    const meta = cat.meta || {};
-                    const settings = cat.settings || [];
-                    const enabledSetting = settings.find(s => s.key === 'enabled');
-                    const isEnabled = enabledSetting && enabledSetting.value && enabledSetting.value.toLowerCase() === 'true';
-                    
-                    // Check if configured
-                    const requiredFields = {
-                        telegram: ['bot_token'],
-                        email: ['smtp_server', 'smtp_username', 'smtp_password'],
-                        payment: ['api_key'],
-                        twitter: ['api_key', 'api_secret'],
-                        openai: ['api_key'],
-                        binance: ['api_key', 'api_secret'],
-                        webhook: ['passphrase'],
-                    };
-                    const required = requiredFields[cat.key] || [];
-                    const isConfigured = required.every(field => {
-                        const setting = settings.find(s => s.key === field);
-                        return setting && setting.has_value;
-                    });
-                    
-                    const statusColor = isEnabled && isConfigured ? 'var(--neon-green)' : 
-                                       isConfigured ? 'var(--neon-yellow)' : 'var(--text-muted)';
-                    const statusText = isEnabled && isConfigured ? 'Активна' : 
-                                      isConfigured ? 'Налаштована (вимкнено)' : 'Не налаштована';
-                    
-                    return `
-                        <div class="p-4 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex items-center justify-center" 
-                                         style="width: 40px; height: 40px; background: ${meta.color || '#666'}15; border: 1px solid ${meta.color || '#666'}30; border-radius: var(--radius-sm);">
-                                        <i class="${meta.icon || 'fas fa-cog'}" style="color: ${meta.color || '#666'};"></i>
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold text-bright">${meta.name || cat.key}</div>
-                                        <div class="text-xs text-muted">${meta.description || ''}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="flex items-center gap-1">
-                                        <span class="w-2 h-2 rounded-full" style="background: ${statusColor};"></span>
-                                        <span class="text-xs" style="color: ${statusColor};">${statusText}</span>
-                                    </div>
-                                    <button class="cyber-btn cyber-btn-sm cyber-btn-outline service-edit-btn" data-category="${cat.key}">
-                                        <i class="fas fa-edit"></i>
-                                        Configure
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            ${meta.docs_url ? `
-                            <div class="text-xs text-muted mt-2">
-                                <a href="${meta.docs_url}" target="_blank" class="text-cyan hover:underline">
-                                    <i class="fas fa-external-link-alt"></i> Documentation
-                                </a>
-                            </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-        
-        // Add event listeners for configure buttons
-        content.querySelectorAll('.service-edit-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const category = this.getAttribute('data-category');
-                console.log('Configure button clicked for category:', category);
-                if (category) {
-                    if (typeof window.openServiceEdit === 'function') {
-                        window.openServiceEdit(category);
-                    } else if (typeof openServiceEdit === 'function') {
-                    openServiceEdit(category);
-                } else {
-                        console.error('openServiceEdit function not found');
-                        alert('Помилка: функція openServiceEdit не знайдена');
-                    }
-                } else {
-                    console.error('Category missing from button');
-                    alert('Помилка: категорія не вказана');
-                }
-            }, false);
-        });
-    }
-    
-    function openServiceEdit(category) {
-        console.log('openServiceEdit called with category:', category);
-        if (!category) {
-            console.error('No category provided to openServiceEdit');
-            return;
-        }
-        currentEditingCategory = category;
-        const modal = document.getElementById('serviceEditModal');
-        if (!modal) {
-            console.error('serviceEditModal element not found');
-            alert('Помилка: модальне вікно редагування не знайдено');
-            return;
-        }
-        
-        console.log('Opening serviceEditModal for category:', category);
-        
-        // Move modal to body if it's not already there (to avoid parent container issues)
-        if (modal.parentElement !== document.body) {
-            document.body.appendChild(modal);
-        }
-        
-        // Force all styles with !important via inline style
-        // Use explicit width/height instead of inset to avoid dimension issues
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-        
-        modal.setAttribute('style', `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: ${viewportWidth}px !important;
-            height: ${viewportHeight}px !important;
-            min-width: 100vw !important;
-            min-height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            z-index: 99999 !important;
-            background: rgba(0, 0, 0, 0.8) !important;
-            backdrop-filter: blur(8px) !important;
-            -webkit-backdrop-filter: blur(8px) !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 20px !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-        `);
-        
-        // Also add show class
-        modal.classList.add('show');
-        
-        // Verify it's visible
-        const computedStyle = window.getComputedStyle(modal);
-        console.log('ServiceEditModal styles after opening:');
-        console.log('  display:', computedStyle.display);
-        console.log('  visibility:', computedStyle.visibility);
-        console.log('  opacity:', computedStyle.opacity);
-        console.log('  z-index:', computedStyle.zIndex);
-        console.log('  position:', computedStyle.position);
-        console.log('  width:', computedStyle.width);
-        console.log('  height:', computedStyle.height);
-        
-        // Check modal dimensions and position
-        const rect = modal.getBoundingClientRect();
-        console.log('ServiceEditModal bounding rect:', {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            visible: rect.width > 0 && rect.height > 0
-        });
-        
-        // Check if modal has dimensions - if not, force them immediately
-        if (rect.width === 0 || rect.height === 0) {
-            console.error('ServiceEditModal has no dimensions! Forcing dimensions...');
-            modal.style.width = viewportWidth + 'px';
-            modal.style.height = viewportHeight + 'px';
-            modal.style.minWidth = viewportWidth + 'px';
-            modal.style.minHeight = viewportHeight + 'px';
-            modal.style.maxWidth = viewportWidth + 'px';
-            modal.style.maxHeight = viewportHeight + 'px';
-        }
-        
-        // Prevent body scroll
-        document.body.style.overflow = 'hidden';
-        
-        // Force focus to modal for accessibility
-        modal.focus();
-        
-        console.log('Modal display set to flex, current display:', window.getComputedStyle(modal).display);
-        console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
-        
-        // Load content
-        loadServiceSettings(category);
-    }
-    
-    // Make openServiceEdit globally available immediately
-    window.openServiceEdit = openServiceEdit;
-    
-    function closeServiceEditModal() {
-        const modal = document.getElementById('serviceEditModal');
-        if (modal) {
-            modal.classList.remove('show');
-            modal.setAttribute('style', 'display: none !important; visibility: hidden !important; opacity: 0 !important;');
-            document.body.style.overflow = '';
-        }
-        currentEditingCategory = null;
-    }
-    
-    // Make closeServiceEditModal globally available
-    window.closeServiceEditModal = closeServiceEditModal;
-    
-    async function loadServiceSettings(category) {
-        const content = document.getElementById('serviceEditContent');
-        const titleEl = document.getElementById('service-edit-title');
-        const iconEl = document.getElementById('service-edit-icon');
-        
-        content.innerHTML = `<div class="flex items-center justify-center py-12"><i class="fas fa-spinner fa-spin text-3xl text-muted"></i></div>`;
-        
-        try {
-            const response = await fetch(`/api/admin/system-settings/${category}`);
-            const result = await response.json();
-            
-            if (!result.success) {
-                content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> ${result.error || 'Failed to load'}</div>`;
-                return;
-            }
-            
-            const meta = result.meta || {};
-            titleEl.textContent = `Configure ${meta.name || category}`;
-            iconEl.className = meta.icon || 'fas fa-cog';
-            iconEl.style.color = meta.color || 'var(--neon-cyan)';
-            
-            renderServiceEditForm(category, result.settings, result.is_enabled, meta);
-        } catch (err) {
-            console.error('Error loading service settings:', err);
-            content.innerHTML = `<div class="text-center py-6 text-red"><i class="fas fa-exclamation-circle"></i> Network error</div>`;
-        }
-    }
-    
-    function renderServiceEditForm(category, settings, isEnabled, meta) {
-        const content = document.getElementById('serviceEditContent');
-        
-        // Group settings: enabled toggle, then other settings
-        const enabledSetting = settings.find(s => s.key === 'enabled');
-        const otherSettings = settings.filter(s => s.key !== 'enabled');
-        
-        content.innerHTML = `
-            <form id="service-edit-form" onsubmit="saveServiceSettings(event, '${category}')" class="space-y-4">
-                <!-- Enable/Disable Toggle -->
-                ${enabledSetting ? `
-                <div class="p-4 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg mb-4">
-                    <label class="flex items-center justify-between cursor-pointer">
-                        <div>
-                            <div class="font-semibold text-bright">Enable ${meta.name || category}</div>
-                            <div class="text-xs text-muted">${enabledSetting.description || 'Toggle this service on/off'}</div>
-                        </div>
-                        <div class="relative">
-                            <input type="checkbox" id="setting-enabled" class="sr-only" ${isEnabled ? 'checked' : ''}>
-                            <div class="toggle-bg w-12 h-6 bg-[var(--color-surface-3)] rounded-full peer-focus:ring-2 ring-[var(--neon-cyan)] transition-all cursor-pointer" onclick="this.previousElementSibling.click();">
-                                <div class="toggle-dot absolute top-1 left-1 w-4 h-4 bg-[var(--text-muted)] rounded-full transition-all ${isEnabled ? 'translate-x-6 bg-[var(--neon-green)]' : ''}"></div>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-                ` : ''}
-                
-                <!-- Settings Fields -->
-                <div class="space-y-3">
-                    ${otherSettings.map(setting => renderSettingField(setting)).join('')}
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
-                    <button type="button" onclick="testService('${category}')" class="cyber-btn cyber-btn-outline flex-1" id="test-service-btn">
-                        <i class="fas fa-plug"></i>
-                        <span>Test Connection</span>
-                    </button>
-                    <button type="submit" class="cyber-btn flex-1" id="save-service-btn">
-                        <i class="fas fa-save"></i>
-                        <span data-i18n="btn.save">Зберегти зміни</span>
-                    </button>
-                </div>
-                
-                <!-- Test Result -->
-                <div id="test-result" class="hidden p-3 rounded-lg text-sm"></div>
-            </form>
-            
-            <style>
-                .toggle-bg:has(+ .toggle-dot) { cursor: pointer; }
-                #setting-enabled:checked + .toggle-bg .toggle-dot { transform: translateX(1.5rem); background: var(--neon-green); }
-            </style>
-        `;
-        
-        // Add toggle functionality
-        const toggleInput = document.getElementById('setting-enabled');
-        if (toggleInput) {
-            toggleInput.addEventListener('change', function() {
-                const dot = this.parentElement.querySelector('.toggle-dot');
-                if (this.checked) {
-                    dot.classList.add('translate-x-6');
-                    dot.style.background = 'var(--neon-green)';
-                } else {
-                    dot.classList.remove('translate-x-6');
-                    dot.style.background = 'var(--text-muted)';
-                }
-            });
-        }
-    }
-    
-    function renderSettingField(setting) {
-        const inputId = `setting-${setting.key}`;
-        const value = setting.value || '';
-        const placeholder = setting.is_sensitive ? '••••••••' : '';
-        const inputType = setting.is_sensitive ? 'password' : 
-                         (setting.key.includes('port') || setting.key.includes('threshold') || 
-                          setting.key.includes('size') || setting.key.includes('overlap')) ? 'number' : 'text';
-        
-        return `
-            <div class="space-y-1">
-                <label for="${inputId}" class="text-xs text-muted flex items-center gap-2">
-                    ${setting.description || setting.key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    ${setting.is_sensitive ? '<i class="fas fa-lock text-yellow" title="Sensitive - stored encrypted"></i>' : ''}
-                </label>
-                <div class="relative">
-                    <input type="${inputType}" 
-                           id="${inputId}" 
-                           name="${setting.key}"
-                           value="${setting.value_masked ? '' : escapeHtml(value)}"
-                           placeholder="${setting.value_masked ? '••••••••  (leave empty to keep current)' : placeholder}"
-                           class="input w-full ${setting.is_sensitive ? 'pr-10' : ''}"
-                           ${inputType === 'number' ? 'step="0.01"' : ''}>
-                    ${setting.is_sensitive ? `
-                    <button type="button" onclick="togglePasswordVisibility('${inputId}')" 
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-cyan transition-colors">
-                        <i class="fas fa-eye" id="${inputId}-eye"></i>
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-    
-    function togglePasswordVisibility(inputId) {
-        const input = document.getElementById(inputId);
-        const eye = document.getElementById(inputId + '-eye');
-        if (input.type === 'password') {
-            input.type = 'text';
-            eye.classList.remove('fa-eye');
-            eye.classList.add('fa-eye-slash');
-        } else {
-            input.type = 'password';
-            eye.classList.remove('fa-eye-slash');
-            eye.classList.add('fa-eye');
-        }
-    }
-    
-    async function saveServiceSettings(event, category) {
-        event.preventDefault();
-        
-        const form = event.target;
-        const btn = document.getElementById('save-service-btn');
-        const originalHtml = btn.innerHTML;
-        
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        
-        // Collect form data
-        const settings = {};
-        const inputs = form.querySelectorAll('input[name], select[name], textarea[name]');
-        inputs.forEach(input => {
-            // Skip empty password fields (keep existing value)
-            if (input.type === 'password' && !input.value) return;
-            settings[input.name] = input.value;
-        });
-        
-        // Handle enabled toggle
-        const enabledCheckbox = document.getElementById('setting-enabled');
-        if (enabledCheckbox) {
-            settings['enabled'] = enabledCheckbox.checked ? 'true' : 'false';
-        }
-        
-        try {
-            const response = await fetch(`/api/admin/system-settings/${category}/bulk`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(`${category} settings saved!`, 'success');
-                refreshServiceStatus(); // Update the grid
-                
-                // Update the main modal if open
-                if (servicesData) {
-                    loadAllServicesConfig();
-                }
-            } else {
-                showToast(result.error || 'Failed to save settings', 'error');
-            }
-        } catch (err) {
-            console.error('Error saving settings:', err);
-            showToast(t('dash.networkError'), 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
-    }
-    
-    async function testService(category) {
-        const btn = document.getElementById('test-service-btn');
-        const resultDiv = document.getElementById('test-result');
-        const originalHtml = btn.innerHTML;
-        
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-        resultDiv.className = 'hidden';
-        
-        try {
-            const response = await fetch(`/api/admin/system-settings/${category}/test`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const result = await response.json();
-            
-            resultDiv.classList.remove('hidden');
-            
-            if (result.success) {
-                resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(0,255,100,0.1)] border border-[rgba(0,255,100,0.3)] text-green';
-                resultDiv.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-check-circle"></i>
-                        <span>${result.message}</span>
-                    </div>
-                    ${result.details ? `<div class="text-xs text-muted mt-1">${JSON.stringify(result.details)}</div>` : ''}
-                `;
-            } else {
-                resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(255,68,68,0.1)] border border-[rgba(255,68,68,0.3)] text-red';
-                resultDiv.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>${result.error || 'Test failed'}</span>
-                    </div>
-                `;
-            }
-        } catch (err) {
-            console.error('Error testing service:', err);
-            resultDiv.classList.remove('hidden');
-            resultDiv.className = 'p-3 rounded-lg text-sm bg-[rgba(255,68,68,0.1)] border border-[rgba(255,68,68,0.3)] text-red';
-            resultDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Network error`;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
-    }
-    
-    // Add event delegation for service cards immediately (works for both static and dynamic cards)
-    // This uses document-level delegation so it works even before DOMContentLoaded
-    (function() {
-        function handleServiceClick(e) {
-            // Handle service card clicks
-            const serviceCard = e.target.closest('.service-card');
-            if (serviceCard) {
-                console.log('Service card clicked (delegation)');
-                // Don't prevent default - let other handlers work too
-                const category = serviceCard.getAttribute('data-category');
-                console.log('Service card category:', category);
-                if (category) {
-                    if (typeof window.openServiceEdit === 'function') {
-                        console.log('Calling window.openServiceEdit');
-                        window.openServiceEdit(category);
-                        return true;
-                    } else {
-                        console.error('window.openServiceEdit is not a function');
-                    }
-                } else {
-                    console.error('Service card has no data-category attribute');
-                }
-            }
-            
-            // Handle refresh button clicks
-            const target = e.target;
-            const button = target.closest('button');
-            if (button) {
-                const onclick = button.getAttribute('onclick');
-                if (onclick && onclick.includes('refreshServiceStatus')) {
-                    console.log('Refresh button clicked via delegation');
-                    // Don't prevent default - let onclick work
-                    if (typeof window.refreshServiceStatus === 'function') {
-                        console.log('Calling window.refreshServiceStatus');
-                        window.refreshServiceStatus();
-                        return true;
-                    } else {
-                        console.error('window.refreshServiceStatus is not a function');
-                    }
-                }
-                
-                // Handle configure all services button
-                if (onclick && onclick.includes('openServiceConfigModal')) {
-                    console.log('Configure All Services button clicked via delegation');
-                    // Don't prevent default or stop propagation - let onclick work
-                    // Just ensure the function exists
-                    if (typeof window.openServiceConfigModal !== 'function') {
-                        console.error('window.openServiceConfigModal is not a function');
-                    }
-                    // Return false to let onclick handler execute
-                    return false;
-                }
-            }
-            
-            return false;
-        }
-        
-        // Add listener as early as possible
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('DOMContentLoaded - setting up service event handlers');
-                document.addEventListener('click', handleServiceClick, true); // Use capture phase
-                // Also add direct event listeners as fallback
-                setupDirectEventListeners();
-            });
-        } else {
-            console.log('Document already loaded - setting up service event handlers');
-            document.addEventListener('click', handleServiceClick, true); // Use capture phase
-            // Also add direct event listeners as fallback
-            setupDirectEventListeners();
-        }
-        
-        function setupDirectEventListeners() {
-            // Setup direct listeners for buttons (fallback if onclick doesn't work)
-            setTimeout(function() {
-                console.log('Setting up direct event listeners');
-                // Setup refresh button
-                const refreshBtn = document.getElementById('service-refresh-btn');
-                if (refreshBtn) {
-                    console.log('Found refresh button by ID, adding listener');
-                    refreshBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Refresh button clicked');
-                        if (typeof window.refreshServiceStatus === 'function') {
-                            window.refreshServiceStatus();
-                        } else {
-                            console.error('refreshServiceStatus function not available');
-                            alert('Помилка: функція refreshServiceStatus не знайдена');
-                        }
-                    }, false);
-                } else {
-                    console.warn('Refresh button not found by ID, trying selector');
-                    const refreshBtnAlt = document.querySelector('button[onclick*="refreshServiceStatus"]');
-                    if (refreshBtnAlt) {
-                        refreshBtnAlt.removeAttribute('onclick');
-                        refreshBtnAlt.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (typeof window.refreshServiceStatus === 'function') {
-                                window.refreshServiceStatus();
-                            }
-                        }, false);
-                    }
-                }
-                
-                // Setup configure button
-                const configureBtn = document.getElementById('service-configure-btn');
-                if (configureBtn) {
-                    console.log('Found configure button by ID, adding listener');
-                    configureBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Configure button clicked');
-                        if (typeof window.openServiceConfigModal === 'function') {
-                                window.openServiceConfigModal();
-                        } else {
-                            console.error('openServiceConfigModal function not available');
-                            alert('Помилка: функція openServiceConfigModal не знайдена');
-                        }
-                    }, false);
-                } else {
-                    console.warn('Configure button not found by ID, trying selector');
-                    const configureBtnAlt = document.querySelector('button[onclick*="openServiceConfigModal"]');
-                    if (configureBtnAlt) {
-                        configureBtnAlt.removeAttribute('onclick');
-                        configureBtnAlt.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (typeof window.openServiceConfigModal === 'function') {
-                                window.openServiceConfigModal();
-                            }
-                        }, false);
-                    }
-                }
-                
-                // Setup listeners for all service cards
-                const serviceCards = document.querySelectorAll('.service-card');
-                console.log('Found', serviceCards.length, 'service cards');
-                serviceCards.forEach(function(card) {
-                    const category = card.getAttribute('data-category');
-                    console.log('Adding listener to service card:', category);
-                    card.addEventListener('click', function(e) {
-                        console.log('Service card clicked (direct listener):', category);
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (category && typeof window.openServiceEdit === 'function') {
-                            window.openServiceEdit(category);
-                        } else {
-                            console.error('Cannot open service edit:', {category, hasFunction: typeof window.openServiceEdit === 'function'});
-                        }
-                    }, false); // Use bubble phase, not capture
-                });
-            }, 100);
-        }
-    })();
-    
-    // Load service status on page load when in settings section
-    document.addEventListener('DOMContentLoaded', function() {
-        // Load service status if on settings section
-        setTimeout(() => {
-            if (document.querySelector('[data-section="settings"].active')) {
-                if (typeof window.refreshServiceStatus === 'function') {
-                    window.refreshServiceStatus();
-                }
-            }
-        }, 500);
-    });
-    
     // Also refresh when switching to settings section
     const originalShowSection = window.showSection;
     if (originalShowSection) {
         window.showSection = function(section) {
             originalShowSection(section);
             if (section === 'settings') {
-                refreshServiceStatus();
                 loadSubscriptionSettings();
                 loadPendingPayments();
             }
         };
     }
-    
+
     // ==================== SUBSCRIPTION MANAGEMENT ====================
     let subscriptionSettings = null;
     
@@ -4510,17 +3342,7 @@
     }
     
     async function loadInsuranceFundBalance() {
-        try {
-            const response = await fetch('/api/insurance-fund');
-            const data = await response.json();
-            
-            if (data.success) {
-                const el = document.getElementById('admin-insurance-fund');
-                if (el) el.textContent = data.insurance_fund.formatted_balance || '$0.00';
-            }
-        } catch (err) {
-            console.error('Error loading insurance fund:', err);
-        }
+        syncSafetyPoolFromMasterBalance();
     }
     
     async function loadPendingPayments() {
@@ -5271,6 +4093,15 @@
             }, 150);
         }
     }
+
+    function applyAdminDeepLink() {
+        const params = new URLSearchParams(window.location.search);
+        const section = params.get('section');
+        const targetId = params.get('target');
+        const openWallet = params.get('openWallet') === '1';
+        if (!section) return;
+        openSectionAndScroll(section, targetId, openWallet && typeof openWalletSettingsModal === 'function' ? openWalletSettingsModal : null);
+    }
     
     // Load tasks when switching to tasks section
     document.addEventListener('DOMContentLoaded', function() {
@@ -5279,6 +4110,7 @@
             loadAdminTasks();
             loadPendingReviews();
         }
+        applyAdminDeepLink();
     });
     
     // Override showSection to load tasks when switching
@@ -5295,32 +4127,5 @@
         };
     })();
     
-    // Make service configuration functions globally accessible
-    if (typeof openServiceConfigModal === 'function') {
-        window.openServiceConfigModal = openServiceConfigModal;
-        console.log('openServiceConfigModal made globally available');
-    }
-    if (typeof refreshServiceStatus === 'function') {
-        window.refreshServiceStatus = refreshServiceStatus;
-        console.log('refreshServiceStatus made globally available');
-    }
-    if (typeof openServiceEdit === 'function') {
-        window.openServiceEdit = openServiceEdit;
-        console.log('openServiceEdit made globally available');
-    }
-    if (typeof closeServiceConfigModal === 'function') {
-        window.closeServiceConfigModal = closeServiceConfigModal;
-    }
-    if (typeof closeServiceEditModal === 'function') {
-        window.closeServiceEditModal = closeServiceEditModal;
-    }
-    
-    // Debug: Check if functions are available
-    console.log('Service functions check:', {
-        refreshServiceStatus: typeof window.refreshServiceStatus,
-        openServiceConfigModal: typeof window.openServiceConfigModal,
-        openServiceEdit: typeof window.openServiceEdit
-    });
-
 </script>
 {% endblock %}
