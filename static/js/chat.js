@@ -18,6 +18,7 @@ class MimicChat {
         this.messages = [];
         this.unreadCount = 0;
         this.contextMenu = null;
+        this.pendingJoin = false;
         
         this.elements = {};
         
@@ -221,6 +222,19 @@ class MimicChat {
         this.isConnected = true;
         
         // Socket event handlers
+        this.socket.on('connect', () => {
+            this.isConnected = true;
+            if (this.isOpen || this.pendingJoin) {
+                this.socket.emit('join_chat', { room: this.room });
+                this.pendingJoin = false;
+            }
+        });
+        this.socket.on('connect_error', (err) => {
+            console.error('Chat socket connection error:', err);
+            this.isConnected = false;
+            this.showErrorStatus('Не вдалося підключитися до чату. Оновіть сторінку.');
+            this.disableInput();
+        });
         this.socket.on('chat_joined', (data) => this.onChatJoined(data));
         this.socket.on('new_message', (msg) => this.onNewMessage(msg));
         this.socket.on('user_joined', (data) => this.onUserJoined(data));
@@ -236,6 +250,11 @@ class MimicChat {
         // Enable input
         this.enableInput();
         this.elements.onlineCount.textContent = 'Загальна кімната';
+        
+        if (this.isOpen || this.pendingJoin) {
+            this.socket.emit('join_chat', { room: this.room });
+            this.pendingJoin = false;
+        }
     }
     
     toggleChat() {
@@ -255,9 +274,12 @@ class MimicChat {
         this.unreadCount = 0;
         this.updateUnreadBadge();
         
-        // Join chat room if connected
+        // Join chat room if connected, otherwise mark as pending
         if (this.socket && this.canChat) {
             this.socket.emit('join_chat', { room: this.room });
+            this.pendingJoin = false;
+        } else {
+            this.pendingJoin = true;
         }
         
         // Focus input
