@@ -888,7 +888,7 @@
                 </div>
                 <div>
                     <p class="font-semibold text-green text-sm" data-i18n="auth.referralInvite">You've been invited!</p>
-                    <p class="text-xs text-muted">Referral code: <span class="font-mono text-cyan">{{ ref_code }}</span></p>
+                    <p class="text-xs text-muted"><span data-i18n="auth.referralCodeLabel">Referral code:</span> <span class="font-mono text-cyan">{{ ref_code }}</span></p>
                 </div>
             </div>
             {% endif %}
@@ -987,7 +987,7 @@
                     <div class="password-requirements">
                         <div class="password-requirements-title">
                             <i class="fas fa-shield-alt"></i>
-                            <span data-i18n="auth.passwordRequirements">Password Requirements</span>
+                            <span data-i18n="auth.passwordRequirementsTitle">Password Requirements</span>
                         </div>
                         <div class="password-req-list">
                             <div class="password-req-item pending" id="req-length">
@@ -1128,7 +1128,10 @@
                                 <div class="api-step-number">3</div>
                                 <div class="api-step-content">
                                     <h5 data-i18n="auth.apiStep3Title">Set Permissions</h5>
-                                    <p data-i18n="auth.apiStep3Desc">Enable "Futures Trading" permission. <strong class="text-red">Disable Withdrawals!</strong></p>
+                                    <p>
+                                        <span data-i18n="auth.apiStep3Desc">Enable "Futures Trading" permission.</span>
+                                        <strong class="text-red" data-i18n="auth.apiStep3DescEmphasis">Disable Withdrawals!</strong>
+                                    </p>
                                 </div>
                             </div>
                             
@@ -1139,7 +1142,7 @@
                                     <p data-i18n="auth.apiStep4Desc">For security, add our server IP to the whitelist:</p>
                                     <div class="ip-address-box">
                                         <span class="ip-address" id="serverIpAddress">38.180.147.102</span>
-                                        <button type="button" class="copy-ip-btn" onclick="copyIpAddress()" id="copyIpBtn" title="Copy IP">
+                                        <button type="button" class="copy-ip-btn" onclick="copyIpAddress()" id="copyIpBtn" title="Copy IP" data-i18n-title="auth.copyIpTitle">
                                             <i class="fas fa-copy"></i>
                                         </button>
                                     </div>
@@ -1150,7 +1153,10 @@
                                 <div class="api-step-number">5</div>
                                 <div class="api-step-content">
                                     <h5 data-i18n="auth.apiStep5Title">Save API Key & Secret</h5>
-                                    <p data-i18n="auth.apiStep5Desc">Copy your API Key and Secret Key. <strong class="text-yellow">The Secret is shown only once!</strong></p>
+                                    <p>
+                                        <span data-i18n="auth.apiStep5Desc">Copy your API Key and Secret Key.</span>
+                                        <strong class="text-yellow" data-i18n="auth.apiStep5DescEmphasis">The Secret is shown only once!</strong>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1161,9 +1167,24 @@
                             <i class="fas fa-exclamation-triangle"></i> <span data-i18n="auth.securityTips">Important Security Tips:</span>
                         </p>
                         <ul style="list-style: none; padding: 0; margin: 0;">
-                            <li><i class="fas fa-check text-green"></i> <span data-i18n="auth.enableFutures">Enable <strong>Futures Trading</strong> permissions</span></li>
-                            <li><i class="fas fa-times text-red"></i> <span data-i18n="auth.disableWithdrawals">Disable <strong>Withdrawals</strong></span></li>
-                            <li><i class="fas fa-shield-alt text-cyan"></i> <span data-i18n="auth.enableIpWhitelist">Enable <strong>IP Whitelist</strong> and add: <strong class="font-mono">38.180.147.102</strong></span></li>
+                            <li>
+                                <i class="fas fa-check text-green"></i>
+                                <span data-i18n="auth.enableFuturesPrefix">Enable</span>
+                                <strong data-i18n="auth.enableFuturesStrong">Futures Trading</strong>
+                                <span data-i18n="auth.enableFuturesSuffix">permissions</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-times text-red"></i>
+                                <span data-i18n="auth.disableWithdrawalsPrefix">Disable</span>
+                                <strong data-i18n="auth.disableWithdrawalsStrong">Withdrawals</strong>
+                            </li>
+                            <li>
+                                <i class="fas fa-shield-alt text-cyan"></i>
+                                <span data-i18n="auth.enableIpWhitelistPrefix">Enable</span>
+                                <strong data-i18n="auth.enableIpWhitelistStrong">IP Whitelist</strong>
+                                <span data-i18n="auth.enableIpWhitelistSuffix">and add:</span>
+                                <strong class="font-mono">38.180.147.102</strong>
+                            </li>
                         </ul>
                     </div>
                     
@@ -1175,7 +1196,10 @@
                         <ol>
                             <li data-i18n="auth.step1">Your API keys will be verified</li>
                             <li data-i18n="auth.step2">Your request will be sent to the administrator</li>
-                            <li data-i18n="auth.step3"><span class="text-green font-semibold">Admin will decide</span> whether to start trading</li>
+                            <li>
+                                <span class="text-green font-semibold" data-i18n="auth.step3Prefix">Admin will decide</span>
+                                <span data-i18n="auth.step3Suffix">whether to start trading</span>
+                            </li>
                         </ol>
                     </div>
                     
@@ -1223,9 +1247,22 @@ let availableExchanges = [];
 let selectedExchange = null;
 let exchangeDropdownOpen = false;
 
+function translateText(key, fallback = '') {
+    if (typeof window.t === 'function') {
+        const translated = window.t(key);
+        if (translated && translated !== key) return translated;
+    }
+    return fallback || key;
+}
+
+function formatTemplate(template, vars = {}) {
+    return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
+}
+
 // Load available exchanges on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadAvailableExchanges();
+    bindLanguageToggle();
 });
 
 function loadAvailableExchanges() {
@@ -1238,10 +1275,11 @@ function loadAvailableExchanges() {
         })
         .catch(err => {
             console.error('Error loading exchanges:', err);
+            const errorText = translateText('auth.exchangeErrorLoading', 'Error loading exchanges');
             document.getElementById('exchangeOptions').innerHTML = `
                 <div style="text-align: center; padding: 16px;">
                     <i class="fas fa-exclamation-triangle text-red" style="font-size: 1.5rem; margin-bottom: 8px;"></i>
-                    <p class="text-xs text-red">Error loading exchanges</p>
+                    <p class="text-xs text-red">${errorText}</p>
                 </div>
             `;
         });
@@ -1249,19 +1287,21 @@ function loadAvailableExchanges() {
 
 function renderExchangeOptions() {
     const container = document.getElementById('exchangeOptions');
-    const currentLang = localStorage.getItem('lang') || 'en';
-    
     if (!availableExchanges || availableExchanges.length === 0) {
+        const noExchangesText = translateText('auth.noExchangesAvailable', 'No exchanges available');
+        const contactAdminText = translateText('auth.contactAdministrator', 'Contact administrator');
         container.innerHTML = `
             <div style="text-align: center; padding: 24px;">
                 <i class="fas fa-exclamation-circle text-yellow" style="font-size: 2rem; margin-bottom: 12px;"></i>
-                <p class="text-sm font-bold mb-1">${currentLang === 'ua' ? 'Немає доступних бірж' : 'No exchanges available'}</p>
-                <p class="text-xs text-muted">${currentLang === 'ua' ? 'Зв\'яжіться з адміністратором' : 'Contact administrator'}</p>
+                <p class="text-sm font-bold mb-1">${noExchangesText}</p>
+                <p class="text-xs text-muted">${contactAdminText}</p>
             </div>
         `;
         return;
     }
     
+    const availableLabel = translateText('auth.available', 'Available');
+    const passphraseLabel = translateText('auth.passphraseTag', 'Passphrase');
     container.innerHTML = availableExchanges.map(ex => `
         <div class="exchange-option ${selectedExchange?.exchange_name === ex.exchange_name ? 'selected' : ''}" 
              onclick="selectExchange('${ex.exchange_name}', '${ex.display_name}', ${ex.requires_passphrase})">
@@ -1276,11 +1316,11 @@ function renderExchangeOptions() {
                 <p class="font-bold text-sm text-bright">${ex.display_name}</p>
                 <div class="flex items-center gap-2 mt-1">
                     <span style="font-size: 0.65rem; padding: 2px 8px; background: rgba(57, 255, 20, 0.1); color: var(--neon-green); border-radius: 100px;">
-                        ✓ ${currentLang === 'ua' ? 'Доступна' : 'Available'}
+                        ✓ ${availableLabel}
                     </span>
                     ${ex.requires_passphrase ? `
                         <span style="font-size: 0.65rem; padding: 2px 8px; background: rgba(255, 208, 0, 0.1); color: var(--neon-yellow); border-radius: 100px;">
-                            <i class="fas fa-key" style="font-size: 0.5rem;"></i> Passphrase
+                            <i class="fas fa-key" style="font-size: 0.5rem;"></i> ${passphraseLabel}
                         </span>
                     ` : ''}
                 </div>
@@ -1320,10 +1360,7 @@ function selectExchange(exchangeName, displayName, requiresPassphrase) {
     document.getElementById('selectedExchangeName').classList.remove('text-muted');
     document.getElementById('selectedExchangeName').classList.add('text-bright', 'font-bold');
     
-    const hint = document.getElementById('selectedExchangeHint');
-    hint.textContent = requiresPassphrase ? 'Requires passphrase' : 'Ready to connect';
-    hint.classList.remove('hidden');
-    hint.style.color = requiresPassphrase ? 'var(--neon-yellow)' : 'var(--neon-green)';
+    updateSelectedExchangeHint();
     
     const iconContainer = document.getElementById('selectedExchangeIcon');
     iconContainer.style.background = 'linear-gradient(135deg, rgba(57, 255, 20, 0.15), rgba(0, 240, 255, 0.1))';
@@ -1348,10 +1385,19 @@ function selectExchange(exchangeName, displayName, requiresPassphrase) {
     updateSteps();
 }
 
+function updateSelectedExchangeHint() {
+    const hint = document.getElementById('selectedExchangeHint');
+    if (!hint || !selectedExchange) return;
+    const hintKey = selectedExchange.requires_passphrase ? 'auth.requiresPassphrase' : 'auth.readyToConnect';
+    hint.setAttribute('data-i18n', hintKey);
+    hint.textContent = translateText(hintKey, selectedExchange.requires_passphrase ? 'Requires passphrase' : 'Ready to connect');
+    hint.classList.remove('hidden');
+    hint.style.color = selectedExchange.requires_passphrase ? 'var(--neon-yellow)' : 'var(--neon-green)';
+}
+
 function updateExchangeRegisterLink(exchangeName) {
     const link = document.getElementById('exchangeRegisterLink');
     const hint = document.getElementById('exchangeRegisterHint');
-    const currentLang = localStorage.getItem('lang') || 'en';
     
     const exchangeLinks = {
         'binance': 'https://accounts.binance.com/register?ref=MIMICCOPY',
@@ -1361,11 +1407,13 @@ function updateExchangeRegisterLink(exchangeName) {
         'bitget': 'https://www.bitget.com/referral/register?clacCode=MIMIC'
     };
     
-    const exchangeDisplay = selectedExchange?.display_name || 'Біржа';
+    const exchangeDisplay = selectedExchange?.display_name || translateText('auth.exchangeLabel', 'Exchange');
+    const registerTemplate = translateText('auth.registerOnExchange', 'Register on {exchange}');
+    const noAccountTemplate = translateText('auth.noAccountOnExchange', 'No account on {exchange}?');
     
     link.href = exchangeLinks[exchangeName] || '#';
-    link.innerHTML = `<i class="fas fa-external-link-alt"></i> <span>Реєстрація на ${exchangeDisplay}</span>`;
-    hint.textContent = `Немає акаунту на ${exchangeDisplay}?`;
+    link.innerHTML = `<i class="fas fa-external-link-alt"></i> <span>${formatTemplate(registerTemplate, { exchange: exchangeDisplay })}</span>`;
+    hint.textContent = formatTemplate(noAccountTemplate, { exchange: exchangeDisplay });
 }
 
 document.addEventListener('click', function(e) {
@@ -1508,8 +1556,8 @@ function copyIpAddress() {
         
         // Show toast notification
         if (typeof showToast === 'function') {
-            const currentLang = localStorage.getItem('lang') || 'en';
-            showToast(currentLang === 'ua' ? 'IP адресу скопійовано!' : 'IP address copied!', 'success');
+            const toastText = translateText('auth.copyIpToast', 'IP address copied!');
+            showToast(toastText, 'success');
         }
         
         setTimeout(() => {
@@ -1584,10 +1632,10 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     if (!allValid) {
         e.preventDefault();
         
-        const currentLang = localStorage.getItem('lang') || 'en';
-        const message = currentLang === 'ua' 
-            ? 'Пароль повинен містити мінімум 8 символів, велику літеру, малу літеру, цифру та спеціальний символ'
-            : 'Password must contain at least 8 characters, uppercase letter, lowercase letter, number and special character';
+    const message = translateText(
+        'auth.passwordValidationError',
+        'Password must contain at least 8 characters, uppercase letter, lowercase letter, number and special character'
+    );
         
         if (typeof showToast === 'function') {
             showToast(message, 'error');
@@ -1599,5 +1647,26 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         return false;
     }
 });
+
+// Re-render language-specific exchange strings on language toggle
+function bindLanguageToggle() {
+    if (window.__registerLangHook) return;
+    if (typeof window.toggleLanguage !== 'function') {
+        setTimeout(bindLanguageToggle, 50);
+        return;
+    }
+    window.__registerLangHook = true;
+    const originalToggleLanguage = window.toggleLanguage;
+    window.toggleLanguage = function() {
+        originalToggleLanguage();
+        if (typeof renderExchangeOptions === 'function') {
+            renderExchangeOptions();
+        }
+        if (selectedExchange) {
+            updateExchangeRegisterLink(selectedExchange.exchange_name);
+            updateSelectedExchangeHint();
+        }
+    };
+}
 </script>
 {% endblock %}
