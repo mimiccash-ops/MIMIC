@@ -19,6 +19,12 @@
     .position-card:hover { transform: translateX(2px); }
     .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
     .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+    .strategy-header { flex-wrap: wrap; gap: 12px; }
+    .strategy-new-btn { white-space: normal; text-align: center; max-width: 100%; }
+
+    @media (max-width: 640px) {
+        .strategy-new-btn { width: 100%; justify-content: center; }
+    }
 
     /* Modal Overlay Styles */
     .modal-overlay {
@@ -215,12 +221,12 @@
         
         <!-- Strategies Management -->
         <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-4 strategy-header">
                 <h2 class="font-display font-semibold flex items-center gap-2">
                     <i class="fas fa-chess-knight text-purple"></i>
                     <span>Trading Strategies</span>
                 </h2>
-                <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm">
+                <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm strategy-new-btn">
                     <i class="fas fa-plus"></i>
                     <span>New Strategy</span>
                 </button>
