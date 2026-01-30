@@ -18,6 +18,8 @@
     .position-card { transition: all 0.15s ease; }
     .position-card:hover { transform: translateX(2px); }
     .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
+    .trade-history-table .trade-label { display: none; }
+    .trade-history-table .trade-value { display: inline-flex; align-items: center; gap: 4px; }
     .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
     .strategy-header { flex-wrap: wrap; gap: 12px; }
     .strategy-new-btn { white-space: normal; text-align: center; max-width: 100%; }
@@ -157,6 +159,56 @@
         .admin-trading-page .strategy-new-btn span {
             line-height: 1.2;
         }
+
+        .admin-trading-page .trade-history-table thead {
+            display: none;
+        }
+
+        .admin-trading-page .trade-history-table,
+        .admin-trading-page .trade-history-table tbody,
+        .admin-trading-page .trade-history-table tr,
+        .admin-trading-page .trade-history-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .admin-trading-page .trade-history-table tr.trade-row {
+            border-bottom: 0 !important;
+            background: var(--color-surface-2);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 8px 10px;
+            margin-bottom: 10px;
+        }
+
+        .admin-trading-page .trade-history-table td.trade-cell {
+            padding: 4px 0;
+        }
+
+        .admin-trading-page .trade-history-table .trade-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .admin-trading-page .trade-history-table .trade-label {
+            display: block;
+            font-size: 0.5rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .admin-trading-page .trade-history-table .trade-value {
+            font-size: 0.7rem;
+            text-align: right;
+        }
+
+        .admin-trading-page .trade-history-table .badge {
+            font-size: 0.45rem;
+            padding: 2px 6px;
+        }
     }
 
     @media (max-width: 360px) {
@@ -189,6 +241,19 @@
         .admin-trading-page .input {
             font-size: 0.75rem;
             padding: 8px 10px;
+        }
+
+        .admin-trading-page .trade-history-table tr.trade-row {
+            padding: 6px 8px;
+            margin-bottom: 8px;
+        }
+
+        .admin-trading-page .trade-history-table .trade-label {
+            font-size: 0.45rem;
+        }
+
+        .admin-trading-page .trade-history-table .trade-value {
+            font-size: 0.65rem;
         }
     }
 </style>
@@ -386,7 +451,7 @@
             </div>
         
             <div class="table-container" style="max-height: 300px; overflow-y: auto;">
-                <table class="table">
+                <table class="table trade-history-table">
                     <thead>
                         <tr>
                             <th data-i18n="admin.tableTime">Time</th>
@@ -399,14 +464,29 @@
                     <tbody id="trades-body">
                         {% for trade in closed_trades %}
                         <tr class="trade-row border-b border-[var(--border-color)] border-opacity-30">
-                            <td class="py-2 px-2 text-muted">{{ trade.time }}</td>
-                            <td class="py-2 px-2 font-bold text-bright">{{ trade.node }}</td>
-                            <td class="py-2 px-2 font-mono text-bright">{{ trade.symbol }}</td>
-                            <td class="py-2 px-1 text-center">
-                                <span class="badge {{ 'badge-success' if trade.side == 'LONG' else 'badge-danger' }}">{{ trade.side }}</span>
+                            <td class="trade-cell py-2 px-2 text-muted">
+                                <span class="trade-label" data-i18n="admin.tableTime">Time</span>
+                                <span class="trade-value">{{ trade.time }}</span>
                             </td>
-                            <td class="py-2 px-2 text-right font-mono font-bold {{ 'text-green' if trade.pnl >= 0 else 'text-red' }}">
-                                {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
+                            <td class="trade-cell py-2 px-2">
+                                <span class="trade-label" data-i18n="admin.tableNode">Node</span>
+                                <span class="trade-value font-bold text-bright">{{ trade.node }}</span>
+                            </td>
+                            <td class="trade-cell py-2 px-2">
+                                <span class="trade-label" data-i18n="admin.tableSymbol">Symbol</span>
+                                <span class="trade-value font-mono text-bright">{{ trade.symbol }}</span>
+                            </td>
+                            <td class="trade-cell py-2 px-1 text-center">
+                                <span class="trade-label" data-i18n="admin.tableSide">Side</span>
+                                <span class="trade-value">
+                                    <span class="badge {{ 'badge-success' if trade.side == 'LONG' else 'badge-danger' }}">{{ trade.side }}</span>
+                                </span>
+                            </td>
+                            <td class="trade-cell py-2 px-2 text-right">
+                                <span class="trade-label" data-i18n="admin.tablePnl">PnL</span>
+                                <span class="trade-value font-mono font-bold {{ 'text-green' if trade.pnl >= 0 else 'text-red' }}">
+                                    {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
+                                </span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -497,8 +577,31 @@
             if (!tbody) return;
             const tr = document.createElement('tr');
             tr.className = 'trade-row border-b border-[var(--border-color)] border-opacity-30';
-            tr.innerHTML = `<td class="py-2 px-2 text-muted">${trade.time}</td><td class="py-2 px-2 font-bold text-bright">${trade.node}</td><td class="py-2 px-2 font-mono">${trade.symbol}</td><td class="py-2 px-1 text-center"><span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span></td><td class="py-2 px-2 text-right font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</td>`;
+            tr.innerHTML = `
+                <td class="trade-cell py-2 px-2 text-muted">
+                    <span class="trade-label" data-i18n="admin.tableTime">Time</span>
+                    <span class="trade-value">${trade.time}</span>
+                </td>
+                <td class="trade-cell py-2 px-2">
+                    <span class="trade-label" data-i18n="admin.tableNode">Node</span>
+                    <span class="trade-value font-bold text-bright">${trade.node}</span>
+                </td>
+                <td class="trade-cell py-2 px-2">
+                    <span class="trade-label" data-i18n="admin.tableSymbol">Symbol</span>
+                    <span class="trade-value font-mono text-bright">${trade.symbol}</span>
+                </td>
+                <td class="trade-cell py-2 px-1 text-center">
+                    <span class="trade-label" data-i18n="admin.tableSide">Side</span>
+                    <span class="trade-value">
+                        <span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span>
+                    </span>
+                </td>
+                <td class="trade-cell py-2 px-2 text-right">
+                    <span class="trade-label" data-i18n="admin.tablePnl">PnL</span>
+                    <span class="trade-value font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</span>
+                </td>`;
             tbody.insertBefore(tr, tbody.firstChild);
+            if (window.reapplyTranslations) window.reapplyTranslations();
             if (trade.pnl >= 0) { showToast(`+${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'success'); if (typeof celebrateSuccess === 'function') celebrateSuccess(); }
             else showToast(`${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'warning');
         });

@@ -5,6 +5,192 @@
 {% block extra_styles %}
 <style>
     .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+    .task-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+    .task-stat-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+    }
+    .task-stat-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    .task-stat-body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .task-stat-label {
+        font-size: 0.55rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .task-stat-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        font-size: 1rem;
+        line-height: 1.1;
+    }
+    .task-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: var(--radius-lg);
+        background: var(--color-surface-2);
+    }
+    .task-card-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .task-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+    .task-card-info {
+        min-width: 0;
+    }
+    .task-card-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+    .task-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    .task-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+    }
+    .pending-review-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    @media (max-width: 768px) {
+        .task-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .tasks-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .tasks-actions .cyber-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        .task-card {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 10px 12px;
+        }
+        .task-card-main {
+            width: 100%;
+        }
+        .task-card-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+        .task-card-meta {
+            gap: 8px;
+            font-size: 0.65rem;
+        }
+        .task-card-title {
+            font-size: 0.85rem;
+        }
+        .task-card-icon {
+            width: 34px;
+            height: 34px;
+        }
+        .pending-review-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .task-stats-grid {
+            gap: 10px;
+        }
+        .task-stat-card {
+            padding: 10px 12px;
+            gap: 10px;
+        }
+        .task-stat-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 0.75rem;
+        }
+        .task-stat-label {
+            font-size: 0.5rem;
+            letter-spacing: 0.12em;
+        }
+        .task-stat-value {
+            font-size: 0.9rem;
+        }
+        .task-card-actions .cyber-btn {
+            padding: 6px 8px;
+        }
+        .tasks-actions .cyber-btn {
+            font-size: 0.75rem;
+            padding: 8px 10px;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .task-stat-card {
+            padding: 8px 10px;
+        }
+        .task-stat-value {
+            font-size: 0.85rem;
+        }
+        .task-card {
+            padding: 8px 10px;
+        }
+        .task-card-title {
+            font-size: 0.8rem;
+        }
+        .task-card-meta {
+            font-size: 0.6rem;
+        }
+    }
 
     /* Modal Overlay Styles */
     .modal-overlay {
@@ -125,62 +311,50 @@
             </h1>
             <p class="text-muted text-sm mt-1">Create challenges and rewards for users to complete</p>
         </div>
-        <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Dashboard</span>
-        </a>
     </div>
 
     <!-- Task Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="card p-4" style="border-color: rgba(0, 245, 255, 0.2);">
-            <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(0, 245, 255, 0.1); border-radius: var(--radius-md);">
-                    <i class="fas fa-tasks text-cyan"></i>
-                </div>
-                <div>
-                    <div class="text-xs text-muted">Active Tasks</div>
-                    <div class="font-mono font-bold text-lg" id="admin-active-tasks">0</div>
-                </div>
+    <div class="task-stats-grid mb-6">
+        <div class="card task-stat-card" style="border-color: rgba(0, 245, 255, 0.2);">
+            <div class="task-stat-icon" style="background: rgba(0, 245, 255, 0.1);">
+                <i class="fas fa-tasks text-cyan"></i>
+            </div>
+            <div class="task-stat-body">
+                <div class="task-stat-label">Active Tasks</div>
+                <div class="task-stat-value" id="admin-active-tasks">0</div>
             </div>
         </div>
-        <div class="card p-4" style="border-color: rgba(255, 193, 7, 0.2);">
-            <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(255, 193, 7, 0.1); border-radius: var(--radius-md);">
-                    <i class="fas fa-clock text-yellow"></i>
-                </div>
-                <div>
-                    <div class="text-xs text-muted">Pending Reviews</div>
-                    <div class="font-mono font-bold text-lg" id="admin-pending-reviews">0</div>
-                </div>
+        <div class="card task-stat-card" style="border-color: rgba(255, 193, 7, 0.2);">
+            <div class="task-stat-icon" style="background: rgba(255, 193, 7, 0.1);">
+                <i class="fas fa-clock text-yellow"></i>
+            </div>
+            <div class="task-stat-body">
+                <div class="task-stat-label">Pending Reviews</div>
+                <div class="task-stat-value" id="admin-pending-reviews">0</div>
             </div>
         </div>
-        <div class="card p-4" style="border-color: rgba(34, 197, 94, 0.2);">
-            <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md);">
-                    <i class="fas fa-check-circle text-green"></i>
-                </div>
-                <div>
-                    <div class="text-xs text-muted">Total Completions</div>
-                    <div class="font-mono font-bold text-lg" id="admin-total-completions">0</div>
-                </div>
+        <div class="card task-stat-card" style="border-color: rgba(34, 197, 94, 0.2);">
+            <div class="task-stat-icon" style="background: rgba(34, 197, 94, 0.1);">
+                <i class="fas fa-check-circle text-green"></i>
+            </div>
+            <div class="task-stat-body">
+                <div class="task-stat-label">Total Completions</div>
+                <div class="task-stat-value" id="admin-total-completions">0</div>
             </div>
         </div>
-        <div class="card p-4" style="border-color: rgba(168, 85, 247, 0.2);">
-            <div class="flex items-center gap-3">
-                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--radius-md);">
-                    <i class="fas fa-gift text-purple"></i>
-                </div>
-                <div>
-                    <div class="text-xs text-muted">Rewards Given</div>
-                    <div class="font-mono font-bold text-lg" id="admin-rewards-given">$0</div>
-                </div>
+        <div class="card task-stat-card" style="border-color: rgba(168, 85, 247, 0.2);">
+            <div class="task-stat-icon" style="background: rgba(168, 85, 247, 0.1);">
+                <i class="fas fa-gift text-purple"></i>
+            </div>
+            <div class="task-stat-body">
+                <div class="task-stat-label">Rewards Given</div>
+                <div class="task-stat-value" id="admin-rewards-given">$0</div>
             </div>
         </div>
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center gap-3 mb-6">
+    <div class="tasks-actions flex items-center gap-3 mb-6">
         <button onclick="refreshTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
             <i class="fas fa-sync-alt" id="tasks-refresh-icon"></i>
             <span>Refresh</span>
@@ -550,18 +724,18 @@
             };
             
             html += `
-                <div class="flex items-center justify-between p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : 'var(--color-border)'};">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: ${task.color}20; border: 1px solid ${task.color}40;">
-                            <i class="fas ${task.icon}" style="color: ${task.color}; font-size: 1.25rem;"></i>
+                <div class="task-card" style="border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : 'var(--color-border)'};">
+                    <div class="task-card-main">
+                        <div class="task-card-icon" style="background: ${task.color}20; border: 1px solid ${task.color}40;">
+                            <i class="fas ${task.icon}" style="color: ${task.color}; font-size: 1.1rem;"></i>
                         </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="font-semibold">${task.title}</span>
-                                ${task.is_featured ? '<span class="badge badge-yellow" style="font-size: 0.6rem;">FEATURED</span>' : ''}
-                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.6rem; text-transform: uppercase;">${task.status}</span>
+                        <div class="task-card-info">
+                            <div class="task-card-title">
+                                <span class="task-title-text">${task.title}</span>
+                                ${task.is_featured ? '<span class="badge badge-yellow" style="font-size: 0.55rem;">FEATURED</span>' : ''}
+                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.55rem; text-transform: uppercase;">${task.status}</span>
                             </div>
-                            <div class="flex items-center gap-3 text-xs text-muted mt-1">
+                            <div class="task-card-meta">
                                 <span><i class="fas ${typeInfo.icon} mr-1"></i>${typeInfo.name}</span>
                                 <span><i class="fas ${rewardInfo.icon} mr-1"></i>${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}</span>
                                 <span><i class="fas fa-users mr-1"></i>${task.total_participants} participants</span>
@@ -569,7 +743,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="task-card-actions">
                         <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="View Participations">
                             <i class="fas fa-users"></i>
                         </button>
@@ -599,7 +773,7 @@
         pendingReviews.forEach(p => {
             const submittedAt = new Date(p.submitted_at);
             html += `
-                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                <div class="pending-review-card p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
                             <i class="fas fa-clipboard-check text-yellow"></i>
