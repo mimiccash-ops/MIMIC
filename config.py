@@ -451,6 +451,14 @@ class Config:
                 if os.path.exists(path):
                     GEOIP_DB_PATH = path
                     break
+
+        # Treat missing or placeholder paths as not configured
+        if GEOIP_DB_PATH and not os.path.exists(GEOIP_DB_PATH):
+            if GEOIP_DB_PATH.startswith('/path/to/'):
+                logger.info("ℹ️ GeoIP database path is placeholder; geo-blocking disabled")
+            else:
+                logger.warning(f"⚠️ GeoIP database not found at: {GEOIP_DB_PATH} - geo-blocking disabled")
+            GEOIP_DB_PATH = ''
         
         # Enable/disable geo-blocking (disabled if no GeoIP database)
         GEO_BLOCKING_ENABLED = bool(GEOIP_DB_PATH and os.path.exists(GEOIP_DB_PATH))

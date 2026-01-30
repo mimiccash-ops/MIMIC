@@ -1019,6 +1019,50 @@ async def get_gamification_status_task(ctx: dict, user_id: int = None) -> dict:
             }
 
 
+# ==================== LEGACY CRON TASKS (NO-OP) ====================
+# These placeholders prevent ARQ from logging "function not found" for
+# older scheduled jobs that may still exist in Redis.
+
+async def update_tournament_status_task(ctx: dict) -> dict:
+    """Legacy placeholder for tournament status updates."""
+    record_worker_task(task_name='update_tournament_status', status='skipped')
+    return {
+        'status': 'skipped',
+        'reason': 'not_implemented',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
+async def calculate_tournament_roi_task(ctx: dict) -> dict:
+    """Legacy placeholder for tournament ROI calculations."""
+    record_worker_task(task_name='calculate_tournament_roi', status='skipped')
+    return {
+        'status': 'skipped',
+        'reason': 'not_implemented',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
+async def finalize_tournament_task(ctx: dict) -> dict:
+    """Legacy placeholder for tournament finalization."""
+    record_worker_task(task_name='finalize_tournament', status='skipped')
+    return {
+        'status': 'skipped',
+        'reason': 'not_implemented',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
+async def update_market_sentiment_task(ctx: dict) -> dict:
+    """Legacy placeholder for market sentiment updates."""
+    record_worker_task(task_name='update_market_sentiment', status='skipped')
+    return {
+        'status': 'skipped',
+        'reason': 'not_implemented',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
 # ==================== END OF TASKS ====================
 
 

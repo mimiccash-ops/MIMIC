@@ -33,6 +33,8 @@ class TelegramNotifier:
         self.enabled = enabled and bool(bot_token) and bool(chat_id)
         self.message_queue = Queue()
         self._shutdown_event = threading.Event()
+        self._hard_disabled = False
+        self._disable_reason = None
         atexit.register(self._mark_shutdown)
         
         if self.enabled:
@@ -87,15 +89,21 @@ class TelegramNotifier:
                 else:
                     message = item
                     chat_id = None
-                success, error = self.send_sync(message, chat_id or self.chat_id)
+                target_chat_id = chat_id or self.chat_id
+                success, error = self.send_sync(message, target_chat_id)
                 if not success and error:
-                    logger.error(f"Telegram send failed to {chat_id}: {error}")
+                    if error.lower() == "unauthorized":
+                        self._disable("Unauthorized bot token")
+                        continue
+                    logger.error(f"Telegram send failed to {target_chat_id}: {error}")
             except Exception as e:
                 logger.error(f"Telegram send error: {e}")
 
     def send(self, message: str, chat_id: str = None):
         """Queue a message for sending"""
         if self._is_shutdown():
+            return
+        if self._hard_disabled:
             return
         if self.enabled or chat_id:  # Allow sending to specific chat even if main notifications disabled
             self.message_queue.put({'message': message, 'chat_id': chat_id})
@@ -108,6 +116,8 @@ class TelegramNotifier:
         """
         if self._is_shutdown():
             return False, "interpreter_shutting_down"
+        if self._hard_disabled:
+            return False, self._disable_reason or "disabled"
         if not self.bot_token:
             return False, "Telegram bot not initialized"
         
@@ -130,6 +140,8 @@ class TelegramNotifier:
                 return True, ""
             else:
                 error_desc = result.get("description", "Unknown error")
+                if response.status_code == 401 or "unauthorized" in error_desc.lower():
+                    return False, "unauthorized"
                 if "chat not found" in error_desc.lower():
                     return False, "chat_not_found"
                 elif "bot was blocked" in error_desc.lower():
@@ -142,6 +154,15 @@ class TelegramNotifier:
             return False, "Connection timeout"
         except Exception as e:
             return False, str(e)
+
+    def _disable(self, reason: str):
+        """Disable notifier after a fatal error (e.g., invalid token)."""
+        if self._hard_disabled:
+            return
+        self._hard_disabled = True
+        self.enabled = False
+        self._disable_reason = reason
+        logger.warning(f"⚠️ Telegram notifications disabled: {reason}")
 
     def test_connection(self, chat_id: str, username: str = "") -> tuple[bool, str]:
         """

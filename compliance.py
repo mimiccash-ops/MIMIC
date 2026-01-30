@@ -39,7 +39,7 @@ def init_geoip(db_path: str) -> bool:
     global _geoip_reader, _geoip_available
     
     if not db_path:
-        logger.warning("⚠️ GeoIP database path not configured - geo-blocking disabled")
+        logger.info("ℹ️ GeoIP database path not configured - geo-blocking disabled")
         return False
     
     try:

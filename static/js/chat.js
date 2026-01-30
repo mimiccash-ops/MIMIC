@@ -215,7 +215,8 @@ class MimicChat {
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 30000,
                 timeout: 20000,
-                transports: ['websocket', 'polling']
+                // Start with polling for maximum proxy compatibility, then upgrade
+                transports: ['polling', 'websocket']
             });
         }
         

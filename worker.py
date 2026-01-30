@@ -403,6 +403,11 @@ from tasks import (
     calculate_user_xp_task,
     check_achievements_task,
     get_gamification_status_task,
+    # Legacy/placeholder tasks to avoid missing-function cron errors
+    update_tournament_status_task,
+    calculate_tournament_roi_task,
+    finalize_tournament_task,
+    update_market_sentiment_task,
 )
 
 
@@ -429,6 +434,11 @@ class WorkerSettings:
         calculate_user_xp_task,
         check_achievements_task,
         get_gamification_status_task,
+        # Legacy/placeholder tasks
+        update_tournament_status_task,
+        calculate_tournament_roi_task,
+        finalize_tournament_task,
+        update_market_sentiment_task,
     ]
     
     # Cron jobs - scheduled tasks

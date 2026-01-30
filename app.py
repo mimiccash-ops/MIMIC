@@ -139,9 +139,23 @@ login_manager.login_message_category = 'info'
 # Production domain from environment (comma-separated for multiple domains)
 PRODUCTION_DOMAIN = os.environ.get('PRODUCTION_DOMAIN', '')
 
+def _normalize_origins(origins):
+    """Normalize origins to include scheme; allow bare domains in env config."""
+    normalized = []
+    for origin in origins:
+        origin = (origin or "").strip()
+        if not origin:
+            continue
+        if origin.startswith("http://") or origin.startswith("https://"):
+            normalized.append(origin)
+        else:
+            normalized.append(f"https://{origin}")
+            normalized.append(f"http://{origin}")
+    return normalized
+
 if IS_PRODUCTION and PRODUCTION_DOMAIN:
     # In production, only allow the configured domain(s)
-    SOCKETIO_ALLOWED_ORIGINS = [origin.strip() for origin in PRODUCTION_DOMAIN.split(',')]
+    SOCKETIO_ALLOWED_ORIGINS = _normalize_origins(PRODUCTION_DOMAIN.split(','))
 else:
     # Development origins
     SOCKETIO_ALLOWED_ORIGINS = [
@@ -169,7 +183,14 @@ else:
 
 # Add custom origins from environment if set (for additional origins)
 if os.environ.get('ALLOWED_ORIGINS'):
-    SOCKETIO_ALLOWED_ORIGINS.extend(os.environ.get('ALLOWED_ORIGINS', '').split(','))
+    SOCKETIO_ALLOWED_ORIGINS.extend(_normalize_origins(os.environ.get('ALLOWED_ORIGINS', '').split(',')))
+
+# Deduplicate while preserving order
+_seen_origins = set()
+SOCKETIO_ALLOWED_ORIGINS = [
+    origin for origin in SOCKETIO_ALLOWED_ORIGINS
+    if not (origin in _seen_origins or _seen_origins.add(origin))
+]
 
 socketio = SocketIO(
     app, 
