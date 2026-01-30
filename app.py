@@ -784,13 +784,20 @@ def _refresh_balance_cache(user_id: int) -> None:
             _balance_cache_inflight.discard(user_id)
 
 
-def get_user_exchange_balances(user_id: int, allow_stale: bool = True) -> dict:
+def get_user_exchange_balances(
+    user_id: int,
+    allow_stale: bool = True,
+    allow_sync_fetch: bool = True,
+    refresh_in_background: bool = True
+) -> dict:
     """
     Get cached balances for user exchanges with async refresh.
     
     Args:
         user_id: User ID
         allow_stale: Return stale cache while refreshing in background
+        allow_sync_fetch: Allow synchronous fetch when cache missing
+        refresh_in_background: Allow background refresh when stale/missing
     """
     # Prefer Redis cache if available (persists across restarts)
     redis_cached = _get_balance_cache_from_redis(user_id)
@@ -807,7 +814,7 @@ def get_user_exchange_balances(user_id: int, allow_stale: bool = True) -> dict:
             return cached['data']
         if allow_stale:
             with _balance_cache_lock:
-                if user_id not in _balance_cache_inflight:
+                if refresh_in_background and user_id not in _balance_cache_inflight:
                     _balance_cache_inflight.add(user_id)
                     threading.Thread(
                         target=_refresh_balance_cache,
@@ -815,6 +822,19 @@ def get_user_exchange_balances(user_id: int, allow_stale: bool = True) -> dict:
                         daemon=True
                     ).start()
             return cached['data']
+
+    if not allow_sync_fetch:
+        # Avoid blocking requests - return empty and optionally refresh in background
+        if refresh_in_background:
+            with _balance_cache_lock:
+                if user_id not in _balance_cache_inflight:
+                    _balance_cache_inflight.add(user_id)
+                    threading.Thread(
+                        target=_refresh_balance_cache,
+                        args=(user_id,),
+                        daemon=True
+                    ).start()
+        return {'total': 0.0, 'exchanges': []}
     
     # No cache or stale not allowed: refresh synchronously
     data = _fetch_user_exchange_balances(user_id)
@@ -3291,8 +3311,8 @@ def dashboard():
     if current_user.role == 'admin':
         users = User.query.all()
         
-        # Get master balance
-        m_bal = "N/A"  # Default when no exchanges configured
+        # Get master balance (deferred to client for fast load)
+        m_bal = None  # Default to "Connecting..." in template
 
         # Check if any master exchanges are configured in DB
         enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
@@ -3315,87 +3335,45 @@ def dashboard():
 
         if not has_master_exchanges:
             m_bal = "No exchanges configured" if not has_enabled_configs else "Master exchanges not connected"
-        elif engine.master_client:
-            try:
-                balances = engine.master_client.futures_account_balance()
-                for b in balances:
-                    if b['asset'] == 'USDT':
-                        m_bal = f"{float(b['balance']):,.2f}"
-                        break
-            except Exception as e:
-                logger.warning(f"Failed to fetch master balance: {e}")
-                m_bal = "Помилка"
         
-        # Get user balances for admin view - from all connected exchanges
+        # Get user balances for admin view (cache-only for fast load)
         user_balances = {}
         user_exchange_details = {}  # Detailed balance info per exchange
         
         for user in users:
-            if user.role != 'admin':
-                # Try to get balances from UserExchange records (new multi-exchange system)
-                exchange_balances = get_user_exchange_balances(user.id)
+            if user.role == 'admin':
+                continue
+            
+            exchange_balances = get_user_exchange_balances(
+                user.id,
+                allow_stale=True,
+                allow_sync_fetch=False,
+                refresh_in_background=False
+            )
+            
+            exchanges = exchange_balances.get('exchanges') or []
+            if exchanges:
+                # Store detailed exchange info
+                user_exchange_details[user.id] = exchanges
                 
-                if exchange_balances['exchanges']:
-                    # Store detailed exchange info
-                    user_exchange_details[user.id] = exchange_balances['exchanges']
-                    
-                    # Sum up total balance from all exchanges
-                    if exchange_balances['total'] > 0:
-                        user_balances[user.id] = exchange_balances['total']
-                    else:
-                        # Check if any exchange has a valid balance
-                        valid_balances = [e['balance'] for e in exchange_balances['exchanges'] if e['balance'] is not None]
-                        user_balances[user.id] = sum(valid_balances) if valid_balances else None
+                # Sum up total balance from all exchanges
+                if exchange_balances.get('total'):
+                    user_balances[user.id] = exchange_balances['total']
                 else:
-                    # Fallback to legacy slave_clients if no UserExchange records
-                    slave = next((s for s in engine.slave_clients if s['id'] == user.id), None)
-                    if slave:
-                        try:
-                            bal_data = slave['client'].futures_account_balance()
-                            for b in bal_data:
-                                if b['asset'] == 'USDT':
-                                    user_balances[user.id] = float(b['balance'])
-                                    user_exchange_details[user.id] = [{
-                                        'id': 0,
-                                        'exchange_name': 'binance',
-                                        'label': 'Binance (Legacy)',
-                                        'balance': float(b['balance']),
-                                        'status': 'APPROVED',
-                                        'trading_enabled': True,
-                                        'error': None
-                                    }]
-                                    break
-                        except Exception:
-                            user_balances[user.id] = None
-                    else:
-                        user_balances[user.id] = None
+                    # Check if any exchange has a valid balance
+                    valid_balances = [e['balance'] for e in exchanges if e.get('balance') is not None]
+                    if valid_balances:
+                        user_balances[user.id] = sum(valid_balances)
         
         # Get recent trades
         history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
         history_data = [h.to_dict() for h in history_objs]
         
-        # Get master positions from ALL exchanges for initial load
+        # Defer master positions/balances to client for fast load
         master_positions = []
         master_exchange_balances = []
-        
-        if has_master_exchanges:
-            try:
-                master_positions = engine.get_all_master_positions()
-            except Exception as e:
-                logger.warning(f"Failed to fetch master positions: {e}")
-            
-            try:
-                master_exchange_balances = engine.get_all_master_balances()
-                # Update m_bal with total from all exchanges
-                total_balance = sum(b['balance'] for b in master_exchange_balances if b['balance'] is not None)
-                if total_balance > 0:
-                    m_bal = f"{total_balance:,.2f}"
-                elif master_exchange_balances:
-                    # Exchanges connected but balance is 0
-                    m_bal = "0.00"
-            except Exception as e:
-                logger.warning(f"Failed to fetch master balances: {e}")
-                m_bal = "Error fetching balances"
+        master_positions_loaded = False
+        master_balances_loaded = False
         
         return render_template('dashboard_admin.html',
                              users=users,
@@ -3404,8 +3382,10 @@ def dashboard():
                              engine_paused=engine.is_paused,
                              master_balance=m_bal,
                              master_exchange_balances=master_exchange_balances,
+                             master_balances_loaded=master_balances_loaded,
                              closed_trades=history_data,
                              master_positions=master_positions,
+                             master_positions_loaded=master_positions_loaded,
                              global_settings=GLOBAL_TRADE_SETTINGS)
     else:
         # User dashboard

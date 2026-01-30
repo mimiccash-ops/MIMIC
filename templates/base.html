@@ -431,6 +431,9 @@
     </footer>
 
     <style>
+        :root {
+            --header-height: 72px;
+        }
         .app-footer {
             background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
             border-top: 1px solid rgba(0, 240, 255, 0.1);
@@ -678,6 +681,10 @@
             z-index: 1000;
         }
 
+        .app-main {
+            padding-top: calc(var(--header-height, 72px) + 16px);
+        }
+
         .app-container {
             padding-left: clamp(12px, 3vw, 24px);
             padding-right: clamp(12px, 3vw, 24px);
@@ -685,7 +692,7 @@
 
         @media (max-width: 768px) {
             .app-main {
-                padding-top: calc(var(--header-height) + 12px);
+                padding-top: calc(var(--header-height, 72px) + 12px);
                 padding-bottom: 60px;
             }
 
@@ -2033,6 +2040,29 @@
                     });
                 };
             };
+        })();
+    </script>
+    
+    <script>
+        (function() {
+            const root = document.documentElement;
+            const header = document.querySelector('.app-header');
+            if (!root || !header) return;
+            
+            const setHeaderHeight = () => {
+                const height = Math.ceil(header.getBoundingClientRect().height || 0);
+                if (height > 0) {
+                    root.style.setProperty('--header-height', `${height}px`);
+                }
+            };
+            
+            const update = window.throttleRaf ? window.throttleRaf(setHeaderHeight) : setHeaderHeight;
+            setHeaderHeight();
+            window.addEventListener('resize', update);
+            window.addEventListener('load', setHeaderHeight);
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(setHeaderHeight).catch(() => {});
+            }
         })();
     </script>
 

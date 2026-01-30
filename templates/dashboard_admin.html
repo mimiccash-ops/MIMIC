@@ -257,29 +257,33 @@
                     <div class="master-balance-card">
                         <div class="master-balance-label">Загальний баланс</div>
                         <div id="master-balance" class="master-balance-value">
-                            {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A'] %}
+                            {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A', 'No exchanges configured', 'Master exchanges not connected', 'Помилка', 'Error fetching balances'] %}
                                 ${{ master_balance }}
                             {% else %}
-                                <span class="text-muted">{{ master_balance or 'No exchanges configured' }}</span>
+                                <span class="text-muted">{{ master_balance or 'Connecting...' }}</span>
                             {% endif %}
                         </div>
                     </div>
                     <!-- Exchange Balances -->
                     <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2 exchange-balance-list">
-                        {% if master_exchange_balances %}
-                            {% for ex in master_exchange_balances %}
-                            <div class="exchange-balance-pill {{ 'is-error' if ex.error }}" {% if ex.error %}title="{{ ex.error }}"{% endif %}>
-                                <span class="name">{{ ex.exchange }}</span>
-                                <span class="value {{ 'text-red' if ex.error else ('text-green' if ex.balance and ex.balance > 0 else 'text-muted') }}">
-                                    {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
-                                </span>
-                            </div>
-                            {% endfor %}
+                        {% if master_balances_loaded %}
+                            {% if master_exchange_balances %}
+                                {% for ex in master_exchange_balances %}
+                                <div class="exchange-balance-pill {{ 'is-error' if ex.error }}" {% if ex.error %}title="{{ ex.error }}"{% endif %}>
+                                    <span class="name">{{ ex.exchange }}</span>
+                                    <span class="value {{ 'text-red' if ex.error else ('text-green' if ex.balance and ex.balance > 0 else 'text-muted') }}">
+                                        {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <a href="#" onclick="showSection('exchange'); return false;" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span data-i18n="admin.configureExchanges">Configure Master Exchanges</span>
+                                </a>
+                            {% endif %}
                         {% else %}
-                            <a href="#" onclick="showSection('exchange'); return false;" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-plus-circle"></i>
-                                <span data-i18n="admin.configureExchanges">Configure Master Exchanges</span>
-                            </a>
+                            <span class="text-muted text-xs">Loading...</span>
                         {% endif %}
                     </div>
                 </div>
@@ -421,29 +425,36 @@
                 </div>
             </div>
             <div id="master-positions-container" class="flex flex-col gap-3">
-                {% if master_positions %}
-                    {% for pos in master_positions %}
-                    <div class="position-item">
-                        <div class="flex items-center gap-3">
-                            <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
-                                <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
+                {% if master_positions_loaded %}
+                    {% if master_positions %}
+                        {% for pos in master_positions %}
+                        <div class="position-item">
+                            <div class="flex items-center gap-3">
+                                <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
+                                    <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
+                                </div>
+                                <div>
+                                    <div class="font-display font-semibold">{{ pos.symbol }}</div>
+                                    <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
+                                </div>
                             </div>
-                            <div>
-                                <div class="font-display font-semibold">{{ pos.symbol }}</div>
-                                <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
+                            <div class="text-right">
+                                <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
+                                    {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
+                                </div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
-                                {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
-                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state" style="padding: 20px;">
+                            <i class="fas fa-inbox"></i>
+                            <p data-i18n="dash.noOpenPositions">No open positions</p>
                         </div>
-                    </div>
-                    {% endfor %}
+                    {% endif %}
                 {% else %}
                     <div class="empty-state" style="padding: 20px;">
-                        <i class="fas fa-inbox"></i>
-                        <p data-i18n="dash.noOpenPositions">No open positions</p>
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading...</p>
                     </div>
                 {% endif %}
             </div>
@@ -582,7 +593,7 @@
                 </h2>
                 <div class="flex items-center gap-3">
                     <span class="text-sm text-muted">{{ users|length }} <span data-i18n="section.users">users</span></span>
-                    <button onclick="refreshAllBalances()" class="cyber-btn cyber-btn-outline cyber-btn-icon" title="Refresh Balances" id="refresh-balances-btn">
+                    <button onclick="refreshAllBalances()" class="cyber-btn cyber-btn-outline cyber-btn-icon" title="Refresh Balances" id="refresh-balances-btn" data-user-count="{{ users|length }}">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
@@ -1990,7 +2001,27 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { loadMasterChart(); loadMasterStats(); loadUnreadCount(); loadAllExchangeConfigs(); loadExchangeConfigs(); loadPendingExchanges(); loadAllUserExchanges(); loadAdminStrategies(); loadChatUsers(); refreshChatBans(); loadAdminSafetyPool(); loadAdminPlatformStats(); });
+    document.addEventListener('DOMContentLoaded', () => {
+        loadMasterChart();
+        loadMasterStats();
+        loadUnreadCount();
+        loadAllExchangeConfigs();
+        loadExchangeConfigs();
+        loadPendingExchanges();
+        loadAllUserExchanges();
+        loadAdminStrategies();
+        loadChatUsers();
+        refreshChatBans();
+        loadAdminSafetyPool();
+        loadAdminPlatformStats();
+        
+        // Auto-refresh balances only for small user counts
+        const balanceBtn = document.getElementById('refresh-balances-btn');
+        const userCount = parseInt(balanceBtn?.dataset.userCount || '0', 10);
+        if (userCount > 0 && userCount <= 50) {
+            setTimeout(refreshAllBalances, 1200);
+        }
+    });
     
     // Safety Pool / Insurance Fund
     function formatUsd(value) {
