@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Governance - Vote on Proposals{% endblock %}
-{% block meta_title %}MIMIC Governance | Elite Member Voting{% endblock %}
+{% block title %}Опитування - Vote on Proposals{% endblock %}
+{% block meta_title %}MIMIC Опитування | Elite Member Voting{% endblock %}
 {% block meta_description %}Shape the future of MIMIC. Elite members can vote on new trading pairs, risk management changes, and exchange integrations.{% endblock %}
-{% block meta_keywords %}crypto governance, voting, trading pairs, risk management, community voting, elite members{% endblock %}
-{% block og_title %}MIMIC Governance - Shape Our Future{% endblock %}
+{% block meta_keywords %}crypto polls, voting, trading pairs, risk management, community voting, elite members{% endblock %}
+{% block og_title %}MIMIC Опитування - Shape Our Future{% endblock %}
 {% block og_description %}Elite members vote on new features, trading pairs, and platform changes. Your voice matters.{% endblock %}
 
 {% block structured_data %}
@@ -11,9 +11,9 @@
 {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "MIMIC Governance",
-    "description": "Community governance portal for Elite MIMIC members to vote on proposals",
-    "url": "https://mimic.cash/governance"
+    "name": "MIMIC Опитування",
+    "description": "Community polls portal for Elite MIMIC members to vote on proposals",
+    "url": "https://mimic.cash/polls"
 }
 </script>
 {% endblock %}
@@ -215,6 +215,122 @@
     @media (max-width: 500px) {
         .proposals-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .proposals-section {
+            padding: 0 16px 60px;
+        }
+
+        .proposals-grid {
+            gap: 16px;
+        }
+
+        .proposal-header {
+            padding: 16px 16px 0;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .proposal-category,
+        .proposal-status {
+            font-size: 0.65rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .proposal-body {
+            padding: 12px 16px;
+        }
+
+        .proposal-title {
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .proposal-description {
+            font-size: 0.8rem;
+            -webkit-line-clamp: 2;
+            margin-bottom: 14px;
+        }
+
+        .voting-section {
+            padding: 0 16px 14px;
+        }
+
+        .vote-labels {
+            font-size: 0.75rem;
+        }
+
+        .vote-label .percent {
+            font-size: 0.7rem;
+        }
+
+        .vote-progress-bar {
+            height: 8px;
+        }
+
+        .vote-stats {
+            font-size: 0.7rem;
+        }
+
+        .voting-actions {
+            padding: 0 16px 16px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .vote-btn {
+            font-size: 0.8rem;
+            padding: 10px 12px;
+            gap: 6px;
+        }
+
+        .proposal-footer {
+            padding: 12px 16px;
+            font-size: 0.7rem;
+        }
+    }
+
+    @media (max-width: 360px) {
+        .proposals-grid {
+            gap: 12px;
+        }
+
+        .proposal-header {
+            padding: 14px 14px 0;
+        }
+
+        .proposal-body {
+            padding: 10px 14px;
+        }
+
+        .proposal-title {
+            font-size: 0.95rem;
+        }
+
+        .proposal-description {
+            font-size: 0.75rem;
+        }
+
+        .voting-section {
+            padding: 0 14px 12px;
+        }
+
+        .voting-actions {
+            padding: 0 14px 14px;
+        }
+
+        .vote-btn {
+            font-size: 0.75rem;
+            padding: 9px 10px;
+        }
+
+        .proposal-footer {
+            padding: 10px 14px;
+            font-size: 0.65rem;
         }
     }
     
@@ -533,7 +649,8 @@
     .admin-actions {
         position: fixed;
         bottom: 30px;
-        right: 30px;
+        left: 30px;
+        right: auto;
         z-index: 100;
     }
     
@@ -741,7 +858,7 @@
 <!-- ==================== HERO SECTION ==================== -->
 <section class="governance-hero">
     <h1>
-        <span class="gradient" data-i18n="governance.title">Governance</span>
+        <span class="gradient" data-i18n="governance.title">Опитування</span>
     </h1>
     <p data-i18n="governance.subtitle">Shape the future of MIMIC. Elite members vote on new trading pairs, risk management changes, and exchange integrations.</p>
 </section>

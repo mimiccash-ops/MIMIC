@@ -2324,14 +2324,21 @@ def get_insurance_fund():
 
 # ==================== GOVERNANCE / VOTING SYSTEM ====================
 
+@app.route('/polls')
+@login_required
+def polls_page():
+    """
+    Polls page showing active proposals and voting UI.
+    Only Elite users (level >= 4) can vote, but all users can view.
+    """
+    return render_template('polls.html')
+
+
 @app.route('/governance')
 @login_required
 def governance_page():
-    """
-    Governance page showing active proposals and voting UI.
-    Only Elite users (level >= 4) can vote, but all users can view.
-    """
-    return render_template('governance.html')
+    """Legacy route: redirect governance to polls."""
+    return redirect(url_for('polls_page'), code=301)
 
 
 @app.route('/api/governance/proposals')

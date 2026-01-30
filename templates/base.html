@@ -297,13 +297,9 @@
                     {% endif %}
                     <div class="dropdown-divider"></div>
                     <!-- Community & Features -->
-                    <a href="{{ url_for('leaderboard') }}" class="dropdown-item">
+                    <a href="{{ url_for('polls_page') }}" class="dropdown-item">
                         <i class="fas fa-trophy"></i>
-                        <span data-i18n="nav.leaderboard">Leaderboard</span>
-                    </a>
-                    <a href="{{ url_for('governance_page') }}" class="dropdown-item">
-                        <i class="fas fa-vote-yea"></i>
-                        <span data-i18n="nav.governance">Governance</span>
+                        <span data-i18n="nav.governance">Polls</span>
                     </a>
                     <div class="dropdown-divider"></div>
                     <!-- Account -->
@@ -413,7 +409,7 @@
                     <h4 data-i18n="footer.platform">Platform</h4>
                     <ul>
                         <li><a href="{{ url_for('index') }}" data-i18n="footer.home">Home</a></li>
-                        <li><a href="{{ url_for('leaderboard') }}" data-i18n="nav.leaderboard">Leaderboard</a></li>
+                        <li><a href="{{ url_for('polls_page') }}" data-i18n="nav.governance">Polls</a></li>
                         <li><a href="{{ url_for('faq_page') }}" data-i18n="footer.faq">FAQ</a></li>
                         <li><a href="{{ url_for('login') }}" data-i18n="footer.signIn">Sign In</a></li>
                         <li><a href="{{ url_for('register') }}" data-i18n="footer.getStarted">Get Started</a></li>
@@ -1234,8 +1230,8 @@
                         'footer.automated': 'Automated',
                         'footer.rights': 'All rights reserved.',
                         'footer.warning': 'Trading involves risk. Not financial advice.',
-                        'nav.leaderboard': 'Leaderboard',
-                        'nav.governance': 'Governance',
+                        'nav.leaderboard': 'Polls',
+                        'nav.governance': 'Polls',
                         'nav.login': 'Login',
                         'nav.logout': 'Logout',
                         'auth.referralInvite': 'You\'ve been invited!',
@@ -1513,8 +1509,8 @@
                         'footer.automated': 'Автоматизовано',
                         'footer.rights': 'Усі права захищені.',
                         'footer.warning': 'Торгівля пов\'язана з ризиком. Це не фінансова порада.',
-                        'nav.leaderboard': 'Лідерборд',
-                        'nav.governance': 'Управління',
+                        'nav.leaderboard': 'Опитування',
+                        'nav.governance': 'Опитування',
                         'nav.login': 'Увійти',
                         'nav.logout': 'Вийти',
                         'auth.referralInvite': 'Вас запросили!',
