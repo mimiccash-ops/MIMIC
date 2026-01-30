@@ -8,9 +8,9 @@
     <i class="fas fa-crown"></i>
     <span data-i18n="section.overview">Overview</span>
 </a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-    <i class="fas fa-chart-line"></i>
-    <span data-i18n="section.trading">Trading</span>
+<a href="{{ url_for('admin_trading') }}" class="mobile-nav-item" onclick="closeMobileMenu();">
+    <i class="fas fa-sliders-h"></i>
+    <span data-i18n="nav.tradingSettings">Trading & Settings</span>
 </a>
 <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('exchange'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-cogs"></i>
@@ -19,10 +19,6 @@
 <a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
     <i class="fas fa-tasks"></i>
     <span data-i18n="section.tasks">Tasks</span>
-</a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('settings'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-    <i class="fas fa-sliders-h"></i>
-    <span data-i18n="section.settings">Settings</span>
 </a>
 {% endblock %}
 
@@ -351,156 +347,6 @@
 
     </div>
 
-    <!-- ==================== TRADING (Stats + Positions + History) ==================== -->
-    <div class="section-content" data-section="trading">
-        <!-- Stats -->
-        <div class="card mb-6" id="admin-subscription-management">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-chart-line text-magenta"></i>
-                    <span data-i18n="admin.growth">Growth</span>
-                </h2>
-                <div class="period-pills">
-                    <button onclick="setChartPeriod('24h')" class="period-pill active" data-period="24h">24H</button>
-                    <button onclick="setChartPeriod('week')" class="period-pill" data-period="week">Week</button>
-                    <button onclick="setChartPeriod('month')" class="period-pill" data-period="month">Month</button>
-                </div>
-            </div>
-            
-            <div class="grid grid-4 mb-4">
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.result">Result</div>
-                    <div id="stats-result" class="font-mono font-semibold text-lg text-green">+$0</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.trades">Trades</div>
-                    <div id="stats-trades" class="font-mono font-semibold text-lg text-cyan">0</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.winRate">Win Rate</div>
-                    <div id="stats-winrate" class="font-mono font-semibold text-lg text-magenta">0%</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.avgRoi">Avg ROI</div>
-                    <div id="stats-avgroi" class="font-mono font-semibold text-lg text-yellow">0%</div>
-                </div>
-            </div>
-            
-            <div style="height: 200px; position: relative;">
-                <canvas id="masterChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Logs -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-stream text-cyan"></i>
-                    <span data-i18n="admin.liveLogs">Live Logs</span>
-                    <span class="live-dot"></span>
-                </h2>
-                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
-                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
-                    <span class="text-cyan">[SYSTEM]</span>
-                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Master Positions -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-3">
-                    <i class="fas fa-layer-group text-cyan"></i>
-                    <span data-i18n="admin.masterPositions">Master Positions</span>
-                    <span id="master-positions-count" class="badge badge-primary">{{ master_positions|length }}</span>
-                </h2>
-                <div class="flex items-center gap-2">
-                    <span class="live-dot"></span>
-                    <span class="text-sm text-muted" data-i18n="dash.live">Live</span>
-                </div>
-            </div>
-            <div id="master-positions-container" class="flex flex-col gap-3">
-                {% if master_positions_loaded %}
-                    {% if master_positions %}
-                        {% for pos in master_positions %}
-                        <div class="position-item">
-                            <div class="flex items-center gap-3">
-                                <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
-                                    <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
-                                </div>
-                                <div>
-                                    <div class="font-display font-semibold">{{ pos.symbol }}</div>
-                                    <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
-                                    {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state" style="padding: 20px;">
-                            <i class="fas fa-inbox"></i>
-                            <p data-i18n="dash.noOpenPositions">No open positions</p>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <div class="empty-state" style="padding: 20px;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading...</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Trade History -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-history text-magenta"></i>
-                    <span data-i18n="admin.closedTrades">Closed Trades</span>
-                </h2>
-                <span class="text-sm text-muted">{{ closed_trades|length }} <span data-i18n="dash.trades">trades</span></span>
-            </div>
-        
-            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th data-i18n="admin.tableTime">Time</th>
-                            <th data-i18n="admin.tableNode">Node</th>
-                            <th data-i18n="admin.tableSymbol">Symbol</th>
-                            <th style="text-align: center;" data-i18n="admin.tableSide">Side</th>
-                            <th style="text-align: right;" data-i18n="admin.tablePnl">PnL</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trades-body">
-                        {% for trade in closed_trades %}
-                        <tr class="trade-row border-b border-[var(--border-color)] border-opacity-30">
-                            <td class="py-2 px-2 text-muted">{{ trade.time }}</td>
-                            <td class="py-2 px-2 font-bold text-bright">{{ trade.node }}</td>
-                            <td class="py-2 px-2 font-mono text-bright">{{ trade.symbol }}</td>
-                            <td class="py-2 px-1 text-center">
-                                <span class="badge {{ 'badge-success' if trade.side == 'LONG' else 'badge-danger' }}">{{ trade.side }}</span>
-                            </td>
-                            <td class="py-2 px-2 text-right font-mono font-bold {{ 'text-green' if trade.pnl >= 0 else 'text-red' }}">
-                                {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <!-- ==================== EXCHANGE ==================== -->
     <div class="section-content" data-section="exchange">
         <!-- Connect New Exchange -->
@@ -710,225 +556,6 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== SETTINGS (Controls + Settings) ==================== -->
-    <div class="section-content" data-section="settings">
-        <!-- Control Terminal -->
-        <div class="command-terminal rounded-xl overflow-hidden mb-6">
-            <div class="terminal-header"></div>
-            <div class="p-3">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="font-cyber text-xs tracking-widest text-bright">CONTROL TERMINAL</span>
-                    <span class="badge badge-primary">LIVE</span>
-                </div>
-                
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <form method="POST" action="{{ url_for('actions', action_type='resume') }}" style="display: contents;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="cyber-btn cyber-btn-gradient-green py-4 flex-col gap-2">
-                            <i class="fas fa-play text-xl"></i>
-                            <span class="text-xs font-display font-semibold">START</span>
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('actions', action_type='pause') }}" style="display: contents;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="cyber-btn cyber-btn-gradient-yellow py-4 flex-col gap-2">
-                            <i class="fas fa-pause text-xl"></i>
-                            <span class="text-xs font-display font-semibold">PAUSE</span>
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('actions', action_type='reload') }}" style="display: contents;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="cyber-btn cyber-btn-gradient-blue py-4 flex-col gap-2">
-                            <i class="fas fa-sync text-xl"></i>
-                            <span class="text-xs font-display font-semibold">RELOAD</span>
-                        </button>
-                    </form>
-                    <button onclick="confirmPanic()" class="cyber-btn cyber-btn-danger py-4 flex-col gap-2">
-                        <i class="fas fa-radiation text-xl"></i>
-                        <span class="text-xs font-display font-semibold">PANIC</span>
-                    </button>
-                </div>
-                
-                {% if engine_paused %}
-                <div class="mt-3 p-2 bg-[rgba(255,240,0,0.08)] border border-[rgba(255,240,0,0.25)] rounded-xl flex items-center gap-2 animate-pulse">
-                    <i class="fas fa-pause-circle text-lg text-yellow"></i>
-                    <span class="text-yellow font-cyber text-xs tracking-wider">TRADING PAUSED</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Global Settings -->
-        <div class="card mb-6">
-            <h2 class="font-display font-semibold flex items-center gap-2 mb-4">
-                <i class="fas fa-sliders-h text-magenta"></i>
-                <span data-i18n="admin.globalSettings">Global Settings</span>
-            </h2>
-            <form method="POST" action="{{ url_for('admin_update_global_settings') }}" class="grid grid-cols-3 sm:grid-cols-7 gap-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-percentage text-cyan"></i> Risk%
-                    </label>
-                    <input type="number" name="global_risk" value="{{ global_settings.risk_perc }}" step="0.01" class="input" min="0.01" max="100">
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-bolt text-magenta"></i> Lever
-                    </label>
-                    <input type="number" name="global_leverage" value="{{ global_settings.leverage }}" class="input" min="1" max="125">
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-arrow-up text-green"></i> TP%
-                    </label>
-                    <input type="number" name="global_tp" value="{{ global_settings.tp_perc }}" step="0.1" min="0.1" max="100" class="input" required>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-arrow-down text-red"></i> SL%
-                    </label>
-                    <input type="number" name="global_sl" value="{{ global_settings.sl_perc }}" step="0.1" min="0.1" max="100" class="input" required>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-layer-group text-yellow"></i> Max
-                    </label>
-                    <input type="number" name="global_max_pos" value="{{ global_settings.max_positions }}" class="input" min="1" max="50">
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-wallet text-purple"></i> Min$
-                    </label>
-                    <input type="number" name="global_min_balance" value="{{ global_settings.min_balance }}" step="0.01" class="input" min="0" max="100000" title="Minimum balance required to trade. Users with less balance cannot trade.">
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="cyber-btn w-full">
-                        <i class="fas fa-save"></i>
-                        <span data-i18n="btn.save">Save</span>
-                    </button>
-                </div>
-            </form>
-            <p class="text-xxs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
-        </div>
-        
-        <!-- Strategies Management -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-chess-knight text-purple"></i>
-                    <span>Trading Strategies</span>
-                </h2>
-                <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm">
-                    <i class="fas fa-plus"></i>
-                    <span>New Strategy</span>
-                </button>
-            </div>
-            
-            <div id="admin-strategies-container" class="space-y-3">
-                <div class="flex items-center justify-center py-6">
-                    <i class="fas fa-spinner fa-spin text-2xl text-muted"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Chat Moderation -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-comments text-cyan"></i>
-                    <span>Live Chat Moderation</span>
-                </h2>
-                <button onclick="refreshChatBans()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
-                    <i class="fas fa-sync"></i>
-                    <span>Refresh</span>
-                </button>
-            </div>
-            
-            <!-- Chat Settings -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
-                    <div class="flex items-center gap-2 text-xs text-muted mb-1">
-                        <i class="fas fa-users text-cyan"></i>
-                        <span>Chat Room</span>
-                    </div>
-                    <span class="text-lg font-display font-semibold text-bright">General Room</span>
-                </div>
-                <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
-                    <div class="flex items-center gap-2 text-xs text-muted mb-1">
-                        <i class="fas fa-ban text-red"></i>
-                        <span>Active Bans</span>
-                    </div>
-                    <span class="text-lg font-display font-semibold text-red" id="activeBansCount">0</span>
-                </div>
-            </div>
-            
-            <!-- Quick Actions -->
-            <div class="mb-4">
-                <label class="text-xs text-muted mb-2 block">Quick Actions - Select a user to moderate:</label>
-                <div class="flex gap-2">
-                    <select id="chatModerateUser" class="input flex-1">
-                        <option value="">-- Select User --</option>
-                    </select>
-                    <button onclick="muteSelectedUser(15)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 15 minutes">
-                        <i class="fas fa-volume-mute"></i>
-                        15m
-                    </button>
-                    <button onclick="muteSelectedUser(60)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 1 hour">
-                        <i class="fas fa-volume-mute"></i>
-                        1h
-                    </button>
-                    <button onclick="banSelectedUser()" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Permanent Ban">
-                        <i class="fas fa-ban"></i>
-                        Ban
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Active Bans List -->
-            <div>
-                <label class="text-xs text-muted mb-2 block">Currently Banned/Muted Users:</label>
-                <div id="chatBansList" class="space-y-2 max-h-48 overflow-y-auto">
-                    <div class="text-center py-4 text-muted text-sm">
-                        <i class="fas fa-spinner fa-spin"></i> Завантаження...
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Admin Profile -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-user-shield text-yellow"></i>
-                    <span data-i18n="admin.adminSettings">Admin Settings</span>
-                </h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="user-avatar-lg position-relative" style="background: linear-gradient(135deg, rgba(255, 208, 0, 0.2), rgba(255, 0, 212, 0.2)); border-color: var(--neon-yellow); cursor: pointer;" onclick="openAdminAvatarModal()">
-                    {% if current_user.avatar_type == 'image' and current_user.avatar %}
-                    <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-                    {% else %}
-                    <span>{{ current_user.avatar or '👑' }}</span>
-                    {% endif %}
-                    <div class="avatar-edit" style="position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; background: var(--gradient-primary); border: 2px solid var(--color-surface); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-camera" style="font-size: 0.5rem; color: #000;"></i>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <button onclick="openAdminAvatarModal()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Change Avatar</span>
-                    </button>
-                    <a href="{{ url_for('change_password') }}" class="cyber-btn cyber-btn-outline cyber-btn-sm">
-                        <i class="fas fa-key"></i>
-                        <span data-i18n="dash.changePassword">Change Password</span>
-                    </a>
-                </div>
             </div>
         </div>
     </div>
@@ -1257,50 +884,6 @@
     </div>
 </div>
 
-<!-- Admin Avatar Modal -->
-<div id="adminAvatarModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAvatarModal()">
-    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 400px;">
-        <div class="modal-header">
-            <div class="modal-title">
-                <i class="fas fa-user-circle text-gradient"></i>
-                <span>Change Avatar</span>
-            </div>
-            <button onclick="closeAdminAvatarModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <form id="admin-avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
-                <!-- Emoji Selection -->
-                <div class="mb-4">
-                    <label class="text-sm text-muted mb-2 block">Choose Emoji</label>
-                    <div id="emoji-grid" class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 8px;">
-                        {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
-                        <button type="button" onclick="selectAdminEmoji('{{ emoji }}')" class="emoji-btn p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xl hover:border-[var(--neon-cyan)] transition-all" data-emoji="{{ emoji }}">
-                            {{ emoji }}
-                        </button>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" name="emoji" id="selected-admin-emoji" value="{{ current_user.avatar or '👑' }}">
-                    <input type="hidden" name="avatar_type" id="admin-avatar-type" value="emoji">
-                </div>
-                
-                <!-- Or Upload Image -->
-                <div class="mb-4">
-                    <label class="text-sm text-muted mb-2 block">Or Upload Image</label>
-                    <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input" onchange="setAdminAvatarType('image')">
-                    <p class="text-xxs text-muted mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
-                </div>
-                
-                <button type="submit" class="cyber-btn w-full">
-                    <i class="fas fa-save"></i>
-                    <span data-i18n="btn.save">Зберегти аватар</span>
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block extra_scripts %}
@@ -1449,20 +1032,22 @@
         socket.on('master_data', (data) => {
             const balanceEl = document.getElementById('master-balance');
             let totalBalance = null;
-            if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
-                balanceEl.innerHTML = '$' + data.balance;
-                balanceEl.classList.remove('text-muted');
-                const parsed = parseFloat(String(data.balance).replace(/,/g, ''));
-                if (Number.isFinite(parsed)) {
-                    totalBalance = parsed;
+            if (balanceEl) {
+                if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
+                    balanceEl.innerHTML = '$' + data.balance;
+                    balanceEl.classList.remove('text-muted');
+                    const parsed = parseFloat(String(data.balance).replace(/,/g, ''));
+                    if (Number.isFinite(parsed)) {
+                        totalBalance = parsed;
+                    }
+                } else if (data.exchange_balances && data.exchange_balances.length > 0) {
+                    // Calculate total from exchange balances
+                    const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
+                    balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
+                    totalBalance = total;
+                } else {
+                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
                 }
-            } else if (data.exchange_balances && data.exchange_balances.length > 0) {
-                // Calculate total from exchange balances
-                const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
-                balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
-                totalBalance = total;
-            } else {
-                balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
             }
             if (totalBalance !== null) {
                 updateSafetyPoolDisplay(totalBalance);
@@ -1473,6 +1058,7 @@
         
         socket.on('new_log', (entry) => {
             const container = document.getElementById('log-container');
+            if (!container) return;
             const div = document.createElement('div');
             div.className = `p-1.5 bg-[var(--bg-element)] rounded log-entry ${entry.is_error ? 'log-error' : 'log-info'}`;
             div.innerHTML = `<span class="text-muted">[${entry.time}]</span><span class="text-cyan ml-1">${entry.symbol}</span><span class="ml-1 text-bright">${entry.message}</span>`;
@@ -1482,6 +1068,7 @@
 
         socket.on('trade_closed', (trade) => {
             const tbody = document.getElementById('trades-body');
+            if (!tbody) return;
             const tr = document.createElement('tr');
             tr.className = 'trade-row border-b border-[var(--border-color)] border-opacity-30';
             tr.innerHTML = `<td class="py-2 px-2 text-muted">${trade.time}</td><td class="py-2 px-2 font-bold text-bright">${trade.node}</td><td class="py-2 px-2 font-mono">${trade.symbol}</td><td class="py-2 px-1 text-center"><span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span></td><td class="py-2 px-2 text-right font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</td>`;
@@ -1532,6 +1119,7 @@
     function renderMasterPositions(positions) {
         const container = document.getElementById('master-positions-container');
         const countEl = document.getElementById('master-positions-count');
+        if (!container) return;
         if (countEl) countEl.textContent = positions?.length || 0;
         if (!positions || positions.length === 0) {
             container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">${t('admin.noPositions')}</p></div>`;
@@ -1615,178 +1203,12 @@
     }
     function loadUnreadCount() { fetch('/api/messages/unread').then(r => r.json()).then(data => { const stat = document.getElementById('unread-messages-stat'); if (stat) stat.querySelector('p').textContent = data.unread; }).catch(console.error); }
 
-    // ==================== CHAT MODERATION ====================
-    
-    async function loadChatUsers() {
-        try {
-            const response = await fetch('/api/users/list');
-            const users = await response.json();
-            const select = document.getElementById('chatModerateUser');
-            if (!select) return;
-            
-            select.innerHTML = '<option value="">-- Select User --</option>';
-            users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.id;
-                opt.textContent = `${u.username} (${u.name || u.username})`;
-                select.appendChild(opt);
-            });
-        } catch (err) {
-            console.error('Failed to load users:', err);
-        }
-    }
-    
-    async function refreshChatBans() {
-        try {
-            const response = await fetch('/api/admin/chat/bans?active_only=true');
-            const data = await response.json();
-            
-            if (!data.success) {
-                showToast(data.error || 'Failed to load bans', 'error');
-                return;
-            }
-            
-            const container = document.getElementById('chatBansList');
-            const countEl = document.getElementById('activeBansCount');
-            
-            if (countEl) countEl.textContent = data.bans.length;
-            
-            if (!data.bans || data.bans.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-4 text-green">
-                        <i class="fas fa-check-circle"></i> No active bans
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = data.bans.map(ban => `
-                <div class="flex items-center justify-between p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
-                    <div class="flex items-center gap-2">
-                        <span class="badge ${ban.ban_type === 'ban' ? 'badge-danger' : 'badge-warning'}">
-                            ${ban.ban_type.toUpperCase()}
-                        </span>
-                        <span class="text-sm font-semibold">${ban.username}</span>
-                        ${ban.reason ? `<span class="text-xs text-muted">- ${ban.reason}</span>` : ''}
-                    </div>
-                    <div class="flex items-center gap-2">
-                        ${ban.expires_at ? `<span class="text-xxs text-muted">Expires: ${new Date(ban.expires_at).toLocaleString()}</span>` : '<span class="text-xxs text-red">Permanent</span>'}
-                        <button onclick="unbanUser(${ban.user_id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Remove ban">
-                            <i class="fas fa-unlock"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-            
-        } catch (err) {
-            console.error('Failed to refresh bans:', err);
-            showToast(t('dash.error'), 'error');
-        }
-    }
-    
-    async function muteSelectedUser(duration) {
-        const userId = document.getElementById('chatModerateUser').value;
-        if (!userId) {
-            showToast(t('admin.selectUser'), 'warning');
-            return;
-        }
-        
-        const reason = prompt(`Причина мюту (опціонально):`);
-        
-        try {
-            const response = await fetch('/api/admin/chat/mute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: parseInt(userId),
-                    duration: duration,
-                    reason: reason || 'Chat rule violation'
-                })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(data.message, 'success');
-                refreshChatBans();
-            } else {
-                showToast(data.error || 'Failed to mute user', 'error');
-            }
-        } catch (err) {
-            console.error('Mute error:', err);
-            showToast('Failed to mute user', 'error');
-        }
-    }
-    
-    async function banSelectedUser() {
-        const userId = document.getElementById('chatModerateUser').value;
-        if (!userId) {
-            showToast(t('admin.selectUser'), 'warning');
-            return;
-        }
-        
-        if (!confirm('Ти впевнений, що хочеш НАЗАВЖДИ заблокувати цього користувача в чаті?')) {
-            return;
-        }
-
-        const reason = prompt(`Причина бану:`);
-        
-        try {
-            const response = await fetch('/api/admin/chat/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: parseInt(userId),
-                    reason: reason || 'Chat rule violation'
-                })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(data.message, 'success');
-                refreshChatBans();
-            } else {
-                showToast(data.error || 'Failed to ban user', 'error');
-            }
-        } catch (err) {
-            console.error('Ban error:', err);
-            showToast('Failed to ban user', 'error');
-        }
-    }
-    
-    async function unbanUser(userId) {
-        if (!confirm('Зняти цей бан/мют?')) return;
-        
-        try {
-            const response = await fetch('/api/admin/chat/unban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(data.message, 'success');
-                refreshChatBans();
-            } else {
-                showToast(data.error || 'Не вдалося розблокувати користувача', 'error');
-            }
-        } catch (err) {
-            console.error('Unban error:', err);
-            showToast('Не вдалося розблокувати користувача', 'error');
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
-        loadMasterChart();
-        loadMasterStats();
         loadUnreadCount();
         loadAllExchangeConfigs();
         loadExchangeConfigs();
         loadPendingExchanges();
         loadAllUserExchanges();
-        loadAdminStrategies();
-        loadChatUsers();
-        refreshChatBans();
         loadAdminSafetyPool();
         loadAdminPlatformStats();
         

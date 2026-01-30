@@ -1,0 +1,939 @@
+{% extends "base.html" %}
+
+{% block title %}Trading & Settings{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .command-terminal { background: linear-gradient(165deg, rgba(12, 12, 24, 0.98), rgba(8, 8, 16, 0.99)); border: 1px solid rgba(0, 245, 255, 0.15); }
+    .terminal-header { background: linear-gradient(90deg, var(--neon-red), var(--neon-yellow), var(--neon-green)); height: 2px; }
+    .log-entry { transition: all 0.15s ease; border-radius: 6px; margin: 3px 0; border-left: 2px solid transparent; }
+    .log-entry:hover { background: rgba(0, 245, 255, 0.04); transform: translateX(3px); border-left-color: var(--neon-cyan); }
+    .log-error { border-left-color: var(--neon-red); background: rgba(255, 0, 68, 0.04); }
+    .log-info { border-left-color: var(--neon-cyan); background: rgba(0, 245, 255, 0.02); }
+    .period-pills { display: flex; gap: 6px; }
+    .period-pill { padding: 6px 10px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-muted); background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; text-transform: uppercase; }
+    .period-pill:hover { color: var(--neon-magenta); border-color: var(--neon-magenta); }
+    .period-pill.active { color: #000; background: linear-gradient(135deg, var(--neon-magenta), var(--neon-cyan)); border-color: transparent; }
+    .stat-number { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: clamp(0.85rem, 3vw, 1.2rem); letter-spacing: -0.3px; }
+    .position-card { transition: all 0.15s ease; }
+    .position-card:hover { transform: translateX(2px); }
+    .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
+    .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+
+    /* Modal Overlay Styles */
+    .modal-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-width: 100vw !important;
+        min-height: 100vh !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 99999 !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal-overlay.show {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Ensure modal is visible when display is set via inline style */
+    .modal-overlay[style*="display: flex"],
+    .modal-overlay[style*="display:flex"],
+    .modal-overlay[style*="display: flex !important"],
+    .modal-overlay[style*="display:flex !important"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+    }
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-card {
+        width: 100%;
+        max-width: 500px;
+        background: var(--color-surface-2, #15151e);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        animation: modalIn 0.3s ease;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 245, 255, 0.1);
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-8">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="font-display text-xl font-semibold flex items-center gap-3">
+                    <i class="fas fa-sliders-h text-magenta"></i>
+                    <span data-i18n="nav.tradingSettings">Trading & Settings</span>
+                </h1>
+                <p class="text-muted text-sm mt-1">Centralized controls, configuration, and live trading monitoring.</p>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Dashboard</span>
+            </a>
+        </div>
+
+        <!-- Control Terminal -->
+        <div class="command-terminal rounded-xl overflow-hidden mb-6">
+            <div class="terminal-header"></div>
+            <div class="p-3">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-cyber text-xs tracking-widest text-bright">CONTROL TERMINAL</span>
+                    <span class="badge badge-primary">LIVE</span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <form method="POST" action="{{ url_for('actions', action_type='resume') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-green py-4 flex-col gap-2">
+                            <i class="fas fa-play text-xl"></i>
+                            <span class="text-xs font-display font-semibold">START</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('actions', action_type='pause') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-yellow py-4 flex-col gap-2">
+                            <i class="fas fa-pause text-xl"></i>
+                            <span class="text-xs font-display font-semibold">PAUSE</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('actions', action_type='reload') }}" style="display: contents;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="cyber-btn cyber-btn-gradient-blue py-4 flex-col gap-2">
+                            <i class="fas fa-sync text-xl"></i>
+                            <span class="text-xs font-display font-semibold">RELOAD</span>
+                        </button>
+                    </form>
+                    <button onclick="confirmPanic()" class="cyber-btn cyber-btn-danger py-4 flex-col gap-2">
+                        <i class="fas fa-radiation text-xl"></i>
+                        <span class="text-xs font-display font-semibold">PANIC</span>
+                    </button>
+                </div>
+                
+                {% if engine_paused %}
+                <div class="mt-3 p-2 bg-[rgba(255,240,0,0.08)] border border-[rgba(255,240,0,0.25)] rounded-xl flex items-center gap-2 animate-pulse">
+                    <i class="fas fa-pause-circle text-lg text-yellow"></i>
+                    <span class="text-yellow font-cyber text-xs tracking-wider">TRADING PAUSED</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Global Settings -->
+        <div class="card mb-6">
+            <h2 class="font-display font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-sliders-h text-magenta"></i>
+                <span data-i18n="admin.globalSettings">Global Settings</span>
+            </h2>
+            <form method="POST" action="{{ url_for('admin_update_global_settings') }}" class="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-percentage text-cyan"></i> Risk%
+                    </label>
+                    <input type="number" name="global_risk" value="{{ global_settings.risk_perc }}" step="0.01" class="input" min="0.01" max="100">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-bolt text-magenta"></i> Lever
+                    </label>
+                    <input type="number" name="global_leverage" value="{{ global_settings.leverage }}" class="input" min="1" max="125">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-arrow-up text-green"></i> TP%
+                    </label>
+                    <input type="number" name="global_tp" value="{{ global_settings.tp_perc }}" step="0.1" min="0.1" max="100" class="input" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-arrow-down text-red"></i> SL%
+                    </label>
+                    <input type="number" name="global_sl" value="{{ global_settings.sl_perc }}" step="0.1" min="0.1" max="100" class="input" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-layer-group text-yellow"></i> Max
+                    </label>
+                    <input type="number" name="global_max_pos" value="{{ global_settings.max_positions }}" class="input" min="1" max="50">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xxs text-muted flex items-center gap-1">
+                        <i class="fas fa-wallet text-purple"></i> Min$
+                    </label>
+                    <input type="number" name="global_min_balance" value="{{ global_settings.min_balance }}" step="0.01" class="input" min="0" max="100000" title="Minimum balance required to trade. Users with less balance cannot trade.">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="cyber-btn w-full">
+                        <i class="fas fa-save"></i>
+                        <span data-i18n="btn.save">Save</span>
+                    </button>
+                </div>
+            </form>
+            <p class="text-xxs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
+        </div>
+        
+        <!-- Strategies Management -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-chess-knight text-purple"></i>
+                    <span>Trading Strategies</span>
+                </h2>
+                <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm">
+                    <i class="fas fa-plus"></i>
+                    <span>New Strategy</span>
+                </button>
+            </div>
+            
+            <div id="admin-strategies-container" class="space-y-3">
+                <div class="flex items-center justify-center py-6">
+                    <i class="fas fa-spinner fa-spin text-2xl text-muted"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Growth -->
+        <div class="card mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-chart-line text-magenta"></i>
+                    <span data-i18n="admin.growth">Growth</span>
+                </h2>
+                <div class="period-pills">
+                    <button onclick="setChartPeriod('24h')" class="period-pill active" data-period="24h">24H</button>
+                    <button onclick="setChartPeriod('week')" class="period-pill" data-period="week">Week</button>
+                    <button onclick="setChartPeriod('month')" class="period-pill" data-period="month">Month</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-4 mb-4">
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.result">Result</div>
+                    <div id="stats-result" class="font-mono font-semibold text-lg text-green">+$0</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.trades">Trades</div>
+                    <div id="stats-trades" class="font-mono font-semibold text-lg text-cyan">0</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.winRate">Win Rate</div>
+                    <div id="stats-winrate" class="font-mono font-semibold text-lg text-magenta">0%</div>
+                </div>
+                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                    <div class="text-muted text-sm mb-1" data-i18n="dash.avgRoi">Avg ROI</div>
+                    <div id="stats-avgroi" class="font-mono font-semibold text-lg text-yellow">0%</div>
+                </div>
+            </div>
+            
+            <div style="height: 200px; position: relative;">
+                <canvas id="masterChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Master Positions -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-3">
+                    <i class="fas fa-layer-group text-cyan"></i>
+                    <span data-i18n="admin.masterPositions">Master Positions</span>
+                    <span id="master-positions-count" class="badge badge-primary">{{ master_positions|length }}</span>
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span class="live-dot"></span>
+                    <span class="text-sm text-muted" data-i18n="dash.live">Live</span>
+                </div>
+            </div>
+            <div id="master-positions-container" class="flex flex-col gap-3">
+                {% if master_positions_loaded %}
+                    {% if master_positions %}
+                        {% for pos in master_positions %}
+                        <div class="position-item">
+                            <div class="flex items-center gap-3">
+                                <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
+                                    <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
+                                </div>
+                                <div>
+                                    <div class="font-display font-semibold">{{ pos.symbol }}</div>
+                                    <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
+                                    {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state" style="padding: 20px;">
+                            <i class="fas fa-inbox"></i>
+                            <p data-i18n="dash.noOpenPositions">No open positions</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading...</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Live Logs -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-stream text-cyan"></i>
+                    <span data-i18n="admin.liveLogs">Live Logs</span>
+                    <span class="live-dot"></span>
+                </h2>
+                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
+                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
+                    <span class="text-cyan">[SYSTEM]</span>
+                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade History -->
+        <div class="card mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-history text-magenta"></i>
+                    <span data-i18n="admin.closedTrades">Closed Trades</span>
+                </h2>
+                <span class="text-sm text-muted">{{ closed_trades|length }} <span data-i18n="dash.trades">trades</span></span>
+            </div>
+        
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="admin.tableTime">Time</th>
+                            <th data-i18n="admin.tableNode">Node</th>
+                            <th data-i18n="admin.tableSymbol">Symbol</th>
+                            <th style="text-align: center;" data-i18n="admin.tableSide">Side</th>
+                            <th style="text-align: right;" data-i18n="admin.tablePnl">PnL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-body">
+                        {% for trade in closed_trades %}
+                        <tr class="trade-row border-b border-[var(--border-color)] border-opacity-30">
+                            <td class="py-2 px-2 text-muted">{{ trade.time }}</td>
+                            <td class="py-2 px-2 font-bold text-bright">{{ trade.node }}</td>
+                            <td class="py-2 px-2 font-mono text-bright">{{ trade.symbol }}</td>
+                            <td class="py-2 px-1 text-center">
+                                <span class="badge {{ 'badge-success' if trade.side == 'LONG' else 'badge-danger' }}">{{ trade.side }}</span>
+                            </td>
+                            <td class="py-2 px-2 text-right font-mono font-bold {{ 'text-green' if trade.pnl >= 0 else 'text-red' }}">
+                                {{ '+' if trade.pnl >= 0 else '' }}{{ "%.2f"|format(trade.pnl) }}$
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Profile -->
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-user-shield text-yellow"></i>
+                    <span data-i18n="admin.adminSettings">Admin Settings</span>
+                </h2>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="user-avatar-lg position-relative" style="background: linear-gradient(135deg, rgba(255, 208, 0, 0.2), rgba(255, 0, 212, 0.2)); border-color: var(--neon-yellow); cursor: pointer;" onclick="openAdminAvatarModal()">
+                    {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                    <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                    <span>{{ current_user.avatar or '👑' }}</span>
+                    {% endif %}
+                    <div class="avatar-edit" style="position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; background: var(--gradient-primary); border: 2px solid var(--color-surface); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-camera" style="font-size: 0.5rem; color: #000;"></i>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button onclick="openAdminAvatarModal()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Change Avatar</span>
+                    </button>
+                    <a href="{{ url_for('change_password') }}" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-key"></i>
+                        <span data-i18n="dash.changePassword">Change Password</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Avatar Modal -->
+<div id="adminAvatarModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAvatarModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 400px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-user-circle text-gradient"></i>
+                <span>Change Avatar</span>
+            </div>
+            <button onclick="closeAdminAvatarModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="admin-avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
+                <!-- Emoji Selection -->
+                <div class="mb-4">
+                    <label class="text-sm text-muted mb-2 block">Choose Emoji</label>
+                    <div id="emoji-grid" class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                        {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
+                        <button type="button" onclick="selectAdminEmoji('{{ emoji }}')" class="emoji-btn p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xl hover:border-[var(--neon-cyan)] transition-all" data-emoji="{{ emoji }}">
+                            {{ emoji }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="emoji" id="selected-admin-emoji" value="{{ current_user.avatar or '👑' }}">
+                    <input type="hidden" name="avatar_type" id="admin-avatar-type" value="emoji">
+                </div>
+                
+                <!-- Or Upload Image -->
+                <div class="mb-4">
+                    <label class="text-sm text-muted mb-2 block">Or Upload Image</label>
+                    <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input" onchange="setAdminAvatarType('image')">
+                    <p class="text-xxs text-muted mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
+                </div>
+                
+                <button type="submit" class="cyber-btn w-full">
+                    <i class="fas fa-save"></i>
+                    <span data-i18n="btn.save">Зберегти аватар</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let socket = null;
+    let masterChart = null;
+    let currentPeriod = '24h';
+
+    function initSocket() {
+        if (typeof io === 'undefined') {
+            setTimeout(initSocket, 100);
+            return;
+        }
+
+        socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 60000,
+            randomizationFactor: 0.5,
+            timeout: 20000,
+            transports: ['websocket', 'polling'],
+            forceNew: false,
+            autoConnect: true
+        });
+        
+        socket.on('connect', () => { 
+            console.log('✅ Admin connected to WebSocket');
+            showToast(t('admin.connected'), 'success', 2000); 
+        });
+        
+        socket.on('connect_error', (err) => { 
+            if (!socket.reconnecting) {
+                console.warn('⚠️ Socket connection error:', err.message);
+            }
+        });
+        
+        socket.on('disconnect', (reason) => { 
+            console.log('🔌 Disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        socket.connect();
+                    }
+                }, 2000);
+            }
+        });
+        
+        socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`🔄 Reconnection attempt ${attemptNumber}`);
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log(`✅ Reconnected after ${attemptNumber} attempts`);
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.warn('❌ Reconnection failed, will retry later');
+        });
+        
+        socket.on('master_data', (data) => {
+            if (data.positions) renderMasterPositions(data.positions);
+        });
+        
+        socket.on('new_log', (entry) => {
+            const container = document.getElementById('log-container');
+            if (!container) return;
+            const div = document.createElement('div');
+            div.className = `p-1.5 bg-[var(--bg-element)] rounded log-entry ${entry.is_error ? 'log-error' : 'log-info'}`;
+            div.innerHTML = `<span class="text-muted">[${entry.time}]</span><span class="text-cyan ml-1">${entry.symbol}</span><span class="ml-1 text-bright">${entry.message}</span>`;
+            container.insertBefore(div, container.firstChild);
+            if (container.children.length > 30) container.removeChild(container.lastChild);
+        });
+
+        socket.on('trade_closed', (trade) => {
+            const tbody = document.getElementById('trades-body');
+            if (!tbody) return;
+            const tr = document.createElement('tr');
+            tr.className = 'trade-row border-b border-[var(--border-color)] border-opacity-30';
+            tr.innerHTML = `<td class="py-2 px-2 text-muted">${trade.time}</td><td class="py-2 px-2 font-bold text-bright">${trade.node}</td><td class="py-2 px-2 font-mono">${trade.symbol}</td><td class="py-2 px-1 text-center"><span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span></td><td class="py-2 px-2 text-right font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</td>`;
+            tbody.insertBefore(tr, tbody.firstChild);
+            if (trade.pnl >= 0) { showToast(`+${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'success'); if (typeof celebrateSuccess === 'function') celebrateSuccess(); }
+            else showToast(`${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'warning');
+        });
+        
+        socket.on('new_message', (msg) => { if (!msg.is_from_admin) { showToast(`📩 New message from ${msg.sender_name}`, 'info'); } });
+    }
+
+    async function refreshMasterPositions() {
+        try {
+            const response = await fetch('/api/master/positions');
+            const data = await response.json();
+            if (data.success) {
+                renderMasterPositions(data.positions || []);
+            }
+        } catch (err) {
+            console.warn('Failed to refresh master positions:', err);
+        }
+    }
+    
+    function renderMasterPositions(positions) {
+        const container = document.getElementById('master-positions-container');
+        const countEl = document.getElementById('master-positions-count');
+        if (!container) return;
+        if (countEl) countEl.textContent = positions?.length || 0;
+        if (!positions || positions.length === 0) {
+            container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">${t('admin.noPositions')}</p></div>`;
+            return;
+        }
+        container.innerHTML = positions.map(pos => `
+            <div class="position-card p-2 bg-[var(--bg-element)] rounded-lg" style="border-left: 2px solid ${pos.side === 'LONG' ? 'var(--neon-green)' : 'var(--neon-red)'};">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="badge text-xxs ${pos.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${pos.side}</span>
+                        <span class="font-mono font-bold text-xs text-bright">${pos.symbol}</span>
+                        <span class="text-xxs text-cyan">${pos.exchange || 'Binance'}</span>
+                    </div>
+                    <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function confirmPanic() {
+        if (confirm('⚠️ Close ALL positions on ALL accounts?\n\nThis is IRREVERSIBLE!')) {
+            showToast('🚨 Executing panic exit...', 'error');
+            fetch('/api/admin/panic', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(r => r.json())
+                .then(data => { if (data.success) { showToast(`Closed: Master=${data.master_closed}, Slaves=${data.slaves_closed}`, 'success'); setTimeout(() => location.reload(), 2000); } else showToast('Error: ' + (data.error || 'Unknown'), 'error'); })
+                .catch(() => showToast(t('dash.networkError'), 'error'));
+        }
+    }
+
+    function clearLogs() {
+        const container = document.getElementById('log-container');
+        if (!container) return;
+        container.innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1">Logs cleared</span></div>`;
+    }
+
+    function setChartPeriod(period) {
+        currentPeriod = period;
+        document.querySelectorAll('.period-pill').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
+        loadMasterChart();
+        loadMasterStats();
+    }
+
+    function loadMasterStats() {
+        const resultEl = document.getElementById('stats-result');
+        const tradesEl = document.getElementById('stats-trades');
+        const winEl = document.getElementById('stats-winrate');
+        const avgEl = document.getElementById('stats-avgroi');
+        if (!resultEl || !tradesEl || !winEl || !avgEl) return;
+
+        fetch(`/api/master_stats?period=${currentPeriod}`).then(r => r.json()).then(data => {
+            const pnl = data.total_pnl;
+            resultEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}`;
+            resultEl.className = `text-xs font-bold font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`;
+            tradesEl.textContent = data.total_trades;
+            winEl.textContent = `${data.win_rate}%`;
+            avgEl.textContent = `${data.avg_roi >= 0 ? '+' : ''}${data.avg_roi.toFixed(0)}%`;
+        }).catch(console.error);
+    }
+
+    function loadMasterChart() {
+        const chartEl = document.getElementById('masterChart');
+        if (!chartEl) return;
+        if (typeof Chart === 'undefined') {
+            setTimeout(loadMasterChart, 200);
+            return;
+        }
+        fetch(`/api/balance_history?user_id=master&period=${currentPeriod}`).then(r => r.json()).then(data => {
+            const ctx = chartEl.getContext('2d');
+            if (masterChart) masterChart.destroy();
+            const gradient = ctx.createLinearGradient(0, 0, 0, 130);
+            gradient.addColorStop(0, 'rgba(255, 0, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
+            masterChart = new Chart(ctx, { type: 'line', data: { labels: data.map(d => d.time), datasets: [{ data: data.map(d => d.balance), borderColor: '#ff00ff', backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#555', font: { size: 8 } } } }, animation: { duration: 500 } } });
+        }).catch(console.error);
+    }
+
+    // ==================== STRATEGY MANAGEMENT ====================
+    let adminStrategies = [];
+    
+    function loadAdminStrategies() {
+        const container = document.getElementById('admin-strategies-container');
+        if (!container) return;
+        
+        fetch('/api/admin/strategies')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load strategies');
+                }
+                
+                adminStrategies = data.strategies;
+                renderAdminStrategies();
+            })
+            .catch(err => {
+                console.error('Error loading strategies:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Failed to load strategies</p>
+                        <button onclick="loadAdminStrategies()" class="cyber-btn cyber-btn-sm mt-3">
+                            <i class="fas fa-sync"></i> Retry
+                        </button>
+                    </div>`;
+            });
+    }
+    
+    function renderAdminStrategies() {
+        const container = document.getElementById('admin-strategies-container');
+        if (!container) return;
+        
+        if (!adminStrategies.length) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-muted">
+                    <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
+                    <p data-i18n="admin.noStrategies">Стратегії ще не створені</p>
+                </div>`;
+            return;
+        }
+        
+        container.innerHTML = adminStrategies.map(s => {
+            const riskColor = { low: 'green', medium: 'yellow', high: 'red' }[s.risk_level] || 'muted';
+            return `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,0,0,0.3)] border border-[var(--color-border)] hover:border-[var(--neon-purple)] transition-all" data-strategy-id="${s.id}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center ${s.is_active ? 'bg-purple/20' : 'bg-muted/10'}">
+                            <i class="fas fa-chess-knight ${s.is_active ? 'text-purple' : 'text-muted'}"></i>
+                        </div>
+                        <div>
+                            <div class="font-display font-semibold ${s.is_active ? 'text-bright' : 'text-muted'}">${s.name}</div>
+                            <div class="text-xxs text-muted">${s.description || 'No description'}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
+                        <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="toggleStrategy(${s.id}, ${!s.is_active})" class="cyber-btn cyber-btn-sm ${s.is_active ? 'cyber-btn-warning' : 'cyber-btn-gradient-green'}" title="${s.is_active ? 'Deactivate' : 'Activate'}">
+                                <i class="fas fa-${s.is_active ? 'pause' : 'play'}"></i>
+                            </button>
+                            ${s.name !== 'Main' ? `<button onclick="deleteStrategy(${s.id}, '${s.name}')" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function openCreateStrategyModal() {
+        const modalHtml = `
+            <div id="strategyModal" class="modal-overlay" style="display: flex;" onclick="if(event.target===this)closeStrategyModal()">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <div class="modal-title">
+                            <i class="fas fa-chess-knight text-purple"></i>
+                            <span>Create Strategy</span>
+                        </div>
+                        <button onclick="closeStrategyModal()" class="modal-close"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="strategy-form" onsubmit="submitStrategy(event)" class="space-y-4">
+                            <input type="hidden" id="strategy-id" value="">
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Name *</label>
+                                <input type="text" id="strategy-name" class="input" placeholder="e.g., Aggressive BTC" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Description</label>
+                                <textarea id="strategy-description" class="input" rows="2" placeholder="Опис стратегії..."></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs text-muted">Risk Level</label>
+                                <select id="strategy-risk-level" class="input">
+                                    <option value="low">Low Risk</option>
+                                    <option value="medium" selected>Medium Risk</option>
+                                    <option value="high">High Risk</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Risk % Override</label>
+                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Глобальний" step="0.1" min="0.1" max="100">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Leverage Override</label>
+                                    <input type="number" id="strategy-leverage" class="input" placeholder="Глобальний" min="1" max="125">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xxs text-muted">Max Positions</label>
+                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Глобальний" min="1" max="50">
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="strategy-active" class="cyber-checkbox" checked>
+                                    <span class="text-sm">Active</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="cyber-btn w-full" id="strategy-submit-btn">
+                                <i class="fas fa-save"></i>
+                                <span>Create Strategy</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
+    function closeStrategyModal() {
+        const modal = document.getElementById('strategyModal');
+        if (modal) modal.remove();
+    }
+    
+    function editStrategy(strategyId) {
+        const strategy = adminStrategies.find(s => s.id === strategyId);
+        if (!strategy) return;
+        
+        openCreateStrategyModal();
+        
+        setTimeout(() => {
+            document.getElementById('strategy-id').value = strategyId;
+            document.getElementById('strategy-name').value = strategy.name;
+            document.getElementById('strategy-description').value = strategy.description || '';
+            document.getElementById('strategy-risk-level').value = strategy.risk_level;
+            document.getElementById('strategy-risk-perc').value = strategy.default_risk_perc || '';
+            document.getElementById('strategy-leverage').value = strategy.default_leverage || '';
+            document.getElementById('strategy-max-pos').value = strategy.max_positions || '';
+            document.getElementById('strategy-active').checked = strategy.is_active;
+            
+            document.querySelector('#strategyModal .modal-title span').textContent = 'Edit Strategy';
+            document.querySelector('#strategy-submit-btn span').textContent = 'Update Strategy';
+        }, 50);
+    }
+    
+    async function submitStrategy(event) {
+        event.preventDefault();
+        
+        const strategyId = document.getElementById('strategy-id').value;
+        const isEdit = !!strategyId;
+        
+        const data = {
+            name: document.getElementById('strategy-name').value.trim(),
+            description: document.getElementById('strategy-description').value.trim(),
+            risk_level: document.getElementById('strategy-risk-level').value,
+            default_risk_perc: parseFloat(document.getElementById('strategy-risk-perc').value) || null,
+            default_leverage: parseInt(document.getElementById('strategy-leverage').value) || null,
+            max_positions: parseInt(document.getElementById('strategy-max-pos').value) || null,
+            is_active: document.getElementById('strategy-active').checked
+        };
+        
+        const btn = document.getElementById('strategy-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const url = isEdit ? `/api/admin/strategies/${strategyId}` : '/api/admin/strategies';
+            const response = await fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(result.message || `Strategy ${isEdit ? 'updated' : 'created'}!`, 'success');
+                closeStrategyModal();
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to save strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error saving strategy:', err);
+            showToast(t('dash.networkError'), 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save"></i> <span>${isEdit ? 'Update' : 'Create'} Strategy</span>`;
+        }
+    }
+    
+    async function toggleStrategy(strategyId, activate) {
+        try {
+            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: activate })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(`Strategy ${activate ? 'activated' : 'deactivated'}`, 'success');
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to update strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error toggling strategy:', err);
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    async function deleteStrategy(strategyId, strategyName) {
+        if (!confirm(`Видалити стратегію "${strategyName}"?\n\nЦе неможливо скасувати.`)) return;
+        
+        try {
+            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(result.message || 'Strategy deleted', 'success');
+                loadAdminStrategies();
+            } else {
+                showToast(result.error || 'Failed to delete strategy', 'error');
+            }
+        } catch (err) {
+            console.error('Error deleting strategy:', err);
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+
+    // Admin Avatar Modal Functions
+    function openAdminAvatarModal() {
+        const modal = document.getElementById('adminAvatarModal');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeAdminAvatarModal() {
+        const modal = document.getElementById('adminAvatarModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function selectAdminEmoji(emoji) {
+        document.getElementById('selected-admin-emoji').value = emoji;
+        document.getElementById('admin-avatar-type').value = 'emoji';
+        
+        document.querySelectorAll('#emoji-grid .emoji-btn').forEach(btn => {
+            btn.classList.remove('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+            btn.classList.add('border-[var(--color-border)]');
+        });
+        event.target.closest('.emoji-btn').classList.remove('border-[var(--color-border)]');
+        event.target.closest('.emoji-btn').classList.add('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+    }
+    
+    function setAdminAvatarType(type) {
+        document.getElementById('admin-avatar-type').value = type;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initSocket();
+        loadMasterChart();
+        loadMasterStats();
+        loadAdminStrategies();
+        setTimeout(refreshMasterPositions, 800);
+    });
+</script>
+{% endblock %}

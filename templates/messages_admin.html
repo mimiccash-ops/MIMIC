@@ -489,6 +489,70 @@
         </div>
     </div>
 
+    <!-- Chat Moderation -->
+    <div class="messages-card animate-fade-in" style="animation-delay: 0.15s; margin-bottom: 24px;">
+        <div class="card-header">
+            <h3>
+                <i class="fas fa-comments"></i>
+                <span>Live Chat Moderation</span>
+            </h3>
+            <button onclick="refreshChatBans()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                <i class="fas fa-sync"></i>
+                <span>Refresh</span>
+            </button>
+        </div>
+        
+        <!-- Chat Settings -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                <div class="flex items-center gap-2 text-xs text-muted mb-1">
+                    <i class="fas fa-users text-cyan"></i>
+                    <span>Chat Room</span>
+                </div>
+                <span class="text-lg font-display font-semibold text-bright">General Room</span>
+            </div>
+            <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                <div class="flex items-center gap-2 text-xs text-muted mb-1">
+                    <i class="fas fa-ban text-red"></i>
+                    <span>Active Bans</span>
+                </div>
+                <span class="text-lg font-display font-semibold text-red" id="activeBansCount">0</span>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="mb-4">
+            <label class="text-xs text-muted mb-2 block">Quick Actions - Select a user to moderate:</label>
+            <div class="flex gap-2">
+                <select id="chatModerateUser" class="input flex-1">
+                    <option value="">-- Select User --</option>
+                </select>
+                <button onclick="muteSelectedUser(15)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 15 minutes">
+                    <i class="fas fa-volume-mute"></i>
+                    15m
+                </button>
+                <button onclick="muteSelectedUser(60)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 1 hour">
+                    <i class="fas fa-volume-mute"></i>
+                    1h
+                </button>
+                <button onclick="banSelectedUser()" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Permanent Ban">
+                    <i class="fas fa-ban"></i>
+                    Ban
+                </button>
+            </div>
+        </div>
+        
+        <!-- Active Bans List -->
+        <div>
+            <label class="text-xs text-muted mb-2 block">Currently Banned/Muted Users:</label>
+            <div id="chatBansList" class="space-y-2 max-h-48 overflow-y-auto">
+                <div class="text-center py-4 text-muted text-sm">
+                    <i class="fas fa-spinner fa-spin"></i> Завантаження...
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Messages List -->
     <div class="messages-card animate-fade-in" style="animation-delay: 0.2s;">
         <div class="card-header">
@@ -664,6 +728,171 @@
     }
     
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeComposeModal(); });
+
+    // ==================== CHAT MODERATION ====================
+    async function loadChatUsers() {
+        try {
+            const response = await fetch('/api/users/list');
+            const users = await response.json();
+            const select = document.getElementById('chatModerateUser');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Select User --</option>';
+            users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = `${u.username} (${u.name || u.username})`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Failed to load users:', err);
+        }
+    }
+    
+    async function refreshChatBans() {
+        try {
+            const response = await fetch('/api/admin/chat/bans?active_only=true');
+            const data = await response.json();
+            
+            if (!data.success) {
+                showToast(data.error || 'Failed to load bans', 'error');
+                return;
+            }
+            
+            const container = document.getElementById('chatBansList');
+            const countEl = document.getElementById('activeBansCount');
+            
+            if (countEl) countEl.textContent = data.bans.length;
+            
+            if (!data.bans || data.bans.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-green">
+                        <i class="fas fa-check-circle"></i> No active bans
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = data.bans.map(ban => `
+                <div class="flex items-center justify-between p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <span class="badge ${ban.ban_type === 'ban' ? 'badge-danger' : 'badge-warning'}">
+                            ${ban.ban_type.toUpperCase()}
+                        </span>
+                        <span class="text-sm font-semibold">${ban.username}</span>
+                        ${ban.reason ? `<span class="text-xs text-muted">- ${ban.reason}</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${ban.expires_at ? `<span class="text-xxs text-muted">Expires: ${new Date(ban.expires_at).toLocaleString()}</span>` : '<span class="text-xxs text-red">Permanent</span>'}
+                        <button onclick="unbanUser(${ban.user_id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Remove ban">
+                            <i class="fas fa-unlock"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+        } catch (err) {
+            console.error('Failed to refresh bans:', err);
+            showToast(t('dash.error'), 'error');
+        }
+    }
+    
+    async function muteSelectedUser(duration) {
+        const userId = document.getElementById('chatModerateUser').value;
+        if (!userId) {
+            showToast(t('admin.selectUser'), 'warning');
+            return;
+        }
+        
+        const reason = prompt(`Причина мюту (опціонально):`);
+        
+        try {
+            const response = await fetch('/api/admin/chat/mute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    duration: duration,
+                    reason: reason || 'Chat rule violation'
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Failed to mute user', 'error');
+            }
+        } catch (err) {
+            console.error('Mute error:', err);
+            showToast('Failed to mute user', 'error');
+        }
+    }
+    
+    async function banSelectedUser() {
+        const userId = document.getElementById('chatModerateUser').value;
+        if (!userId) {
+            showToast(t('admin.selectUser'), 'warning');
+            return;
+        }
+        
+        if (!confirm('Ти впевнений, що хочеш НАЗАВЖДИ заблокувати цього користувача в чаті?')) {
+            return;
+        }
+
+        const reason = prompt(`Причина бану:`);
+        
+        try {
+            const response = await fetch('/api/admin/chat/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    reason: reason || 'Chat rule violation'
+                })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Failed to ban user', 'error');
+            }
+        } catch (err) {
+            console.error('Ban error:', err);
+            showToast('Failed to ban user', 'error');
+        }
+    }
+    
+    async function unbanUser(userId) {
+        if (!confirm('Зняти цей бан/мют?')) return;
+        
+        try {
+            const response = await fetch('/api/admin/chat/unban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message, 'success');
+                refreshChatBans();
+            } else {
+                showToast(data.error || 'Не вдалося розблокувати користувача', 'error');
+            }
+        } catch (err) {
+            console.error('Unban error:', err);
+            showToast('Не вдалося розблокувати користувача', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadChatUsers();
+        refreshChatBans();
+    });
 
     const socket = io({
         reconnection: true,

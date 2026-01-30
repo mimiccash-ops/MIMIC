@@ -6208,6 +6208,26 @@ def admin_subscription():
     return render_template('admin_subscription.html')
 
 
+@app.route('/admin/trading')
+@login_required
+def admin_trading():
+    """Admin page to manage trading controls and settings"""
+    if current_user.role != 'admin':
+        abort(403)
+
+    history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
+    history_data = [h.to_dict() for h in history_objs]
+
+    return render_template(
+        'admin_trading.html',
+        engine_paused=engine.is_paused,
+        closed_trades=history_data,
+        master_positions=[],
+        master_positions_loaded=False,
+        global_settings=GLOBAL_TRADE_SETTINGS
+    )
+
+
 @app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])
 @login_required
 def admin_approve_payout(payout_id):

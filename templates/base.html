@@ -246,6 +246,24 @@
                     </div>
                     <div class="dropdown-divider"></div>
                     <!-- Section Navigation -->
+                    {% if current_user.role == 'admin' %}
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="overview" onclick="showSection('overview'); closeUserMenu(); return false;">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span data-i18n="section.overview">Overview</span>
+                    </a>
+                    <a href="{{ url_for('admin_trading') }}" class="dropdown-item" onclick="closeUserMenu();">
+                        <i class="fas fa-sliders-h"></i>
+                        <span data-i18n="nav.tradingSettings">Trading & Settings</span>
+                    </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="exchange" onclick="showSection('exchange'); closeUserMenu(); return false;">
+                        <i class="fas fa-plug"></i>
+                        <span data-i18n="section.exchange">Exchange</span>
+                    </a>
+                    <a href="#" class="dropdown-item dropdown-section-link" data-section="tasks" onclick="showSection('tasks'); closeUserMenu(); return false;">
+                        <i class="fas fa-tasks"></i>
+                        <span data-i18n="section.tasks">Tasks</span>
+                    </a>
+                    {% else %}
                     <a href="#" class="dropdown-item dropdown-section-link" data-section="overview" onclick="showSection('overview'); closeUserMenu(); return false;">
                         <i class="fas fa-tachometer-alt"></i>
                         <span data-i18n="section.overview">Overview</span>
@@ -266,6 +284,7 @@
                         <i class="fas fa-tasks"></i>
                         <span data-i18n="section.tasks">Tasks</span>
                     </a>
+                    {% endif %}
                     <div class="dropdown-divider"></div>
                     <!-- Community & Features -->
                     <a href="{{ url_for('leaderboard') }}" class="dropdown-item">
@@ -951,6 +970,7 @@
                         'section.tasks': 'Tasks',
                         'section.trading': 'Trading',
                         'section.dashboard': 'Dashboard Sections',
+                        'nav.tradingSettings': 'Trading & Settings',
                         'nav.subscription': 'Subscription',
                         'nav.payouts': 'Payouts',
                         'nav.community': 'Community',
@@ -1206,6 +1226,7 @@
                         'section.tasks': 'Завдання',
                         'section.trading': 'Торгівля',
                         'section.dashboard': 'Секції панелі',
+                        'nav.tradingSettings': 'Торгівля та Налаштування',
                         'nav.subscription': 'Підписка',
                         'nav.payouts': 'Виплати',
                         'nav.community': 'Спільнота',
