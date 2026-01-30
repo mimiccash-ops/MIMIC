@@ -6228,6 +6228,15 @@ def admin_trading():
     )
 
 
+@app.route('/admin/tasks')
+@login_required
+def admin_tasks():
+    """Admin page to manage tasks and rewards"""
+    if current_user.role != 'admin':
+        abort(403)
+    return render_template('admin_tasks.html')
+
+
 @app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])
 @login_required
 def admin_approve_payout(payout_id):

@@ -232,6 +232,15 @@
                 <!-- User Dropdown -->
                 <div class="user-dropdown" id="userDropdown">
                     <div class="dropdown-header">
+                        {% if current_user.role == 'admin' %}
+                        <div class="dropdown-avatar dropdown-avatar-action" role="button" tabindex="0" onclick="openAdminAvatarModal()" title="Change avatar">
+                            {% if current_user.avatar_type == 'image' and current_user.avatar %}
+                            <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
+                            {% else %}
+                            <span>{{ current_user.avatar or '🧑‍💻' }}</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
                         <div class="dropdown-avatar">
                             {% if current_user.avatar_type == 'image' and current_user.avatar %}
                             <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
@@ -239,6 +248,7 @@
                             <span>{{ current_user.avatar or '🧑‍💻' }}</span>
                             {% endif %}
                         </div>
+                        {% endif %}
                         <div class="dropdown-info">
                             <span class="dropdown-name">{{ current_user.first_name or current_user.username }}</span>
                             <span class="dropdown-role {% if current_user.role == 'admin' %}admin{% endif %}"><span data-i18n="role.{{ current_user.role }}">{{ current_user.role|capitalize }}</span></span>
@@ -259,7 +269,7 @@
                         <i class="fas fa-plug"></i>
                         <span data-i18n="section.exchange">Exchange</span>
                     </a>
-                    <a href="#" class="dropdown-item dropdown-section-link" data-section="tasks" onclick="showSection('tasks'); closeUserMenu(); return false;">
+                    <a href="{{ url_for('admin_tasks') }}" class="dropdown-item" onclick="closeUserMenu();">
                         <i class="fas fa-tasks"></i>
                         <span data-i18n="section.tasks">Tasks</span>
                     </a>
@@ -810,6 +820,92 @@
         .user-dropdown::-webkit-scrollbar-thumb {
             background: var(--color-border);
             border-radius: 3px;
+        }
+
+        .dropdown-avatar-action {
+            cursor: pointer;
+        }
+
+        .dropdown-avatar-action:focus {
+            outline: 2px solid var(--neon-cyan);
+            outline-offset: 2px;
+        }
+
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 99999 !important;
+            padding: 20px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .modal-overlay[style*="display: flex"],
+        .modal-overlay[style*="display:flex"],
+        .modal-overlay[style*="display: flex !important"],
+        .modal-overlay[style*="display:flex !important"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-surface-2);
+        }
+
+        .modal-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 500px;
+            background: var(--color-surface-2, #15151e);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            animation: modalIn 0.3s ease;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 245, 255, 0.1);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .mobile-menu {
@@ -2093,6 +2189,97 @@
             }
         })();
     </script>
+
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+    <!-- Admin Avatar Modal -->
+    <div id="adminAvatarModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAvatarModal()">
+        <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 400px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-user-circle text-gradient"></i>
+                    <span>Change Avatar</span>
+                </div>
+                <button onclick="closeAdminAvatarModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="admin-avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
+                    <!-- Emoji Selection -->
+                    <div class="mb-4">
+                        <label class="text-sm text-muted mb-2 block">Choose Emoji</label>
+                        <div id="emoji-grid" class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                            {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
+                            <button type="button" onclick="selectAdminEmoji('{{ emoji }}', event)" class="emoji-btn p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xl hover:border-[var(--neon-cyan)] transition-all" data-emoji="{{ emoji }}">
+                                {{ emoji }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="emoji" id="selected-admin-emoji" value="{{ current_user.avatar or '👑' }}">
+                        <input type="hidden" name="avatar_type" id="admin-avatar-type" value="emoji">
+                    </div>
+                    
+                    <!-- Or Upload Image -->
+                    <div class="mb-4">
+                        <label class="text-sm text-muted mb-2 block">Or Upload Image</label>
+                        <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input" onchange="setAdminAvatarType('image')">
+                        <p class="text-xxs text-muted mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
+                    </div>
+                    
+                    <button type="submit" class="cyber-btn w-full">
+                        <i class="fas fa-save"></i>
+                        <span data-i18n="btn.save">Зберегти аватар</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        function openAdminAvatarModal() {
+            const modal = document.getElementById('adminAvatarModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeAdminAvatarModal() {
+            const modal = document.getElementById('adminAvatarModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        }
+        
+        function selectAdminEmoji(emoji, evt) {
+            document.getElementById('selected-admin-emoji').value = emoji;
+            document.getElementById('admin-avatar-type').value = 'emoji';
+            
+            document.querySelectorAll('#emoji-grid .emoji-btn').forEach(btn => {
+                btn.classList.remove('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+                btn.classList.add('border-[var(--color-border)]');
+            });
+            const target = evt?.target?.closest?.('.emoji-btn');
+            if (target) {
+                target.classList.remove('border-[var(--color-border)]');
+                target.classList.add('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
+            }
+        }
+        
+        function setAdminAvatarType(type) {
+            document.getElementById('admin-avatar-type').value = type;
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeAdminAvatarModal();
+            const isActivate = event.key === 'Enter' || event.key === ' ';
+            const avatarAction = event.target && event.target.closest && event.target.closest('.dropdown-avatar-action');
+            if (isActivate && avatarAction) {
+                event.preventDefault();
+                openAdminAvatarModal();
+            }
+        });
+    </script>
+    {% endif %}
 
     {% block extra_scripts %}{% endblock %}
 </body>

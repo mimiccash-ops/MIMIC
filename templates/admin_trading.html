@@ -405,10 +405,6 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-2">
-                    <button onclick="openAdminAvatarModal()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Change Avatar</span>
-                    </button>
                     <a href="{{ url_for('change_password') }}" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                         <i class="fas fa-key"></i>
                         <span data-i18n="dash.changePassword">Change Password</span>
@@ -419,49 +415,6 @@
     </div>
 </div>
 
-<!-- Admin Avatar Modal -->
-<div id="adminAvatarModal" class="modal-overlay" onclick="if(event.target===this)closeAdminAvatarModal()">
-    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 400px;">
-        <div class="modal-header">
-            <div class="modal-title">
-                <i class="fas fa-user-circle text-gradient"></i>
-                <span>Change Avatar</span>
-            </div>
-            <button onclick="closeAdminAvatarModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body">
-            <form id="admin-avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
-                <!-- Emoji Selection -->
-                <div class="mb-4">
-                    <label class="text-sm text-muted mb-2 block">Choose Emoji</label>
-                    <div id="emoji-grid" class="grid" style="grid-template-columns: repeat(5, 1fr); gap: 8px;">
-                        {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
-                        <button type="button" onclick="selectAdminEmoji('{{ emoji }}')" class="emoji-btn p-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xl hover:border-[var(--neon-cyan)] transition-all" data-emoji="{{ emoji }}">
-                            {{ emoji }}
-                        </button>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" name="emoji" id="selected-admin-emoji" value="{{ current_user.avatar or '👑' }}">
-                    <input type="hidden" name="avatar_type" id="admin-avatar-type" value="emoji">
-                </div>
-                
-                <!-- Or Upload Image -->
-                <div class="mb-4">
-                    <label class="text-sm text-muted mb-2 block">Or Upload Image</label>
-                    <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input" onchange="setAdminAvatarType('image')">
-                    <p class="text-xxs text-muted mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
-                </div>
-                
-                <button type="submit" class="cyber-btn w-full">
-                    <i class="fas fa-save"></i>
-                    <span data-i18n="btn.save">Зберегти аватар</span>
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -895,37 +848,6 @@
             console.error('Error deleting strategy:', err);
             showToast(t('dash.networkError'), 'error');
         }
-    }
-
-    // Admin Avatar Modal Functions
-    function openAdminAvatarModal() {
-        const modal = document.getElementById('adminAvatarModal');
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-    
-    function closeAdminAvatarModal() {
-        const modal = document.getElementById('adminAvatarModal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-        }
-    }
-    
-    function selectAdminEmoji(emoji) {
-        document.getElementById('selected-admin-emoji').value = emoji;
-        document.getElementById('admin-avatar-type').value = 'emoji';
-        
-        document.querySelectorAll('#emoji-grid .emoji-btn').forEach(btn => {
-            btn.classList.remove('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
-            btn.classList.add('border-[var(--color-border)]');
-        });
-        event.target.closest('.emoji-btn').classList.remove('border-[var(--color-border)]');
-        event.target.closest('.emoji-btn').classList.add('border-[var(--neon-cyan)]', 'bg-[rgba(0,245,255,0.1)]');
-    }
-    
-    function setAdminAvatarType(type) {
-        document.getElementById('admin-avatar-type').value = type;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

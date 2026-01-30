@@ -1,0 +1,930 @@
+{% extends "base.html" %}
+
+{% block title %}Task Management{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+
+    /* Modal Overlay Styles */
+    .modal-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-width: 100vw !important;
+        min-height: 100vh !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 99999 !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal-overlay.show {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Ensure modal is visible when display is set via inline style */
+    .modal-overlay[style*="display: flex"],
+    .modal-overlay[style*="display:flex"],
+    .modal-overlay[style*="display: flex !important"],
+    .modal-overlay[style*="display:flex !important"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-2);
+    }
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-card {
+        width: 100%;
+        max-width: 500px;
+        background: var(--color-surface-2, #15151e);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        animation: modalIn 0.3s ease;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 245, 255, 0.1);
+    }
+
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Select dropdown styling for modal */
+    .modal-body select,
+    .modal-body select.input {
+        background: var(--color-surface-3, #1a1a25) !important;
+        color: var(--text-primary);
+        border: 2px solid var(--color-border);
+        padding: 14px 44px 14px 18px;
+        font-size: 0.9375rem;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f5ff' d='M6 8L1 3h10z'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 16px center !important;
+    }
+    
+    .modal-body select:focus {
+        outline: none;
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.15);
+    }
+    
+    .modal-body select option {
+        background: var(--color-surface-2, #15151e);
+        color: var(--text-primary);
+        padding: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="font-display text-xl font-semibold flex items-center gap-3">
+                <i class="fas fa-tasks text-cyan"></i>
+                <span data-i18n="admin.taskManagement">Task Management</span>
+            </h1>
+            <p class="text-muted text-sm mt-1">Create challenges and rewards for users to complete</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+
+    <!-- Task Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card p-4" style="border-color: rgba(0, 245, 255, 0.2);">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(0, 245, 255, 0.1); border-radius: var(--radius-md);">
+                    <i class="fas fa-tasks text-cyan"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">Active Tasks</div>
+                    <div class="font-mono font-bold text-lg" id="admin-active-tasks">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="card p-4" style="border-color: rgba(255, 193, 7, 0.2);">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(255, 193, 7, 0.1); border-radius: var(--radius-md);">
+                    <i class="fas fa-clock text-yellow"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">Pending Reviews</div>
+                    <div class="font-mono font-bold text-lg" id="admin-pending-reviews">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="card p-4" style="border-color: rgba(34, 197, 94, 0.2);">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: var(--radius-md);">
+                    <i class="fas fa-check-circle text-green"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">Total Completions</div>
+                    <div class="font-mono font-bold text-lg" id="admin-total-completions">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="card p-4" style="border-color: rgba(168, 85, 247, 0.2);">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(168, 85, 247, 0.1); border-radius: var(--radius-md);">
+                    <i class="fas fa-gift text-purple"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">Rewards Given</div>
+                    <div class="font-mono font-bold text-lg" id="admin-rewards-given">$0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3 mb-6">
+        <button onclick="refreshTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+            <i class="fas fa-sync-alt" id="tasks-refresh-icon"></i>
+            <span>Refresh</span>
+        </button>
+        <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary">
+            <i class="fas fa-plus"></i>
+            <span>Create Task</span>
+        </button>
+    </div>
+
+    <!-- Pending Reviews Section -->
+    <div class="card mb-6" id="pending-reviews-section" style="display: none;">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold flex items-center gap-2">
+                <i class="fas fa-clock text-yellow"></i>
+                <span>Pending Submissions</span>
+                <span class="badge badge-yellow" id="pending-reviews-badge">0</span>
+            </h2>
+        </div>
+        <div id="pending-reviews-list" class="space-y-3 max-h-96 overflow-y-auto">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold flex items-center gap-2">
+                <i class="fas fa-list text-cyan"></i>
+                <span>All Tasks</span>
+            </h2>
+            <div class="flex items-center gap-2">
+                <select id="admin-task-status-filter" class="input" style="width: auto;" onchange="loadAdminTasks()">
+                    <option value="all">All Status</option>
+                    <option value="active" selected>Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="paused">Paused</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+        </div>
+        <div id="admin-tasks-list" class="space-y-3">
+            <div class="text-center py-8 text-muted">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p data-i18n="dash.loadingData">Завантаження завдань...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Task Modal -->
+<div id="createTaskModal" class="modal-overlay" onclick="if(event.target===this)closeCreateTaskModal()">
+    <div class="modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-plus-circle text-cyan"></i>
+                <span id="task-modal-title">Create New Task</span>
+            </div>
+            <button onclick="closeCreateTaskModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="task-edit-id" value="">
+            
+            <!-- Basic Info -->
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Title *</label>
+                    <input type="text" id="task-title" class="input" placeholder="e.g., Follow us on Twitter" required>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Description</label>
+                    <textarea id="task-description" class="input" rows="2" placeholder="Короткий опис завдання"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Instructions (what users need to do)</label>
+                    <textarea id="task-instructions" class="input" rows="3" placeholder="Покрокові інструкції для виконання завдання"></textarea>
+                </div>
+            </div>
+
+            <!-- Type & Category -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Task Type</label>
+                    <select id="task-type" class="input">
+                        <option value="custom">Special</option>
+                        <option value="social">Social Media</option>
+                        <option value="trading">Trading</option>
+                        <option value="referral">Referral</option>
+                        <option value="community">Community</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Category (optional)</label>
+                    <input type="text" id="task-category" class="input" placeholder="e.g., Social, Weekly, etc.">
+                </div>
+            </div>
+
+            <!-- Reward Settings -->
+            <div class="p-4 rounded-xl mb-6" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-green"></i>
+                    <span>Reward Settings</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                        <select id="task-reward-type" class="input" onchange="updateRewardAmountLabel()">
+                            <option value="money">Cash ($)</option>
+                            <option value="xp">XP Points</option>
+                            <option value="subscription">Subscription Days</option>
+                            <option value="goods">Goods/Prizes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block" id="reward-amount-label">Amount ($)</label>
+                        <input type="number" id="task-reward-amount" class="input" value="0" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="text-xs text-muted mb-1 block">Reward Description</label>
+                    <input type="text" id="task-reward-description" class="input" placeholder="e.g., $10 credited to your balance">
+                </div>
+            </div>
+
+            <!-- Limits & Requirements -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Max Participants (empty = unlimited)</label>
+                    <input type="number" id="task-max-participants" class="input" placeholder="Без обмежень" min="1">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Max Completions Per User</label>
+                    <input type="number" id="task-max-completions" class="input" value="1" min="1">
+                </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Icon (FontAwesome)</label>
+                    <input type="text" id="task-icon" class="input" value="fa-tasks" placeholder="fa-tasks">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Color</label>
+                    <input type="color" id="task-color" class="input" value="#00f5ff" style="height: 42px; padding: 4px;">
+                </div>
+            </div>
+
+            <!-- Status & Options -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Status</label>
+                    <select id="task-status" class="input">
+                        <option value="active">Active</option>
+                        <option value="draft">Draft</option>
+                        <option value="paused">Paused</option>
+                    </select>
+                </div>
+                <div class="flex items-end gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="task-requires-approval" checked class="cyber-checkbox">
+                        <span class="text-sm">Requires Approval</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="task-is-featured" class="cyber-checkbox">
+                        <span class="text-sm">Featured</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dates (optional) -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Start Date (optional)</label>
+                    <input type="datetime-local" id="task-start-date" class="input">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">End Date (optional)</label>
+                    <input type="datetime-local" id="task-end-date" class="input">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                <button onclick="closeCreateTaskModal()" class="cyber-btn cyber-btn-outline flex-1">
+                    Cancel
+                </button>
+                <button onclick="saveTask()" class="cyber-btn cyber-btn-primary flex-1" id="save-task-btn">
+                    <i class="fas fa-save"></i>
+                    <span>Create Task</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<!-- Review Submission Modal -->
+<div id="reviewSubmissionModal" class="modal-overlay" onclick="if(event.target===this)closeReviewModal()">
+    <div class="modal-card" style="max-width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <i class="fas fa-clipboard-check text-yellow"></i>
+                <span>Review Submission</span>
+            </div>
+            <button onclick="closeReviewModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="review-participation-id" value="">
+            
+            <div id="review-submission-details" class="space-y-4 mb-6">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-xs text-muted mb-1 block">Admin Notes (optional)</label>
+                <textarea id="review-notes" class="input" rows="2" placeholder="Нотатки для внутрішнього відстеження"></textarea>
+            </div>
+            
+            <div id="rejection-reason-field" class="mb-4" style="display: none;">
+                <label class="text-xs text-muted mb-1 block">Rejection Reason</label>
+                <input type="text" id="review-rejection-reason" class="input" placeholder="Чому це відхиляється?">
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
+                <button onclick="rejectSubmission()" class="cyber-btn cyber-btn-danger flex-1">
+                    <i class="fas fa-times"></i>
+                    <span>Reject</span>
+                </button>
+                <button onclick="approveSubmission()" class="cyber-btn cyber-btn-success flex-1">
+                    <i class="fas fa-check"></i>
+                    <span>Approve & Give Reward</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // ==================== FETCH WITH RETRY FOR RATE LIMITING ====================
+    async function fetchWithRetry(url, options = {}, maxRetries = 3, retryDelay = 2000) {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await fetch(url, options);
+                
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : retryDelay * Math.pow(2, attempt);
+                    
+                    if (attempt < maxRetries - 1) {
+                        console.log(`Rate limited (429), retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    } else {
+                        return null;
+                    }
+                }
+                
+                return response;
+            } catch (err) {
+                if (attempt < maxRetries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt)));
+                    continue;
+                } else {
+                    throw err;
+                }
+            }
+        }
+        return null;
+    }
+
+    // ==================== TASK MANAGEMENT ====================
+    let adminTasks = [];
+    let pendingReviews = [];
+    let taskTypes = {};
+    let rewardTypes = {};
+    
+    async function loadAdminTasks() {
+        const status = document.getElementById('admin-task-status-filter')?.value || 'active';
+        
+        try {
+            const response = await fetchWithRetry(`/api/admin/tasks?status=${status}`);
+            if (!response) return;
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                adminTasks = data.tasks;
+                taskTypes = data.task_types || {};
+                rewardTypes = data.reward_types || {};
+                renderAdminTasks();
+                updateTaskStats();
+            }
+        } catch (err) {
+            console.error('Error loading tasks:', err);
+            if (!err.message || !err.message.includes('429')) {
+                showToast('Помилка завантаження завдань', 'error');
+            }
+        }
+    }
+    
+    async function loadPendingReviews() {
+        try {
+            const response = await fetchWithRetry('/api/admin/tasks/pending-reviews');
+            if (!response) return;
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                pendingReviews = data.submissions;
+                document.getElementById('admin-pending-reviews').textContent = data.pending_count;
+                document.getElementById('pending-reviews-badge').textContent = data.pending_count;
+                
+                const section = document.getElementById('pending-reviews-section');
+                if (data.pending_count > 0) {
+                    section.style.display = 'block';
+                    renderPendingReviews();
+                } else {
+                    section.style.display = 'none';
+                }
+            }
+        } catch (err) {
+            console.error('Error loading pending reviews:', err);
+        }
+    }
+    
+    function updateTaskStats() {
+        const activeTasks = adminTasks.filter(t => t.status === 'active').length;
+        const totalCompletions = adminTasks.reduce((sum, t) => sum + (t.total_completions || 0), 0);
+        const totalRewards = adminTasks.reduce((sum, t) => sum + (t.total_rewards_given || 0), 0);
+        
+        document.getElementById('admin-active-tasks').textContent = activeTasks;
+        document.getElementById('admin-total-completions').textContent = totalCompletions;
+        document.getElementById('admin-rewards-given').textContent = '$' + totalRewards.toFixed(2);
+    }
+    
+    function renderAdminTasks() {
+        const container = document.getElementById('admin-tasks-list');
+        
+        if (adminTasks.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-muted">
+                    <i class="fas fa-tasks text-3xl mb-3 opacity-50"></i>
+                    <p data-i18n="admin.noTasks">Завдань не знайдено</p>
+                    <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary cyber-btn-sm mt-3">
+                        <i class="fas fa-plus"></i> Create First Task
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        adminTasks.forEach(task => {
+            const typeInfo = taskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
+            const rewardInfo = rewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+            const statusColors = {
+                'active': 'text-green',
+                'draft': 'text-muted',
+                'paused': 'text-yellow',
+                'completed': 'text-purple'
+            };
+            
+            html += `
+                <div class="flex items-center justify-between p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : 'var(--color-border)'};">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: ${task.color}20; border: 1px solid ${task.color}40;">
+                            <i class="fas ${task.icon}" style="color: ${task.color}; font-size: 1.25rem;"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold">${task.title}</span>
+                                ${task.is_featured ? '<span class="badge badge-yellow" style="font-size: 0.6rem;">FEATURED</span>' : ''}
+                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.6rem; text-transform: uppercase;">${task.status}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-muted mt-1">
+                                <span><i class="fas ${typeInfo.icon} mr-1"></i>${typeInfo.name}</span>
+                                <span><i class="fas ${rewardInfo.icon} mr-1"></i>${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}</span>
+                                <span><i class="fas fa-users mr-1"></i>${task.total_participants} participants</span>
+                                <span><i class="fas fa-check-circle mr-1"></i>${task.total_completions} completed</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="View Participations">
+                            <i class="fas fa-users"></i>
+                        </button>
+                        <button onclick="editTask(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function renderPendingReviews() {
+        const container = document.getElementById('pending-reviews-list');
+        
+        if (pendingReviews.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">' + t('admin.noPendingReviews') + '</div>';
+            return;
+        }
+        
+        let html = '';
+        pendingReviews.forEach(p => {
+            const submittedAt = new Date(p.submitted_at);
+            html += `
+                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                            <i class="fas fa-clipboard-check text-yellow"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-bright">${p.username}</div>
+                            <div class="text-xs text-muted">${p.task?.title || 'Task #' + p.task_id}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-muted">${submittedAt.toLocaleDateString()}</div>
+                        <div class="text-xs text-muted">${submittedAt.toLocaleTimeString()}</div>
+                    </div>
+                    <button onclick="openReviewModal(${p.id})" class="cyber-btn cyber-btn-primary cyber-btn-sm ml-3">
+                        <i class="fas fa-eye"></i> Review
+                    </button>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function openCreateTaskModal() {
+        document.getElementById('task-edit-id').value = '';
+        document.getElementById('task-modal-title').textContent = 'Create New Task';
+        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Create Task';
+        
+        document.getElementById('task-title').value = '';
+        document.getElementById('task-description').value = '';
+        document.getElementById('task-instructions').value = '';
+        document.getElementById('task-type').value = 'custom';
+        document.getElementById('task-category').value = '';
+        document.getElementById('task-reward-type').value = 'money';
+        document.getElementById('task-reward-amount').value = '0';
+        document.getElementById('task-reward-description').value = '';
+        document.getElementById('task-max-participants').value = '';
+        document.getElementById('task-max-completions').value = '1';
+        document.getElementById('task-icon').value = 'fa-tasks';
+        document.getElementById('task-color').value = '#00f5ff';
+        document.getElementById('task-status').value = 'active';
+        document.getElementById('task-requires-approval').checked = true;
+        document.getElementById('task-is-featured').checked = false;
+        document.getElementById('task-start-date').value = '';
+        document.getElementById('task-end-date').value = '';
+        
+        updateRewardAmountLabel();
+        document.getElementById('createTaskModal').style.display = 'flex';
+    }
+    
+    function closeCreateTaskModal() {
+        document.getElementById('createTaskModal').style.display = 'none';
+    }
+    
+    function editTask(taskId) {
+        const task = adminTasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        document.getElementById('task-edit-id').value = task.id;
+        document.getElementById('task-modal-title').textContent = 'Edit Task';
+        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        
+        document.getElementById('task-title').value = task.title || '';
+        document.getElementById('task-description').value = task.description || '';
+        document.getElementById('task-instructions').value = task.instructions || '';
+        document.getElementById('task-type').value = task.task_type || 'custom';
+        document.getElementById('task-category').value = task.category || '';
+        document.getElementById('task-reward-type').value = task.reward_type || 'money';
+        document.getElementById('task-reward-amount').value = task.reward_amount || 0;
+        document.getElementById('task-reward-description').value = task.reward_description || '';
+        document.getElementById('task-max-participants').value = task.max_participants || '';
+        document.getElementById('task-max-completions').value = task.max_completions_per_user || 1;
+        document.getElementById('task-icon').value = task.icon || 'fa-tasks';
+        document.getElementById('task-color').value = task.color || '#00f5ff';
+        document.getElementById('task-status').value = task.status || 'active';
+        document.getElementById('task-requires-approval').checked = task.requires_approval !== false;
+        document.getElementById('task-is-featured').checked = task.is_featured === true;
+        
+        if (task.start_date) {
+            document.getElementById('task-start-date').value = task.start_date.slice(0, 16);
+        } else {
+            document.getElementById('task-start-date').value = '';
+        }
+        if (task.end_date) {
+            document.getElementById('task-end-date').value = task.end_date.slice(0, 16);
+        } else {
+            document.getElementById('task-end-date').value = '';
+        }
+        
+        updateRewardAmountLabel();
+        document.getElementById('createTaskModal').style.display = 'flex';
+    }
+    
+    function updateRewardAmountLabel() {
+        const rewardType = document.getElementById('task-reward-type').value;
+        const label = document.getElementById('reward-amount-label');
+        
+        switch (rewardType) {
+            case 'money': label.textContent = 'Amount ($)'; break;
+            case 'xp': label.textContent = 'XP Points'; break;
+            case 'subscription': label.textContent = 'Days'; break;
+            case 'goods': label.textContent = 'Value ($)'; break;
+            default: label.textContent = 'Amount';
+        }
+    }
+    
+    async function saveTask() {
+        const btn = document.getElementById('save-task-btn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        const taskId = document.getElementById('task-edit-id').value;
+        const isEdit = !!taskId;
+        
+        const payload = {
+            title: document.getElementById('task-title').value.trim(),
+            description: document.getElementById('task-description').value.trim(),
+            instructions: document.getElementById('task-instructions').value.trim(),
+            task_type: document.getElementById('task-type').value,
+            category: document.getElementById('task-category').value.trim() || null,
+            reward_type: document.getElementById('task-reward-type').value,
+            reward_amount: parseFloat(document.getElementById('task-reward-amount').value) || 0,
+            reward_description: document.getElementById('task-reward-description').value.trim(),
+            max_participants: document.getElementById('task-max-participants').value ? parseInt(document.getElementById('task-max-participants').value) : null,
+            max_completions_per_user: parseInt(document.getElementById('task-max-completions').value) || 1,
+            icon: document.getElementById('task-icon').value.trim() || 'fa-tasks',
+            color: document.getElementById('task-color').value,
+            status: document.getElementById('task-status').value,
+            requires_approval: document.getElementById('task-requires-approval').checked,
+            is_featured: document.getElementById('task-is-featured').checked,
+            start_date: document.getElementById('task-start-date').value || null,
+            end_date: document.getElementById('task-end-date').value || null
+        };
+        
+        if (!payload.title) {
+            showToast(t('admin.titleRequired'), 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
+        
+        try {
+            const url = isEdit ? `/api/admin/tasks/${taskId}` : '/api/admin/tasks';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || t('admin.taskSaved'), 'success');
+                closeCreateTaskModal();
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to save task', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    async function deleteTask(taskId, taskTitle) {
+        if (!confirm(`Ти впевнений, що хочеш видалити завдання "${taskTitle}"? Це також видалить всі участі.`)) return;
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/${taskId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || t('admin.taskDeleted'), 'success');
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to delete', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    async function viewTaskParticipations(taskId) {
+        try {
+            const response = await fetch(`/api/admin/tasks/${taskId}/participations`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const task = data.task;
+                const parts = data.participations;
+                
+                let msg = `Task: ${task.title}\nParticipants: ${parts.length}\n\n`;
+                parts.slice(0, 10).forEach(p => {
+                    msg += `• ${p.username}: ${p.status}\n`;
+                });
+                if (parts.length > 10) msg += `... and ${parts.length - 10} more`;
+                
+                alert(msg);
+            }
+        } catch (err) {
+            showToast('Error loading participations', 'error');
+        }
+    }
+    
+    function openReviewModal(participationId) {
+        const participation = pendingReviews.find(p => p.id === participationId);
+        if (!participation) return;
+        
+        document.getElementById('review-participation-id').value = participationId;
+        
+        const detailsHtml = `
+            <div class="p-4 rounded-lg" style="background: var(--color-surface-3); border: 1px solid var(--color-border);">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(0, 245, 255, 0.1);">
+                        <i class="fas fa-user text-cyan"></i>
+                    </div>
+                    <div>
+                        <div class="font-semibold">${participation.username}</div>
+                        <div class="text-xs text-muted">Submitted: ${new Date(participation.submitted_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="text-sm mb-2">
+                    <strong>Task:</strong> ${participation.task?.title || 'Task #' + participation.task_id}
+                </div>
+                <div class="text-sm mb-2">
+                    <strong>Reward:</strong> ${participation.task?.reward_type === 'money' ? '$' + participation.task?.reward_amount : participation.task?.reward_amount + ' ' + participation.task?.reward_type}
+                </div>
+                ${participation.submission_text ? `<div class="text-sm mb-2"><strong>Submission:</strong> ${participation.submission_text}</div>` : ''}
+                ${participation.submission_url ? `<div class="text-sm"><strong>Proof URL:</strong> <a href="${participation.submission_url}" target="_blank" class="text-cyan hover:underline">${participation.submission_url}</a></div>` : ''}
+            </div>
+        `;
+        
+        document.getElementById('review-submission-details').innerHTML = detailsHtml;
+        document.getElementById('review-notes').value = '';
+        document.getElementById('review-rejection-reason').value = '';
+        document.getElementById('rejection-reason-field').style.display = 'none';
+        
+        document.getElementById('reviewSubmissionModal').style.display = 'flex';
+    }
+    
+    function closeReviewModal() {
+        document.getElementById('reviewSubmissionModal').style.display = 'none';
+    }
+    
+    async function approveSubmission() {
+        const participationId = document.getElementById('review-participation-id').value;
+        const notes = document.getElementById('review-notes').value.trim();
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/participation/${participationId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(data.message || t('admin.submissionApproved'), 'success');
+                closeReviewModal();
+                loadPendingReviews();
+                loadAdminTasks();
+            } else {
+                showToast(data.error || 'Failed to approve', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    async function rejectSubmission() {
+        const reasonField = document.getElementById('rejection-reason-field');
+        if (reasonField.style.display === 'none') {
+            reasonField.style.display = 'block';
+            return;
+        }
+        
+        const participationId = document.getElementById('review-participation-id').value;
+        const notes = document.getElementById('review-notes').value.trim();
+        const reason = document.getElementById('review-rejection-reason').value.trim() || 'Подання не відповідає вимогам';
+        
+        try {
+            const response = await fetch(`/api/admin/tasks/participation/${participationId}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes, reason })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(t('admin.submissionRejected'), 'info');
+                closeReviewModal();
+                loadPendingReviews();
+            } else {
+                showToast(data.error || 'Failed to reject', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    function refreshTasks() {
+        const icon = document.getElementById('tasks-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        Promise.all([
+            loadAdminTasks(),
+            loadPendingReviews()
+        ]).finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAdminTasks();
+        loadPendingReviews();
+    });
+</script>
+{% endblock %}
