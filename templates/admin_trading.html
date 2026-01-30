@@ -112,10 +112,6 @@
                 </h1>
                 <p class="text-muted text-sm mt-1">Centralized controls, configuration, and live trading monitoring.</p>
             </div>
-            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
-                <i class="fas fa-arrow-left"></i>
-                <span>Back to Dashboard</span>
-            </a>
         </div>
 
         <!-- Control Terminal -->
@@ -124,7 +120,6 @@
             <div class="p-3">
                 <div class="flex items-center justify-between mb-3">
                     <span class="font-cyber text-xs tracking-widest text-bright">CONTROL TERMINAL</span>
-                    <span class="badge badge-primary">LIVE</span>
                 </div>
                 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -238,44 +233,6 @@
             </div>
         </div>
 
-        <!-- Growth -->
-        <div class="card mb-6">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-chart-line text-magenta"></i>
-                    <span data-i18n="admin.growth">Growth</span>
-                </h2>
-                <div class="period-pills">
-                    <button onclick="setChartPeriod('24h')" class="period-pill active" data-period="24h">24H</button>
-                    <button onclick="setChartPeriod('week')" class="period-pill" data-period="week">Week</button>
-                    <button onclick="setChartPeriod('month')" class="period-pill" data-period="month">Month</button>
-                </div>
-            </div>
-            
-            <div class="grid grid-4 mb-4">
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.result">Result</div>
-                    <div id="stats-result" class="font-mono font-semibold text-lg text-green">+$0</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.trades">Trades</div>
-                    <div id="stats-trades" class="font-mono font-semibold text-lg text-cyan">0</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.winRate">Win Rate</div>
-                    <div id="stats-winrate" class="font-mono font-semibold text-lg text-magenta">0%</div>
-                </div>
-                <div style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
-                    <div class="text-muted text-sm mb-1" data-i18n="dash.avgRoi">Avg ROI</div>
-                    <div id="stats-avgroi" class="font-mono font-semibold text-lg text-yellow">0%</div>
-                </div>
-            </div>
-            
-            <div style="height: 200px; position: relative;">
-                <canvas id="masterChart"></canvas>
-            </div>
-        </div>
-
         <!-- Master Positions -->
         <div class="card mb-6">
             <div class="flex items-center justify-between mb-4">
@@ -325,26 +282,6 @@
             </div>
         </div>
 
-        <!-- Live Logs -->
-        <div class="card mb-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-stream text-cyan"></i>
-                    <span data-i18n="admin.liveLogs">Live Logs</span>
-                    <span class="live-dot"></span>
-                </h2>
-                <button onclick="clearLogs()" class="action-btn" data-i18n-title="admin.clearLogs" title="Clear Logs">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div id="log-container" class="h-36 overflow-y-auto space-y-1 text-sm font-mono" style="background: var(--color-surface-2); padding: 12px; border-radius: var(--radius-sm);">
-                <div class="p-2 bg-[var(--color-surface-3)] rounded log-entry log-info">
-                    <span class="text-cyan">[SYSTEM]</span>
-                    <span class="text-muted ml-2" data-i18n="admin.waitingSignals">Waiting for signals...</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Trade History -->
         <div class="card mb-6">
             <div class="flex items-center justify-between mb-4">
@@ -385,33 +322,6 @@
             </div>
         </div>
 
-        <!-- Admin Profile -->
-        <div class="card">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display font-semibold flex items-center gap-2">
-                    <i class="fas fa-user-shield text-yellow"></i>
-                    <span data-i18n="admin.adminSettings">Admin Settings</span>
-                </h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="user-avatar-lg position-relative" style="background: linear-gradient(135deg, rgba(255, 208, 0, 0.2), rgba(255, 0, 212, 0.2)); border-color: var(--neon-yellow); cursor: pointer;" onclick="openAdminAvatarModal()">
-                    {% if current_user.avatar_type == 'image' and current_user.avatar %}
-                    <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-                    {% else %}
-                    <span>{{ current_user.avatar or '👑' }}</span>
-                    {% endif %}
-                    <div class="avatar-edit" style="position: absolute; bottom: 0; right: 0; width: 22px; height: 22px; background: var(--gradient-primary); border: 2px solid var(--color-surface); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-camera" style="font-size: 0.5rem; color: #000;"></i>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <a href="{{ url_for('change_password') }}" class="cyber-btn cyber-btn-outline cyber-btn-sm">
-                        <i class="fas fa-key"></i>
-                        <span data-i18n="dash.changePassword">Change Password</span>
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
