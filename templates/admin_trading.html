@@ -21,9 +21,17 @@
     .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
     .strategy-header { flex-wrap: wrap; gap: 12px; }
     .strategy-new-btn { white-space: normal; text-align: center; max-width: 100%; }
+    .strategy-row { align-items: center; }
+    .strategy-right { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .strategy-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .strategy-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
 
     @media (max-width: 640px) {
         .strategy-new-btn { width: 100%; justify-content: center; }
+    }
+    @media (max-width: 420px) {
+        .strategy-right { width: 100%; justify-content: space-between; }
+        .strategy-actions { margin-left: auto; }
     }
 
     /* Modal Overlay Styles */
@@ -291,7 +299,6 @@
                 <h2 class="font-display font-semibold flex items-center gap-3">
                     <i class="fas fa-layer-group text-cyan"></i>
                     <span data-i18n="admin.masterPositions">Master Positions</span>
-                    <span id="master-positions-count" class="badge badge-primary">{{ master_positions|length }}</span>
                 </h2>
                 <div class="flex items-center gap-2">
                     <span class="live-dot"></span>
@@ -603,8 +610,8 @@
         container.innerHTML = adminStrategies.map(s => {
             const riskColor = { low: 'green', medium: 'yellow', high: 'red' }[s.risk_level] || 'muted';
             return `
-                <div class="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,0,0,0.3)] border border-[var(--color-border)] hover:border-[var(--neon-purple)] transition-all" data-strategy-id="${s.id}">
-                    <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-[rgba(0,0,0,0.3)] border border-[var(--color-border)] hover:border-[var(--neon-purple)] transition-all strategy-row" data-strategy-id="${s.id}">
+                    <div class="flex items-center gap-3 strategy-info">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center ${s.is_active ? 'bg-purple/20' : 'bg-muted/10'}">
                             <i class="fas fa-chess-knight ${s.is_active ? 'text-purple' : 'text-muted'}"></i>
                         </div>
@@ -613,10 +620,12 @@
                             <div class="text-xxs text-muted">${s.description || 'No description'}</div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
-                        <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
-                        <div class="flex items-center gap-1">
+                    <div class="strategy-right">
+                        <div class="strategy-meta">
+                            <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
+                            <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
+                        </div>
+                        <div class="strategy-actions">
                             <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
