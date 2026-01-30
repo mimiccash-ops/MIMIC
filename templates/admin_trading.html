@@ -105,10 +105,56 @@
         to { opacity: 1; transform: scale(1) translateY(0); }
     }
 </style>
+<style>
+    @media (max-width: 400px) {
+        .admin-trading-page h1.font-display {
+            font-size: 1rem;
+        }
+
+        .admin-trading-page h2.font-display,
+        .admin-trading-page .font-display {
+            font-size: 0.9rem;
+        }
+
+        .admin-trading-page .text-sm {
+            font-size: 0.7rem;
+        }
+
+        .admin-trading-page .text-xs {
+            font-size: 0.6rem;
+        }
+
+        .admin-trading-page .text-xxs {
+            font-size: 0.55rem;
+        }
+
+        .admin-trading-page .cyber-btn {
+            font-size: 0.7rem;
+            padding: 10px 12px;
+        }
+
+        .admin-trading-page .cyber-btn .text-xs {
+            font-size: 0.6rem;
+        }
+
+        .admin-trading-page .input {
+            font-size: 0.8rem;
+            padding: 10px 12px;
+        }
+
+        .admin-trading-page .strategy-new-btn {
+            font-size: 0.7rem;
+        }
+
+        .admin-trading-page .strategy-new-btn span {
+            line-height: 1.2;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="py-8">
+<div class="py-8 admin-trading-page">
     <div class="max-w-7xl mx-auto px-4">
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
             <div>
