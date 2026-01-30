@@ -1,26 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ _('Admin Panel') if _ else 'Admin Panel' }}{% endblock %}
 
-{% block mobile_sections %}
-<div class="mobile-divider"></div>
-<div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
-<a href="{{ url_for('admin_overview') }}" class="mobile-nav-item" onclick="closeMobileMenu();">
-    <i class="fas fa-crown"></i>
-    <span data-i18n="section.overview">Overview</span>
-</a>
-<a href="{{ url_for('admin_trading') }}" class="mobile-nav-item" onclick="closeMobileMenu();">
-    <i class="fas fa-sliders-h"></i>
-    <span data-i18n="nav.tradingSettings">Trading & Settings</span>
-</a>
-<a href="{{ url_for('admin_exchange') }}" class="mobile-nav-item" onclick="closeMobileMenu();">
-    <i class="fas fa-cogs"></i>
-    <span data-i18n="section.exchange">Exchange</span>
-</a>
-<a href="{{ url_for('admin_tasks') }}" class="mobile-nav-item" onclick="closeMobileMenu();">
-    <i class="fas fa-tasks"></i>
-    <span data-i18n="section.tasks">Tasks</span>
-</a>
-{% endblock %}
+{% block title %}Exchange{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -228,127 +208,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-container">
-
-    <!-- ==================== OVERVIEW SECTION ==================== -->
-    <div class="section-content active" data-section="overview">
-        <!-- Hero Card -->
-        <div class="hero-card mb-6">
-            <div class="hero-glow"></div>
-            <div class="flex flex-col md:flex-row items-center gap-6" style="position: relative; z-index: 1;">
-                <!-- Master Icon -->
-                <div class="user-avatar-lg" style="flex-shrink: 0; background: linear-gradient(135deg, rgba(255, 0, 212, 0.2), rgba(0, 212, 255, 0.2)); border-color: var(--neon-magenta);">
-                    <i class="fas fa-crown" style="font-size: 1.75rem; color: var(--neon-magenta);"></i>
-            </div>
-            
-                <!-- Info -->
-                <div class="flex-grow text-center md:text-left">
-                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-                        <h1 class="font-display text-xl font-semibold" data-i18n="dash.master">MASTER</h1>
-                        <div class="live-indicator">
-                            <span class="live-dot"></span>
-                            <span class="live-text" data-i18n="dash.live">LIVE</span>
-                    </div>
-                    </div>
-                    <div class="master-balance-card">
-                        <div class="master-balance-label">Загальний баланс</div>
-                        <div id="master-balance" class="master-balance-value">
-                            {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A', 'No exchanges configured', 'Master exchanges not connected', 'Помилка', 'Error fetching balances'] %}
-                                ${{ master_balance }}
-                            {% else %}
-                                <span class="text-muted">{{ master_balance or 'Connecting...' }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <!-- Exchange Balances -->
-                    <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2 exchange-balance-list">
-                        {% if master_balances_loaded %}
-                            {% if master_exchange_balances %}
-                                {% for ex in master_exchange_balances %}
-                                <div class="exchange-balance-pill {{ 'is-error' if ex.error }}" {% if ex.error %}title="{{ ex.error }}"{% endif %}>
-                                    <span class="name">{{ ex.exchange }}</span>
-                                    <span class="value {{ 'text-red' if ex.error else ('text-green' if ex.balance and ex.balance > 0 else 'text-muted') }}">
-                                        {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
-                                    </span>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <a href="{{ url_for('admin_exchange') }}" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-plus-circle"></i>
-                                    <span data-i18n="admin.configureExchanges">Configure Master Exchanges</span>
-                                </a>
-                            {% endif %}
-                        {% else %}
-                            <span class="text-muted text-xs">Loading...</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Grid -->
-        <div class="grid grid-4 mb-6">
-            <div class="stat-card">
-                <div class="stat-icon cyan"><i class="fas fa-network-wired"></i></div>
-                <div class="stat-content">
-                    <div class="stat-label" data-i18n="dash.nodes">Nodes</div>
-                    <div class="stat-value text-cyan">{{ users|selectattr('is_paused', 'equalto', false)|selectattr('role', 'ne', 'admin')|list|length }}</div>
-                    </div>
-                </div>
-            <div class="stat-card">
-                <div class="stat-icon magenta"><i class="fas fa-exchange-alt"></i></div>
-                <div class="stat-content">
-                    <div class="stat-label" data-i18n="dash.trades">Trades</div>
-                    <div class="stat-value text-magenta">{{ closed_trades|length }}</div>
-                    </div>
-                    </div>
-            <div class="stat-card">
-                <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
-                <div class="stat-content">
-                    <div class="stat-label" data-i18n="dash.result">Result</div>
-                    <div class="stat-value text-green" id="overview-result">+$0</div>
-                    </div>
-                    </div>
-            <div class="stat-card">
-                <div class="stat-icon yellow"><i class="fas fa-percentage"></i></div>
-                <div class="stat-content">
-                    <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
-                    <div class="stat-value text-yellow" id="overview-winrate">0%</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Insurance Fund / Safety Pool Card -->
-        <div class="card mb-6" style="background: linear-gradient(135deg, rgba(57, 255, 20, 0.03), rgba(0, 240, 255, 0.02)); border-color: rgba(57, 255, 20, 0.2);">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center justify-center" style="width: 48px; height: 48px; background: rgba(57, 255, 20, 0.1); border: 1px solid rgba(57, 255, 20, 0.3); border-radius: var(--radius-md);">
-                        <i class="fas fa-shield-alt text-xl" style="color: #39ff14;"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-muted text-xs uppercase tracking-wider" data-i18n="admin.insuranceFund">Insurance Fund</span>
-                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 0.65rem; font-weight: 600; background: rgba(57, 255, 20, 0.1); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.3);">
-                                <i class="fas fa-check-circle"></i> <span data-i18n="admin.verified">Verified</span>
-                            </span>
-                        </div>
-                        <div class="font-mono font-bold text-2xl" id="admin-safety-pool" style="color: #39ff14;">$10,000.00</div>
-                    </div>
-                </div>
-                <div class="text-right hidden md:block">
-                    <div class="text-muted text-xs mb-1" data-i18n="admin.safetyPool">Safety Pool</div>
-                    <div class="text-xs" style="color: rgba(255,255,255,0.4);" data-i18n="admin.feesToFund">5% of fees → fund</div>
-                    <div class="text-xs mt-1" style="color: rgba(255,255,255,0.3);" title="Covers slippage in extreme markets">
-                        <i class="fas fa-info-circle"></i> <span data-i18n="admin.slippageProtection">Slippage protection</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ==================== EXCHANGE ==================== -->
-    <div class="section-content" data-section="exchange">
+<div class="app-container admin-exchange-page">
+    <div class="section-content active">
         <!-- Connect New Exchange -->
         <div class="card mb-6">
             <div class="flex items-center justify-between mb-4">
@@ -559,7 +420,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <!-- User Details Modal -->
@@ -582,364 +442,16 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    let socket = null;
-    let masterChart = null;
-    let currentPeriod = '24h';
-    let currentStatsMode = 'pnl';
-    let currentEditingCategory = null;
-
-    // Status Translation Helper - Maps database status codes to Ukrainian
-    const statusTranslations = {
-        // Exchange statuses
-        'PENDING': 'Очікує',
-        'APPROVED': 'Схвалено',
-        'REJECTED': 'Відхилено',
-        'ACTIVE': 'Активний',
-        'INACTIVE': 'Неактивний',
-        'VERIFIED': 'Верифіковано',
-        'NOT_CONNECTED': 'Не підключено',
-        
-        // Payment statuses
-        'pending': 'Очікує',
-        'completed': 'Завершено',
-        'rejected': 'Відхилено',
-        'processing': 'В обробці',
-        
-        // User statuses
-        'BANNED': 'Заблокований',
-        'active': 'Активний',
-        'inactive': 'Неактивний',
-        
-        // Generic statuses
-        'enabled': 'Увімкнено',
-        'disabled': 'Вімкнено',
-        'configured': 'Налаштовано',
-        'unconfigured': 'Не налаштовано'
-    };
-    
-    // Helper function to translate status codes
-    function translateStatus(status) {
-        return statusTranslations[status] || status;
-    }
-    
-    // Wait for Socket.io to load
-    function initSocket() {
-        if (typeof io === 'undefined') {
-            setTimeout(initSocket, 100);
-            return;
-        }
-        // Configure Socket.IO with reconnection throttling to prevent spam
-        socket = io({
-            reconnection: true,
-            reconnectionAttempts: 5,      // Reduced to prevent spam
-            reconnectionDelay: 2000,       // Start with 2 seconds
-            reconnectionDelayMax: 60000,   // Max 60 seconds between attempts
-            randomizationFactor: 0.5,     // Add randomness
-            timeout: 20000,
-            transports: ['websocket', 'polling'],
-            forceNew: false,               // Reuse existing connection if available
-            autoConnect: true
-        });
-        
-        socket.on('connect', () => { 
-            console.log('✅ Admin connected to WebSocket');
-            showToast(t('admin.connected'), 'success', 2000); 
-        });
-        
-        socket.on('connect_error', (err) => { 
-            // Only log if not already reconnecting
-            if (!socket.reconnecting) {
-                console.warn('⚠️ Socket connection error:', err.message);
-            }
-        });
-        
-        socket.on('disconnect', (reason) => { 
-            console.log('🔌 Disconnected:', reason);
-            // Don't show error for normal disconnects
-            if (reason === 'io server disconnect') {
-                // Server disconnected, try to reconnect after delay
-                setTimeout(() => {
-                    if (!socket.connected) {
-                        socket.connect();
-                    }
-                }, 2000);
-            }
-        });
-        
-        socket.on('reconnect_attempt', (attemptNumber) => {
-            console.log(`🔄 Reconnection attempt ${attemptNumber}`);
-        });
-        
-        socket.on('reconnect', (attemptNumber) => {
-            console.log(`✅ Reconnected after ${attemptNumber} attempts`);
-        });
-        
-        socket.on('reconnect_failed', () => {
-            console.warn('❌ Reconnection failed, will retry later');
-        });
-        socket.on('master_data', (data) => {
-            const balanceEl = document.getElementById('master-balance');
-            let totalBalance = null;
-            if (balanceEl) {
-                if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
-                    balanceEl.innerHTML = '$' + data.balance;
-                    balanceEl.classList.remove('text-muted');
-                    const parsed = parseFloat(String(data.balance).replace(/,/g, ''));
-                    if (Number.isFinite(parsed)) {
-                        totalBalance = parsed;
-                    }
-                } else if (data.exchange_balances && data.exchange_balances.length > 0) {
-                    // Calculate total from exchange balances
-                    const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
-                    balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
-                    totalBalance = total;
-                } else {
-                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
-                }
-            }
-            if (totalBalance !== null) {
-                updateSafetyPoolDisplay(totalBalance);
-            }
-            if (data.positions) renderMasterPositions(data.positions);
-            if (data.exchange_balances) renderExchangeBalances(data.exchange_balances);
-        });
-        
-        socket.on('new_log', (entry) => {
-            const container = document.getElementById('log-container');
-            if (!container) return;
-            const div = document.createElement('div');
-            div.className = `p-1.5 bg-[var(--bg-element)] rounded log-entry ${entry.is_error ? 'log-error' : 'log-info'}`;
-            div.innerHTML = `<span class="text-muted">[${entry.time}]</span><span class="text-cyan ml-1">${entry.symbol}</span><span class="ml-1 text-bright">${entry.message}</span>`;
-            container.insertBefore(div, container.firstChild);
-            if (container.children.length > 30) container.removeChild(container.lastChild);
-        });
-
-        socket.on('trade_closed', (trade) => {
-            const tbody = document.getElementById('trades-body');
-            if (!tbody) return;
-            const tr = document.createElement('tr');
-            tr.className = 'trade-row border-b border-[var(--border-color)] border-opacity-30';
-            tr.innerHTML = `<td class="py-2 px-2 text-muted">${trade.time}</td><td class="py-2 px-2 font-bold text-bright">${trade.node}</td><td class="py-2 px-2 font-mono">${trade.symbol}</td><td class="py-2 px-1 text-center"><span class="badge ${trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${trade.side}</span></td><td class="py-2 px-2 text-right font-mono font-bold ${trade.pnl >= 0 ? 'text-green' : 'text-red'}">${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}$</td>`;
-            tbody.insertBefore(tr, tbody.firstChild);
-            if (trade.pnl >= 0) { showToast(`+${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'success'); if (typeof celebrateSuccess === 'function') celebrateSuccess(); }
-            else showToast(`${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'warning');
-        });
-        
-        socket.on('new_message', (msg) => { if (!msg.is_from_admin) { showToast(`📩 New message from ${msg.sender_name}`, 'info'); loadUnreadCount(); } });
-    }
-    initSocket();
-
-    async function refreshMasterBalances() {
-        try {
-            const res = await fetch('/api/master/exchange_balances');
-            const data = await res.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to load balances');
-            }
-
-            const balanceEl = document.getElementById('master-balance');
-            let totalBalance = null;
-            if (balanceEl) {
-                if (data.total_balance > 0) {
-                    balanceEl.innerHTML = '$' + data.total_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    balanceEl.classList.remove('text-muted');
-                    totalBalance = data.total_balance;
-                } else if (data.exchanges && data.exchanges.length > 0) {
-                    balanceEl.innerHTML = '<span class="text-muted">0.00</span>';
-                    totalBalance = 0;
-                } else {
-                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
-                }
-            }
-            if (totalBalance !== null) {
-                updateSafetyPoolDisplay(totalBalance);
-            }
-            renderExchangeBalances(data.exchanges || []);
-        } catch (err) {
-            console.warn('Failed to refresh master balances:', err);
-            const balanceEl = document.getElementById('master-balance');
-            if (balanceEl) {
-                balanceEl.innerHTML = '<span class="text-muted">Error fetching balances</span>';
-            }
-        }
-    }
-    
-    function renderMasterPositions(positions) {
-        const container = document.getElementById('master-positions-container');
-        const countEl = document.getElementById('master-positions-count');
-        if (!container) return;
-        if (countEl) countEl.textContent = positions?.length || 0;
-        if (!positions || positions.length === 0) {
-            container.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-inbox text-2xl mb-1 opacity-30"></i><p class="text-xs">${t('admin.noPositions')}</p></div>`;
-            return;
-        }
-        container.innerHTML = positions.map(pos => `
-            <div class="position-card p-2 bg-[var(--bg-element)] rounded-lg" style="border-left: 2px solid ${pos.side === 'LONG' ? 'var(--neon-green)' : 'var(--neon-red)'};">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="badge text-xxs ${pos.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${pos.side}</span>
-                        <span class="font-mono font-bold text-xs text-bright">${pos.symbol}</span>
-                        <span class="text-xxs text-cyan">${pos.exchange || 'Binance'}</span>
-                    </div>
-                    <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    function renderExchangeBalances(balances) {
-        const container = document.getElementById('exchange-balances-container');
-        if (!container) return;
-        
-        if (!balances || balances.length === 0) {
-            container.innerHTML = '<a href="#" onclick="showSection(\'exchange\'); return false;" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-plus-circle"></i><span>' + t('admin.configureExchanges') + '</span></a>';
-            return;
-        }
-        
-        container.innerHTML = balances.map(ex => {
-            const errorTitle = ex.error ? ` title="${escapeHtml(ex.error)}"` : '';
-            const errorClass = ex.error ? 'is-error' : '';
-            const balanceClass = ex.balance !== null ? (ex.balance > 0 ? 'text-green' : 'text-muted') : (ex.error ? 'text-red' : 'text-muted');
-            const balanceText = ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...');
-            return `
-            <div class="exchange-balance-pill ${errorClass}"${errorTitle}>
-                <span class="name">${ex.exchange}</span>
-                <span class="value ${balanceClass}">${balanceText}</span>
-            </div>
-        `;
-        }).join('');
-    }
-
-    // Initial fetch to avoid empty UI if socket updates lag or fail
-    setTimeout(refreshMasterBalances, 800);
-
-
-    function confirmPanic() {
-        if (confirm('⚠️ Close ALL positions on ALL accounts?\n\nThis is IRREVERSIBLE!')) {
-            showToast('🚨 Executing panic exit...', 'error');
-            fetch('/api/admin/panic', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                .then(r => r.json())
-                .then(data => { if (data.success) { showToast(`Closed: Master=${data.master_closed}, Slaves=${data.slaves_closed}`, 'success'); setTimeout(() => location.reload(), 2000); } else showToast('Error: ' + (data.error || 'Unknown'), 'error'); })
-                .catch(() => showToast(t('dash.networkError'), 'error'));
-        }
-    }
-    function clearLogs() { document.getElementById('log-container').innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1">Logs cleared</span></div>`; }
-    function setChartPeriod(period) { currentPeriod = period; document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period)); loadMasterChart(); loadMasterStats(); }
-    function loadMasterStats() {
-        fetch(`/api/master_stats?period=${currentPeriod}`).then(r => r.json()).then(data => {
-                    const pnl = data.total_pnl;
-            document.getElementById('stats-result').textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}`;
-            document.getElementById('stats-result').className = `text-xs font-bold font-mono ${pnl >= 0 ? 'text-green' : 'text-red'}`;
-            document.getElementById('stats-trades').textContent = data.total_trades;
-            document.getElementById('stats-winrate').textContent = `${data.win_rate}%`;
-            document.getElementById('stats-avgroi').textContent = `${data.avg_roi >= 0 ? '+' : ''}${data.avg_roi.toFixed(0)}%`;
-        }).catch(console.error);
-    }
-    function loadMasterChart() {
-        if (typeof Chart === 'undefined') {
-            setTimeout(loadMasterChart, 200);
-            return;
-        }
-        fetch(`/api/balance_history?user_id=master&period=${currentPeriod}`).then(r => r.json()).then(data => {
-                const ctx = document.getElementById('masterChart');
-                if (masterChart) masterChart.destroy();
-            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 130);
-            gradient.addColorStop(0, 'rgba(255, 0, 255, 0.2)');
-                gradient.addColorStop(1, 'rgba(255, 0, 255, 0)');
-            masterChart = new Chart(ctx, { type: 'line', data: { labels: data.map(d => d.time), datasets: [{ data: data.map(d => d.balance), borderColor: '#ff00ff', backgroundColor: gradient, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 1.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#555', font: { size: 8 } } } }, animation: { duration: 500 } } });
-        }).catch(console.error);
-    }
-    function loadUnreadCount() { fetch('/api/messages/unread').then(r => r.json()).then(data => { const stat = document.getElementById('unread-messages-stat'); if (stat) stat.querySelector('p').textContent = data.unread; }).catch(console.error); }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        loadUnreadCount();
-        loadAllExchangeConfigs();
-        loadExchangeConfigs();
-        loadPendingExchanges();
-        loadAllUserExchanges();
-        loadAdminSafetyPool();
-        loadAdminPlatformStats();
-        
-        // Auto-refresh balances only for small user counts
-        const balanceBtn = document.getElementById('refresh-balances-btn');
-        const userCount = parseInt(balanceBtn?.dataset.userCount || '0', 10);
-        if (userCount > 0 && userCount <= 50) {
-            setTimeout(refreshAllBalances, 1200);
-        }
-    });
-    
-    // Safety Pool / Insurance Fund
-    function formatUsd(value) {
-        return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    }
-
-    function updateSafetyPoolDisplay(balanceValue) {
-        if (!Number.isFinite(balanceValue)) return;
-        const formatted = formatUsd(balanceValue);
-        const poolEl = document.getElementById('admin-safety-pool');
-        if (poolEl) {
-            poolEl.textContent = formatted;
-        }
-        const fundEl = document.getElementById('admin-insurance-fund');
-        if (fundEl) {
-            fundEl.textContent = formatted;
-        }
-    }
-
-    function parseBalanceValue(rawText) {
-        if (!rawText) return null;
-        const parsed = parseFloat(String(rawText).replace(/[^0-9.-]/g, ''));
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    function syncSafetyPoolFromMasterBalance() {
-        const balanceEl = document.getElementById('master-balance');
-        if (!balanceEl) return;
-        const parsed = parseBalanceValue(balanceEl.textContent);
-        if (parsed !== null) {
-            updateSafetyPoolDisplay(parsed);
-        }
-    }
-
-    function loadAdminSafetyPool() {
-        syncSafetyPoolFromMasterBalance();
-    }
-    // Refresh Safety Pool every 5 minutes
-    if (window.createVisibilityInterval) {
-        window.createVisibilityInterval(loadAdminSafetyPool, 5 * 60 * 1000, { immediate: false });
-    } else {
-        setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
-    }
-    
-    // Admin Platform Stats
-    function loadAdminPlatformStats() {
-        // Load referral stats
-        fetch('/api/admin/referral-stats')
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const totalRefEl = document.getElementById('admin-total-referrals');
-                    const pendingEl = document.getElementById('admin-pending-payouts');
-                    if (totalRefEl) totalRefEl.textContent = data.total_referrals || 0;
-                    if (pendingEl) pendingEl.textContent = '$' + (data.pending_payouts || 0).toFixed(2);
-                }
-            })
-            .catch(() => {});
-        
-    }
-    
     // Exchange Config - ALL exchanges (for connecting)
     let allExchangeConfigs = [];
     let isLoadingExchangeConfigs = false;
     let lastLoadTime = 0;
     
     function loadAllExchangeConfigs() {
-        // Prevent rapid successive calls (debounce)
         const now = Date.now();
         if (isLoadingExchangeConfigs || (now - lastLoadTime < 500)) {
             return;
@@ -952,29 +464,24 @@
         const modal = document.getElementById('adminExchangeModal');
         const isModalOpen = modal && modal.style.display === 'flex';
         
-        // Preserve selected value if modal is open
         const selectedValue = select && isModalOpen ? select.value : null;
         
         fetch('/api/admin/exchange-configs').then(r => r.json()).then(configs => {
             allExchangeConfigs = configs;
             
-            // Update select in modal only if modal is not open or if we need to refresh options
             if (select && (!isModalOpen || !selectedValue)) {
                 select.innerHTML = '<option value="">-- Select Exchange --</option>' + configs.map(c => 
                     `<option value="${c.exchange_name}" data-verified="${c.is_verified}" data-passphrase="${c.requires_passphrase}">${c.display_name} ${c.is_verified ? '✓' : ''}</option>`
                 ).join('');
                 
-                // Restore selected value if modal was open
                 if (isModalOpen && selectedValue) {
                     select.value = selectedValue;
-                    // Trigger change handler to show fields if needed
                     if (selectedValue) {
                         handleAdminExchangeChange(select);
                     }
                 }
             }
             
-            // Show all exchanges with their status
             if (!configs || configs.length === 0) { 
                 container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs">${t('admin.noExchangesConfigured')}</p></div>`; 
                 return; 
@@ -1086,7 +593,6 @@
         let modal = document.getElementById('adminExchangeModal');
         
         if (!modal) {
-            // Create modal HTML
             const modalHtml = `
                 <div id="adminExchangeModal" class="modal-overlay" style="display: flex; align-items: center; justify-content: center;" onclick="if(event.target===this)closeAdminExchangeModal()">
                     <div class="modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
@@ -1143,7 +649,6 @@
             modal.style.display = 'flex';
         }
         
-        // Reset form
         const form = document.getElementById('admin-exchange-form');
         const fields = document.getElementById('admin-exchange-fields');
         const status = document.getElementById('admin-exchange-status');
@@ -1153,16 +658,13 @@
         if (fields) fields.classList.add('hidden');
         if (status) status.classList.add('hidden');
         
-        // Load exchanges into select
         fetch('/api/admin/exchange-configs')
             .then(r => {
                 if (!r.ok) throw new Error('API error: ' + r.status);
                 return r.json();
             })
             .then(configs => {
-                console.log('Admin exchange configs loaded:', configs);
                 if (select) {
-                    // Clear existing options
                     select.innerHTML = '';
                     
                     if (!configs || configs.length === 0) {
@@ -1174,13 +676,11 @@
                         return;
                     }
                     
-                    // Add default option
                     const defaultOpt = document.createElement('option');
                     defaultOpt.value = '';
                     defaultOpt.textContent = '-- Select Exchange --';
                     select.appendChild(defaultOpt);
                     
-                    // Add exchange options
                     configs.forEach(c => {
                         const opt = document.createElement('option');
                         opt.value = c.exchange_name;
@@ -1189,8 +689,6 @@
                         opt.textContent = c.display_name + (c.is_verified ? ' ✓' : '');
                         select.appendChild(opt);
                     });
-                    
-                    console.log('Select populated with', configs.length, 'exchanges');
                 }
             })
             .catch(err => {
@@ -1257,71 +755,36 @@
         const exchangeSelect = document.getElementById('admin-exchange-select');
         const apiKeyInput = document.getElementById('admin-api-key');
         const apiSecretInput = document.getElementById('admin-api-secret');
-        const passphraseField = document.getElementById('admin-passphrase-field');
         const passphraseInput = document.getElementById('admin-passphrase');
         
-        // Get form values properly
-        const exchangeName = exchangeSelect ? exchangeSelect.value.trim() : '';
-        const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
-        const apiSecret = apiSecretInput ? apiSecretInput.value.trim() : '';
-        
-        // Check if passphrase field is visible (required)
-        const isPassphraseVisible = passphraseField && !passphraseField.classList.contains('hidden');
-        const passphrase = isPassphraseVisible && passphraseInput ? passphraseInput.value.trim() : null;
-        
-        if (!exchangeName) {
-            showToast(t('admin.selectExchange'), 'error');
+        if (!exchangeSelect.value) {
+            showToast('Please select exchange', 'error');
             return;
         }
         
-        if (!apiKey || apiKey.length < 10) {
-            showToast(t('admin.invalidApiKey'), 'error');
-            return;
-        }
-        
-        if (!apiSecret || apiSecret.length < 10) {
-            showToast(t('admin.invalidApiSecret'), 'error');
-            return;
-        }
-        
-        // Validate passphrase if field is visible
-        if (isPassphraseVisible && (!passphrase || passphrase.length === 0)) {
-            showToast(t('admin.passphraseRequired'), 'error');
+        if (!apiKeyInput.value || !apiSecretInput.value) {
+            showToast('API Key and Secret required', 'error');
             return;
         }
         
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Connecting...</span>';
         
-        const requestBody = {
-            api_key: apiKey,
-            api_secret: apiSecret
-        };
-        
-        // Add passphrase only if field is visible (even if empty, backend will validate)
-        if (isPassphraseVisible) {
-            requestBody.passphrase = passphrase || '';
-        }
-        
-        // URL encode the exchange name to handle any special characters
-        const encodedExchangeName = encodeURIComponent(exchangeName);
-        
-        fetch(`/api/admin/exchange-configs/${encodedExchangeName}/verify`, {
+        fetch('/api/admin/exchange-configs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+                exchange_name: exchangeSelect.value,
+                api_key: apiKeyInput.value,
+                api_secret: apiSecretInput.value,
+                passphrase: passphraseInput.value
+            })
         })
-        .then(r => {
-            if (!r.ok) {
-                return r.json().then(err => Promise.reject(err));
-            }
-            return r.json();
-        })
+        .then(r => r.json())
         .then(result => {
             if (result.success) {
                 showToast(result.message || t('admin.exchangeVerified'), 'success');
                 closeAdminExchangeModal();
-                // Delay reload to ensure modal is closed first
                 setTimeout(() => {
                     loadExchangeConfigs();
                     loadAllExchangeConfigs();
@@ -1341,12 +804,6 @@
         });
     }
     
-    document.addEventListener('keydown', e => { 
-        if (e.key === 'Escape') { 
-            closeAdminExchangeModal(); 
-        } 
-    });
-
     // User Exchanges
     let allUserExchanges = [];
     function loadAllUserExchanges() {
@@ -1380,7 +837,6 @@
                     </div>
                 </div>
             `).join('');
-            // Load balances for all users
             loadAllUserBalances();
         }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error loading</p></div>`);
     }
@@ -1388,7 +844,6 @@
     function loadAllUserBalances() {
         fetch('/api/admin/users/balances').then(r => r.json()).then(data => {
             if (data.success && data.users) {
-                // Create a map of exchange balances
                 const balanceMap = {};
                 data.users.forEach(user => {
                     if (user.exchanges) {
@@ -1397,7 +852,6 @@
                         });
                     }
                 });
-                // Update UI
                 allUserExchanges.forEach(ex => {
                     const balanceEl = document.getElementById(`admin-ex-bal-${ex.id}`);
                     if (balanceEl && balanceMap[ex.id]) {
@@ -1459,7 +913,6 @@
                         ? `<img src="/static/avatars/${u.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
                         : `<span style="font-size: 2rem;">${u.avatar || '🧑‍💻'}</span>`;
                     
-                    // Format balance growth
                     const growthColor = u.balance_growth_30d >= 0 ? 'text-green' : 'text-red';
                     const growthSign = u.balance_growth_30d >= 0 ? '+' : '';
                     
@@ -1483,7 +936,6 @@
                             </div>
                         </div>
                         
-                        <!-- Current Balance Card -->
                         <div class="p-3 mb-4 rounded-lg border" style="background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 0, 212, 0.1)); border-color: rgba(0, 212, 255, 0.3);">
                             <div class="flex items-center justify-between">
                                 <div>
@@ -1503,7 +955,6 @@
                             </div>
                         </div>
                         
-                        <!-- Contact Info -->
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
                                 <div class="text-xxs text-muted mb-1"><i class="fas fa-envelope text-purple"></i> Email</div>
@@ -1523,7 +974,6 @@
                             </div>
                         </div>
                         
-                        <!-- Trading Settings -->
                         <div class="grid grid-cols-3 gap-3 mb-4">
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
                                 <div class="text-xxs text-muted mb-1">Risk</div>
@@ -1539,7 +989,6 @@
                             </div>
                         </div>
                         
-                        <!-- Trading Stats -->
                         <div class="grid grid-cols-4 gap-2 mb-4">
                             <div class="p-2 bg-[rgba(0,245,255,0.08)] border border-[rgba(0,245,255,0.2)] rounded-lg text-center">
                                 <div class="text-lg font-bold text-cyan">${u.total_trades}</div>
@@ -1559,7 +1008,6 @@
                             </div>
                         </div>
                         
-                        <!-- PnL & ROI -->
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="p-3 bg-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.08)' : 'rgba(255,51,102,0.08)'}] border border-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,102,0.2)'}] rounded-lg text-center">
                                 <div class="text-xl font-bold font-mono ${u.total_pnl >= 0 ? 'text-green' : 'text-red'}">${u.total_pnl >= 0 ? '+' : ''}$${u.total_pnl?.toLocaleString() || '0'}</div>
@@ -1571,7 +1019,6 @@
                             </div>
                         </div>
                         
-                        <!-- Last Trade -->
                         ${u.last_trade ? `
                         <div class="p-3 mb-4 bg-[var(--color-surface-2)] rounded-lg">
                             <div class="text-xxs text-muted mb-2"><i class="fas fa-history"></i> Last Trade</div>
@@ -1624,7 +1071,6 @@
                         </div>
                         ` : '<div class="p-3 mb-4 bg-[rgba(255,200,0,0.08)] border border-[rgba(255,200,0,0.2)] rounded-lg text-center text-yellow text-sm"><i class="fas fa-exclamation-triangle"></i> No exchanges connected</div>'}
                         
-                        <!-- Telegram Status -->
                         <div class="p-2 mb-4 bg-[var(--color-surface-2)] rounded-lg flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <i class="fab fa-telegram" style="color: ${u.telegram_enabled ? '#0088cc' : 'var(--text-muted)'}; font-size: 1.25rem;"></i>
@@ -1689,9 +1135,7 @@
         .then(result => {
             if (result.success) {
                 showToast(t('admin.avatarUpdated'), 'success');
-                // Refresh modal
                 openUserDetailsModal(userId);
-                // Refresh page after delay
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showToast(result.error || 'Error', 'error');
@@ -1715,7 +1159,6 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success && data.users) {
-                    // Update balance cells in the table
                     data.users.forEach(user => {
                         const row = document.querySelector(`tr[data-user-id="${user.user_id}"]`);
                         if (!row) return;
@@ -1782,7 +1225,6 @@
             return;
         }
 
-        // Double confirmation for safety
         const confirmText = prompt(`Введи "${username}" для підтвердження видалення:`);
         if (confirmText !== username) {
             showToast(t('admin.deletionCancelled'), 'warning');
@@ -1804,7 +1246,6 @@
             if (result.success) {
                 showToast(result.message || `User ${username} deleted`, 'success');
                 closeUserDetailsModal();
-                // Remove user row from table
                 const row = document.querySelector(`tr[data-user-id="${userId}"]`);
                 if (row) {
                     row.style.animation = 'fadeOut 0.3s ease';
@@ -1820,298 +1261,17 @@
         });
     }
 
-    // ==================== STRATEGY MANAGEMENT ====================
-    let adminStrategies = [];
-    
-    function loadAdminStrategies() {
-        const container = document.getElementById('admin-strategies-container');
-        if (!container) return;
-        
-        fetch('/api/admin/strategies')
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) {
-                    throw new Error(data.error || 'Failed to load strategies');
-                }
-                
-                adminStrategies = data.strategies;
-                renderAdminStrategies();
-            })
-            .catch(err => {
-                console.error('Error loading strategies:', err);
-                container.innerHTML = `
-                    <div class="text-center py-6 text-red">
-                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                        <p>Failed to load strategies</p>
-                        <button onclick="loadAdminStrategies()" class="cyber-btn cyber-btn-sm mt-3">
-                            <i class="fas fa-sync"></i> Retry
-                        </button>
-                    </div>`;
-            });
-    }
-    
-    function renderAdminStrategies() {
-        const container = document.getElementById('admin-strategies-container');
-        if (!container) return;
-        
-        if (!adminStrategies.length) {
-            container.innerHTML = `
-                <div class="text-center py-6 text-muted">
-                    <i class="fas fa-chess-board text-2xl mb-2 opacity-30"></i>
-                    <p data-i18n="admin.noStrategies">Стратегії ще не створені</p>
-                </div>`;
-            return;
-        }
-        
-        container.innerHTML = adminStrategies.map(s => {
-            const riskColor = { low: 'green', medium: 'yellow', high: 'red' }[s.risk_level] || 'muted';
-            return `
-                <div class="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,0,0,0.3)] border border-[var(--color-border)] hover:border-[var(--neon-purple)] transition-all" data-strategy-id="${s.id}">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center ${s.is_active ? 'bg-purple/20' : 'bg-muted/10'}">
-                            <i class="fas fa-chess-knight ${s.is_active ? 'text-purple' : 'text-muted'}"></i>
-                        </div>
-                        <div>
-                            <div class="font-display font-semibold ${s.is_active ? 'text-bright' : 'text-muted'}">${s.name}</div>
-                            <div class="text-xxs text-muted">${s.description || 'No description'}</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
-                        <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
-                        <div class="flex items-center gap-1">
-                            <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="toggleStrategy(${s.id}, ${!s.is_active})" class="cyber-btn cyber-btn-sm ${s.is_active ? 'cyber-btn-warning' : 'cyber-btn-gradient-green'}" title="${s.is_active ? 'Deactivate' : 'Activate'}">
-                                <i class="fas fa-${s.is_active ? 'pause' : 'play'}"></i>
-                            </button>
-                            ${s.name !== 'Main' ? `<button onclick="deleteStrategy(${s.id}, '${s.name}')" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    function openCreateStrategyModal() {
-        const modalHtml = `
-            <div id="strategyModal" class="modal-overlay" style="display: flex;" onclick="if(event.target===this)closeStrategyModal()">
-                <div class="modal-card">
-                    <div class="modal-header">
-                        <div class="modal-title">
-                            <i class="fas fa-chess-knight text-purple"></i>
-                            <span>Create Strategy</span>
-                        </div>
-                        <button onclick="closeStrategyModal()" class="modal-close"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="strategy-form" onsubmit="submitStrategy(event)" class="space-y-4">
-                            <input type="hidden" id="strategy-id" value="">
-                            <div class="space-y-1">
-                                <label class="text-xs text-muted">Name *</label>
-                                <input type="text" id="strategy-name" class="input" placeholder="e.g., Aggressive BTC" required>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs text-muted">Description</label>
-                                <textarea id="strategy-description" class="input" rows="2" placeholder="Опис стратегії..."></textarea>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs text-muted">Risk Level</label>
-                                <select id="strategy-risk-level" class="input">
-                                    <option value="low">Low Risk</option>
-                                    <option value="medium" selected>Medium Risk</option>
-                                    <option value="high">High Risk</option>
-                                </select>
-                            </div>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Risk % Override</label>
-                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Глобальний" step="0.1" min="0.1" max="100">
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Leverage Override</label>
-                                    <input type="number" id="strategy-leverage" class="input" placeholder="Глобальний" min="1" max="125">
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Max Positions</label>
-                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Глобальний" min="1" max="50">
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="strategy-active" class="cyber-checkbox" checked>
-                                    <span class="text-sm">Active</span>
-                                </label>
-                            </div>
-                            <button type="submit" class="cyber-btn w-full" id="strategy-submit-btn">
-                                <i class="fas fa-save"></i>
-                                <span>Create Strategy</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-    
-    function closeStrategyModal() {
-        const modal = document.getElementById('strategyModal');
-        if (modal) modal.remove();
-    }
-    
-    function editStrategy(strategyId) {
-        const strategy = adminStrategies.find(s => s.id === strategyId);
-        if (!strategy) return;
-        
-        openCreateStrategyModal();
-        
-        // Wait for modal to be added to DOM
-        setTimeout(() => {
-            document.getElementById('strategy-id').value = strategyId;
-            document.getElementById('strategy-name').value = strategy.name;
-            document.getElementById('strategy-description').value = strategy.description || '';
-            document.getElementById('strategy-risk-level').value = strategy.risk_level;
-            document.getElementById('strategy-risk-perc').value = strategy.default_risk_perc || '';
-            document.getElementById('strategy-leverage').value = strategy.default_leverage || '';
-            document.getElementById('strategy-max-pos').value = strategy.max_positions || '';
-            document.getElementById('strategy-active').checked = strategy.is_active;
-            
-            document.querySelector('#strategyModal .modal-title span').textContent = 'Edit Strategy';
-            document.querySelector('#strategy-submit-btn span').textContent = 'Update Strategy';
-        }, 50);
-    }
-    
-    async function submitStrategy(event) {
-        event.preventDefault();
-        
-        const strategyId = document.getElementById('strategy-id').value;
-        const isEdit = !!strategyId;
-        
-        const data = {
-            name: document.getElementById('strategy-name').value.trim(),
-            description: document.getElementById('strategy-description').value.trim(),
-            risk_level: document.getElementById('strategy-risk-level').value,
-            default_risk_perc: parseFloat(document.getElementById('strategy-risk-perc').value) || null,
-            default_leverage: parseInt(document.getElementById('strategy-leverage').value) || null,
-            max_positions: parseInt(document.getElementById('strategy-max-pos').value) || null,
-            is_active: document.getElementById('strategy-active').checked
-        };
-        
-        const btn = document.getElementById('strategy-submit-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        
-        try {
-            const url = isEdit ? `/api/admin/strategies/${strategyId}` : '/api/admin/strategies';
-            const response = await fetch(url, {
-                method: isEdit ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(result.message || `Strategy ${isEdit ? 'updated' : 'created'}!`, 'success');
-                closeStrategyModal();
-                loadAdminStrategies();
-            } else {
-                showToast(result.error || 'Failed to save strategy', 'error');
-            }
-        } catch (err) {
-            console.error('Error saving strategy:', err);
-            showToast(t('dash.networkError'), 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-save"></i> <span>${isEdit ? 'Update' : 'Create'} Strategy</span>`;
-        }
-    }
-    
-    async function toggleStrategy(strategyId, activate) {
-        try {
-            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ is_active: activate })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(`Strategy ${activate ? 'activated' : 'deactivated'}`, 'success');
-                loadAdminStrategies();
-            } else {
-                showToast(result.error || 'Failed to update strategy', 'error');
-            }
-        } catch (err) {
-            console.error('Error toggling strategy:', err);
-            showToast(t('dash.networkError'), 'error');
-        }
-    }
-    
-    async function deleteStrategy(strategyId, strategyName) {
-        if (!confirm(`Видалити стратегію "${strategyName}"?\n\nЦе неможливо скасувати.`)) return;
-        
-        try {
-            const response = await fetch(`/api/admin/strategies/${strategyId}`, {
-                method: 'DELETE'
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast(result.message || 'Strategy deleted', 'success');
-                loadAdminStrategies();
-            } else {
-                showToast(result.error || 'Failed to delete strategy', 'error');
-            }
-        } catch (err) {
-            console.error('Error deleting strategy:', err);
-            showToast(t('dash.networkError'), 'error');
-        }
-    }
-    
-    function openSectionAndScroll(section, targetId, callback) {
-        if (typeof window.showSection === 'function') {
-            window.showSection(section);
-        }
-        const runCallback = typeof callback === 'function';
-        if (runCallback || targetId) {
-            setTimeout(() => {
-                if (targetId) {
-                    const el = document.getElementById(targetId);
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-                if (runCallback) {
-                    callback();
-                }
-            }, 150);
-        }
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAllExchangeConfigs();
+        loadExchangeConfigs();
+        loadPendingExchanges();
+        loadAllUserExchanges();
 
-    function applyAdminDeepLink() {
-        const params = new URLSearchParams(window.location.search);
-        const section = params.get('section');
-        const targetId = params.get('target');
-        const openWallet = params.get('openWallet') === '1';
-        if (!section) return;
-        if (section === 'tasks') {
-            window.location.href = "{{ url_for('admin_tasks') }}";
-            return;
+        const balanceBtn = document.getElementById('refresh-balances-btn');
+        const userCount = parseInt(balanceBtn?.dataset.userCount || '0', 10);
+        if (userCount > 0 && userCount <= 50) {
+            setTimeout(refreshAllBalances, 1200);
         }
-        openSectionAndScroll(section, targetId, openWallet && typeof openWalletSettingsModal === 'function' ? openWalletSettingsModal : null);
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        applyAdminDeepLink();
     });
-    
 </script>
 {% endblock %}

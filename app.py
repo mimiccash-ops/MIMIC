@@ -3309,84 +3309,7 @@ def register():
 @login_required
 def dashboard():
     if current_user.role == 'admin':
-        users = User.query.all()
-        
-        # Get master balance (deferred to client for fast load)
-        m_bal = None  # Default to "Connecting..." in template
-
-        # Check if any master exchanges are configured in DB
-        enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
-        has_enabled_configs = bool(enabled_configs)
-
-        # Check if any master exchanges are loaded in the engine
-        has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
-
-        # If configs exist but engine not initialized in this process, try a safe init (throttled)
-        if not has_master_exchanges and has_enabled_configs:
-            last_attempt = getattr(engine, "_last_master_init_attempt", 0)
-            now = time.time()
-            if now - last_attempt > 60:
-                engine._last_master_init_attempt = now
-                try:
-                    engine.init_master()
-                except Exception as e:
-                    logger.warning(f"Failed to init master exchanges in dashboard: {e}")
-            has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
-
-        if not has_master_exchanges:
-            m_bal = "No exchanges configured" if not has_enabled_configs else "Master exchanges not connected"
-        
-        # Get user balances for admin view (cache-only for fast load)
-        user_balances = {}
-        user_exchange_details = {}  # Detailed balance info per exchange
-        
-        for user in users:
-            if user.role == 'admin':
-                continue
-            
-            exchange_balances = get_user_exchange_balances(
-                user.id,
-                allow_stale=True,
-                allow_sync_fetch=False,
-                refresh_in_background=False
-            )
-            
-            exchanges = exchange_balances.get('exchanges') or []
-            if exchanges:
-                # Store detailed exchange info
-                user_exchange_details[user.id] = exchanges
-                
-                # Sum up total balance from all exchanges
-                if exchange_balances.get('total'):
-                    user_balances[user.id] = exchange_balances['total']
-                else:
-                    # Check if any exchange has a valid balance
-                    valid_balances = [e['balance'] for e in exchanges if e.get('balance') is not None]
-                    if valid_balances:
-                        user_balances[user.id] = sum(valid_balances)
-        
-        # Get recent trades
-        history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
-        history_data = [h.to_dict() for h in history_objs]
-        
-        # Defer master positions/balances to client for fast load
-        master_positions = []
-        master_exchange_balances = []
-        master_positions_loaded = False
-        master_balances_loaded = False
-        
-        return render_template('dashboard_admin.html',
-                             users=users,
-                             user_balances=user_balances,
-                             user_exchange_details=user_exchange_details,
-                             engine_paused=engine.is_paused,
-                             master_balance=m_bal,
-                             master_exchange_balances=master_exchange_balances,
-                             master_balances_loaded=master_balances_loaded,
-                             closed_trades=history_data,
-                             master_positions=master_positions,
-                             master_positions_loaded=master_positions_loaded,
-                             global_settings=GLOBAL_TRADE_SETTINGS)
+        return redirect(url_for('admin_overview'))
     else:
         # User dashboard
         u_bal = "Syncing..."
@@ -6235,6 +6158,90 @@ def admin_tasks():
     if current_user.role != 'admin':
         abort(403)
     return render_template('admin_tasks.html')
+
+
+@app.route('/admin/overview')
+@login_required
+def admin_overview():
+    """Admin overview page"""
+    if current_user.role != 'admin':
+        abort(403)
+
+    users = User.query.all()
+
+    m_bal = None
+
+    enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+    has_enabled_configs = bool(enabled_configs)
+
+    has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+
+    if not has_master_exchanges and has_enabled_configs:
+        last_attempt = getattr(engine, "_last_master_init_attempt", 0)
+        now = time.time()
+        if now - last_attempt > 60:
+            engine._last_master_init_attempt = now
+            try:
+                engine.init_master()
+            except Exception as e:
+                logger.warning(f"Failed to init master exchanges in admin overview: {e}")
+        has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+
+    if not has_master_exchanges:
+        m_bal = "No exchanges configured" if not has_enabled_configs else "Master exchanges not connected"
+
+    history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
+    history_data = [h.to_dict() for h in history_objs]
+
+    master_exchange_balances = []
+    master_balances_loaded = False
+
+    return render_template('admin_overview.html',
+                           users=users,
+                           master_balance=m_bal,
+                           master_exchange_balances=master_exchange_balances,
+                           master_balances_loaded=master_balances_loaded,
+                           closed_trades=history_data)
+
+
+@app.route('/admin/exchange')
+@login_required
+def admin_exchange():
+    """Admin exchange management page"""
+    if current_user.role != 'admin':
+        abort(403)
+
+    users = User.query.all()
+
+    user_balances = {}
+    user_exchange_details = {}
+
+    for user in users:
+        if user.role == 'admin':
+            continue
+        
+        exchange_balances = get_user_exchange_balances(
+            user.id,
+            allow_stale=True,
+            allow_sync_fetch=False,
+            refresh_in_background=False
+        )
+        
+        exchanges = exchange_balances.get('exchanges') or []
+        if exchanges:
+            user_exchange_details[user.id] = exchanges
+            
+            if exchange_balances.get('total'):
+                user_balances[user.id] = exchange_balances['total']
+            else:
+                valid_balances = [e['balance'] for e in exchanges if e.get('balance') is not None]
+                if valid_balances:
+                    user_balances[user.id] = sum(valid_balances)
+
+    return render_template('admin_exchange.html',
+                           users=users,
+                           user_balances=user_balances,
+                           user_exchange_details=user_exchange_details)
 
 
 @app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])

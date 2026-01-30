@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Overview{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .command-terminal { background: linear-gradient(165deg, rgba(12, 12, 24, 0.98), rgba(8, 8, 16, 0.99)); border: 1px solid rgba(0, 245, 255, 0.15); }
+    .terminal-header { background: linear-gradient(90deg, var(--neon-red), var(--neon-yellow), var(--neon-green)); height: 2px; }
+    .log-entry { transition: all 0.15s ease; border-radius: 6px; margin: 3px 0; border-left: 2px solid transparent; }
+    .log-entry:hover { background: rgba(0, 245, 255, 0.04); transform: translateX(3px); border-left-color: var(--neon-cyan); }
+    .log-error { border-left-color: var(--neon-red); background: rgba(255, 0, 68, 0.04); }
+    .log-info { border-left-color: var(--neon-cyan); background: rgba(0, 245, 255, 0.02); }
+    .master-balance { font-size: clamp(1.2rem, 5vw, 1.6rem); font-weight: 700; font-family: 'JetBrains Mono', monospace; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 12px rgba(0, 245, 255, 0.25)); letter-spacing: -0.5px; line-height: 1; }
+    .master-balance-card {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(0, 245, 255, 0.08), rgba(255, 0, 212, 0.08));
+        border: 1px solid rgba(0, 245, 255, 0.32);
+        box-shadow: 0 12px 28px rgba(0, 245, 255, 0.15), inset 0 0 12px rgba(0, 245, 255, 0.08);
+    }
+    .master-balance-label {
+        font-size: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .master-balance-value {
+        font-size: clamp(1.4rem, 5vw, 1.9rem);
+        font-weight: 800;
+        font-family: 'JetBrains Mono', monospace;
+        background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 16px rgba(0, 245, 255, 0.25));
+        letter-spacing: -0.6px;
+        line-height: 1;
+    }
+    .exchange-balance-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .exchange-balance-pill {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(10, 20, 28, 0.6);
+        border: 1px solid rgba(0, 245, 255, 0.18);
+        box-shadow: inset 0 0 10px rgba(0, 245, 255, 0.06);
+        min-width: 120px;
+    }
+    .exchange-balance-pill.is-error {
+        border-color: rgba(255, 0, 85, 0.3);
+        box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.08);
+    }
+    .exchange-balance-pill .name {
+        font-size: 0.62rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .exchange-balance-pill .value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .stat-number { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: clamp(0.85rem, 3vw, 1.2rem); letter-spacing: -0.3px; }
+    .node-card { transition: all 0.15s ease; border-left: 2px solid transparent; }
+    .node-card:hover { transform: translateX(3px); background: rgba(0, 245, 255, 0.02); border-left-color: var(--neon-cyan); }
+    .control-btn { position: relative; overflow: hidden; transition: all 0.15s ease; }
+    .control-btn:hover { transform: translateY(-1px); }
+    .period-btn { padding: 3px 8px; font-size: 0.5rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--text-muted); background: var(--bg-element); border: 1px solid var(--border-color); border-radius: 5px; cursor: pointer; transition: all 0.15s ease; text-transform: uppercase; }
+    .period-btn:hover { color: var(--neon-magenta); border-color: var(--neon-magenta); }
+    .period-btn.active { color: #000; background: linear-gradient(135deg, var(--neon-magenta), var(--neon-cyan)); border-color: transparent; }
+    .stats-mode-btn { padding: 3px 8px; font-size: 0.5rem; color: var(--text-muted); background: transparent; border: none; border-radius: 4px; cursor: pointer; transition: all 0.15s ease; }
+    .stats-mode-btn:hover { color: var(--neon-cyan); }
+    .stats-mode-btn.active { color: #000; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)); }
+    #admin-exchange-dropdown-icon.rotate-180, #user-exchange-filter-icon.rotate-180 { transform: rotate(180deg); }
+    .cyber-checkbox { width: 14px; height: 14px; accent-color: var(--neon-cyan); cursor: pointer; }
+    .position-card { transition: all 0.15s ease; }
+    .position-card:hover { transform: translateX(2px); }
+    .trade-row:hover { background: rgba(0, 245, 255, 0.04); }
+    
+    /* Toggle Switch */
+    .toggle-bg { position: relative; cursor: pointer; }
+    .toggle-dot { transition: all 0.2s ease; }
+    .translate-x-6 { transform: translateX(1.5rem); }
+    
+    /* Balance cell styles */
+    .balance-cell { min-width: 90px; }
+    .balance-cell .bg-green { background: var(--neon-green); box-shadow: 0 0 4px var(--neon-green); }
+    .balance-cell .bg-yellow { background: var(--neon-yellow); box-shadow: 0 0 4px var(--neon-yellow); }
+    .balance-cell .bg-red { background: var(--neon-red); box-shadow: 0 0 4px var(--neon-red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-container admin-overview-page">
+    <div class="section-content active">
+        <!-- Hero Card -->
+        <div class="hero-card mb-6">
+            <div class="hero-glow"></div>
+            <div class="flex flex-col md:flex-row items-center gap-6" style="position: relative; z-index: 1;">
+                <!-- Master Icon -->
+                <div class="user-avatar-lg" style="flex-shrink: 0; background: linear-gradient(135deg, rgba(255, 0, 212, 0.2), rgba(0, 212, 255, 0.2)); border-color: var(--neon-magenta);">
+                    <i class="fas fa-crown" style="font-size: 1.75rem; color: var(--neon-magenta);"></i>
+            </div>
+            
+                <!-- Info -->
+                <div class="flex-grow text-center md:text-left">
+                    <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                        <h1 class="font-display text-xl font-semibold" data-i18n="dash.master">MASTER</h1>
+                        <div class="live-indicator">
+                            <span class="live-dot"></span>
+                            <span class="live-text" data-i18n="dash.live">LIVE</span>
+                    </div>
+                    </div>
+                    <div class="master-balance-card">
+                        <div class="master-balance-label">Загальний баланс</div>
+                        <div id="master-balance" class="master-balance-value">
+                            {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A', 'No exchanges configured', 'Master exchanges not connected', 'Помилка', 'Error fetching balances'] %}
+                                ${{ master_balance }}
+                            {% else %}
+                                <span class="text-muted">{{ master_balance or 'Connecting...' }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- Exchange Balances -->
+                    <div id="exchange-balances-container" class="flex flex-wrap gap-2 mt-2 exchange-balance-list">
+                        {% if master_balances_loaded %}
+                            {% if master_exchange_balances %}
+                                {% for ex in master_exchange_balances %}
+                                <div class="exchange-balance-pill {{ 'is-error' if ex.error }}" {% if ex.error %}title="{{ ex.error }}"{% endif %}>
+                                    <span class="name">{{ ex.exchange }}</span>
+                                    <span class="value {{ 'text-red' if ex.error else ('text-green' if ex.balance and ex.balance > 0 else 'text-muted') }}">
+                                        {% if ex.balance is not none %}${{ "{:,.2f}".format(ex.balance) }}{% elif ex.error %}⚠️{% else %}...{% endif %}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <a href="{{ url_for('admin_exchange') }}" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span data-i18n="admin.configureExchanges">Configure Master Exchanges</span>
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted text-xs">Loading...</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-4 mb-6">
+            <div class="stat-card">
+                <div class="stat-icon cyan"><i class="fas fa-network-wired"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.nodes">Nodes</div>
+                    <div class="stat-value text-cyan">{{ users|selectattr('is_paused', 'equalto', false)|selectattr('role', 'ne', 'admin')|list|length }}</div>
+                    </div>
+                </div>
+            <div class="stat-card">
+                <div class="stat-icon magenta"><i class="fas fa-exchange-alt"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.trades">Trades</div>
+                    <div class="stat-value text-magenta">{{ closed_trades|length }}</div>
+                    </div>
+                    </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.result">Result</div>
+                    <div class="stat-value text-green" id="overview-result">+$0</div>
+                    </div>
+                    </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow"><i class="fas fa-percentage"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
+                    <div class="stat-value text-yellow" id="overview-winrate">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insurance Fund / Safety Pool Card -->
+        <div class="card mb-6" style="background: linear-gradient(135deg, rgba(57, 255, 20, 0.03), rgba(0, 240, 255, 0.02)); border-color: rgba(57, 255, 20, 0.2);">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-center" style="width: 48px; height: 48px; background: rgba(57, 255, 20, 0.1); border: 1px solid rgba(57, 255, 20, 0.3); border-radius: var(--radius-md);">
+                        <i class="fas fa-shield-alt text-xl" style="color: #39ff14;"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-muted text-xs uppercase tracking-wider" data-i18n="admin.insuranceFund">Insurance Fund</span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 0.65rem; font-weight: 600; background: rgba(57, 255, 20, 0.1); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.3);">
+                                <i class="fas fa-check-circle"></i> <span data-i18n="admin.verified">Verified</span>
+                            </span>
+                        </div>
+                        <div class="font-mono font-bold text-2xl" id="admin-safety-pool" style="color: #39ff14;">$10,000.00</div>
+                    </div>
+                </div>
+                <div class="text-right hidden md:block">
+                    <div class="text-muted text-xs mb-1" data-i18n="admin.safetyPool">Safety Pool</div>
+                    <div class="text-xs" style="color: rgba(255,255,255,0.4);" data-i18n="admin.feesToFund">5% of fees → fund</div>
+                    <div class="text-xs mt-1" style="color: rgba(255,255,255,0.3);" title="Covers slippage in extreme markets">
+                        <i class="fas fa-info-circle"></i> <span data-i18n="admin.slippageProtection">Slippage protection</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let socket = null;
+
+    function initSocket() {
+        if (typeof io === 'undefined') {
+            setTimeout(initSocket, 100);
+            return;
+        }
+        socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 60000,
+            randomizationFactor: 0.5,
+            timeout: 20000,
+            transports: ['websocket', 'polling'],
+            forceNew: false,
+            autoConnect: true
+        });
+        
+        socket.on('master_data', (data) => {
+            const balanceEl = document.getElementById('master-balance');
+            let totalBalance = null;
+            if (balanceEl) {
+                if (data.balance && data.balance !== '0.00' && !data.balance.includes('Error')) {
+                    balanceEl.innerHTML = '$' + data.balance;
+                    balanceEl.classList.remove('text-muted');
+                    const parsed = parseFloat(String(data.balance).replace(/,/g, ''));
+                    if (Number.isFinite(parsed)) {
+                        totalBalance = parsed;
+                    }
+                } else if (data.exchange_balances && data.exchange_balances.length > 0) {
+                    const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
+                    balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
+                    totalBalance = total;
+                } else {
+                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
+                }
+            }
+            if (totalBalance !== null) {
+                updateSafetyPoolDisplay(totalBalance);
+            }
+            if (data.exchange_balances) {
+                renderExchangeBalances(data.exchange_balances);
+            }
+        });
+    }
+
+    function formatUsd(value) {
+        return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function updateSafetyPoolDisplay(balanceValue) {
+        if (!Number.isFinite(balanceValue)) return;
+        const formatted = formatUsd(balanceValue);
+        const poolEl = document.getElementById('admin-safety-pool');
+        if (poolEl) {
+            poolEl.textContent = formatted;
+        }
+        const fundEl = document.getElementById('admin-insurance-fund');
+        if (fundEl) {
+            fundEl.textContent = formatted;
+        }
+    }
+
+    function parseBalanceValue(rawText) {
+        if (!rawText) return null;
+        const parsed = parseFloat(String(rawText).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function syncSafetyPoolFromMasterBalance() {
+        const balanceEl = document.getElementById('master-balance');
+        if (!balanceEl) return;
+        const parsed = parseBalanceValue(balanceEl.textContent);
+        if (parsed !== null) {
+            updateSafetyPoolDisplay(parsed);
+        }
+    }
+
+    function loadAdminSafetyPool() {
+        syncSafetyPoolFromMasterBalance();
+    }
+
+    if (window.createVisibilityInterval) {
+        window.createVisibilityInterval(loadAdminSafetyPool, 5 * 60 * 1000, { immediate: false });
+    } else {
+        setInterval(loadAdminSafetyPool, 5 * 60 * 1000);
+    }
+
+    async function refreshMasterBalances() {
+        try {
+            const res = await fetch('/api/master/exchange_balances');
+            const data = await res.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load balances');
+            }
+            const balanceEl = document.getElementById('master-balance');
+            if (balanceEl) {
+                balanceEl.innerHTML = data.total_balance > 0
+                    ? '$' + data.total_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                    : '<span class="text-muted">No balance</span>';
+            }
+            if (Number.isFinite(data.total_balance)) {
+                updateSafetyPoolDisplay(data.total_balance);
+            }
+            renderExchangeBalances(data.exchanges || []);
+        } catch (err) {
+            console.warn('Failed to refresh master balances:', err);
+            const balanceEl = document.getElementById('master-balance');
+            if (balanceEl) {
+                balanceEl.innerHTML = '<span class="text-muted">Error fetching balances</span>';
+            }
+        }
+    }
+    
+    function renderExchangeBalances(balances) {
+        const container = document.getElementById('exchange-balances-container');
+        if (!container) return;
+        
+        if (!balances || balances.length === 0) {
+            container.innerHTML = '<a href="{{ url_for('admin_exchange') }}" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-plus-circle"></i><span>' + t('admin.configureExchanges') + '</span></a>';
+            return;
+        }
+        
+        container.innerHTML = balances.map(ex => {
+            const errorTitle = ex.error ? ` title="${escapeHtml(ex.error)}"` : '';
+            const errorClass = ex.error ? 'is-error' : '';
+            const balanceClass = ex.balance !== null ? (ex.balance > 0 ? 'text-green' : 'text-muted') : (ex.error ? 'text-red' : 'text-muted');
+            const balanceText = ex.balance !== null ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : (ex.error ? '⚠️' : '...');
+            return `
+            <div class="exchange-balance-pill ${errorClass}"${errorTitle}>
+                <span class="name">${ex.exchange}</span>
+                <span class="value ${balanceClass}">${balanceText}</span>
+            </div>
+        `;
+        }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initSocket();
+        loadAdminSafetyPool();
+        setTimeout(refreshMasterBalances, 800);
+    });
+</script>
+{% endblock %}

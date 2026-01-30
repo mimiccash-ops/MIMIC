@@ -257,7 +257,7 @@
                     <div class="dropdown-divider"></div>
                     <!-- Section Navigation -->
                     {% if current_user.role == 'admin' %}
-                    <a href="#" class="dropdown-item dropdown-section-link" data-section="overview" onclick="showSection('overview'); closeUserMenu(); return false;">
+                    <a href="{{ url_for('admin_overview') }}" class="dropdown-item" onclick="closeUserMenu();">
                         <i class="fas fa-tachometer-alt"></i>
                         <span data-i18n="section.overview">Overview</span>
                     </a>
@@ -265,7 +265,7 @@
                         <i class="fas fa-sliders-h"></i>
                         <span data-i18n="nav.tradingSettings">Trading & Settings</span>
                     </a>
-                    <a href="#" class="dropdown-item dropdown-section-link" data-section="exchange" onclick="showSection('exchange'); closeUserMenu(); return false;">
+                    <a href="{{ url_for('admin_exchange') }}" class="dropdown-item" onclick="closeUserMenu();">
                         <i class="fas fa-plug"></i>
                         <span data-i18n="section.exchange">Exchange</span>
                     </a>
@@ -1067,6 +1067,23 @@
                         'section.trading': 'Trading',
                         'section.dashboard': 'Dashboard Sections',
                         'nav.tradingSettings': 'Trading & Settings',
+                        'admin.tradingSubtitle': 'Centralized controls, configuration, and live trading monitoring.',
+                        'admin.controlTerminal': 'Control Terminal',
+                        'admin.controlStart': 'Start',
+                        'admin.controlPause': 'Pause',
+                        'admin.controlReload': 'Reload',
+                        'admin.controlPanic': 'Panic',
+                        'admin.tradingPaused': 'Trading Paused',
+                        'admin.minBalanceHint': 'Min$: Users with balance below this cannot trade (default: $1)',
+                        'admin.tradingStrategies': 'Trading Strategies',
+                        'admin.newStrategy': 'New Strategy',
+                        'admin.loadStrategiesFailed': 'Failed to load strategies',
+                        'admin.noDescription': 'No description',
+                        'admin.users': 'users',
+                        'admin.noPositions': 'No open positions',
+                        'admin.noStrategies': 'No strategies yet',
+                        'dash.noOpenPositions': 'No open positions',
+                        'btn.retry': 'Retry',
                         'nav.subscription': 'Subscription',
                         'nav.payouts': 'Payouts',
                         'nav.community': 'Community',
@@ -1323,6 +1340,23 @@
                         'section.trading': 'Торгівля',
                         'section.dashboard': 'Секції панелі',
                         'nav.tradingSettings': 'Торгівля та Налаштування',
+                        'admin.tradingSubtitle': 'Централізоване керування, налаштування та моніторинг торгів у реальному часі.',
+                        'admin.controlTerminal': 'Панель керування',
+                        'admin.controlStart': 'Запустити',
+                        'admin.controlPause': 'Пауза',
+                        'admin.controlReload': 'Перезавантажити',
+                        'admin.controlPanic': 'Паніка',
+                        'admin.tradingPaused': 'Торгівля на паузі',
+                        'admin.minBalanceHint': 'Min$: Користувачі з балансом нижче цього не можуть торгувати (за замовчуванням: $1)',
+                        'admin.tradingStrategies': 'Торгові стратегії',
+                        'admin.newStrategy': 'Нова стратегія',
+                        'admin.loadStrategiesFailed': 'Не вдалося завантажити стратегії',
+                        'admin.noDescription': 'Немає опису',
+                        'admin.users': 'користувачів',
+                        'admin.noPositions': 'Немає відкритих позицій',
+                        'admin.noStrategies': 'Стратегії ще не створені',
+                        'dash.noOpenPositions': 'Немає відкритих позицій',
+                        'btn.retry': 'Спробувати ще раз',
                         'nav.subscription': 'Підписка',
                         'nav.payouts': 'Виплати',
                         'nav.community': 'Спільнота',

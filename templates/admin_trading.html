@@ -203,7 +203,7 @@
                     <i class="fas fa-sliders-h text-magenta"></i>
                     <span data-i18n="nav.tradingSettings">Trading & Settings</span>
                 </h1>
-                <p class="text-muted text-sm mt-1">Centralized controls, configuration, and live trading monitoring.</p>
+                <p class="text-muted text-sm mt-1" data-i18n="admin.tradingSubtitle">Centralized controls, configuration, and live trading monitoring.</p>
             </div>
         </div>
 
@@ -212,7 +212,7 @@
             <div class="terminal-header"></div>
             <div class="p-3">
                 <div class="flex items-center justify-between mb-3">
-                    <span class="font-cyber text-xs tracking-widest text-bright">CONTROL TERMINAL</span>
+                    <span class="font-cyber text-xs tracking-widest text-bright" data-i18n="admin.controlTerminal">Control Terminal</span>
                 </div>
                 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -220,33 +220,33 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="cyber-btn cyber-btn-gradient-green py-4 flex-col gap-2">
                             <i class="fas fa-play text-xl"></i>
-                            <span class="text-xs font-display font-semibold">START</span>
+                            <span class="text-xs font-display font-semibold" data-i18n="admin.controlStart">Start</span>
                         </button>
                     </form>
                     <form method="POST" action="{{ url_for('actions', action_type='pause') }}" style="display: contents;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="cyber-btn cyber-btn-gradient-yellow py-4 flex-col gap-2">
                             <i class="fas fa-pause text-xl"></i>
-                            <span class="text-xs font-display font-semibold">PAUSE</span>
+                            <span class="text-xs font-display font-semibold" data-i18n="admin.controlPause">Pause</span>
                         </button>
                     </form>
                     <form method="POST" action="{{ url_for('actions', action_type='reload') }}" style="display: contents;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="cyber-btn cyber-btn-gradient-blue py-4 flex-col gap-2">
                             <i class="fas fa-sync text-xl"></i>
-                            <span class="text-xs font-display font-semibold">RELOAD</span>
+                            <span class="text-xs font-display font-semibold" data-i18n="admin.controlReload">Reload</span>
                         </button>
                     </form>
                     <button onclick="confirmPanic()" class="cyber-btn cyber-btn-danger py-4 flex-col gap-2">
                         <i class="fas fa-radiation text-xl"></i>
-                        <span class="text-xs font-display font-semibold">PANIC</span>
+                        <span class="text-xs font-display font-semibold" data-i18n="admin.controlPanic">Panic</span>
                     </button>
                 </div>
                 
                 {% if engine_paused %}
                 <div class="mt-3 p-2 bg-[rgba(255,240,0,0.08)] border border-[rgba(255,240,0,0.25)] rounded-xl flex items-center gap-2 animate-pulse">
                     <i class="fas fa-pause-circle text-lg text-yellow"></i>
-                    <span class="text-yellow font-cyber text-xs tracking-wider">TRADING PAUSED</span>
+                    <span class="text-yellow font-cyber text-xs tracking-wider" data-i18n="admin.tradingPaused">Trading Paused</span>
                 </div>
                 {% endif %}
             </div>
@@ -303,7 +303,7 @@
                     </button>
                 </div>
             </form>
-            <p class="text-xxs text-muted mt-2"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
+            <p class="text-xxs text-muted mt-2" data-i18n="admin.minBalanceHint"><i class="fas fa-info-circle text-cyan"></i> Min$: Users with balance below this cannot trade (default: $1)</p>
         </div>
         
         <!-- Strategies Management -->
@@ -311,11 +311,11 @@
             <div class="flex items-center justify-between mb-4 strategy-header">
                 <h2 class="font-display font-semibold flex items-center gap-2">
                     <i class="fas fa-chess-knight text-purple"></i>
-                    <span>Trading Strategies</span>
+                    <span data-i18n="admin.tradingStrategies">Trading Strategies</span>
                 </h2>
                 <button onclick="openCreateStrategyModal()" class="cyber-btn cyber-btn-sm strategy-new-btn">
                     <i class="fas fa-plus"></i>
-                    <span>New Strategy</span>
+                    <span data-i18n="admin.newStrategy">New Strategy</span>
                 </button>
             </div>
             
@@ -620,9 +620,9 @@
                 container.innerHTML = `
                     <div class="text-center py-6 text-red">
                         <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                        <p>Failed to load strategies</p>
+                        <p>${t('admin.loadStrategiesFailed')}</p>
                         <button onclick="loadAdminStrategies()" class="cyber-btn cyber-btn-sm mt-3">
-                            <i class="fas fa-sync"></i> Retry
+                            <i class="fas fa-sync"></i> ${t('btn.retry')}
                         </button>
                     </div>`;
             });
@@ -651,13 +651,13 @@
                         </div>
                         <div>
                             <div class="font-display font-semibold ${s.is_active ? 'text-bright' : 'text-muted'}">${s.name}</div>
-                            <div class="text-xxs text-muted">${s.description || 'No description'}</div>
+                            <div class="text-xxs text-muted">${s.description || t('admin.noDescription')}</div>
                         </div>
                     </div>
                     <div class="strategy-right">
                         <div class="strategy-meta">
                             <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
-                            <span class="text-xs text-muted">${s.subscriber_count || 0} users</span>
+                            <span class="text-xs text-muted">${s.subscriber_count || 0} ${t('admin.users')}</span>
                         </div>
                         <div class="strategy-actions">
                             <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
