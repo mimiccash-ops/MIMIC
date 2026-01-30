@@ -6169,6 +6169,31 @@ def admin_overview():
 
     users = User.query.all()
 
+    user_balances = {}
+    user_exchange_details = {}
+
+    for user in users:
+        if user.role == 'admin':
+            continue
+        
+        exchange_balances = get_user_exchange_balances(
+            user.id,
+            allow_stale=True,
+            allow_sync_fetch=False,
+            refresh_in_background=False
+        )
+        
+        exchanges = exchange_balances.get('exchanges') or []
+        if exchanges:
+            user_exchange_details[user.id] = exchanges
+            
+            if exchange_balances.get('total'):
+                user_balances[user.id] = exchange_balances['total']
+            else:
+                valid_balances = [e['balance'] for e in exchanges if e.get('balance') is not None]
+                if valid_balances:
+                    user_balances[user.id] = sum(valid_balances)
+
     m_bal = None
 
     enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
@@ -6198,6 +6223,8 @@ def admin_overview():
 
     return render_template('admin_overview.html',
                            users=users,
+                           user_balances=user_balances,
+                           user_exchange_details=user_exchange_details,
                            master_balance=m_bal,
                            master_exchange_balances=master_exchange_balances,
                            master_balances_loaded=master_balances_loaded,
@@ -6211,37 +6238,7 @@ def admin_exchange():
     if current_user.role != 'admin':
         abort(403)
 
-    users = User.query.all()
-
-    user_balances = {}
-    user_exchange_details = {}
-
-    for user in users:
-        if user.role == 'admin':
-            continue
-        
-        exchange_balances = get_user_exchange_balances(
-            user.id,
-            allow_stale=True,
-            allow_sync_fetch=False,
-            refresh_in_background=False
-        )
-        
-        exchanges = exchange_balances.get('exchanges') or []
-        if exchanges:
-            user_exchange_details[user.id] = exchanges
-            
-            if exchange_balances.get('total'):
-                user_balances[user.id] = exchange_balances['total']
-            else:
-                valid_balances = [e['balance'] for e in exchanges if e.get('balance') is not None]
-                if valid_balances:
-                    user_balances[user.id] = sum(valid_balances)
-
-    return render_template('admin_exchange.html',
-                           users=users,
-                           user_balances=user_balances,
-                           user_exchange_details=user_exchange_details)
+    return render_template('admin_exchange.html')
 
 
 @app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])
