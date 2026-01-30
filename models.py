@@ -3127,11 +3127,17 @@ class Task(db.Model):
             return False
         
         now = datetime.now(timezone.utc)
+        start_date = self.start_date
+        end_date = self.end_date
+        if start_date and start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=timezone.utc)
+        if end_date and end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
         
-        if self.start_date and now < self.start_date:
+        if start_date and now < start_date:
             return False
         
-        if self.end_date and now > self.end_date:
+        if end_date and now > end_date:
             return False
         
         if self.max_participants and self.total_participants >= self.max_participants:

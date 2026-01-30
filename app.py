@@ -1868,10 +1868,23 @@ def admin_get_tasks():
             query = query.filter_by(status=status)
         
         tasks = query.order_by(Task.created_at.desc()).all()
+        task_data = []
+        for task in tasks:
+            try:
+                task_data.append(task.to_dict(include_participations=False))
+            except TypeError as e:
+                if "offset-naive" in str(e):
+                    if task.start_date and task.start_date.tzinfo is None:
+                        task.start_date = task.start_date.replace(tzinfo=timezone.utc)
+                    if task.end_date and task.end_date.tzinfo is None:
+                        task.end_date = task.end_date.replace(tzinfo=timezone.utc)
+                    task_data.append(task.to_dict(include_participations=False))
+                else:
+                    raise
         
         return jsonify({
             'success': True,
-            'tasks': [t.to_dict(include_participations=False) for t in tasks],
+            'tasks': task_data,
             'task_types': Task.get_task_types(),
             'reward_types': Task.get_reward_types()
         })
@@ -1879,6 +1892,18 @@ def admin_get_tasks():
     except Exception as e:
         logger.error(f"Error getting admin tasks: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _parse_task_datetime(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        dt = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 @app.route('/api/admin/tasks', methods=['POST'])
@@ -1920,10 +1945,14 @@ def admin_create_task():
         )
         
         # Parse dates if provided
-        if data.get('start_date'):
-            task.start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
-        if data.get('end_date'):
-            task.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00'))
+        try:
+            task.start_date = _parse_task_datetime(data.get('start_date'))
+            task.end_date = _parse_task_datetime(data.get('end_date'))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Невірний формат дати. Використовуйте ISO 8601.'}), 400
+        
+        if task.start_date and task.end_date and task.start_date > task.end_date:
+            return jsonify({'success': False, 'error': 'Дата завершення має бути після дати початку.'}), 400
         
         db.session.add(task)
         db.session.commit()
@@ -1997,10 +2026,16 @@ def admin_update_task(task_id):
             task.status = data['status']
         if 'is_featured' in data:
             task.is_featured = data['is_featured']
-        if 'start_date' in data:
-            task.start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00')) if data['start_date'] else None
-        if 'end_date' in data:
-            task.end_date = datetime.fromisoformat(data['end_date'].replace('Z', '+00:00')) if data['end_date'] else None
+        try:
+            if 'start_date' in data:
+                task.start_date = _parse_task_datetime(data.get('start_date'))
+            if 'end_date' in data:
+                task.end_date = _parse_task_datetime(data.get('end_date'))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Невірний формат дати. Використовуйте ISO 8601.'}), 400
+        
+        if task.start_date and task.end_date and task.start_date > task.end_date:
+            return jsonify({'success': False, 'error': 'Дата завершення має бути після дати початку.'}), 400
         
         db.session.commit()
         
