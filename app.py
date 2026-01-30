@@ -6199,6 +6199,15 @@ def admin_payouts():
                            rejected_count=rejected_count)
 
 
+@app.route('/admin/subscription')
+@login_required
+def admin_subscription():
+    """Admin page to manage subscriptions and payment settings"""
+    if current_user.role != 'admin':
+        abort(403)
+    return render_template('admin_subscription.html')
+
+
 @app.route('/admin/payout/<int:payout_id>/approve', methods=['POST'])
 @login_required
 def admin_approve_payout(payout_id):

@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+
+{% block title %}Підписка{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .modal-overlay {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 9999 !important;
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.85) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--text-bright);
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-8">
+    <div class="max-w-6xl mx-auto px-4">
+        <!-- Header -->
+        <div class="p-6 rounded-2xl border mb-8" style="background: linear-gradient(135deg, rgba(17, 17, 26, 0.95), rgba(10, 10, 18, 0.98)); border-color: rgba(234, 179, 8, 0.2);">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div class="flex items-start gap-4">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.3);">
+                        <i class="fas fa-crown text-xl text-yellow-300"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-display font-bold text-white mb-2">Підписка</h1>
+                        <p class="text-white/60">Налаштування підписок, гаманців та платежів</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Назад до панелі</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- ==================== SUBSCRIPTION MANAGEMENT ==================== -->
+        <div class="card mb-6" id="admin-subscription-management">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display font-semibold flex items-center gap-2">
+                    <i class="fas fa-crown text-yellow"></i>
+                    <span>Subscription Management</span>
+                </h2>
+                <button onclick="refreshSubscriptionSettings()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                    <i class="fas fa-sync" id="sub-refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+            
+            <!-- Subscription Toggle -->
+            <div class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));">
+                            <i class="fas fa-toggle-on text-yellow text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-display font-semibold text-bright">Subscription System</div>
+                            <div class="text-xs text-muted">When OFF, all users have FREE access (no payment required)</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-muted" id="sub-toggle-label">OFF</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="subscription-enabled-toggle" class="sr-only peer" onchange="toggleSubscriptionSystem(this)">
+                            <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-yellow-500 peer-checked:to-orange-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Premium Users</div>
+                    <div class="font-mono text-2xl font-bold text-cyan" id="admin-premium-users">0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Pending Payments</div>
+                    <div class="font-mono text-2xl font-bold text-yellow" id="admin-pending-payments">0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Total Revenue</div>
+                    <div class="font-mono text-2xl font-bold text-green" id="admin-total-revenue">$0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Insurance Fund</div>
+                    <div class="font-mono text-2xl font-bold text-magenta" id="admin-insurance-fund">$0</div>
+                </div>
+            </div>
+            
+            <!-- Wallet Addresses Section -->
+            <div id="subscription-wallets" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-wallet text-purple"></i>
+                    <span>Payment Wallet Addresses</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="wallet-addresses-grid">
+                    <div class="flex items-center justify-center py-4">
+                        <i class="fas fa-spinner fa-spin text-muted"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-[var(--color-border)]">
+                    <button onclick="openWalletSettingsModal()" class="cyber-btn cyber-btn-gradient-purple w-full">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit Wallet Addresses</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Insurance Fund Settings -->
+            <div class="p-4 rounded-xl mb-4" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-3">
+                    <i class="fas fa-shield-alt text-purple"></i>
+                    <span>Insurance Fund (Safety Pool)</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Fund Wallet Address</label>
+                        <div class="font-mono text-sm text-purple break-all" id="insurance-wallet-display">Not configured</div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Network</label>
+                        <div class="font-semibold text-bright" id="insurance-network-display">-</div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Contribution Rate</label>
+                        <div class="font-semibold text-bright" id="insurance-rate-display">5%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Payments List -->
+            <div id="subscription-pending-payments" class="p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-clock text-yellow"></i>
+                    <span>Pending Payments</span>
+                </h3>
+                <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto">
+                    <div class="text-center py-4 text-muted text-sm">
+                        <i class="fas fa-spinner fa-spin"></i> Завантаження...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Wallet Settings Modal -->
+<div id="walletSettingsModal" class="modal-overlay" onclick="if(event.target===this)closeWalletSettingsModal()">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
+            <div class="modal-title">
+                <i class="fas fa-wallet text-purple"></i>
+                <span>Wallet & Payment Settings</span>
+            </div>
+            <button onclick="closeWalletSettingsModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Payment Wallet Addresses -->
+            <div class="mb-6">
+                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-coins text-yellow"></i>
+                    <span>Payment Wallet Addresses</span>
+                </h4>
+                <p class="text-xs text-muted mb-4">Configure wallet addresses for each network. Only networks with configured addresses will be shown to users.</p>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (TRC20)</label>
+                        <input type="text" id="wallet-usdt-trc20" placeholder="Адреса TRON гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (ERC20)</label>
+                        <input type="text" id="wallet-usdt-erc20" placeholder="Адреса Ethereum гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">USDT (BEP20)</label>
+                        <input type="text" id="wallet-usdt-bep20" placeholder="Адреса BSC гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Bitcoin (BTC)</label>
+                        <input type="text" id="wallet-btc" placeholder="Адреса Bitcoin гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Ethereum (ETH)</label>
+                        <input type="text" id="wallet-eth" placeholder="Адреса ETH гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Litecoin (LTC)</label>
+                        <input type="text" id="wallet-ltc" placeholder="Адреса Litecoin гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Solana (SOL)</label>
+                        <input type="text" id="wallet-sol" placeholder="Адреса Solana гаманця" class="input flex-1 font-mono text-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Insurance Fund Settings -->
+            <div class="mb-6 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
+                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-shield-alt text-purple"></i>
+                    <span>Insurance Fund Wallet</span>
+                </h4>
+                <p class="text-xs text-muted mb-4">Configure the wallet address for storing Insurance Fund (Safety Pool) funds.</p>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Wallet Address</label>
+                        <input type="text" id="insurance-wallet" placeholder="Адреса гаманця страхового фонду" class="input flex-1 font-mono text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Network</label>
+                        <select id="insurance-network" class="input flex-1">
+                            <option value="USDT_TRC20">USDT (TRC20 - Tron)</option>
+                            <option value="USDT_ERC20">USDT (ERC20 - Ethereum)</option>
+                            <option value="USDT_BEP20">USDT (BEP20 - BSC)</option>
+                            <option value="BTC">Bitcoin (BTC)</option>
+                            <option value="ETH">Ethereum (ETH)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-muted w-28">Contribution %</label>
+                        <input type="number" id="insurance-rate" value="5" min="0" max="100" step="0.5" class="input w-24">
+                        <span class="text-xs text-muted">% of platform fees</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Auto Confirm Setting -->
+            <div class="mb-6 p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-display font-semibold flex items-center gap-2">
+                            <i class="fas fa-magic text-cyan"></i>
+                            <span>Auto-Confirm Payments</span>
+                        </h4>
+                        <p class="text-xs text-muted mt-1">⚠️ RISKY: Automatically activate subscription when user marks payment as sent</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-confirm-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Save Button -->
+            <div class="flex gap-3">
+                <button onclick="saveWalletSettings()" class="cyber-btn cyber-btn-gradient-purple flex-1">
+                    <i class="fas fa-save"></i>
+                    <span data-i18n="settings.saveAll">Зберегти всі налаштування</span>
+                </button>
+                <button onclick="closeWalletSettingsModal()" class="cyber-btn cyber-btn-outline">
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let subscriptionSettings = null;
+    
+    async function loadSubscriptionStats() {
+        try {
+            const response = await fetch('/api/admin/subscription-stats');
+            const data = await response.json();
+            if (data.success) {
+                const premiumEl = document.getElementById('admin-premium-users');
+                if (premiumEl) premiumEl.textContent = data.premium_count || 0;
+            }
+        } catch (err) {
+            const premiumEl = document.getElementById('admin-premium-users');
+            if (premiumEl) premiumEl.textContent = '0';
+        }
+    }
+    
+    async function loadSubscriptionSettings() {
+        try {
+            const response = await fetch('/api/admin/subscription-settings');
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('Failed to load subscription settings');
+                return;
+            }
+            
+            subscriptionSettings = data;
+            
+            // Update toggle
+            const toggle = document.getElementById('subscription-enabled-toggle');
+            const label = document.getElementById('sub-toggle-label');
+            if (toggle) {
+                toggle.checked = data.subscription.enabled;
+                if (label) label.textContent = data.subscription.enabled ? 'ON' : 'OFF';
+            }
+            
+            // Update wallet addresses grid
+            renderWalletAddresses(data.wallets);
+            
+            // Update insurance fund display
+            const insWallet = document.getElementById('insurance-wallet-display');
+            const insNetwork = document.getElementById('insurance-network-display');
+            const insRate = document.getElementById('insurance-rate-display');
+            
+            if (insWallet) {
+                insWallet.textContent = data.insurance_fund.wallet_address || 'Not configured';
+            }
+            if (insNetwork) {
+                insNetwork.textContent = data.insurance_fund.wallet_network || '-';
+            }
+            if (insRate) {
+                insRate.textContent = `${data.insurance_fund.contribution_rate}%`;
+            }
+            
+            // Load insurance fund balance
+            loadInsuranceFundBalance();
+            
+        } catch (err) {
+            console.error('Error loading subscription settings:', err);
+        }
+    }
+    
+    function renderWalletAddresses(wallets) {
+        const grid = document.getElementById('wallet-addresses-grid');
+        if (!grid) return;
+        
+        const networkNames = {
+            'usdt_trc20': { name: 'USDT (TRC20)', icon: 'fas fa-coins', color: 'text-green' },
+            'usdt_erc20': { name: 'USDT (ERC20)', icon: 'fab fa-ethereum', color: 'text-blue-400' },
+            'usdt_bep20': { name: 'USDT (BEP20)', icon: 'fas fa-coins', color: 'text-yellow' },
+            'btc': { name: 'Bitcoin', icon: 'fab fa-bitcoin', color: 'text-orange-500' },
+            'eth': { name: 'Ethereum', icon: 'fab fa-ethereum', color: 'text-purple' },
+            'ltc': { name: 'Litecoin', icon: 'fas fa-coins', color: 'text-gray-400' },
+            'sol': { name: 'Solana', icon: 'fas fa-sun', color: 'text-purple-400' }
+        };
+        
+        let html = '';
+        for (const [key, info] of Object.entries(networkNames)) {
+            const address = wallets[key] || '';
+            const hasAddress = address && address.length > 0;
+            
+            html += `
+                <div class="p-3 rounded-lg flex items-center gap-3" style="background: ${hasAddress ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${hasAddress ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-border)'};">
+                    <i class="${info.icon} ${info.color}"></i>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs text-muted">${info.name}</div>
+                        <div class="font-mono text-xs ${hasAddress ? 'text-bright' : 'text-muted'} truncate">
+                            ${hasAddress ? address.substring(0, 12) + '...' + address.slice(-6) : 'Not set'}
+                        </div>
+                    </div>
+                    <span class="w-2 h-2 rounded-full ${hasAddress ? 'bg-green-500' : 'bg-gray-600'}"></span>
+                </div>
+            `;
+        }
+        grid.innerHTML = html;
+    }
+    
+    async function loadInsuranceFundBalance() {
+        const fundEl = document.getElementById('admin-insurance-fund');
+        if (!fundEl) return;
+        
+        try {
+            const response = await fetch('/api/master/exchange_balances');
+            const data = await response.json();
+            if (data.success && typeof data.total_balance === 'number') {
+                fundEl.textContent = `$${data.total_balance.toFixed(2)}`;
+            } else {
+                fundEl.textContent = '$0.00';
+            }
+        } catch (err) {
+            fundEl.textContent = '$0.00';
+        }
+    }
+    
+    async function loadPendingPayments() {
+        try {
+            const response = await fetch('/api/admin/subscription-payments?status=awaiting_confirmation');
+            const data = await response.json();
+            
+            if (!data.success) return;
+            
+            // Update pending count
+            const pendingCountEl = document.getElementById('admin-pending-payments');
+            if (pendingCountEl) pendingCountEl.textContent = data.payments.length;
+            
+            // Render list
+            renderPendingPaymentsList(data.payments);
+            
+            // Calculate total revenue from completed payments
+            loadTotalRevenue();
+            
+        } catch (err) {
+            console.error('Error loading pending payments:', err);
+        }
+    }
+    
+    async function loadTotalRevenue() {
+        try {
+            const response = await fetch('/api/admin/subscription-payments?status=completed');
+            const data = await response.json();
+            
+            if (data.success) {
+                const total = data.payments.reduce((sum, p) => sum + (p.amount_usd || 0), 0);
+                const el = document.getElementById('admin-total-revenue');
+                if (el) el.textContent = `$${total.toFixed(2)}`;
+            }
+        } catch (err) {
+            console.error('Error loading revenue:', err);
+        }
+    }
+    
+    function renderPendingPaymentsList(payments) {
+        const container = document.getElementById('pending-payments-list');
+        if (!container) return;
+        
+        if (!payments || payments.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-6 text-muted">
+                    <i class="fas fa-check-circle text-2xl mb-2 text-green"></i>
+                    <p data-i18n="admin.noPendingPayments">Очікуючих платежів немає</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        payments.forEach(p => {
+            const createdAt = new Date(p.created_at);
+            html += `
+                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                            <i class="fas fa-clock text-yellow"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-bright">${p.username}</div>
+                            <div class="text-xs text-muted">${p.plan.toUpperCase()} - ${p.currency}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-mono font-bold text-yellow">$${p.amount_usd.toFixed(2)}</div>
+                        <div class="text-xs text-muted">${createdAt.toLocaleDateString()}</div>
+                    </div>
+                    <div class="flex gap-2 ml-3">
+                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success" title="Confirm">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Reject">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+    
+    async function toggleSubscriptionSystem(checkbox) {
+        const enabled = checkbox.checked;
+        const label = document.getElementById('sub-toggle-label');
+        
+        try {
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: { enabled: enabled }
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (label) label.textContent = enabled ? 'ON' : 'OFF';
+                showToast(enabled ? t('admin.subscriptionEnabled') : t('admin.freeAccessEnabled'), 'success');
+            } else {
+                checkbox.checked = !enabled;
+                showToast(data.error || 'Failed to update', 'error');
+            }
+        } catch (err) {
+            checkbox.checked = !enabled;
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    async function confirmPayment(paymentId) {
+        if (!confirm('Підтвердити цей платіж та активувати підписку користувача?')) return;
+        
+        try {
+            const response = await fetch(`/api/admin/confirm-payment/${paymentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(t('admin.paymentConfirmed'), 'success');
+                loadPendingPayments();
+                loadTotalRevenue();
+            } else {
+                showToast(data.error || 'Failed to confirm', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    async function rejectPayment(paymentId) {
+        const reason = prompt('Введи причину відхилення (опціонально):');
+        if (reason === null) return;
+        
+        try {
+            const response = await fetch(`/api/admin/reject-payment/${paymentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason || 'Payment not verified' })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(t('admin.paymentRejected'), 'info');
+                loadPendingPayments();
+            } else {
+                showToast(data.error || 'Failed to reject', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
+    }
+    
+    function refreshSubscriptionSettings() {
+        const icon = document.getElementById('sub-refresh-icon');
+        if (icon) icon.classList.add('fa-spin');
+        
+        Promise.all([
+            loadSubscriptionSettings(),
+            loadPendingPayments(),
+            loadSubscriptionStats(),
+            loadInsuranceFundBalance()
+        ]).finally(() => {
+            if (icon) icon.classList.remove('fa-spin');
+        });
+    }
+    
+    function openWalletSettingsModal() {
+        const modal = document.getElementById('walletSettingsModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            populateWalletForm();
+        }
+    }
+    
+    function closeWalletSettingsModal() {
+        const modal = document.getElementById('walletSettingsModal');
+        if (modal) modal.style.display = 'none';
+    }
+    
+    function populateWalletForm() {
+        if (!subscriptionSettings) return;
+        
+        const wallets = subscriptionSettings.wallets || {};
+        const insurance = subscriptionSettings.insurance_fund || {};
+        
+        // Payment wallets
+        document.getElementById('wallet-usdt-trc20').value = wallets.usdt_trc20 || '';
+        document.getElementById('wallet-usdt-erc20').value = wallets.usdt_erc20 || '';
+        document.getElementById('wallet-usdt-bep20').value = wallets.usdt_bep20 || '';
+        document.getElementById('wallet-btc').value = wallets.btc || '';
+        document.getElementById('wallet-eth').value = wallets.eth || '';
+        document.getElementById('wallet-ltc').value = wallets.ltc || '';
+        document.getElementById('wallet-sol').value = wallets.sol || '';
+        
+        // Insurance fund
+        document.getElementById('insurance-wallet').value = insurance.wallet_address || '';
+        document.getElementById('insurance-network').value = insurance.wallet_network || 'USDT_TRC20';
+        document.getElementById('insurance-rate').value = insurance.contribution_rate || 5;
+        
+        // Auto confirm
+        const autoConfirm = document.getElementById('auto-confirm-toggle');
+        if (autoConfirm) {
+            autoConfirm.checked = subscriptionSettings.subscription?.auto_confirm || false;
+        }
+    }
+    
+    async function saveWalletSettings() {
+        const btn = document.querySelector('#walletSettingsModal button[onclick="saveWalletSettings()"]');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const payload = {
+                wallets: {
+                    usdt_trc20: document.getElementById('wallet-usdt-trc20').value.trim(),
+                    usdt_erc20: document.getElementById('wallet-usdt-erc20').value.trim(),
+                    usdt_bep20: document.getElementById('wallet-usdt-bep20').value.trim(),
+                    btc: document.getElementById('wallet-btc').value.trim(),
+                    eth: document.getElementById('wallet-eth').value.trim(),
+                    ltc: document.getElementById('wallet-ltc').value.trim(),
+                    sol: document.getElementById('wallet-sol').value.trim()
+                },
+                insurance_fund: {
+                    wallet_address: document.getElementById('insurance-wallet').value.trim(),
+                    wallet_network: document.getElementById('insurance-network').value,
+                    contribution_rate: parseFloat(document.getElementById('insurance-rate').value) || 5
+                },
+                subscription: {
+                    auto_confirm: document.getElementById('auto-confirm-toggle')?.checked || false
+                }
+            };
+            
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast(t('admin.settingsSaved'), 'success');
+                closeWalletSettingsModal();
+                loadSubscriptionSettings();
+            } else {
+                showToast(data.error || 'Failed to save', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSubscriptionStats();
+        loadSubscriptionSettings();
+        loadPendingPayments();
+    });
+</script>
+{% endblock %}

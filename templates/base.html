@@ -278,10 +278,17 @@
                     </a>
                     <div class="dropdown-divider"></div>
                     <!-- Account -->
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('admin_subscription') }}" class="dropdown-item" onclick="closeUserMenu();">
+                        <i class="fas fa-crown"></i>
+                        <span data-i18n="nav.subscription">Subscription</span>
+                    </a>
+                    {% else %}
                     <a href="{{ url_for('dashboard') }}" class="dropdown-item" onclick="closeUserMenu(); if(typeof showSection === 'function') { showSection('subscription'); return false; } else { window.location.href='{{ url_for('dashboard') }}#subscription'; return false; }">
                         <i class="fas fa-crown"></i>
                         <span data-i18n="nav.subscription">Subscription</span>
                     </a>
+                    {% endif %}
                     <a href="{{ url_for('messages') }}" class="dropdown-item">
                         <i class="fas fa-envelope"></i>
                         <span data-i18n="nav.messages">Messages</span>

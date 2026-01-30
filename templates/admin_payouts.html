@@ -398,9 +398,9 @@
                 <span class="text-xs text-white/50">Subscriptions, wallets, payouts</span>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <button type="button" onclick="navigateToAdminSection('settings', 'admin-subscription-management')" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(234, 179, 8, 0.2);">
+                <a href="{{ url_for('admin_subscription') }}" 
+                   class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                   style="border-color: rgba(234, 179, 8, 0.2);">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-md);">
                             <i class="fas fa-crown" style="color: #eab308;"></i>
@@ -410,10 +410,10 @@
                             <div class="text-xs text-white/50">Plans, access, revenue</div>
                         </div>
                     </div>
-                </button>
-                <button type="button" onclick="navigateToAdminSection('settings', 'wallet-addresses-grid', true)" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(139, 92, 246, 0.2);">
+                </a>
+                <a href="{{ url_for('admin_subscription') }}#subscription-wallets" 
+                   class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                   style="border-color: rgba(139, 92, 246, 0.2);">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-md);">
                             <i class="fas fa-wallet" style="color: #8b5cf6;"></i>
@@ -423,10 +423,10 @@
                             <div class="text-xs text-white/50">Payment addresses</div>
                         </div>
                     </div>
-                </button>
-                <button type="button" onclick="navigateToAdminSection('settings', 'pending-payments-list')" 
-                        class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
-                        style="border-color: rgba(251, 191, 36, 0.2);">
+                </a>
+                <a href="{{ url_for('admin_subscription') }}#subscription-pending-payments" 
+                   class="card p-4 transition-all duration-300 hover:scale-[1.02] text-left"
+                   style="border-color: rgba(251, 191, 36, 0.2);">
                     <div class="flex items-center gap-3">
                         <div class="flex items-center justify-center" style="width: 40px; height: 40px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-md);">
                             <i class="fas fa-clock" style="color: #fbbf24;"></i>
@@ -436,7 +436,7 @@
                             <div class="text-xs text-white/50">Verify user payments</div>
                         </div>
                     </div>
-                </button>
+                </a>
                 <a href="{{ url_for('admin_payouts') }}" class="card p-4 transition-all duration-300 hover:scale-[1.02]" 
                    style="border-color: rgba(34, 197, 94, 0.2);">
                     <div class="flex items-center gap-3">
@@ -812,15 +812,6 @@
 </div>
 
 <script>
-function navigateToAdminSection(section, targetId, openWallet = false) {
-    const params = new URLSearchParams();
-    if (section) params.set('section', section);
-    if (targetId) params.set('target', targetId);
-    if (openWallet) params.set('openWallet', '1');
-    const url = `${window.location.origin}{{ url_for('dashboard') }}${params.toString() ? '?' + params.toString() : ''}`;
-    window.location.href = url;
-}
-
 function loadAdminPlatformStats() {
     fetch('/api/admin/referral-stats')
         .then(r => r.json())
