@@ -2130,6 +2130,82 @@ def admin_get_task_participations(task_id):
 
 # ==================== INSURANCE FUND (SAFETY POOL) ====================
 
+def _compute_public_insurance_fund() -> dict:
+    """Compute Insurance Fund payload using total master balance when available."""
+    balance = None
+    last_updated = None
+
+    # Try to use total balance across all master exchanges
+    try:
+        enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+        has_enabled_configs = bool(enabled_configs)
+        has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+
+        if not has_master_exchanges and has_enabled_configs:
+            last_attempt = getattr(engine, "_last_master_init_attempt", 0)
+            now = time.time()
+            if now - last_attempt > 60:
+                engine._last_master_init_attempt = now
+                try:
+                    engine.init_master()
+                except Exception as e:
+                    logger.warning(f"Failed to init master exchanges for insurance fund: {e}")
+            has_master_exchanges = bool(engine.master_clients) or bool(engine.master_client)
+
+        balances = []
+        if engine.master_clients:
+            balances = engine.get_all_master_balances()
+        elif engine.master_client:
+            try:
+                bal_list = engine.master_client.futures_account_balance()
+                usdt_balance = 0.0
+                for b in bal_list:
+                    if b.get('asset') == 'USDT':
+                        usdt_balance = float(b.get('balance', 0) or 0)
+                        break
+                balances = [{'balance': usdt_balance}]
+            except Exception as e:
+                logger.warning(f"Failed to fetch legacy master balance for insurance fund: {e}")
+
+        if balances:
+            valid_balances = [b['balance'] for b in balances if b.get('balance') is not None]
+            if valid_balances:
+                balance = float(sum(valid_balances))
+                last_updated = datetime.now(timezone.utc).isoformat()
+    except Exception as e:
+        logger.warning(f"Error computing insurance fund total balance: {e}")
+
+    # Fallback to last recorded master balance snapshot
+    if balance is None:
+        try:
+            latest_balance = BalanceHistory.query.filter_by(user_id=None).order_by(BalanceHistory.timestamp.desc()).first()
+            if latest_balance and latest_balance.balance is not None:
+                balance = float(latest_balance.balance)
+                last_updated = latest_balance.timestamp.isoformat() if latest_balance.timestamp else None
+            else:
+                balance = 0.0
+                last_updated = None
+        except Exception as e:
+            logger.warning(f"Failed to read insurance fund fallback balance: {e}")
+            balance = 0.0
+            last_updated = None
+
+    formatted_balance = f'${balance:,.2f}'
+
+    return {
+        'success': True,
+        'insurance_fund': {
+            'balance': balance,
+            'formatted_balance': formatted_balance,
+            'contribution_rate': '5%',
+            'description': 'Safety Pool - covers slippage losses in extreme market conditions',
+            'is_verified': True,
+            'last_updated': last_updated
+        },
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
 @app.route('/api/insurance-fund')
 def get_insurance_fund():
     """
@@ -2141,28 +2217,8 @@ def get_insurance_fund():
     This endpoint is public to promote transparency and build trust.
     """
     try:
-        latest_balance = BalanceHistory.query.filter_by(user_id=None).order_by(BalanceHistory.timestamp.desc()).first()
-        if latest_balance and latest_balance.balance is not None:
-            balance = float(latest_balance.balance)
-            formatted_balance = f'${balance:,.2f}'
-            last_updated = latest_balance.timestamp.isoformat() if latest_balance.timestamp else None
-        else:
-            balance = 0.0
-            formatted_balance = '$0.00'
-            last_updated = None
-
-        return jsonify({
-            'success': True,
-            'insurance_fund': {
-                'balance': balance,
-                'formatted_balance': formatted_balance,
-                'contribution_rate': '5%',
-                'description': 'Safety Pool - covers slippage losses in extreme market conditions',
-                'is_verified': True,
-                'last_updated': last_updated
-            },
-            'timestamp': datetime.now(timezone.utc).isoformat()
-        })
+        data = get_public_stats_cached('insurance_fund', _compute_public_insurance_fund)
+        return jsonify(data)
         
     except Exception as e:
         logger.error(f"Error getting Insurance Fund info: {e}")

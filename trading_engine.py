@@ -1978,6 +1978,37 @@ class TradingEngine:
                     logger.error(f"Snapshot error for {user_id}: {e}")
                 break
 
+    def snapshot_master_total_balance(self, retries: int = 1):
+        """Save total master balance across ALL exchanges for charts."""
+        for attempt in range(retries + 1):
+            try:
+                balances = self.get_all_master_balances()
+                if not balances:
+                    return
+
+                valid_balances = [b['balance'] for b in balances if b.get('balance') is not None]
+                if not valid_balances:
+                    return
+
+                total_bal = float(sum(valid_balances))
+                if total_bal <= 0:
+                    return
+
+                with self.app.app_context():
+                    hist = BalanceHistory(user_id=None, balance=total_bal)
+                    db.session.add(hist)
+                    db.session.commit()
+                return
+
+            except (ConnectionError, ConnectionResetError) as e:
+                if attempt < retries:
+                    time.sleep(1)
+                    continue
+                logger.warning(f"Snapshot total balance connection issue (retried {retries}x)")
+            except Exception as e:
+                logger.warning(f"Snapshot total master balance error: {e}")
+                break
+
     def monitor_balances(self):
         """Background thread for monitoring balances"""
         tick = 0
@@ -1996,7 +2027,9 @@ class TradingEngine:
                 
                 # Full update and snapshot every 60 seconds
                 if tick % 60 == 0:
-                    if self.master_client:
+                    if self.master_clients:
+                        self.executor.submit(self.snapshot_master_total_balance)
+                    elif self.master_client:
                         self.executor.submit(self.snapshot_balance, 'master', self.master_client)
 
                     with self.lock:

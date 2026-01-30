@@ -113,7 +113,33 @@
     }
     
     @media (max-width: 640px) {
-        .global-stats { grid-template-columns: 1fr; }
+        .global-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .global-stats .stat-card {
+            padding: 16px 12px;
+            border-radius: var(--radius-lg);
+        }
+
+        .global-stats .stat-card .icon {
+            width: 42px;
+            height: 42px;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .global-stats .stat-card .value {
+            font-size: clamp(1.2rem, 5.5vw, 1.6rem);
+            margin-bottom: 6px;
+        }
+
+        .global-stats .stat-card .label {
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+        }
     }
     
     .stat-card {
@@ -588,8 +614,8 @@
                     <th>#</th>
                     <th data-i18n="leaderboard.trader">Trader</th>
                     <th data-i18n="leaderboard.trades">Trades</th>
-                    <th>ROE%</th>
-                    <th>PnL</th>
+                    <th data-i18n="leaderboard.roe">ROE%</th>
+                    <th data-i18n="leaderboard.pnl">PnL</th>
                 </tr>
             </thead>
             <tbody id="copiers-tbody">
@@ -614,7 +640,7 @@
             </div>
             <div class="master-stat">
                 <div class="value pink" id="master-roe">-</div>
-                <div class="label">ROE %</div>
+                <div class="label" data-i18n="leaderboard.roe">ROE %</div>
             </div>
             <div class="master-stat">
                 <div class="value cyan" id="master-winrate">-</div>
@@ -688,7 +714,7 @@ function createMasterChart(data) {
         data: {
             labels: data.map(d => d.time),
             datasets: [{
-                label: 'Balance',
+                label: (window.t ? window.t('leaderboard.balance') : 'Balance'),
                 data: data.map(d => d.balance),
                 borderColor: '#ff2d92',
                 backgroundColor: gradient,
@@ -808,7 +834,8 @@ function loadLeaderboardData() {
                 // Update badge to show if data is from today or week
                 // (The API already handles this fallback)
             } else {
-                tbody.innerHTML = '<tr><td colspan="5" class="no-data-row">No trading activity yet. Be the first!</td></tr>';
+                const noActivityText = window.t ? window.t('leaderboard.noActivity') : 'No trading activity yet. Be the first!';
+                tbody.innerHTML = `<tr><td colspan="5" class="no-data-row">${noActivityText}</td></tr>`;
             }
             
             // Update master stats
@@ -825,12 +852,14 @@ function loadLeaderboardData() {
             if (data.balance_chart && data.balance_chart.length > 0) {
                 createMasterChart(data.balance_chart);
             } else {
-                document.querySelector('.master-chart-container').innerHTML = '<div class="chart-placeholder">No balance history available</div>';
+                const noBalanceText = window.t ? window.t('leaderboard.noBalanceHistory') : 'No balance history available';
+                document.querySelector('.master-chart-container').innerHTML = `<div class="chart-placeholder">${noBalanceText}</div>`;
             }
         })
         .catch(error => {
             console.error('Error loading leaderboard:', error);
-            document.getElementById('copiers-tbody').innerHTML = '<tr><td colspan="5" class="no-data-row">Failed to load data. Please try again.</td></tr>';
+            const loadFailedText = window.t ? window.t('leaderboard.loadFailed') : 'Failed to load data. Please try again.';
+            document.getElementById('copiers-tbody').innerHTML = `<tr><td colspan="5" class="no-data-row">${loadFailedText}</td></tr>`;
         });
 }
 
