@@ -1285,10 +1285,16 @@ def faq_page():
     import re
     
     faq_path = os.path.join(os.path.dirname(__file__), 'FAQ.md')
+    faq_en_path = os.path.join(os.path.dirname(__file__), 'FAQ.en.md')
     
     try:
         with open(faq_path, 'r', encoding='utf-8') as f:
-            faq_content = f.read()
+            faq_content_ua = f.read()
+        try:
+            with open(faq_en_path, 'r', encoding='utf-8') as f:
+                faq_content_en = f.read()
+        except FileNotFoundError:
+            faq_content_en = faq_content_ua
         
         # Simple markdown to HTML conversion
         def md_to_html(text):
@@ -1340,12 +1346,15 @@ def faq_page():
             
             return text
         
-        faq_html = md_to_html(faq_content)
+        faq_html_ua = md_to_html(faq_content_ua)
+        faq_html_en = md_to_html(faq_content_en)
         
-        return render_template('faq.html', faq_content=faq_html)
+        return render_template('faq.html', faq_content_ua=faq_html_ua, faq_content_en=faq_html_en)
         
     except FileNotFoundError:
-        return render_template('faq.html', faq_content='<p>Вміст FAQ не знайдено.</p>')
+        fallback_ua = '<p>Вміст FAQ не знайдено.</p>'
+        fallback_en = '<p>FAQ content not found.</p>'
+        return render_template('faq.html', faq_content_ua=fallback_ua, faq_content_en=fallback_en)
 
 
 # ==================== DYNAMIC SITEMAP ====================

@@ -15,13 +15,16 @@
         
     </div>
     
-    <div class="faq-content">
-        {{ faq_content | safe }}
+    <div class="faq-content" data-lang="ua">
+        {{ faq_content_ua | safe }}
+    </div>
+    <div class="faq-content" data-lang="en" style="display: none;">
+        {{ faq_content_en | safe }}
     </div>
     
     <div class="faq-footer">
         <h3 data-i18n="faq.stillHaveQuestions">Залишились питання?</h3>
-        <p>Напишіть у чат підтримки в правому нижньому куті або зверніться до адміністратора.</p>
+        <p data-i18n="faq.supportNote">Напишіть у чат підтримки в правому нижньому куті або зверніться до адміністратора.</p>
         <div class="faq-actions">
             <a href="{{ url_for('register') }}" class="cyber-btn cyber-btn-primary">
                 <i class="fas fa-rocket"></i>
@@ -255,4 +258,34 @@
     }
 }
 </style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function applyFaqLanguage() {
+        const lang = window.currentLang || localStorage.getItem('lang') || 'en';
+        document.querySelectorAll('.faq-content[data-lang]').forEach((el) => {
+            el.style.display = el.getAttribute('data-lang') === lang ? 'block' : 'none';
+        });
+    }
+
+    function bindFaqLanguageToggle() {
+        if (window.__faqLangHook) return;
+        if (typeof window.toggleLanguage !== 'function') {
+            setTimeout(bindFaqLanguageToggle, 50);
+            return;
+        }
+        window.__faqLangHook = true;
+        const originalToggleLanguage = window.toggleLanguage;
+        window.toggleLanguage = function() {
+            originalToggleLanguage();
+            applyFaqLanguage();
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        applyFaqLanguage();
+        bindFaqLanguageToggle();
+    });
+</script>
 {% endblock %}
