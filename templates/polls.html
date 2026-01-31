@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Опитування - Vote on Proposals{% endblock %}
-{% block meta_title %}MIMIC Опитування | Elite Member Voting{% endblock %}
-{% block meta_description %}Shape the future of MIMIC. Elite members can vote on new trading pairs, risk management changes, and exchange integrations.{% endblock %}
-{% block meta_keywords %}crypto polls, voting, trading pairs, risk management, community voting, elite members{% endblock %}
+{% block meta_title %}MIMIC Опитування | Community Voting{% endblock %}
+{% block meta_description %}Shape the future of MIMIC. All members can vote on new trading pairs, risk management changes, and exchange integrations.{% endblock %}
+{% block meta_keywords %}crypto polls, voting, trading pairs, risk management, community voting{% endblock %}
 {% block og_title %}MIMIC Опитування - Shape Our Future{% endblock %}
-{% block og_description %}Elite members vote on new features, trading pairs, and platform changes. Your voice matters.{% endblock %}
+{% block og_description %}All members vote on new features, trading pairs, and platform changes. Your voice matters.{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -12,7 +12,7 @@
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "MIMIC Опитування",
-    "description": "Community polls portal for Elite MIMIC members to vote on proposals",
+    "description": "Community polls portal for MIMIC members to vote on proposals",
     "url": "https://mimic.cash/polls"
 }
 </script>
@@ -215,6 +215,107 @@
     @media (max-width: 500px) {
         .proposals-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .governance-hero {
+            padding: 56px 16px 28px;
+        }
+
+        .governance-hero h1 {
+            font-size: clamp(1.8rem, 8vw, 2.6rem);
+        }
+
+        .governance-hero p {
+            font-size: 0.95rem;
+        }
+
+        .eligibility-banner {
+            margin-bottom: 28px;
+            padding: 0 16px;
+        }
+
+        .eligibility-card {
+            padding: 16px 18px;
+            gap: 14px;
+        }
+
+        .eligibility-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+
+        .eligibility-text h3 {
+            font-size: 0.95rem;
+        }
+
+        .eligibility-text p {
+            font-size: 0.8rem;
+        }
+
+        .eligibility-badge {
+            padding: 6px 12px;
+            font-size: 0.7rem;
+        }
+
+        .filter-section {
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        .filter-tabs {
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            gap: 6px;
+        }
+
+        .filter-tab .count {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+        }
+
+        .proposals-section {
+            padding: 0 16px 60px;
+        }
+
+        .proposals-grid {
+            gap: 14px;
+        }
+
+        .proposal-header {
+            padding: 14px 14px 0;
+        }
+
+        .proposal-body {
+            padding: 12px 14px;
+        }
+
+        .proposal-title {
+            font-size: 0.95rem;
+        }
+
+        .proposal-description {
+            font-size: 0.78rem;
+            -webkit-line-clamp: 2;
+        }
+
+        .voting-section {
+            padding: 0 14px 12px;
+        }
+
+        .vote-btn {
+            padding: 8px 10px;
+            font-size: 0.75rem;
+        }
+
+        .proposal-footer {
+            padding: 10px 14px;
         }
     }
 
@@ -648,10 +749,10 @@
     /* ============= ADMIN CREATE BUTTON ============= */
     .admin-actions {
         position: fixed;
-        bottom: 30px;
-        left: 30px;
-        right: auto;
-        z-index: 100;
+        bottom: 100px;
+        right: 24px;
+        left: auto;
+        z-index: 998;
     }
     
     .create-proposal-btn {
@@ -860,7 +961,7 @@
     <h1>
         <span class="gradient" data-i18n="governance.title">Опитування</span>
     </h1>
-    <p data-i18n="governance.subtitle">Shape the future of MIMIC. Elite members vote on new trading pairs, risk management changes, and exchange integrations.</p>
+    <p data-i18n="governance.subtitle">Shape the future of MIMIC. All members can vote on new trading pairs, risk management changes, and exchange integrations.</p>
 </section>
 
 <!-- ==================== ELIGIBILITY BANNER ==================== -->
@@ -877,7 +978,7 @@
         </div>
         <div class="eligibility-badge" id="eligibility-badge" style="display: none;">
             <i class="fas fa-star"></i>
-            <span id="eligibility-level">Elite</span>
+            <span id="eligibility-level">Member</span>
         </div>
     </div>
 </section>
@@ -1031,16 +1132,15 @@ function updateEligibilityUI(eligible, reason, level) {
         card.classList.add('eligible');
         icon.innerHTML = '<i class="fas fa-check-circle"></i>';
         title.textContent = 'You Can Vote!';
-        message.textContent = 'As an Elite member, your vote helps shape MIMIC\'s future.';
+        message.textContent = 'All active members can vote and shape MIMIC\'s future.';
         badge.style.display = 'inline-flex';
-        levelSpan.textContent = level.name;
+        levelSpan.textContent = level?.name || 'Member';
     } else {
         card.classList.add('not-eligible');
         icon.innerHTML = '<i class="fas fa-lock"></i>';
-        title.textContent = 'Voting Locked';
-        message.textContent = reason || 'Reach Elite level to unlock voting privileges.';
-        badge.style.display = level ? 'inline-flex' : 'none';
-        if (level) levelSpan.textContent = level.name;
+        title.textContent = 'Voting Unavailable';
+        message.textContent = reason || 'Your account must be active to vote.';
+        badge.style.display = 'none';
     }
 }
 
@@ -1144,11 +1244,12 @@ function renderProposalCard(proposal) {
             </div>
         `;
     } else if (isActive && !canVote) {
+        const lockLabel = isLoggedIn ? 'Voting Unavailable' : 'Login to Vote';
         votingHTML = `
             <div class="voting-actions">
                 <button class="vote-btn yes" disabled>
                     <i class="fas fa-lock"></i>
-                    Elite Only
+                    ${lockLabel}
                 </button>
             </div>
         `;
@@ -1224,7 +1325,7 @@ function escapeHtml(text) {
 // Submit vote
 async function submitVote(proposalId, voteType) {
     if (!canVote) {
-        alert('Ти не можеш голосувати. Досягни Elite рівня, щоб розблокувати голосування.');
+        alert('Ти не можеш голосувати. Потрібно активний акаунт і вхід у систему.');
         return;
     }
     

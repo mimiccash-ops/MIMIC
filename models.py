@@ -2277,7 +2277,7 @@ class Vote(db.Model):
     """
     Individual vote on a proposal.
     
-    Only Elite users (level >= 4) can vote.
+    All active users can vote.
     Vote weight can be based on trading volume.
     """
     __tablename__ = 'votes'
@@ -2325,13 +2325,6 @@ class Vote(db.Model):
         
         if not user.is_active:
             return False, "Your account must be active to vote"
-        
-        # Check if user is Elite level (order_rank >= 4)
-        if not user.current_level:
-            return False, "You need to reach Elite level to vote"
-        
-        if user.current_level.order_rank < 4:  # 4 = Elite
-            return False, f"Only Elite members can vote. Your level: {user.current_level.name}"
         
         return True, "Eligible to vote"
     

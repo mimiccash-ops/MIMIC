@@ -2359,7 +2359,7 @@ def get_insurance_fund():
 def polls_page():
     """
     Polls page showing active proposals and voting UI.
-    Only Elite users (level >= 4) can vote, but all users can view.
+    All active users can vote.
     """
     return render_template('polls.html')
 
@@ -2483,7 +2483,7 @@ def submit_vote():
     """
     Submit a vote on a proposal.
     
-    Only Elite users (level >= 4) can vote.
+    All active users can vote.
     """
     try:
         from models import Proposal, Vote
@@ -2573,7 +2573,7 @@ def check_vote_eligibility():
             'current_level': {
                 'name': user_level.name if user_level else 'None',
                 'order_rank': user_level.order_rank if user_level else 0,
-                'required_rank': 4  # Elite level
+                'required_rank': 0
             },
             'trading_volume': round(current_user.total_trading_volume or 0, 2)
         })
