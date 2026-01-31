@@ -40,22 +40,185 @@
     .modal-body {
         padding: 20px;
     }
+
+    .admin-subscription-page .subscription-card,
+    .admin-subscription-page .subscription-main-card,
+    .admin-subscription-page .subscription-hero-card {
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 420px) {
+        .admin-subscription-page {
+            padding-top: 12px !important;
+            padding-bottom: 16px !important;
+        }
+
+        .admin-subscription-page .subscription-container {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+        }
+
+        .admin-subscription-page .subscription-hero-card {
+            padding: 14px !important;
+            border-radius: 16px !important;
+            margin-bottom: 16px !important;
+        }
+
+        .admin-subscription-page .subscription-hero-icon {
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 12px !important;
+        }
+
+        .admin-subscription-page .subscription-hero-icon i {
+            font-size: 0.95rem !important;
+        }
+
+        .admin-subscription-page .subscription-hero-title {
+            font-size: 1.5rem !important;
+            margin-bottom: 6px !important;
+        }
+
+        .admin-subscription-page .subscription-hero-subtitle {
+            font-size: 0.85rem !important;
+        }
+
+        .admin-subscription-page .subscription-main-card {
+            padding: 12px !important;
+            border-radius: 14px !important;
+        }
+
+        .admin-subscription-page .subscription-card {
+            padding: 12px !important;
+            border-radius: 12px !important;
+            margin-bottom: 12px !important;
+        }
+
+        .admin-subscription-page .subscription-section-header {
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+        }
+
+        .admin-subscription-page .subscription-section-header h2,
+        .admin-subscription-page .subscription-section-header h3,
+        .admin-subscription-page .subscription-section-title {
+            font-size: 0.95rem !important;
+        }
+
+        .admin-subscription-page .subscription-toggle-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-toggle-icon {
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-toggle-icon i {
+            font-size: 0.9rem !important;
+        }
+
+        .admin-subscription-page .subscription-toggle-meta {
+            width: 100% !important;
+        }
+
+        .admin-subscription-page .subscription-stats-grid,
+        .admin-subscription-page .subscription-referral-stats,
+        .admin-subscription-page .subscription-filter-grid,
+        .admin-subscription-page .subscription-plan-grid,
+        .admin-subscription-page .subscription-bonus-grid {
+            gap: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-stat-card {
+            padding: 8px !important;
+            border-radius: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-stat-value {
+            font-size: 1.1rem !important;
+        }
+
+        .admin-subscription-page .subscription-plan-card,
+        .admin-subscription-page .subscription-method-card,
+        .admin-subscription-page .subscription-row-card {
+            padding: 10px !important;
+            border-radius: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-row-card {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+
+        .admin-subscription-page .subscription-row-details {
+            text-align: left !important;
+            width: 100% !important;
+        }
+
+        .admin-subscription-page .subscription-row-actions {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            flex-direction: column !important;
+        }
+
+        .admin-subscription-page .subscription-row-action {
+            width: 100% !important;
+        }
+
+        .admin-subscription-page .subscription-search-row {
+            gap: 8px !important;
+        }
+
+        .admin-subscription-page .subscription-search-row .input {
+            width: 100% !important;
+        }
+
+        .admin-subscription-page .subscription-filter-card {
+            padding: 8px !important;
+            border-radius: 10px !important;
+            font-size: 0.7rem !important;
+        }
+
+        .admin-subscription-page .input,
+        .admin-subscription-page textarea.input {
+            padding: 8px 10px !important;
+            font-size: 0.82rem !important;
+        }
+
+        .admin-subscription-page .cyber-btn {
+            padding: 6px 10px !important;
+            font-size: 0.72rem !important;
+        }
+
+        .admin-subscription-page .badge {
+            font-size: 0.6rem !important;
+        }
+
+        .admin-subscription-page table {
+            font-size: 0.75rem !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="py-8">
-    <div class="max-w-6xl mx-auto px-4">
+<div class="py-8 admin-subscription-page">
+    <div class="max-w-6xl mx-auto px-4 subscription-container">
         <!-- Header -->
-        <div class="p-6 rounded-2xl border mb-8" style="background: linear-gradient(135deg, rgba(17, 17, 26, 0.95), rgba(10, 10, 18, 0.98)); border-color: rgba(234, 179, 8, 0.2);">
+        <div class="p-6 rounded-2xl border mb-8 subscription-hero-card" style="background: linear-gradient(135deg, rgba(17, 17, 26, 0.95), rgba(10, 10, 18, 0.98)); border-color: rgba(234, 179, 8, 0.2);">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div class="flex items-start gap-4">
-                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.3);">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center subscription-hero-icon" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.3);">
                         <i class="fas fa-crown text-xl text-yellow-300"></i>
                     </div>
                     <div>
-                        <h1 class="text-3xl font-display font-bold text-white mb-2">Підписка</h1>
-                        <p class="text-white/60">Налаштування підписок, гаманців та платежів</p>
+                        <h1 class="text-3xl font-display font-bold text-white mb-2 subscription-hero-title">Підписка</h1>
+                        <p class="text-white/60 subscription-hero-subtitle">Налаштування підписок, гаманців та платежів</p>
                     </div>
                 </div>
                 <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
@@ -66,8 +229,8 @@
         </div>
 
         <!-- ==================== SUBSCRIPTION MANAGEMENT ==================== -->
-        <div class="card mb-6" id="admin-subscription-management">
-            <div class="flex items-center justify-between mb-4">
+        <div class="card mb-6 subscription-main-card" id="admin-subscription-management">
+            <div class="flex items-center justify-between mb-4 subscription-section-header">
                 <h2 class="font-display font-semibold flex items-center gap-2">
                     <i class="fas fa-crown text-yellow"></i>
                     <span>Subscription Management</span>
@@ -79,13 +242,13 @@
             </div>
             
             <!-- Subscription Toggle -->
-            <div class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex items-center justify-between">
+            <div class="p-4 rounded-xl mb-4 subscription-card subscription-toggle-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between subscription-toggle-row">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center subscription-toggle-icon" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2));">
                             <i class="fas fa-toggle-on text-yellow text-xl"></i>
                         </div>
-                        <div>
+                        <div class="subscription-toggle-meta">
                             <div class="font-display font-semibold text-bright">Subscription System</div>
                             <div class="text-xs text-muted">When OFF, all users have FREE access (no payment required)</div>
                         </div>
@@ -101,28 +264,28 @@
             </div>
             
             <!-- Stats Row -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 subscription-stats-grid">
+                <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <div class="text-xs text-muted mb-1">Total Users</div>
-                    <div class="font-mono text-2xl font-bold text-cyan" id="admin-total-users">0</div>
+                    <div class="font-mono text-2xl font-bold text-cyan subscription-stat-value" id="admin-total-users">0</div>
                 </div>
-                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <div class="text-xs text-muted mb-1">Active Subscribers</div>
-                    <div class="font-mono text-2xl font-bold text-green" id="admin-active-subscribers">0</div>
+                    <div class="font-mono text-2xl font-bold text-green subscription-stat-value" id="admin-active-subscribers">0</div>
                 </div>
-                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <div class="text-xs text-muted mb-1">Expired</div>
-                    <div class="font-mono text-2xl font-bold text-yellow" id="admin-expired-subscribers">0</div>
+                    <div class="font-mono text-2xl font-bold text-yellow subscription-stat-value" id="admin-expired-subscribers">0</div>
                 </div>
-                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <div class="text-xs text-muted mb-1">Total Revenue</div>
-                    <div class="font-mono text-2xl font-bold text-magenta" id="admin-total-revenue">$0</div>
+                    <div class="font-mono text-2xl font-bold text-magenta subscription-stat-value" id="admin-total-revenue">$0</div>
                 </div>
             </div>
             
             <!-- Subscription Plans -->
-            <div id="subscription-plans" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex items-center justify-between mb-4">
+            <div id="subscription-plans" class="p-4 rounded-xl mb-4 subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-tags text-cyan"></i>
                         <span>Subscription Plans</span>
@@ -132,13 +295,13 @@
                         <span>Save Plans</span>
                     </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="plan-settings-grid"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 subscription-plan-grid" id="plan-settings-grid"></div>
                 <p class="text-xs text-muted mt-3">These prices are shown to users in their subscription section.</p>
             </div>
             
             <!-- Payment Methods -->
-            <div id="payment-methods-section" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex items-center justify-between mb-4">
+            <div id="payment-methods-section" class="p-4 rounded-xl mb-4 subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-wallet text-purple"></i>
                         <span>Payment Methods</span>
@@ -154,17 +317,17 @@
                         </button>
                     </div>
                 </div>
-                <div id="payment-methods-list" class="space-y-3"></div>
+                <div id="payment-methods-list" class="space-y-3 subscription-methods-list"></div>
                 <p class="text-xs text-muted mt-3">Add bank/card details or wallet addresses for user payments.</p>
             </div>
             
             <!-- Bonus / Manual Extension -->
-            <div id="subscription-bonus" class="p-4 rounded-xl mb-4" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2);">
-                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+            <div id="subscription-bonus" class="p-4 rounded-xl mb-4 subscription-card" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4 subscription-section-title">
                     <i class="fas fa-gift text-green"></i>
                     <span>Bonus & Manual Extension</span>
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 subscription-bonus-grid">
                     <div>
                         <label class="text-xs text-muted mb-1 block">User</label>
                         <select id="bonus-user-select" class="input"></select>
@@ -188,13 +351,13 @@
             </div>
             
             <!-- Subscribers List -->
-            <div id="subscribers-list-section" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <div id="subscribers-list-section" class="p-4 rounded-xl mb-4 subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-users text-cyan"></i>
                         <span>Subscribers</span>
                     </h3>
-                    <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2 subscription-search-row">
                         <input type="text" id="subscribers-search" class="input" placeholder="Search user..." oninput="loadSubscribers()">
                         <select id="subscribers-filter" class="input" onchange="loadSubscribers()">
                             <option value="all">All</option>
@@ -208,12 +371,12 @@
                         </button>
                     </div>
                 </div>
-                <div id="subscribers-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+                <div id="subscribers-list" class="space-y-2 max-h-72 overflow-y-auto subscription-list"></div>
             </div>
 
             <!-- Referral Payouts -->
-            <div id="referral-payouts" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex items-center justify-between mb-4">
+            <div id="referral-payouts" class="p-4 rounded-xl mb-4 subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-hand-holding-usd text-green"></i>
                         <span>Referral Payouts</span>
@@ -221,52 +384,52 @@
                     <span class="text-xs text-muted">Filter by status</span>
                 </div>
                 
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4 subscription-referral-stats">
+                    <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
                         <div class="text-xs text-muted mb-1">Total Referrals</div>
-                        <div class="font-mono text-lg font-bold text-cyan" id="admin-total-referrals">0</div>
+                        <div class="font-mono text-lg font-bold text-cyan subscription-stat-value" id="admin-total-referrals">0</div>
                     </div>
-                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                    <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
                         <div class="text-xs text-muted mb-1">Pending Payouts</div>
-                        <div class="font-mono text-lg font-bold text-yellow" id="admin-pending-payout-amount">$0.00</div>
+                        <div class="font-mono text-lg font-bold text-yellow subscription-stat-value" id="admin-pending-payout-amount">$0.00</div>
                     </div>
-                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                    <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
                         <div class="text-xs text-muted mb-1">Pending Requests</div>
-                        <div class="font-mono text-lg font-bold text-green" id="admin-pending-payout-requests">0</div>
+                        <div class="font-mono text-lg font-bold text-green subscription-stat-value" id="admin-pending-payout-requests">0</div>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 subscription-filter-grid">
                     <a href="{{ url_for('admin_subscription', payout_status='pending') }}#referral-payouts"
-                       class="p-3 rounded-lg border text-xs {{ 'bg-yellow-500/10 border-yellow-500/40 text-yellow-300' if payout_status_filter == 'pending' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                       class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-yellow-500/10 border-yellow-500/40 text-yellow-300' if payout_status_filter == 'pending' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
                             <span>Pending</span>
                             <span class="badge badge-yellow">{{ payout_counts.pending }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='approved') }}#referral-payouts"
-                       class="p-3 rounded-lg border text-xs {{ 'bg-blue-500/10 border-blue-500/40 text-blue-300' if payout_status_filter == 'approved' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                       class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-blue-500/10 border-blue-500/40 text-blue-300' if payout_status_filter == 'approved' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
                             <span>Approved</span>
                             <span class="badge badge-blue">{{ payout_counts.approved }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='paid') }}#referral-payouts"
-                       class="p-3 rounded-lg border text-xs {{ 'bg-green-500/10 border-green-500/40 text-green-300' if payout_status_filter == 'paid' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                       class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-green-500/10 border-green-500/40 text-green-300' if payout_status_filter == 'paid' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
                             <span>Paid</span>
                             <span class="badge badge-green">{{ payout_counts.paid }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='rejected') }}#referral-payouts"
-                       class="p-3 rounded-lg border text-xs {{ 'bg-red-500/10 border-red-500/40 text-red-300' if payout_status_filter == 'rejected' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                       class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-red-500/10 border-red-500/40 text-red-300' if payout_status_filter == 'rejected' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
                             <span>Rejected</span>
                             <span class="badge badge-red">{{ payout_counts.rejected }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='all') }}#referral-payouts"
-                       class="p-3 rounded-lg border text-xs {{ 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' if payout_status_filter == 'all' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                       class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' if payout_status_filter == 'all' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
                             <span>All</span>
                             <span class="badge badge-cyan">{{ payout_counts.pending + payout_counts.approved + payout_counts.paid + payout_counts.rejected }}</span>
@@ -364,13 +527,13 @@
             </div>
             
             <!-- Pending Payments List -->
-            <div id="subscription-pending-payments" class="p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+            <div id="subscription-pending-payments" class="p-4 rounded-xl subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4 subscription-section-title">
                     <i class="fas fa-clock text-yellow"></i>
                     <span>Pending Payments</span>
                     <span class="badge badge-yellow ml-2" id="admin-pending-payments">0</span>
                 </h3>
-                <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto">
+                <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto subscription-list">
                     <div class="text-center py-4 text-muted text-sm">
                         <i class="fas fa-spinner fa-spin"></i> Завантаження...
                     </div>
@@ -588,7 +751,7 @@
         let html = '';
         plans.forEach(plan => {
             html += `
-                <div class="p-3 rounded-lg border" data-plan-id="${plan.id}" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
+                <div class="p-3 rounded-lg border subscription-plan-card" data-plan-id="${plan.id}" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
                     <div class="flex items-center justify-between mb-2">
                         <input type="text" class="input text-sm font-semibold" data-field="name" value="${plan.name || ''}" placeholder="Plan name">
                         <label class="flex items-center gap-2 text-xs text-muted">
@@ -671,7 +834,7 @@
         const enabled = method.enabled !== false;
         
         return `
-            <div class="p-3 rounded-lg border payment-method-row" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
+            <div class="p-3 rounded-lg border payment-method-row subscription-method-card" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <div>
                         <label class="text-xs text-muted mb-1 block">Label</label>
@@ -803,7 +966,7 @@
             const status = u.has_active_subscription ? 'Active' : (u.plan === 'free' ? 'Free' : 'Expired');
             const expires = u.expires_at ? new Date(u.expires_at).toLocaleDateString() : '—';
             return `
-                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                <div class="subscription-row-card flex items-center justify-between gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/10">
                             <i class="fas fa-user text-cyan"></i>
@@ -813,15 +976,17 @@
                             <div class="text-xs text-muted">${u.email || '—'}</div>
                         </div>
                     </div>
-                    <div class="text-right text-xs text-muted">
+                    <div class="subscription-row-details text-right text-xs text-muted">
                         <div>${u.plan.toUpperCase()} • ${status}</div>
                         <div>Expires: ${expires}</div>
                         <div>Days: ${u.days_remaining}</div>
                     </div>
-                    <button onclick="setBonusUser(${u.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm ml-3">
-                        <i class="fas fa-gift"></i>
-                        <span>Bonus</span>
-                    </button>
+                    <div class="subscription-row-actions flex gap-2 justify-end">
+                        <button onclick="setBonusUser(${u.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm subscription-row-action">
+                            <i class="fas fa-gift"></i>
+                            <span>Bonus</span>
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1035,7 +1200,7 @@
             const currencyKey = (p.currency || '').toLowerCase();
             const methodLabel = paymentMethods.find(m => m.id === p.currency || m.id === currencyKey)?.label || p.currency;
             html += `
-                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
+                <div class="subscription-row-card flex items-center justify-between gap-3 p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
                             <i class="fas fa-clock text-yellow"></i>
@@ -1045,15 +1210,15 @@
                             <div class="text-xs text-muted">${p.plan.toUpperCase()} - ${methodLabel}</div>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="subscription-row-details text-right">
                         <div class="font-mono font-bold text-yellow">$${p.amount_usd.toFixed(2)}</div>
                         <div class="text-xs text-muted">${createdAt.toLocaleDateString()}</div>
                     </div>
-                    <div class="flex gap-2 ml-3">
-                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success" title="Confirm">
+                    <div class="subscription-row-actions flex gap-2 justify-end">
+                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success subscription-row-action" title="Confirm">
                             <i class="fas fa-check"></i>
                         </button>
-                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Reject">
+                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger subscription-row-action" title="Reject">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>

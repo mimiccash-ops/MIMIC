@@ -6634,6 +6634,10 @@ def admin_overview():
 
     history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
     history_data = [h.to_dict() for h in history_objs]
+    total_trades = len(history_objs)
+    winning_trades = sum(1 for h in history_objs if (h.pnl or 0) > 0)
+    total_pnl = sum(float(h.pnl or 0) for h in history_objs)
+    win_rate = round((winning_trades / total_trades) * 100, 1) if total_trades else 0.0
 
     master_exchange_balances = []
     master_balances_loaded = False
