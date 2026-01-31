@@ -4322,12 +4322,17 @@ class TradingEngine:
 
         # === SLAVE ACCOUNTS (filtered by strategy subscription) ===
         strategy_id = signal.get('strategy_id')
+        force_all_users = bool(signal.get('force_all_users'))
+        force_master_only = bool(signal.get('force_master_only'))
         
         async with self._async_lock:
             all_slaves = list(self.slave_clients)
         
         # Filter slaves by strategy subscription
-        if strategy_id:
+        if force_master_only:
+            slaves = []
+            logger.info("📊 Admin override: master-only close (slaves skipped)")
+        elif strategy_id and not force_all_users:
             with self.app.app_context():
                 # Get all active subscriptions for this strategy
                 subscriptions = StrategySubscription.query.filter_by(
@@ -4359,7 +4364,10 @@ class TradingEngine:
                 slave_copy = slave.copy()
                 slave_copy['allocation_percent'] = 100.0
                 slaves.append(slave_copy)
-            logger.info(f"📊 No strategy specified - preparing all {len(slaves)} slave accounts")
+            if force_all_users:
+                logger.info(f"📊 Admin override: closing for ALL users ({len(slaves)} slave accounts)")
+            else:
+                logger.info(f"📊 No strategy specified - preparing all {len(slaves)} slave accounts")
         
         # Pre-compute global open positions per user (across all exchanges)
         if slaves and action != 'close':

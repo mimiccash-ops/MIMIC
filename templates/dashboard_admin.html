@@ -786,10 +786,38 @@
                         <span class="font-mono font-bold text-xs text-bright">${pos.symbol}</span>
                         <span class="text-xxs text-cyan">${pos.exchange || 'Binance'}</span>
                     </div>
-                    <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
+                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','master')">Close</button>
+                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','all')">Close All</button>
+                    </div>
                 </div>
             </div>
         `).join('');
+    }
+
+    async function requestClosePosition(symbol, scope) {
+        if (!symbol) return;
+        const warn = scope === 'all'
+            ? `⚠️ Close ${symbol} for ALL users and ALL exchanges?`
+            : `Close ${symbol} on MASTER exchanges only?`;
+        if (!confirm(warn)) return;
+        try {
+            const response = await fetch('/api/admin/positions/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol, scope })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast(`Close queued: ${symbol} (${scope})`, scope === 'all' ? 'error' : 'warning');
+                setTimeout(refreshMasterPositions, 1500);
+            } else {
+                showToast(data.error || 'Close failed', 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
     }
     
     function renderExchangeBalances(balances) {

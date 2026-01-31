@@ -4102,6 +4102,69 @@ def get_master_positions():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/admin/positions/close', methods=['POST'])
+@login_required
+def admin_close_position():
+    """Close a position for master only or for all users (admin only)."""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Доступ заборонено'}), 403
+
+    data = request.get_json(silent=True) or {}
+    scope = (data.get('scope') or 'master').lower()
+    close_all_users = scope == 'all' or bool(data.get('close_all_users'))
+
+    raw_symbol_input = str(data.get('symbol', '') or '').strip()
+    if ':' in raw_symbol_input:
+        raw_symbol_input = raw_symbol_input.split(':')[-1]
+    raw_symbol = re.sub(r'\.P|\.p|\.S|\.s$', '', raw_symbol_input)
+    raw_symbol = raw_symbol.replace('/', '').replace('-', '').replace('_', '').upper()
+    valid, symbol = InputValidator.validate_symbol(raw_symbol)
+    if not valid:
+        return jsonify({'success': False, 'error': f'Невірний символ: {symbol}'}), 400
+
+    signal = {
+        'symbol': symbol,
+        'action': 'close',
+        'strategy_id': 1,
+        'force_all_users': close_all_users,
+        'force_master_only': not close_all_users,
+        'admin_close': True
+    }
+
+    audit.log_admin_action(
+        current_user.username,
+        "CLOSE_POSITION",
+        symbol,
+        f"Scope: {'ALL_USERS' if close_all_users else 'MASTER'}"
+    )
+
+    # Queue via ARQ when available to keep UI responsive
+    if ARQ_REDIS_SETTINGS:
+        success, result = queue_signal_to_arq(signal)
+        if success:
+            return jsonify({
+                'success': True,
+                'status': 'queued',
+                'job_id': result,
+                'symbol': symbol,
+                'scope': 'all' if close_all_users else 'master'
+            })
+        return jsonify({'success': False, 'error': result}), 500
+
+    # Fallback to direct processing
+    try:
+        engine.process_signal(signal)
+        return jsonify({
+            'success': True,
+            'status': 'processed',
+            'symbol': symbol,
+            'scope': 'all' if close_all_users else 'master'
+        })
+    except Exception as e:
+        logger.error(f"Admin close position failed: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/positions', methods=['GET'])
 @login_required
 def get_user_positions():
