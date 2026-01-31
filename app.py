@@ -5710,13 +5710,20 @@ def webhook():
             return jsonify({'error': 'Неавторизовано'}), 401
         
         # Parse and validate signal
-        raw_symbol = re.sub(r'\.P|\.p|\.S|\.s$', '', str(data.get('symbol', ''))).upper()
+        raw_symbol_input = str(data.get('symbol', '') or '').strip()
+        # Normalize TradingView symbols like "BINANCE:BTCUSDT.P" -> "BTCUSDT"
+        if ':' in raw_symbol_input:
+            raw_symbol_input = raw_symbol_input.split(':')[-1]
+        raw_symbol = re.sub(r'\.P|\.p|\.S|\.s$', '', raw_symbol_input)
+        raw_symbol = raw_symbol.replace('/', '').replace('-', '').replace('_', '').upper()
         valid, symbol = InputValidator.validate_symbol(raw_symbol)
         if not valid:
+            logger.warning(f"Webhook: Invalid symbol '{raw_symbol_input}' from {ip}")
             return jsonify({'error': f'Невірний символ: {symbol}'}), 400
         
-        action = data.get('action', 'close').lower()
+        action = str(data.get('action', 'close')).lower()
         if action not in ['long', 'short', 'close']:
+            logger.warning(f"Webhook: Invalid action '{action}' for symbol '{symbol}' from {ip}")
             return jsonify({'error': 'Невірна дія'}), 400
         
         # Get TP/SL with proper defaults from global settings
