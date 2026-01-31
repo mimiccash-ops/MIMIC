@@ -40,7 +40,6 @@ from security import (
 )
 import asyncio
 import threading
-import concurrent.futures
 from queue import Queue
 from datetime import datetime, timedelta, timezone
 import random
@@ -61,12 +60,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("BrainCapital")
-
-# Reusable executor for ARQ enqueue (prevents nested event loop errors)
-_arq_enqueue_executor = concurrent.futures.ThreadPoolExecutor(
-    max_workers=2,
-    thread_name_prefix="ARQEnqueue"
-)
 
 # Create logs directory
 import os
@@ -5699,19 +5692,52 @@ def queue_signal_to_arq(signal: dict) -> tuple:
         if not ARQ_REDIS_SETTINGS:
             return False, "ARQ_REDIS_SETTINGS not configured"
         import asyncio
+        import concurrent.futures
 
-        # Always run ARQ enqueue in a separate thread with its own event loop
-        def run_in_new_loop():
-            new_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(new_loop)
+        # Detect if an event loop is already running in this thread
+        running_loop = None
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is None:
             try:
-                return new_loop.run_until_complete(enqueue_signal_task(signal))
-            finally:
-                new_loop.close()
-                asyncio.set_event_loop(None)
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    running_loop = loop
+            except RuntimeError:
+                running_loop = None
 
-        future = _arq_enqueue_executor.submit(run_in_new_loop)
-        job_id = future.result(timeout=5)
+        def run_in_thread():
+            # Use a separate thread with its own event loop to avoid loop conflicts
+            def run_in_new_loop():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    return new_loop.run_until_complete(enqueue_signal_task(signal))
+                finally:
+                    new_loop.close()
+                    asyncio.set_event_loop(None)
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_in_new_loop)
+                return future.result(timeout=5)
+
+        if running_loop and running_loop.is_running():
+            # Running loop detected - use a separate thread with its own loop
+            job_id = run_in_thread()
+        else:
+            # No running loop - safe to use asyncio.run()
+            try:
+                job_id = asyncio.run(enqueue_signal_task(signal))
+            except RuntimeError as e:
+                # Fallback if a loop is actually running in this thread
+                msg = str(e).lower()
+                if "another loop is running" in msg or "cannot run the event loop" in msg:
+                    job_id = run_in_thread()
+                else:
+                    raise
         
         if job_id:
             return True, job_id

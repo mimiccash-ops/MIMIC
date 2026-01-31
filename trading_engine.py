@@ -1921,6 +1921,13 @@ class TradingEngine:
         if not exchange or not symbol:
             return None
         try:
+            cache = getattr(exchange, "_leverage_cache", {})
+            cached = cache.get(symbol)
+            if cached and (time.time() - cached.get('ts', 0)) < 300:
+                return cached.get('max')
+        except Exception:
+            pass
+        try:
             if not getattr(exchange, "markets", None):
                 await exchange.load_markets()
             market = None
@@ -1928,13 +1935,56 @@ class TradingEngine:
                 market = exchange.market(symbol)
             elif isinstance(exchange.markets, dict):
                 market = exchange.markets.get(symbol)
-            if not market:
-                return None
-            max_lev = market.get('limits', {}).get('leverage', {}).get('max')
-            if max_lev:
-                return int(float(max_lev))
+            if market:
+                max_lev = market.get('limits', {}).get('leverage', {}).get('max')
+                if max_lev:
+                    max_val = int(float(max_lev))
+                    try:
+                        cache = getattr(exchange, "_leverage_cache", {})
+                        cache[symbol] = {'max': max_val, 'ts': time.time()}
+                        exchange._leverage_cache = cache
+                    except Exception:
+                        pass
+                    return max_val
         except Exception:
-            return None
+            pass
+
+        # Fallback: try leverage tiers if supported
+        try:
+            tiers = None
+            if hasattr(exchange, "fetch_leverage_tiers"):
+                try:
+                    tiers = await exchange.fetch_leverage_tiers([symbol])
+                except Exception:
+                    tiers = await exchange.fetch_leverage_tiers()
+            tier_list = None
+            if isinstance(tiers, dict):
+                tier_list = tiers.get(symbol) or (next(iter(tiers.values())) if tiers else None)
+            elif isinstance(tiers, list):
+                tier_list = tiers
+            max_vals = []
+            if isinstance(tier_list, list):
+                for tier in tier_list:
+                    if not isinstance(tier, dict):
+                        continue
+                    for key in ("maxLeverage", "max_leverage", "max"):
+                        if tier.get(key) is not None:
+                            try:
+                                max_vals.append(float(tier.get(key)))
+                                break
+                            except (TypeError, ValueError):
+                                continue
+            if max_vals:
+                max_val = int(max(max_vals))
+                try:
+                    cache = getattr(exchange, "_leverage_cache", {})
+                    cache[symbol] = {'max': max_val, 'ts': time.time()}
+                    exchange._leverage_cache = cache
+                except Exception:
+                    pass
+                return max_val
+        except Exception:
+            pass
         return None
 
     def _extract_max_leverage_from_error(self, err: Exception):
@@ -1963,20 +2013,19 @@ class TradingEngine:
             lev_int = min(lev_int, max_lev)
 
         # MEXC requires openType/positionType params
-        if exchange_key == 'mexc':
+        if 'mexc' in exchange_key:
             position_type = 1 if str(action).lower() == 'long' else 2
             last_err = None
             for open_type in (2, 1):  # Prefer cross (2), fallback to isolated (1)
-                for use_str in (False, True):
-                    try:
-                        params = {
-                            'openType': str(open_type) if use_str else open_type,
-                            'positionType': str(position_type) if use_str else position_type
-                        }
-                        await exchange.set_leverage(lev_int, symbol, params=params)
-                        return lev_int
-                    except Exception as e:
-                        last_err = e
+                try:
+                    await exchange.set_leverage(
+                        lev_int,
+                        symbol,
+                        params={'openType': open_type, 'positionType': position_type}
+                    )
+                    return lev_int
+                except Exception as e:
+                    last_err = e
             if last_err:
                 raise last_err
             return lev_int
@@ -1986,24 +2035,12 @@ class TradingEngine:
             return lev_int
         except Exception as e:
             max_lev = self._extract_max_leverage_from_error(e)
-            # Some exchanges return leverage values scaled by 100 (e.g., 5000 = 50x)
-            if max_lev and max_lev > 1000 and lev_int <= 100:
-                max_lev = int(max_lev / 100)
             if max_lev and max_lev > 0 and max_lev < lev_int:
                 try:
                     await exchange.set_leverage(max_lev, symbol)
                     return max_lev
                 except Exception:
                     pass
-            # Fallback for exchanges that don't return max leverage in error payloads
-            if exchange_key in ('okx', 'bybit') and 'maximum' in str(e).lower():
-                for candidate in (20, 10, 5, 2):
-                    if candidate < lev_int:
-                        try:
-                            await exchange.set_leverage(candidate, symbol)
-                            return candidate
-                        except Exception:
-                            continue
             raise
 
     async def get_all_master_positions_async(self) -> list:
