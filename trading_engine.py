@@ -513,6 +513,7 @@ class TradingEngine:
         # Sync locks for backward compatibility with sync code paths
         self.lock = threading.RLock()
         self.master_lock = threading.Lock()
+        self._master_init_lock = threading.Lock()
         self.symbol_precision = {}
         self.is_paused = False
         self.slippage_tolerance = 0.015  # 1.5% max slippage
@@ -1100,73 +1101,156 @@ class TradingEngine:
 
     def init_master(self):
         """Initialize master trading accounts from ALL enabled ExchangeConfigs"""
-        self.master_clients = []
-        
-        with self.app.app_context():
-            # Load all enabled and verified exchange configs (admin's exchanges)
-            exchange_configs = ExchangeConfig.query.filter_by(
-                is_enabled=True,
-                is_verified=True
-            ).all()
+        with self._master_init_lock:
+            self.master_clients = []
             
-            logger.info(f"📊 Found {len(exchange_configs)} enabled & verified exchange configs for MASTER")
-            
-            for ec in exchange_configs:
-                exchange_name = ec.exchange_name.lower()
-                api_key = ec.admin_api_key  # Admin's API key
-                api_secret = ec.get_admin_api_secret()  # Admin's secret
-                passphrase = ec.get_admin_passphrase()  # Admin's passphrase
+            with self.app.app_context():
+                # Load all enabled and verified exchange configs (admin's exchanges)
+                exchange_configs = ExchangeConfig.query.filter_by(
+                    is_enabled=True,
+                    is_verified=True
+                ).all()
                 
-                if not api_key or not api_secret:
-                    logger.warning(f"⚠️ Master {exchange_name.upper()} has no API keys configured")
-                    continue
+                logger.info(f"📊 Found {len(exchange_configs)} enabled & verified exchange configs for MASTER")
                 
-                try:
-                    if exchange_name == 'binance':
-                        # Verify outgoing IP for troubleshooting -2015 errors
-                        logger.info("🔍 Verifying outgoing IP for Binance API...")
-                        outgoing_ip = verify_outgoing_ip()
+                for ec in exchange_configs:
+                    exchange_name = ec.exchange_name.lower()
+                    api_key = ec.admin_api_key  # Admin's API key
+                    api_secret = ec.get_admin_api_secret()  # Admin's secret
+                    passphrase = ec.get_admin_passphrase()  # Admin's passphrase
+                    
+                    if not api_key or not api_secret:
+                        logger.warning(f"⚠️ Master {exchange_name.upper()} has no API keys configured")
+                        continue
+                    
+                    try:
+                        if exchange_name == 'binance':
+                            # Verify outgoing IP for troubleshooting -2015 errors
+                            logger.info("🔍 Verifying outgoing IP for Binance API...")
+                            outgoing_ip = verify_outgoing_ip()
+                            
+                            # Use Binance client with IPv4 preference to avoid IP mismatch
+                            # This fixes APIError(code=-2015): Invalid API-key, IP, or permissions
+                            logger.info("🔗 Connecting to Binance Futures API...")
+                            client = create_binance_client_with_ipv4(api_key, api_secret, testnet=Config.IS_TESTNET)
+                            
+                            # Test connection with detailed error handling
+                            try:
+                                account_status = client.get_account_status()
+                                logger.info(f"✅ Binance account status: {account_status.get('msg', 'OK')}")
+                            except BinanceAPIException as e:
+                                if e.code == -2015:
+                                    logger.error("=" * 60)
+                                    logger.error("❌ BINANCE API ERROR: Invalid API-key, IP, or permissions!")
+                                    logger.error("=" * 60)
+                                    logger.error(f"   Error code: {e.code}")
+                                    logger.error(f"   Error message: {e.message}")
+                                    logger.error(f"   Detected outgoing IP: {outgoing_ip}")
+                                    logger.error("")
+                                    logger.error("   TROUBLESHOOTING:")
+                                    logger.error("   1. Verify your VPS IP in Binance API settings")
+                                    logger.error("   2. Ensure API key has Futures permissions enabled")
+                                    logger.error("   3. Check if server is using IPv6 (API key might be IPv4 only)")
+                                    logger.error("   4. Try regenerating the API key and re-adding the IP")
+                                    logger.error("=" * 60)
+                                raise
+                            
+                            # Set one-way position mode
+                            try:
+                                client.futures_change_position_mode(dualSidePosition=False)
+                            except BinanceAPIException as e:
+                                if "No need to change position side" not in str(e):
+                                    logger.warning(f"Position mode warning: {e}")
+                            
+                            # Keep legacy master_client for backward compatibility
+                            self.master_client = client
+                            
+                            self.master_clients.append({
+                                'id': 'master',
+                                'name': 'MASTER_BINANCE',
+                                'fullname': 'MASTER (Binance)',
+                                'client': client,
+                                'exchange_type': 'binance',
+                                'exchange_name': 'Binance',
+                                'is_paused': False,
+                                'is_ccxt': False,
+                                'lock': threading.Lock()
+                            })
+                            logger.info(f"✅ Master BINANCE connected")
                         
-                        # Use Binance client with IPv4 preference to avoid IP mismatch
-                        # This fixes APIError(code=-2015): Invalid API-key, IP, or permissions
-                        logger.info("🔗 Connecting to Binance Futures API...")
-                        client = create_binance_client_with_ipv4(api_key, api_secret, testnet=Config.IS_TESTNET)
+                        else:
+                            # Use async CCXT for other exchanges
+                            ccxt_class_name = SUPPORTED_EXCHANGES.get(exchange_name, exchange_name)
+                            if not hasattr(ccxt_async, ccxt_class_name):
+                                logger.warning(f"⚠️ Master exchange {exchange_name} not supported by CCXT")
+                                continue
+                            
+                            exchange_class = getattr(ccxt_async, ccxt_class_name)
+                            config = {
+                                'apiKey': api_key,
+                                'secret': api_secret,
+                                'enableRateLimit': True,
+                                'options': {
+                                    'defaultType': 'swap',  # Use perpetual futures
+                                    'forcePublicIPv4': True,  # Force IPv4 for CCXT
+                                }
+                            }
+                            
+                            # OKX-specific options
+                            if exchange_name == 'okx':
+                                config['options']['defaultMarginMode'] = 'cross'
+                                # Use net position mode (one-way) for OKX
+                                config['options']['positionMode'] = 'net_mode'
+                            
+                            if passphrase and exchange_name in PASSPHRASE_EXCHANGES:
+                                config['password'] = passphrase
+
+                            # Validate credentials using sync CCXT to avoid asyncio loop conflicts
+                            validation = self._fetch_balance_sync(exchange_name, api_key, api_secret, passphrase)
+                            if validation.get('error'):
+                                logger.error(f"⚠️ Master {exchange_name.upper()} connection failed: {validation['error']}")
+                                continue
+
+                            ccxt_client = exchange_class(config)
+                            
+                            self.master_clients.append({
+                                'id': f'master_{exchange_name}',
+                                'name': f'MASTER_{exchange_name.upper()}',
+                                'fullname': f'MASTER ({exchange_name.upper()})',
+                                'client': ccxt_client,
+                                'exchange_type': exchange_name,
+                                'exchange_name': exchange_name.upper(),
+                                'is_paused': False,
+                                'is_ccxt': True,
+                                'is_async': True,  # Flag for async client
+                                'lock': None  # Will be created on demand in async context
+                            })
+                            logger.info(f"✅ Master {exchange_name.upper()} connected (async)")
+                    
+                    except Exception as e:
+                        logger.error(f"❌ Master {exchange_name.upper()} connection failed: {e}")
+                
+                # Fallback: Try legacy config.ini keys if no exchanges loaded
+                if not self.master_clients and Config.BINANCE_MASTER_KEY and Config.BINANCE_MASTER_SECRET:
+                    try:
+                        client = Client(
+                            Config.BINANCE_MASTER_KEY, 
+                            Config.BINANCE_MASTER_SECRET, 
+                            testnet=Config.IS_TESTNET
+                        )
+                        client.get_account_status()
                         
-                        # Test connection with detailed error handling
-                        try:
-                            account_status = client.get_account_status()
-                            logger.info(f"✅ Binance account status: {account_status.get('msg', 'OK')}")
-                        except BinanceAPIException as e:
-                            if e.code == -2015:
-                                logger.error("=" * 60)
-                                logger.error("❌ BINANCE API ERROR: Invalid API-key, IP, or permissions!")
-                                logger.error("=" * 60)
-                                logger.error(f"   Error code: {e.code}")
-                                logger.error(f"   Error message: {e.message}")
-                                logger.error(f"   Detected outgoing IP: {outgoing_ip}")
-                                logger.error("")
-                                logger.error("   TROUBLESHOOTING:")
-                                logger.error("   1. Verify your VPS IP in Binance API settings")
-                                logger.error("   2. Ensure API key has Futures permissions enabled")
-                                logger.error("   3. Check if server is using IPv6 (API key might be IPv4 only)")
-                                logger.error("   4. Try regenerating the API key and re-adding the IP")
-                                logger.error("=" * 60)
-                            raise
-                        
-                        # Set one-way position mode
                         try:
                             client.futures_change_position_mode(dualSidePosition=False)
                         except BinanceAPIException as e:
                             if "No need to change position side" not in str(e):
                                 logger.warning(f"Position mode warning: {e}")
                         
-                        # Keep legacy master_client for backward compatibility
                         self.master_client = client
-                        
                         self.master_clients.append({
                             'id': 'master',
                             'name': 'MASTER_BINANCE',
-                            'fullname': 'MASTER (Binance)',
+                            'fullname': 'MASTER (Binance Legacy)',
                             'client': client,
                             'exchange_type': 'binance',
                             'exchange_name': 'Binance',
@@ -1174,106 +1258,24 @@ class TradingEngine:
                             'is_ccxt': False,
                             'lock': threading.Lock()
                         })
-                        logger.info(f"✅ Master BINANCE connected")
-                    
-                    else:
-                        # Use async CCXT for other exchanges
-                        ccxt_class_name = SUPPORTED_EXCHANGES.get(exchange_name, exchange_name)
-                        if not hasattr(ccxt_async, ccxt_class_name):
-                            logger.warning(f"⚠️ Master exchange {exchange_name} not supported by CCXT")
-                            continue
-                        
-                        exchange_class = getattr(ccxt_async, ccxt_class_name)
-                        config = {
-                            'apiKey': api_key,
-                            'secret': api_secret,
-                            'enableRateLimit': True,
-                            'options': {
-                                'defaultType': 'swap',  # Use perpetual futures
-                                'forcePublicIPv4': True,  # Force IPv4 for CCXT
-                            }
-                        }
-                        
-                        # OKX-specific options
-                        if exchange_name == 'okx':
-                            config['options']['defaultMarginMode'] = 'cross'
-                            # Use net position mode (one-way) for OKX
-                            config['options']['positionMode'] = 'net_mode'
-                        
-                        if passphrase and exchange_name in PASSPHRASE_EXCHANGES:
-                            config['password'] = passphrase
-
-                        # Validate credentials using sync CCXT to avoid asyncio loop conflicts
-                        validation = self._fetch_balance_sync(exchange_name, api_key, api_secret, passphrase)
-                        if validation.get('error'):
-                            logger.error(f"⚠️ Master {exchange_name.upper()} connection failed: {validation['error']}")
-                            continue
-
-                        ccxt_client = exchange_class(config)
-                        
-                        self.master_clients.append({
-                            'id': f'master_{exchange_name}',
-                            'name': f'MASTER_{exchange_name.upper()}',
-                            'fullname': f'MASTER ({exchange_name.upper()})',
-                            'client': ccxt_client,
-                            'exchange_type': exchange_name,
-                            'exchange_name': exchange_name.upper(),
-                            'is_paused': False,
-                            'is_ccxt': True,
-                            'is_async': True,  # Flag for async client
-                            'lock': None  # Will be created on demand in async context
-                        })
-                        logger.info(f"✅ Master {exchange_name.upper()} connected (async)")
+                        logger.info("✅ Master Binance connected (from config.ini)")
+                    except Exception as e:
+                        logger.critical(f"❌ Master Binance (legacy) connection failed: {e}")
                 
-                except Exception as e:
-                    logger.error(f"❌ Master {exchange_name.upper()} connection failed: {e}")
-            
-            # Fallback: Try legacy config.ini keys if no exchanges loaded
-            if not self.master_clients and Config.BINANCE_MASTER_KEY and Config.BINANCE_MASTER_SECRET:
-                try:
-                    client = Client(
-                        Config.BINANCE_MASTER_KEY, 
-                        Config.BINANCE_MASTER_SECRET, 
-                        testnet=Config.IS_TESTNET
-                    )
-                    client.get_account_status()
+                if self.master_clients:
+                    logger.info(f"✅ Master Account Connected ({len(self.master_clients)} exchanges)")
+                    for mc in self.master_clients:
+                        logger.info(f"   📌 {mc['fullname']}")
+                    if self.telegram:
+                        exchanges_str = ", ".join([mc['exchange_name'] for mc in self.master_clients])
+                        self.telegram.notify_system_event("Master Connected", f"Підключено {len(self.master_clients)} бірж: {exchanges_str}")
                     
-                    try:
-                        client.futures_change_position_mode(dualSidePosition=False)
-                    except BinanceAPIException as e:
-                        if "No need to change position side" not in str(e):
-                            logger.warning(f"Position mode warning: {e}")
-                    
-                    self.master_client = client
-                    self.master_clients.append({
-                        'id': 'master',
-                        'name': 'MASTER_BINANCE',
-                        'fullname': 'MASTER (Binance Legacy)',
-                        'client': client,
-                        'exchange_type': 'binance',
-                        'exchange_name': 'Binance',
-                        'is_paused': False,
-                        'is_ccxt': False,
-                        'lock': threading.Lock()
-                    })
-                    logger.info("✅ Master Binance connected (from config.ini)")
-                except Exception as e:
-                    logger.critical(f"❌ Master Binance (legacy) connection failed: {e}")
-            
-            if self.master_clients:
-                logger.info(f"✅ Master Account Connected ({len(self.master_clients)} exchanges)")
-                for mc in self.master_clients:
-                    logger.info(f"   📌 {mc['fullname']}")
-                if self.telegram:
-                    exchanges_str = ", ".join([mc['exchange_name'] for mc in self.master_clients])
-                    self.telegram.notify_system_event("Master Connected", f"Підключено {len(self.master_clients)} бірж: {exchanges_str}")
-                
-                # Clear any stale pending symbols from previous run
-                self.clear_all_master_pending_symbols()
-            else:
-                logger.critical("❌ No master exchanges connected!")
-                if self.telegram:
-                    self.telegram.notify_error("MASTER", "SYSTEM", "Не вдалося підключити жодну біржу")
+                    # Clear any stale pending symbols from previous run
+                    self.clear_all_master_pending_symbols()
+                else:
+                    logger.critical("❌ No master exchanges connected!")
+                    if self.telegram:
+                        self.telegram.notify_error("MASTER", "SYSTEM", "Не вдалося підключити жодну біржу")
 
     def load_slaves(self):
         """Load all active slave accounts from UserExchange table (multi-exchange support)"""
