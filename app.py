@@ -1810,8 +1810,24 @@ def submit_task(task_id):
         data = request.get_json() or {}
         submission_text = data.get('text', '')
         submission_url = data.get('url', '')
+        payout_method = data.get('payout_method')
+        payout_details = data.get('payout_details')
+        payout_contact = data.get('payout_contact')
         
-        participation.submit(text=submission_text, url=submission_url)
+        if isinstance(payout_method, str) and not payout_method.strip():
+            payout_method = None
+        if isinstance(payout_details, str) and not payout_details.strip():
+            payout_details = None
+        if isinstance(payout_contact, str) and not payout_contact.strip():
+            payout_contact = None
+        
+        participation.submit(
+            text=submission_text,
+            url=submission_url,
+            payout_method=payout_method,
+            payout_details=payout_details,
+            payout_contact=payout_contact
+        )
         
         logger.info(f"User {current_user.username} submitted task: {task.title}")
         
@@ -2127,14 +2143,27 @@ def admin_approve_participation(participation_id):
         
         data = request.get_json() or {}
         notes = data.get('notes', '')
+        reward_type = data.get('reward_type') or None
+        reward_amount = data.get('reward_amount')
+        reward_description = data.get('reward_description')
+        payout_status = data.get('payout_status') or 'paid'
+        payout_reference = data.get('payout_reference')
         
-        participation.approve(current_user, notes=notes)
+        participation.approve(
+            current_user,
+            notes=notes,
+            reward_type=reward_type,
+            reward_amount=reward_amount,
+            reward_description=reward_description,
+            payout_status=payout_status,
+            payout_reference=payout_reference
+        )
         
         logger.info(f"Admin approved task submission for user {participation.user.username}")
         
         return jsonify({
             'success': True,
-            'message': f'Submission approved! Reward given: {participation.reward_amount}',
+            'message': f'Submission approved! Reward: {participation.reward_amount}',
             'participation': participation.to_dict()
         })
         

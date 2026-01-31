@@ -1940,6 +1940,28 @@
                     <label class="text-xs text-white/50 mb-1 block">Proof URL (optional)</label>
                     <input type="url" id="task-submission-url" class="input" placeholder="https://...">
                 </div>
+                <div id="task-payout-section">
+                    <div class="mb-4">
+                        <label class="text-xs text-white/50 mb-1 block">Reward Method (optional)</label>
+                        <select id="task-payout-method" class="input">
+                            <option value="">Select method</option>
+                            <option value="usdt_trc20">USDT (TRC20)</option>
+                            <option value="usdt_erc20">USDT (ERC20)</option>
+                            <option value="bank">Bank Transfer</option>
+                            <option value="card">Card</option>
+                            <option value="gift">Gift</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-white/50 mb-1 block">Reward Details (wallet / IBAN / address)</label>
+                        <textarea id="task-payout-details" class="input" rows="2" placeholder="Наприклад: USDT TRC20 адреса або банківські реквізити"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-white/50 mb-1 block">Contact (optional)</label>
+                        <input type="text" id="task-payout-contact" class="input" placeholder="Telegram / Email / Phone">
+                    </div>
+                </div>
             </div>
             
             <div class="flex gap-3 pt-4 border-t" style="border-color: rgba(255,255,255,0.1);">
@@ -3972,6 +3994,7 @@
     let userTaskTypes = {};
     let userRewardTypes = {};
     let currentTaskAction = null; // 'join', 'submit'
+    let currentTaskRewardType = null;
     
     async function loadUserTasks() {
         const taskType = document.getElementById('user-task-type-filter')?.value || '';
@@ -4185,6 +4208,7 @@
         
         const typeInfo = userTaskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
         const rewardInfo = userRewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+        currentTaskRewardType = task.reward_type || 'money';
         
         const participation = task.user_participation;
         const isInProgress = participation && ['pending', 'in_progress'].includes(participation.status);
@@ -4219,6 +4243,7 @@
         
         const actionBtn = document.getElementById('task-action-btn');
         const submissionForm = document.getElementById('task-submission-form');
+        const payoutSection = document.getElementById('task-payout-section');
         
         if (isSubmitting || isInProgress) {
             // Show submission form
@@ -4239,9 +4264,20 @@
             currentTaskAction = null;
         }
         
+        if (payoutSection) {
+            const needsPayout = ['money', 'goods', 'custom'].includes(currentTaskRewardType);
+            payoutSection.style.display = needsPayout ? 'block' : 'none';
+        }
+        
         // Clear submission fields
         document.getElementById('task-submission-text').value = '';
         document.getElementById('task-submission-url').value = '';
+        const payoutMethod = document.getElementById('task-payout-method');
+        const payoutDetails = document.getElementById('task-payout-details');
+        const payoutContact = document.getElementById('task-payout-contact');
+        if (payoutMethod) payoutMethod.value = '';
+        if (payoutDetails) payoutDetails.value = '';
+        if (payoutContact) payoutContact.value = '';
         
         document.getElementById('taskDetailsModal').style.display = 'flex';
     }
@@ -4276,11 +4312,27 @@
             } else if (currentTaskAction === 'submit') {
                 const submissionText = document.getElementById('task-submission-text').value.trim();
                 const submissionUrl = document.getElementById('task-submission-url').value.trim();
+                const payoutMethod = document.getElementById('task-payout-method')?.value.trim() || '';
+                const payoutDetails = document.getElementById('task-payout-details')?.value.trim() || '';
+                const payoutContact = document.getElementById('task-payout-contact')?.value.trim() || '';
+                
+                if (['money', 'goods', 'custom'].includes(currentTaskRewardType) && !payoutMethod && !payoutDetails) {
+                    showToast('Please provide payout details for the reward.', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    return;
+                }
                 
                 const response = await fetch(`/api/tasks/${taskId}/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: submissionText, url: submissionUrl })
+                    body: JSON.stringify({
+                        text: submissionText,
+                        url: submissionUrl,
+                        payout_method: payoutMethod,
+                        payout_details: payoutDetails,
+                        payout_contact: payoutContact
+                    })
                 });
                 
                 const data = await response.json();

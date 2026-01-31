@@ -145,6 +145,53 @@
         }
     }
 
+    @media (max-width: 420px) {
+        .admin-tasks-page .card {
+            padding: 12px;
+            border-radius: 14px;
+        }
+        .task-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .task-stat-card {
+            padding: 10px 12px;
+            gap: 8px;
+        }
+        .task-stat-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.75rem;
+        }
+        .task-stat-value {
+            font-size: 0.9rem;
+        }
+        .task-card {
+            padding: 10px 12px;
+            gap: 10px;
+        }
+        .task-card-icon {
+            width: 32px;
+            height: 32px;
+        }
+        .task-card-title {
+            font-size: 0.85rem;
+        }
+        .task-card-meta {
+            gap: 6px;
+            font-size: 0.62rem;
+        }
+        .task-card-actions .cyber-btn {
+            padding: 6px 8px;
+        }
+        #pending-reviews-list {
+            gap: 8px;
+        }
+        .pending-review-card {
+            padding: 10px;
+        }
+    }
+
     @media (max-width: 400px) {
         .task-stats-grid {
             gap: 10px;
@@ -302,7 +349,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="app-container">
+<div class="app-container admin-tasks-page">
     <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div>
             <h1 class="font-display text-xl font-semibold flex items-center gap-3">
@@ -568,8 +615,40 @@
         <div class="modal-body">
             <input type="hidden" id="review-participation-id" value="">
             
-            <div id="review-submission-details" class="space-y-4 mb-6">
+            <div id="review-submission-details" class="space-y-4 mb-4">
                 <!-- Populated by JS -->
+            </div>
+
+            <div class="mb-4">
+                <div class="p-3 rounded-lg" style="background: var(--color-surface-3); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Payout Details</div>
+                    <div id="review-payout-info" class="text-sm text-muted">—</div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                <select id="review-reward-type" class="input" onchange="updateReviewRewardLabel()">
+                    <option value="money">Cash ($)</option>
+                    <option value="xp">XP Points</option>
+                    <option value="subscription">Subscription Days</option>
+                    <option value="goods">Goods/Prizes</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="text-xs text-muted mb-1 block" id="review-reward-amount-label">Amount ($)</label>
+                    <input type="number" id="review-reward-amount" class="input" value="0" min="0" step="0.01">
+                </div>
+                <div>
+                    <label class="text-xs text-muted mb-1 block">Reward Description</label>
+                    <input type="text" id="review-reward-description" class="input" placeholder="Optional description">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-muted mb-1 block">Payout Reference (optional)</label>
+                <input type="text" id="review-payout-reference" class="input" placeholder="TxID / receipt / note">
             </div>
             
             <div class="mb-4">
@@ -879,6 +958,20 @@
             default: label.textContent = 'Amount';
         }
     }
+
+    function updateReviewRewardLabel() {
+        const rewardType = document.getElementById('review-reward-type')?.value || 'money';
+        const label = document.getElementById('review-reward-amount-label');
+        if (!label) return;
+        
+        switch (rewardType) {
+            case 'money': label.textContent = 'Amount ($)'; break;
+            case 'xp': label.textContent = 'XP Points'; break;
+            case 'subscription': label.textContent = 'Days'; break;
+            case 'goods': label.textContent = 'Value ($)'; break;
+            default: label.textContent = 'Amount';
+        }
+    }
     
     async function saveTask() {
         const btn = document.getElementById('save-task-btn');
@@ -1015,6 +1108,41 @@
         `;
         
         document.getElementById('review-submission-details').innerHTML = detailsHtml;
+        
+        const payoutInfo = [];
+        if (participation.payout_method) {
+            const payoutLabels = {
+                'usdt_trc20': 'USDT (TRC20)',
+                'usdt_erc20': 'USDT (ERC20)',
+                'bank': 'Bank Transfer',
+                'card': 'Card',
+                'gift': 'Gift',
+                'other': 'Other'
+            };
+            payoutInfo.push(`<div><strong>Method:</strong> ${payoutLabels[participation.payout_method] || participation.payout_method}</div>`);
+        }
+        if (participation.payout_details) {
+            payoutInfo.push(`<div><strong>Details:</strong> ${participation.payout_details}</div>`);
+        }
+        if (participation.payout_contact) {
+            payoutInfo.push(`<div><strong>Contact:</strong> ${participation.payout_contact}</div>`);
+        }
+        document.getElementById('review-payout-info').innerHTML = payoutInfo.length
+            ? payoutInfo.join('')
+            : '<span class="text-muted">No payout details provided.</span>';
+        
+        const rewardTypeSelect = document.getElementById('review-reward-type');
+        if (rewardTypeSelect) {
+            rewardTypeSelect.value = participation.reward_type_given || participation.task?.reward_type || 'money';
+        }
+        const defaultRewardAmount = participation.reward_amount !== null && participation.reward_amount !== undefined
+            ? participation.reward_amount
+            : (participation.task?.reward_amount || 0);
+        document.getElementById('review-reward-amount').value = defaultRewardAmount;
+        document.getElementById('review-reward-description').value = participation.reward_description_given || participation.task?.reward_description || '';
+        document.getElementById('review-payout-reference').value = participation.payout_reference || '';
+        updateReviewRewardLabel();
+        
         document.getElementById('review-notes').value = '';
         document.getElementById('review-rejection-reason').value = '';
         document.getElementById('rejection-reason-field').style.display = 'none';
@@ -1029,12 +1157,23 @@
     async function approveSubmission() {
         const participationId = document.getElementById('review-participation-id').value;
         const notes = document.getElementById('review-notes').value.trim();
+        const rewardType = document.getElementById('review-reward-type')?.value || null;
+        const rewardAmountRaw = document.getElementById('review-reward-amount').value;
+        const rewardAmount = rewardAmountRaw === '' ? null : parseFloat(rewardAmountRaw);
+        const rewardDescription = document.getElementById('review-reward-description').value.trim();
+        const payoutReference = document.getElementById('review-payout-reference').value.trim();
         
         try {
             const response = await fetch(`/api/admin/tasks/participation/${participationId}/approve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notes })
+                body: JSON.stringify({
+                    notes,
+                    reward_type: rewardType,
+                    reward_amount: Number.isFinite(rewardAmount) ? rewardAmount : null,
+                    reward_description: rewardDescription,
+                    payout_reference: payoutReference
+                })
             });
             
             const data = await response.json();

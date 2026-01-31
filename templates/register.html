@@ -873,6 +873,308 @@
             padding: 24px 18px;
         }
     }
+
+    @media (max-width: 420px) {
+        .register-container {
+            padding: 28px 16px 60px;
+        }
+
+        .register-card {
+            padding: 24px 16px;
+            border-radius: var(--radius-xl);
+        }
+
+        .register-card::after {
+            width: 140px;
+            height: 140px;
+        }
+
+        .register-header {
+            margin-bottom: 24px;
+        }
+
+        .register-logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 18px;
+        }
+
+        .register-title {
+            font-size: 1.45rem;
+        }
+
+        .register-subtitle {
+            font-size: 0.9rem;
+        }
+
+        .register-steps {
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+
+        .register-steps::before {
+            top: 20px;
+            left: 10%;
+            right: 10%;
+        }
+
+        .step {
+            padding: 0 6px;
+            gap: 6px;
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            font-size: 0.8rem;
+        }
+
+        .step-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.08em;
+        }
+
+        .register-card .grid.grid-2 {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .form-section {
+            margin-bottom: 16px;
+        }
+
+        .form-section label {
+            font-size: 0.7rem;
+            margin-bottom: 8px;
+            gap: 6px;
+        }
+
+        .form-section label i {
+            font-size: 0.6rem;
+        }
+
+        .register-card .cyber-input {
+            padding: 12px 14px;
+            font-size: 0.9rem;
+        }
+
+        #password {
+            padding-right: 44px !important;
+        }
+
+        .register-card button[onclick^="togglePassword"] {
+            right: 12px !important;
+        }
+
+        .password-strength {
+            height: 4px;
+            margin-top: 8px;
+        }
+
+        .password-requirements {
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .password-requirements-title {
+            font-size: 0.68rem;
+            margin-bottom: 8px;
+            gap: 6px;
+        }
+
+        .password-req-item {
+            font-size: 0.78rem;
+            padding: 6px 8px;
+            gap: 8px;
+        }
+
+        .api-section {
+            padding: 20px 16px;
+            margin-top: 24px;
+        }
+
+        .api-badge {
+            top: -12px;
+            left: 14px;
+            padding: 6px 12px;
+            font-size: 0.62rem;
+            gap: 8px;
+        }
+
+        .exchange-dropdown-btn {
+            padding: 12px 14px;
+        }
+
+        .exchange-dropdown-list {
+            max-height: 240px;
+        }
+
+        .exchange-option {
+            padding: 12px 14px;
+            gap: 10px;
+        }
+
+        .exchange-option-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 1rem;
+        }
+
+        .exchange-radio {
+            width: 16px;
+            height: 16px;
+        }
+
+        .no-exchange-box {
+            padding: 16px;
+        }
+
+        .exchange-register-btn {
+            padding: 10px 18px;
+            font-size: 0.75rem;
+        }
+
+        .api-instructions {
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .api-instructions-title {
+            font-size: 0.82rem;
+        }
+
+        .api-instructions-toggle {
+            width: 28px;
+            height: 28px;
+        }
+
+        .api-instructions-header.expanded {
+            margin-bottom: 12px;
+        }
+
+        .api-step {
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .api-step-number {
+            width: 24px;
+            height: 24px;
+            font-size: 0.7rem;
+        }
+
+        .api-step-content h5 {
+            font-size: 0.82rem;
+        }
+
+        .api-step-content p {
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .ip-address-box {
+            padding: 8px 12px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .ip-address {
+            font-size: 0.85rem;
+            overflow-wrap: anywhere;
+        }
+
+        .copy-ip-btn {
+            width: 28px;
+            height: 28px;
+        }
+
+        .security-tips {
+            margin-top: 20px;
+            padding: 16px;
+        }
+
+        .security-tips-title {
+            font-size: 0.82rem;
+            margin-bottom: 12px;
+        }
+
+        .security-tips li {
+            font-size: 0.8rem;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 6px 0;
+        }
+
+        .security-tips li i {
+            width: 18px;
+            font-size: 0.8rem;
+        }
+
+        .info-box {
+            padding: 14px 16px;
+        }
+
+        .info-box-title {
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+
+        .info-box ol {
+            padding-left: 18px;
+            font-size: 0.78rem;
+            line-height: 1.6;
+        }
+
+        .contact-admin-section {
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .contact-admin-text {
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+        }
+
+        .contact-admin-btn {
+            padding: 10px 16px;
+            font-size: 0.82rem;
+            gap: 8px;
+        }
+
+        .terms-section {
+            padding: 14px;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .terms-section input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .terms-section label {
+            font-size: 0.82rem;
+        }
+
+        .submit-btn {
+            padding: 16px 20px;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            margin-top: 20px;
+            gap: 8px;
+        }
+
+        .login-section {
+            margin-top: 24px;
+            padding-top: 20px;
+        }
+
+        .login-link {
+            font-size: 0.85rem;
+            gap: 6px;
+        }
+    }
 </style>
 {% endblock %}
 

@@ -204,6 +204,77 @@
         color: var(--text-primary);
         padding: 12px;
     }
+
+    @media (max-width: 420px) {
+        .admin-exchange-page .card {
+            padding: 12px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+        }
+
+        .admin-exchange-page .card > .flex.items-center.justify-between {
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .admin-exchange-page .card > .flex.items-center.justify-between h2 {
+            font-size: 0.95rem;
+            gap: 8px;
+        }
+
+        .admin-exchange-page .card > .flex.items-center.justify-between .badge {
+            font-size: 0.5rem;
+            padding: 2px 6px;
+        }
+
+        .admin-exchange-page .card > .flex.items-center.justify-between .cyber-btn {
+            padding: 6px 10px;
+            font-size: 0.7rem;
+        }
+
+        .admin-exchange-page .card > .flex.items-center.justify-between .cyber-btn.cyber-btn-icon {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+        }
+
+        .admin-exchange-page .text-sm {
+            font-size: 0.8rem;
+        }
+
+        .admin-exchange-page .grid.grid-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .admin-exchange-page #user-exchanges-container,
+        .admin-exchange-page #pending-exchanges-container {
+            gap: 8px;
+        }
+
+        .admin-exchange-page #user-exchanges-container > div,
+        .admin-exchange-page #pending-exchanges-container > div {
+            padding: 6px;
+            border-radius: 10px;
+        }
+
+        .admin-exchange-page #user-exchanges-container .cyber-checkbox,
+        .admin-exchange-page #pending-exchanges-container .cyber-checkbox {
+            width: 12px;
+            height: 12px;
+        }
+
+        .admin-exchange-page #user-exchanges-container .text-xs,
+        .admin-exchange-page #pending-exchanges-container .text-xs {
+            font-size: 0.72rem;
+        }
+
+        .admin-exchange-page #user-exchanges-container .text-xxs,
+        .admin-exchange-page #pending-exchanges-container .text-xxs {
+            font-size: 0.62rem;
+        }
+    }
 </style>
 {% endblock %}
 

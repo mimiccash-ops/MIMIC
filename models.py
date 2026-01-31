@@ -3334,6 +3334,15 @@ class TaskParticipation(db.Model):
     reward_given = db.Column(db.Boolean, default=False)
     reward_amount = db.Column(db.Float, default=0.0)  # Actual reward given
     reward_given_at = db.Column(db.DateTime, nullable=True)
+    reward_type_given = db.Column(db.String(50), nullable=True)  # Actual reward type granted
+    reward_description_given = db.Column(db.String(500), nullable=True)
+
+    # Payout details (user-provided + admin tracking)
+    payout_method = db.Column(db.String(50), nullable=True)
+    payout_details = db.Column(db.Text, nullable=True)
+    payout_contact = db.Column(db.String(200), nullable=True)
+    payout_status = db.Column(db.String(20), default='pending')  # pending, paid, failed
+    payout_reference = db.Column(db.String(200), nullable=True)
     
     # Timestamps
     joined_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
@@ -3367,21 +3376,37 @@ class TaskParticipation(db.Model):
             'rejection_reason': self.rejection_reason,
             'reward_given': self.reward_given,
             'reward_amount': self.reward_amount,
+            'reward_given_at': self.reward_given_at.isoformat() if self.reward_given_at else None,
+            'reward_type_given': self.reward_type_given,
+            'reward_description_given': self.reward_description_given,
+            'payout_method': self.payout_method,
+            'payout_details': self.payout_details,
+            'payout_contact': self.payout_contact,
+            'payout_status': self.payout_status,
+            'payout_reference': self.payout_reference,
             'joined_at': self.joined_at.isoformat() if self.joined_at else None,
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,
             'task': self.task.to_dict() if self.task else None,
         }
     
-    def submit(self, text=None, url=None, data=None):
+    def submit(self, text=None, url=None, data=None, payout_method=None, payout_details=None, payout_contact=None):
         """Submit task completion for review"""
         self.status = 'submitted'
         self.submission_text = text
         self.submission_url = url
         self.submission_data = data
         self.submitted_at = datetime.now(timezone.utc)
+        if payout_method is not None:
+            self.payout_method = payout_method
+        if payout_details is not None:
+            self.payout_details = payout_details
+        if payout_contact is not None:
+            self.payout_contact = payout_contact
+        if not self.payout_status:
+            self.payout_status = 'pending'
         db.session.commit()
     
-    def approve(self, admin_user, notes=None):
+    def approve(self, admin_user, notes=None, reward_type=None, reward_amount=None, reward_description=None, payout_status=None, payout_reference=None):
         """Approve the submission and give rewards"""
         self.status = 'completed'
         self.reviewed_by_id = admin_user.id
@@ -3392,17 +3417,36 @@ class TaskParticipation(db.Model):
         # Give reward
         task = self.task
         if task:
-            self.reward_amount = task.reward_amount
+            chosen_reward_type = reward_type or self.reward_type_given or task.reward_type
+            chosen_reward_amount = task.reward_amount if reward_amount is None else reward_amount
+            try:
+                chosen_reward_amount = float(chosen_reward_amount or 0)
+            except (TypeError, ValueError):
+                chosen_reward_amount = 0.0
             
-            if task.reward_type == 'money':
+            if reward_description is not None:
+                self.reward_description_given = reward_description or None
+            elif task.reward_description and not self.reward_description_given:
+                self.reward_description_given = task.reward_description
+            
+            self.reward_type_given = chosen_reward_type
+            self.reward_amount = chosen_reward_amount
+            if payout_status:
+                self.payout_status = payout_status
+            else:
+                self.payout_status = 'paid'
+            if payout_reference is not None:
+                self.payout_reference = payout_reference or None
+            
+            if chosen_reward_type == 'money':
                 # Add to user's custom_risk (used as balance in some implementations)
                 # Or implement your own balance field
                 pass  # Balance handling depends on your implementation
-            elif task.reward_type == 'xp':
-                self.user.xp = (self.user.xp or 0) + int(task.reward_amount)
-            elif task.reward_type == 'subscription':
+            elif chosen_reward_type == 'xp' and self.payout_status == 'paid':
+                self.user.xp = (self.user.xp or 0) + int(self.reward_amount)
+            elif chosen_reward_type == 'subscription' and self.payout_status == 'paid':
                 # Add subscription days
-                days_to_add = int(task.reward_amount)
+                days_to_add = int(self.reward_amount)
                 if self.user.subscription_expires_at and self.user.subscription_expires_at > datetime.now(timezone.utc):
                     self.user.subscription_expires_at += timedelta(days=days_to_add)
                 else:
@@ -3410,12 +3454,16 @@ class TaskParticipation(db.Model):
                     if not self.user.subscription_plan or self.user.subscription_plan == 'free':
                         self.user.subscription_plan = 'basic'
             
-            self.reward_given = True
-            self.reward_given_at = datetime.now(timezone.utc)
+            if self.payout_status == 'paid':
+                self.reward_given = True
+                self.reward_given_at = datetime.now(timezone.utc)
+                task.total_rewards_given += self.reward_amount
+            else:
+                self.reward_given = False
+                self.reward_given_at = None
             
             # Update task statistics
             task.total_completions += 1
-            task.total_rewards_given += self.reward_amount
         
         db.session.commit()
     
