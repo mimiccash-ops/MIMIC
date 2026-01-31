@@ -5703,6 +5703,8 @@ def webhook():
         
         # Verify passphrase (timing-safe comparison)
         received_pass = data.get('passphrase', '')
+        if not received_pass:
+            received_pass = data.get('secret_key', '') or data.get('secret', '')
         expected_pass = Config.WEBHOOK_PASSPHRASE
         if not secrets.compare_digest(str(received_pass), str(expected_pass)):
             audit.log_security_event("WEBHOOK_AUTH_FAIL", f"IP: {ip}", "WARNING")
@@ -5710,7 +5712,10 @@ def webhook():
             return jsonify({'error': 'Неавторизовано'}), 401
         
         # Parse and validate signal
-        raw_symbol_input = str(data.get('symbol', '') or '').strip()
+        symbol_value = data.get('symbol')
+        if not symbol_value:
+            symbol_value = data.get('ticker')
+        raw_symbol_input = str(symbol_value or '').strip()
         # Normalize TradingView symbols like "BINANCE:BTCUSDT.P" -> "BTCUSDT"
         if ':' in raw_symbol_input:
             raw_symbol_input = raw_symbol_input.split(':')[-1]
@@ -5722,6 +5727,10 @@ def webhook():
             return jsonify({'error': f'Невірний символ: {symbol}'}), 400
         
         action = str(data.get('action', 'close')).lower()
+        if action in ['buy', 'long']:
+            action = 'long'
+        elif action in ['sell', 'short']:
+            action = 'short'
         if action not in ['long', 'short', 'close']:
             logger.warning(f"Webhook: Invalid action '{action}' for symbol '{symbol}' from {ip}")
             return jsonify({'error': 'Невірна дія'}), 400
