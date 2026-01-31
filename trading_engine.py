@@ -1614,7 +1614,10 @@ class TradingEngine:
         try:
             self.api_limiter.wait_and_proceed("slippage")
             ticker = client.futures_symbol_ticker(symbol=symbol)
-            current_price = float(ticker['price'])
+            current_price = self._extract_binance_price(ticker)
+            if not current_price:
+                logger.warning(f"Slippage check failed: price missing for {symbol} (ticker={ticker})")
+                return True
             diff = (current_price - master_entry_price) / master_entry_price
             
             # For LONG: reject if price increased too much
@@ -1649,6 +1652,18 @@ class TradingEngine:
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    def _extract_binance_price(self, ticker: dict):
+        """Safely extract a price from Binance ticker payloads."""
+        if not isinstance(ticker, dict):
+            return None
+        for key in ('price', 'lastPrice', 'markPrice'):
+            if key in ticker and ticker.get(key) is not None:
+                try:
+                    return float(ticker.get(key))
+                except (TypeError, ValueError):
+                    continue
+        return None
 
     def _normalize_symbol(self, raw_symbol: str) -> str:
         """Normalize exchange symbols for UI display."""
@@ -1899,6 +1914,83 @@ class TradingEngine:
                 except Exception:
                     pass
                 return await _call()
+            raise
+
+    async def _get_ccxt_market_max_leverage(self, exchange, symbol: str):
+        """Best-effort lookup for max leverage from CCXT market metadata."""
+        if not exchange or not symbol:
+            return None
+        try:
+            if not getattr(exchange, "markets", None):
+                await exchange.load_markets()
+            market = None
+            if hasattr(exchange, "market"):
+                market = exchange.market(symbol)
+            elif isinstance(exchange.markets, dict):
+                market = exchange.markets.get(symbol)
+            if not market:
+                return None
+            max_lev = market.get('limits', {}).get('leverage', {}).get('max')
+            if max_lev:
+                return int(float(max_lev))
+        except Exception:
+            return None
+        return None
+
+    def _extract_max_leverage_from_error(self, err: Exception):
+        """Parse max leverage from exchange error messages."""
+        text = str(err or '')
+        for pattern in (r"maxLeverage\s*\[([0-9.]+)\]", r"max leverage[^0-9]*([0-9.]+)"):
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                try:
+                    return int(float(match.group(1)))
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    async def _set_ccxt_leverage(self, exchange, exchange_type: str, symbol: str, leverage: float, action: str):
+        """Set leverage with exchange-specific handling and max-leverage safety."""
+        if not exchange or not symbol:
+            return None
+        exchange_key = (exchange_type or '').lower()
+        lev_int = int(float(leverage)) if leverage is not None else 1
+        if lev_int < 1:
+            lev_int = 1
+
+        max_lev = await self._get_ccxt_market_max_leverage(exchange, symbol)
+        if max_lev and max_lev > 0:
+            lev_int = min(lev_int, max_lev)
+
+        # MEXC requires openType/positionType params
+        if exchange_key == 'mexc':
+            position_type = 1 if str(action).lower() == 'long' else 2
+            last_err = None
+            for open_type in (2, 1):  # Prefer cross (2), fallback to isolated (1)
+                try:
+                    await exchange.set_leverage(
+                        lev_int,
+                        symbol,
+                        params={'openType': open_type, 'positionType': position_type}
+                    )
+                    return lev_int
+                except Exception as e:
+                    last_err = e
+            if last_err:
+                raise last_err
+            return lev_int
+
+        try:
+            await exchange.set_leverage(lev_int, symbol)
+            return lev_int
+        except Exception as e:
+            max_lev = self._extract_max_leverage_from_error(e)
+            if max_lev and max_lev > 0 and max_lev < lev_int:
+                try:
+                    await exchange.set_leverage(max_lev, symbol)
+                    return max_lev
+                except Exception:
+                    pass
             raise
 
     async def get_all_master_positions_async(self) -> list:
@@ -3133,8 +3225,9 @@ class TradingEngine:
                                 # Margin mode might already be set or not needed
                                 logger.debug(f"[{node_name}] Margin mode note: {margin_err}")
                         
-                        await exchange.set_leverage(lev_int, ccxt_symbol)
-                        logger.info(f"[{node_name}] Set leverage to {lev_int}x for {ccxt_symbol}")
+                        lev_used = await self._set_ccxt_leverage(exchange, exchange_type, ccxt_symbol, lev_int, action)
+                        if lev_used:
+                            logger.info(f"[{node_name}] Set leverage to {lev_used}x for {ccxt_symbol}")
                     except Exception as lev_err:
                         logger.warning(f"[{node_name}] Could not set leverage: {lev_err}")
                     
@@ -4052,7 +4145,21 @@ class TradingEngine:
                 
                 self.api_limiter.wait_and_proceed(f"price_{user_id}")
                 ticker = client.futures_symbol_ticker(symbol=symbol)
-                price = float(ticker['price'])
+                price = self._extract_binance_price(ticker)
+                if not price:
+                    error_msg = f"Price unavailable for {symbol} (ticker={ticker})"
+                    logger.error(f"❌ [{node_name}] {error_msg}")
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                    with self.pending_lock:
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master_account:
+                        self._release_master_pending_symbol_sync(symbol)
+                    return
 
                 # notional = margin × leverage (position size includes leverage)
                 notional = margin * leverage
@@ -4580,7 +4687,15 @@ class TradingEngine:
             try:
                 self.api_limiter.wait_and_proceed("master_info")
                 ticker = self.master_client.futures_symbol_ticker(symbol=clean_symbol)
-                master_entry_price = float(ticker['price'])
+                price_val = self._extract_binance_price(ticker)
+                if not price_val:
+                    error_str = str(ticker).lower()
+                    if 'invalid symbol' in error_str or '-1121' in error_str:
+                        symbol_is_invalid = True
+                        logger.warning(f"⚠️ {clean_symbol} is not a valid Binance Futures symbol")
+                        return  # Don't process invalid symbols
+                    raise ValueError(f"Missing price in ticker: {ticker}")
+                master_entry_price = price_val
                 
                 balances = self.master_client.futures_account_balance()
                 for b in balances:
