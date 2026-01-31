@@ -337,7 +337,8 @@ else:
     email_sender = get_email_sender()  # May be None
 
 # Initialize Trading Engine
-engine = TradingEngine(app, socketio, telegram)
+# Disable position monitor in web app to avoid duplicate close records across processes.
+engine = TradingEngine(app, socketio, telegram, enable_position_monitor=False)
 
 # ==================== TELEGRAM BOT (REMOVED FROM WEB SERVER) ====================
 # The Telegram Bot now runs as a SEPARATE SERVICE to prevent 409 Conflict errors.

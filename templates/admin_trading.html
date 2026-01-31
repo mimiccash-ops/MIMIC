@@ -407,24 +407,39 @@
                 {% if master_positions_loaded %}
                     {% if master_positions %}
                         {% for pos in master_positions %}
-                        <div class="position-item">
-                            <div class="flex items-center gap-3">
-                                <div class="position-icon {{ 'long' if pos.side == 'LONG' else 'short' }}">
-                                    <i class="fas fa-arrow-{{ 'trend-up' if pos.side == 'LONG' else 'trend-down' }}"></i>
-                                </div>
-                                <div>
-                                    <div class="font-display font-semibold">{{ pos.symbol }}</div>
-                                    <div class="text-sm text-muted">{{ pos.side }} · x{{ pos.leverage }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="text-right">
-                                    <div class="font-mono font-semibold {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
-                                        {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
+                        <div class="position-card p-2 bg-[var(--bg-element)] rounded-lg" style="border-left: 2px solid {{ 'var(--neon-green)' if pos.side == 'LONG' else 'var(--neon-red)' }};">
+                            <div class="flex justify-between items-start gap-3">
+                                <div class="flex items-start gap-2">
+                                    <span class="badge text-xxs {{ 'badge-success' if pos.side == 'LONG' else 'badge-danger' }}">{{ pos.side }}</span>
+                                    <div>
+                                        <div class="font-mono font-bold text-xs text-bright">{{ pos.symbol }}</div>
+                                        <div class="text-xxs text-muted">x{{ pos.leverage }} · {{ pos.margin_mode|upper if pos.margin_mode else '—' }} · <span class="text-cyan">{{ pos.exchange or 'Binance' }}</span></div>
                                     </div>
                                 </div>
-                                <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','master')">Close</button>
-                                <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','all')">Close All</button>
+                                <div class="text-right">
+                                    <div class="font-bold text-xs font-mono {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
+                                        {{ '+' if pos.unrealized_pnl >= 0 else '' }}${{ "%.2f"|format(pos.unrealized_pnl) }}
+                                    </div>
+                                    <div class="text-xxs {{ 'text-green' if pos.unrealized_pnl >= 0 else 'text-red' }}">
+                                        {% if pos.pnl_pct is not none %}
+                                            {{ '+' if pos.pnl_pct >= 0 else '' }}{{ "%.2f"|format(pos.pnl_pct) }}%
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 justify-end">
+                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','master')">Close</button>
+                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','all')">Close All</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-xxs text-muted mt-2">
+                                <div>Entry <span class="font-mono text-bright">{% if pos.entry_price %}${{ "%.4f"|format(pos.entry_price) }}{% else %}—{% endif %}</span></div>
+                                <div>Mark <span class="font-mono text-bright">{% if pos.mark_price %}${{ "%.4f"|format(pos.mark_price) }}{% else %}—{% endif %}</span></div>
+                                <div>Liq <span class="font-mono text-bright">{% if pos.liquidation_price %}${{ "%.4f"|format(pos.liquidation_price) }}{% else %}—{% endif %}</span></div>
+                                <div>Qty <span class="font-mono text-bright">{% if pos.qty %}{{ "%.6f"|format(pos.qty) }}{% else %}—{% endif %}</span></div>
+                                <div>Notional <span class="font-mono text-bright">{% if pos.notional %}${{ "%.2f"|format(pos.notional) }}{% else %}—{% endif %}</span></div>
+                                <div>Margin <span class="font-mono text-bright">{% if pos.margin %}${{ "%.2f"|format(pos.margin) }}{% else %}—{% endif %}</span></div>
                             </div>
                         </div>
                         {% endfor %}
@@ -624,6 +639,44 @@
         }
     }
     
+    function formatNumber(value, digits = 2, emptyIfZero = false) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '—';
+        if (emptyIfZero && num === 0) return '—';
+        return num.toFixed(digits);
+    }
+
+    function formatMoney(value, digits = 2, signed = false, emptyIfZero = false) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '—';
+        if (emptyIfZero && num === 0) return '—';
+        const sign = signed && num > 0 ? '+' : '';
+        return `${sign}$${num.toFixed(digits)}`;
+    }
+
+    function formatPrice(value, digits = 4, emptyIfZero = false) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '—';
+        if (emptyIfZero && num === 0) return '—';
+        return `$${num.toFixed(digits)}`;
+    }
+
+    function formatPercent(value, digits = 2) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '—';
+        const sign = num > 0 ? '+' : '';
+        return `${sign}${num.toFixed(digits)}%`;
+    }
+
+    function escapeText(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function renderMasterPositions(positions) {
         const container = document.getElementById('master-positions-container');
         const countEl = document.getElementById('master-positions-count');
@@ -635,17 +688,30 @@
         }
         container.innerHTML = positions.map(pos => `
             <div class="position-card p-2 bg-[var(--bg-element)] rounded-lg" style="border-left: 2px solid ${pos.side === 'LONG' ? 'var(--neon-green)' : 'var(--neon-red)'};">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="badge text-xxs ${pos.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${pos.side}</span>
-                        <span class="font-mono font-bold text-xs text-bright">${pos.symbol}</span>
-                        <span class="text-xxs text-cyan">${pos.exchange || 'Binance'}</span>
+                <div class="flex justify-between items-start gap-3">
+                    <div class="flex items-start gap-2">
+                        <span class="badge text-xxs ${pos.side === 'LONG' ? 'badge-success' : 'badge-danger'}">${escapeText(pos.side)}</span>
+                        <div>
+                            <div class="font-mono font-bold text-xs text-bright">${escapeText(pos.symbol)}</div>
+                            <div class="text-xxs text-muted">x${formatNumber(pos.leverage, 0)} · ${(pos.margin_mode || '').toString().toUpperCase() || '—'} · <span class="text-cyan">${escapeText(pos.exchange || 'Binance')}</span></div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${pos.unrealized_pnl >= 0 ? '+' : ''}$${parseFloat(pos.unrealized_pnl).toFixed(2)}</span>
-                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','master')">Close</button>
-                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','all')">Close All</button>
+                    <div class="text-right">
+                        <div class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${formatMoney(pos.unrealized_pnl, 2, true)}</div>
+                        <div class="text-xxs ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${formatPercent(pos.pnl_pct, 2)}</div>
+                        <div class="flex items-center gap-2 mt-1 justify-end">
+                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','master')">Close</button>
+                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','all')">Close All</button>
+                        </div>
                     </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-xxs text-muted mt-2">
+                    <div>Entry <span class="font-mono text-bright">${formatPrice(pos.entry_price, 4, true)}</span></div>
+                    <div>Mark <span class="font-mono text-bright">${formatPrice(pos.mark_price, 4, true)}</span></div>
+                    <div>Liq <span class="font-mono text-bright">${formatPrice(pos.liquidation_price, 4, true)}</span></div>
+                    <div>Qty <span class="font-mono text-bright">${formatNumber(pos.qty, 6, true)}</span></div>
+                    <div>Notional <span class="font-mono text-bright">${formatMoney(pos.notional, 2, false, true)}</span></div>
+                    <div>Margin <span class="font-mono text-bright">${formatMoney(pos.margin, 2, false, true)}</span></div>
                 </div>
             </div>
         `).join('');

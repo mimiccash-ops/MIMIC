@@ -496,7 +496,8 @@ class TradingEngine:
     MAX_LEVERAGE = 125  # Maximum allowed leverage
     MIN_ORDER_VALUE = 1.0  # Minimum order value in USDT
     
-    def __init__(self, app_context, socketio_instance=None, telegram_notifier=None):
+    def __init__(self, app_context, socketio_instance=None, telegram_notifier=None,
+                 enable_balance_monitor: bool = True, enable_position_monitor: bool = True):
         self.app = app_context
         self.socketio = socketio_instance 
         self.telegram = telegram_notifier
@@ -556,8 +557,10 @@ class TradingEngine:
         
         # Start background threads (will be migrated to async tasks when event loop is available)
         # Note: These threads use self.executor, so it must be initialized first
-        threading.Thread(target=self.monitor_balances, daemon=True).start()
-        threading.Thread(target=self.monitor_position_closes, daemon=True).start()
+        if enable_balance_monitor:
+            threading.Thread(target=self.monitor_balances, daemon=True).start()
+        if enable_position_monitor:
+            threading.Thread(target=self.monitor_position_closes, daemon=True).start()
         
         # Reference to global settings (will be set by app.py after initialization)
         self._global_settings = None
@@ -571,6 +574,11 @@ class TradingEngine:
         
         # Risk Guardrails Manager (Daily Drawdown/Profit Protection)
         self.risk_guardrails: RiskGuardrailsManager = None
+        
+        # Closed-trade dedupe (prevents double records from multiple close paths)
+        self._recent_close_events = {}
+        self._recent_close_lock = threading.Lock()
+        self._recent_close_window = 10  # seconds
 
     def _fetch_balance_sync(self, exchange_name: str, api_key: str, api_secret: str, passphrase: str = None) -> dict:
         """Fetch balance using synchronous CCXT to avoid asyncio loop conflicts."""
@@ -1622,6 +1630,206 @@ class TradingEngine:
             except Exception:
                 pass
 
+    def _safe_float(self, value, default: float = 0.0) -> float:
+        """Safely parse a float from API payloads."""
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _normalize_symbol(self, raw_symbol: str) -> str:
+        """Normalize exchange symbols for UI display."""
+        symbol = (raw_symbol or '').strip()
+        if not symbol:
+            return ''
+        symbol = symbol.replace('/USDT:USDT', 'USDT')
+        symbol = symbol.replace('/USDT', 'USDT')
+        symbol = symbol.replace('USDT:USDT', 'USDT')
+        symbol = symbol.replace(':USDT', 'USDT')
+        symbol = symbol.replace('/', '').replace('-', '').replace('_', '').replace(':', '')
+        return symbol
+
+    def _compute_pnl_pct(self, unrealized_pnl: float, margin: float,
+                         entry_price: float, mark_price: float, side: str) -> float:
+        """Calculate PnL % using margin when available, fallback to price move."""
+        if margin and margin > 0:
+            return (unrealized_pnl / margin) * 100
+        if entry_price and mark_price and entry_price > 0 and mark_price > 0:
+            if str(side).upper() == 'SHORT':
+                return ((entry_price - mark_price) / entry_price) * 100
+            return ((mark_price - entry_price) / entry_price) * 100
+        return 0.0
+
+    def _should_skip_duplicate_close(self, user_id, node_name: str, symbol: str,
+                                     side: str, pnl: float) -> bool:
+        """Return True if a close for the same trade was recorded very recently."""
+        if symbol is None:
+            return False
+        user_key = user_id if isinstance(user_id, int) else str(user_id or 'master')
+        node_key = (node_name or 'MASTER').strip().upper()
+        sym_key = self._normalize_symbol(symbol) or str(symbol).upper()
+        side_key = (side or '').upper()
+        pnl_key = round(self._safe_float(pnl, 0.0), 2)
+        key = f"{user_key}:{node_key}:{sym_key}:{side_key}:{pnl_key}"
+        now = time.time()
+        with self._recent_close_lock:
+            last_time = self._recent_close_events.get(key)
+            if last_time and (now - last_time) < self._recent_close_window:
+                return True
+            self._recent_close_events[key] = now
+            # Cleanup old entries to prevent growth
+            if len(self._recent_close_events) > 1000:
+                cutoff = now - self._recent_close_window
+                for old_key, ts in list(self._recent_close_events.items()):
+                    if ts < cutoff:
+                        self._recent_close_events.pop(old_key, None)
+        return False
+
+    def _normalize_binance_position(self, p: dict, exchange_name: str = None) -> dict:
+        """Normalize Binance position payload to a consistent schema."""
+        amt = self._safe_float(p.get('positionAmt', 0))
+        if amt == 0:
+            return None
+
+        side = 'LONG' if amt > 0 else 'SHORT'
+        entry_price = self._safe_float(p.get('entryPrice', 0))
+        mark_price = self._safe_float(p.get('markPrice', 0))
+        liquidation_price = self._safe_float(p.get('liquidationPrice', p.get('liquidatePrice', 0)))
+        leverage = int(float(p.get('leverage', 1) or 1))
+        unrealized_pnl = self._safe_float(p.get('unRealizedProfit', 0))
+
+        margin_mode_raw = (p.get('marginType') or '').upper()
+        if 'CROSS' in margin_mode_raw:
+            margin_mode = 'CROSS'
+        elif 'ISOLATED' in margin_mode_raw:
+            margin_mode = 'ISOLATED'
+        else:
+            margin_mode = margin_mode_raw or None
+
+        notional = self._safe_float(p.get('notional', 0))
+        if notional <= 0:
+            base_price = mark_price if mark_price > 0 else entry_price
+            if base_price > 0:
+                notional = abs(amt) * base_price
+
+        margin = self._safe_float(p.get('positionInitialMargin', 0))
+        if margin <= 0:
+            margin = self._safe_float(p.get('isolatedMargin', 0))
+        if margin <= 0 and leverage > 0 and entry_price > 0:
+            margin = (abs(amt) * entry_price) / leverage
+
+        pnl_pct = self._compute_pnl_pct(unrealized_pnl, margin, entry_price, mark_price, side)
+
+        return {
+            'symbol': p.get('symbol', ''),
+            'amount': amt,
+            'qty': abs(amt),
+            'entry_price': entry_price,
+            'mark_price': mark_price,
+            'liquidation_price': liquidation_price,
+            'unrealized_pnl': unrealized_pnl,
+            'pnl_pct': pnl_pct,
+            'side': side,
+            'leverage': leverage,
+            'notional': notional,
+            'margin': margin,
+            'margin_mode': margin_mode,
+            'exchange': exchange_name or 'Binance'
+        }
+
+    def _normalize_ccxt_position(self, pos: dict, exchange_name: str = None) -> dict:
+        """Normalize CCXT position payload to a consistent schema."""
+        contracts = self._safe_float(pos.get('contracts', 0))
+        if contracts == 0:
+            return None
+
+        side_raw = (pos.get('side') or '').lower()
+        side = 'LONG' if side_raw == 'long' else 'SHORT' if side_raw == 'short' else ('LONG' if contracts > 0 else 'SHORT')
+        amount = contracts if side == 'LONG' else -contracts
+
+        entry_price = self._safe_float(pos.get('entryPrice', 0))
+        mark_price = self._safe_float(pos.get('markPrice', pos.get('mark', 0)))
+        liquidation_price = self._safe_float(pos.get('liquidationPrice', 0))
+        leverage = int(float(pos.get('leverage', 1) or 1))
+        unrealized_pnl = self._safe_float(pos.get('unrealizedPnl', pos.get('unrealizedPNL', 0)))
+
+        margin_mode_raw = pos.get('marginMode') or pos.get('marginType') or ''
+        margin_mode = margin_mode_raw.upper() if margin_mode_raw else None
+
+        notional = self._safe_float(pos.get('notional', 0))
+        if notional <= 0:
+            contract_size = self._safe_float(pos.get('contractSize', 1))
+            base_price = mark_price if mark_price > 0 else entry_price
+            if base_price > 0:
+                notional = abs(contracts) * contract_size * base_price
+
+        margin = self._safe_float(pos.get('initialMargin', 0))
+        if margin <= 0:
+            margin = self._safe_float(pos.get('margin', 0))
+        if margin <= 0 and leverage > 0 and notional > 0:
+            margin = notional / leverage
+
+        pnl_pct = self._safe_float(pos.get('percentage', 0))
+        if pnl_pct == 0:
+            pnl_pct = self._compute_pnl_pct(unrealized_pnl, margin, entry_price, mark_price, side)
+
+        raw_symbol = pos.get('symbol', '')
+        symbol = self._normalize_symbol(raw_symbol) or raw_symbol
+
+        return {
+            'symbol': symbol,
+            'amount': amount,
+            'qty': abs(contracts),
+            'entry_price': entry_price,
+            'mark_price': mark_price,
+            'liquidation_price': liquidation_price,
+            'unrealized_pnl': unrealized_pnl,
+            'pnl_pct': pnl_pct,
+            'side': side,
+            'leverage': leverage,
+            'notional': notional,
+            'margin': margin,
+            'margin_mode': margin_mode,
+            'exchange': exchange_name or 'Unknown'
+        }
+
+    def _normalize_cached_master_position(self, symbol: str, data: dict) -> dict:
+        """Normalize cached master positions (used when async loop is active)."""
+        amt = self._safe_float(data.get('amount', 0))
+        entry_price = self._safe_float(data.get('entry_price', data.get('entry', 0)))
+        mark_price = self._safe_float(data.get('mark_price', entry_price))
+        liquidation_price = self._safe_float(data.get('liquidation_price', 0))
+        unrealized_pnl = self._safe_float(data.get('unrealized_pnl', data.get('pnl', 0)))
+        side = data.get('side', 'LONG' if amt > 0 else 'SHORT')
+        leverage = int(float(data.get('leverage', 1) or 1))
+        margin_mode = data.get('margin_mode')
+        notional = self._safe_float(data.get('notional', 0))
+        if notional <= 0 and entry_price > 0:
+            notional = abs(amt) * (mark_price if mark_price > 0 else entry_price)
+        margin = self._safe_float(data.get('margin', 0))
+        if margin <= 0 and leverage > 0 and entry_price > 0:
+            margin = (abs(amt) * entry_price) / leverage
+        pnl_pct = self._safe_float(data.get('pnl_pct', 0))
+        if pnl_pct == 0:
+            pnl_pct = self._compute_pnl_pct(unrealized_pnl, margin, entry_price, mark_price, side)
+
+        return {
+            'symbol': symbol,
+            'amount': amt,
+            'qty': self._safe_float(data.get('qty', abs(amt))),
+            'entry_price': entry_price,
+            'mark_price': mark_price,
+            'liquidation_price': liquidation_price,
+            'unrealized_pnl': unrealized_pnl,
+            'pnl_pct': pnl_pct,
+            'side': side,
+            'leverage': leverage,
+            'notional': notional,
+            'margin': margin,
+            'margin_mode': margin_mode,
+            'exchange': data.get('exchange')
+        }
+
     async def get_all_master_positions_async(self) -> list:
         """Get positions from ALL master exchanges with exchange info - ASYNC VERSION"""
         all_positions = []
@@ -1635,34 +1843,17 @@ class TradingEngine:
                     exchange = master_data['client']
                     positions = await exchange.fetch_positions()
                     for pos in positions:
-                        contracts = float(pos.get('contracts', 0) or 0)
-                        if contracts != 0:
-                            symbol = pos.get('symbol', '').replace('/USDT:USDT', 'USDT').replace('/', '')
-                            positions_list.append({
-                                'symbol': symbol,
-                                'amount': contracts if pos.get('side') == 'long' else -contracts,
-                                'entry_price': float(pos.get('entryPrice', 0) or 0),
-                                'unrealized_pnl': float(pos.get('unrealizedPnl', 0) or 0),
-                                'side': 'LONG' if pos.get('side') == 'long' else 'SHORT',
-                                'leverage': int(pos.get('leverage', 1) or 1),
-                                'exchange': exchange_name
-                            })
+                        normalized = self._normalize_ccxt_position(pos, exchange_name)
+                        if normalized:
+                            positions_list.append(normalized)
                 elif not master_data.get('is_ccxt'):
                     # Binance client (sync)
                     client = master_data['client']
                     positions = client.futures_position_information()
                     for p in positions:
-                        amt = float(p['positionAmt'])
-                        if amt != 0:
-                            positions_list.append({
-                                'symbol': p['symbol'],
-                                'amount': amt,
-                                'entry_price': float(p['entryPrice']),
-                                'unrealized_pnl': float(p['unRealizedProfit']),
-                                'side': 'LONG' if amt > 0 else 'SHORT',
-                                'leverage': int(p.get('leverage', 1)),
-                                'exchange': exchange_name
-                            })
+                        normalized = self._normalize_binance_position(p, exchange_name)
+                        if normalized:
+                            positions_list.append(normalized)
             except BinanceAPIException as e:
                 if e.code == -2015:
                     logger.error(f"❌ Binance API Error -2015 fetching positions from {exchange_name}!")
@@ -1689,9 +1880,21 @@ class TradingEngine:
         has_async = any(m.get('is_async') for m in self.master_clients)
         
         if has_async:
-            # Avoid asyncio loop conflicts by returning cached positions
-            with self.positions_lock:
-                return [{'symbol': s, **d} for s, d in self.master_positions.items()]
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Avoid asyncio loop conflicts by returning cached positions
+                    with self.positions_lock:
+                        return [self._normalize_cached_master_position(s, d) for s, d in self.master_positions.items()]
+                return loop.run_until_complete(self.get_all_master_positions_async())
+            except RuntimeError:
+                # No event loop running, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(self.get_all_master_positions_async())
+                finally:
+                    loop.close()
         
         # Legacy sync implementation
         all_positions = []
@@ -1702,17 +1905,9 @@ class TradingEngine:
                     client = master_data['client']
                     positions = client.futures_position_information()
                     for p in positions:
-                        amt = float(p['positionAmt'])
-                        if amt != 0:
-                            all_positions.append({
-                                'symbol': p['symbol'],
-                                'amount': amt,
-                                'entry_price': float(p['entryPrice']),
-                                'unrealized_pnl': float(p['unRealizedProfit']),
-                                'side': 'LONG' if amt > 0 else 'SHORT',
-                                'leverage': int(p.get('leverage', 1)),
-                                'exchange': exchange_name
-                            })
+                        normalized = self._normalize_binance_position(p, exchange_name)
+                        if normalized:
+                            all_positions.append(normalized)
             except BinanceAPIException as e:
                 if e.code == -2015:
                     logger.error(f"❌ Binance API Error -2015 fetching positions from {exchange_name}!")
@@ -1889,19 +2084,9 @@ class TradingEngine:
             positions_info = client.futures_position_information()
             
             for p in positions_info:
-                amt = float(p['positionAmt'])
-                if amt != 0:
-                    pos_data = {
-                        'symbol': p['symbol'],
-                        'amount': amt,
-                        'entry_price': float(p['entryPrice']),
-                        'unrealized_pnl': float(p['unRealizedProfit']),
-                        'side': 'LONG' if amt > 0 else 'SHORT',
-                        'leverage': p.get('leverage', 1)
-                    }
-                    if exchange_name:
-                        pos_data['exchange'] = exchange_name
-                    positions_data.append(pos_data)
+                normalized = self._normalize_binance_position(p, exchange_name)
+                if normalized:
+                    positions_data.append(normalized)
             
             if self.socketio:
                 if is_master:
@@ -2094,15 +2279,21 @@ class TradingEngine:
                             margin = (abs(old_pos['amount']) * old_pos['entry']) / leverage
                             roi = (pnl / margin) * 100 if margin > 0 else 0
                             
-                            # Record to trade history
-                            self._record_trade_close('master', symbol, old_pos['side'], pnl, old_pos['entry'], roi)
+                            # Record to trade history (deduped)
+                            node_name = 'MASTER'
+                            if self.master_clients:
+                                for mc in self.master_clients:
+                                    if not mc.get('is_ccxt') and mc.get('client') is self.master_client:
+                                        node_name = mc.get('fullname', 'MASTER')
+                                        break
+                                else:
+                                    node_name = self.master_clients[0].get('fullname', 'MASTER')
+                            self.record_closed_trade('master', node_name, symbol, old_pos['side'], pnl, roi)
                             
                             # Sync close to all slaves
                             self.executor.submit(self._sync_close_to_slaves, symbol)
                             
-                            # Notify via Telegram
-                            if self.telegram:
-                                self.telegram.notify_trade_closed("MASTER", symbol, old_pos['side'], pnl, roi)
+                            # Telegram notification handled inside record_closed_trade
                     
                     # Update tracked positions
                     self.master_positions = current_positions
@@ -2173,6 +2364,9 @@ class TradingEngine:
     def _record_trade_close(self, user_id, symbol: str, side: str, pnl: float, entry_price: float, roi: float = 0, node_name: str = "MASTER"):
         """Record closed trade to database"""
         try:
+            if self._should_skip_duplicate_close(user_id, node_name, symbol, side, pnl):
+                logger.info(f"🧹 Duplicate close skipped: {node_name} {symbol} {side} PnL {pnl:.2f}")
+                return
             with self.app.app_context():
                 db_uid = user_id if isinstance(user_id, int) else None
                 
@@ -2530,6 +2724,9 @@ class TradingEngine:
     def record_closed_trade(self, user_id, node_name: str, symbol: str, side: str, pnl: float, roi: float):
         """Record closed trade to database and create referral commission if applicable"""
         try:
+            if self._should_skip_duplicate_close(user_id, node_name, symbol, side, pnl):
+                logger.info(f"🧹 Duplicate close skipped: {node_name} {symbol} {side} PnL {pnl:.2f}")
+                return
             with self.app.app_context():
                 new_trade = TradeHistory(
                     user_id=user_id if isinstance(user_id, int) else None,
@@ -3104,12 +3301,24 @@ class TradingEngine:
                     # Track master position (for global position counting) - ONLY if verification succeeded
                     if is_master:
                         async with self._async_positions_lock:
+                            notional = qty * price
+                            margin = (notional / leverage) if leverage else 0
                             self.master_positions[symbol] = {
                                 'amount': qty if action == 'long' else -qty,
                                 'entry': price,
+                                'entry_price': price,
+                                'mark_price': price,
+                                'liquidation_price': 0,
                                 'side': action.upper(),
                                 'pnl': 0,
-                                'leverage': leverage
+                                'unrealized_pnl': 0,
+                                'pnl_pct': 0,
+                                'leverage': leverage,
+                                'qty': qty,
+                                'notional': notional,
+                                'margin': margin,
+                                'margin_mode': None,
+                                'exchange': exchange_name
                             }
                             logger.info(f"📍 Tracked master position ({exchange_type.upper()}): {symbol} {action.upper()}")
                     
@@ -4017,12 +4226,24 @@ class TradingEngine:
                     # Track master position (for any master exchange) - ONLY if verification succeeded
                     if is_master_account:
                         with self.positions_lock:
+                            notional = qty * price
+                            margin = (notional / leverage) if leverage else 0
                             self.master_positions[symbol] = {
                                 'amount': qty if action == 'long' else -qty,
                                 'entry': price,
+                                'entry_price': price,
+                                'mark_price': price,
+                                'liquidation_price': 0,
                                 'side': action.upper(),
                                 'pnl': 0,
-                                'leverage': leverage
+                                'unrealized_pnl': 0,
+                                'pnl_pct': 0,
+                                'leverage': leverage,
+                                'qty': qty,
+                                'notional': notional,
+                                'margin': margin,
+                                'margin_mode': None,
+                                'exchange': exchange_name
                             }
                             logger.info(f"📍 Tracked master position: {symbol} {action.upper()}")
                     
