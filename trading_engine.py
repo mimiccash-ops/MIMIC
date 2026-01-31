@@ -4292,9 +4292,8 @@ class TradingEngine:
         
         # === MASTER EXCHANGES (LIMITED BY REMAINING SLOTS) ===
         if self.master_clients:
-            master_clients_to_use = self.master_clients
-            if remaining_master_slots is not None:
-                master_clients_to_use = self.master_clients[:max(0, remaining_master_slots)]
+            # Execute on all master exchanges; max_positions limits symbols, not exchanges.
+            master_clients_to_use = list(self.master_clients)
             logger.info(f"📊 Preparing {clean_symbol} for {len(master_clients_to_use)} MASTER exchanges")
             for master_data in master_clients_to_use:
                 master_data_copy = master_data.copy()
