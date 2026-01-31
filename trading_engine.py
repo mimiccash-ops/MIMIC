@@ -2742,6 +2742,39 @@ class TradingEngine:
                 user_lock = self.user_async_locks[user_id]
             
             async with user_lock:
+                # Ensure exchange supports the symbol before proceeding
+                try:
+                    if not getattr(exchange, "markets", None):
+                        await exchange.load_markets()
+                    if ccxt_symbol not in exchange.markets:
+                        error_msg = f"({exchange_type.upper()}) Symbol not supported on exchange: {ccxt_symbol}"
+                        logger.error(f"❌ [{node_name}] {error_msg}")
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        if self.telegram:
+                            self.telegram.notify_error(node_name, symbol, error_msg)
+                            chat_id = client_data.get('telegram_chat_id')
+                            if chat_id:
+                                self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                        async with self._async_pending_lock:
+                            self.pending_trades.get(user_id, set()).discard(pending_key)
+                        if is_master:
+                            await self._release_master_pending_symbol_async(symbol)
+                        return
+                except Exception as market_err:
+                    error_msg = f"({exchange_type.upper()}) Market load failed: {str(market_err)[:100]}"
+                    logger.error(f"❌ [{node_name}] {error_msg}")
+                    self.log_event(user_id, symbol, error_msg, is_error=True)
+                    if self.telegram:
+                        self.telegram.notify_error(node_name, symbol, error_msg)
+                        chat_id = client_data.get('telegram_chat_id')
+                        if chat_id:
+                            self.telegram.notify_user_error(chat_id, symbol, error_msg)
+                    async with self._async_pending_lock:
+                        self.pending_trades.get(user_id, set()).discard(pending_key)
+                    if is_master:
+                        await self._release_master_pending_symbol_async(symbol)
+                    return
+
                 # Skip position limit check if skip_position_check is True (handled earlier for master)
                 skip_position_check = client_data.get('skip_position_check', False)
                 
@@ -2909,7 +2942,18 @@ class TradingEngine:
                     
                     # notional = margin × leverage (position size includes leverage)
                     notional = margin * leverage
-                    min_notional = 5.0  # Default minimum
+                    min_notional = self.min_order_cost if self.min_order_cost else 5.0  # Default minimum
+                    try:
+                        market_limits = exchange.market(ccxt_symbol).get('limits', {})
+                        min_cost = market_limits.get('cost', {}).get('min')
+                        if min_cost:
+                            min_notional = max(min_notional, float(min_cost))
+                        else:
+                            min_amount = market_limits.get('amount', {}).get('min')
+                            if min_amount:
+                                min_notional = max(min_notional, float(min_amount) * price)
+                    except Exception as market_err:
+                        logger.warning(f"[{node_name}] Unable to read market limits: {market_err}")
                     
                     logger.info(f"[{node_name}] {symbol}: POSITION CALCULATION:")
                     logger.info(f"   📊 Balance: ${available_balance:.2f}")

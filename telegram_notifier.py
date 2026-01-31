@@ -5,6 +5,7 @@ Also includes Email sending functionality for password recovery
 """
 
 import atexit
+import html
 import logging
 import threading
 import smtplib
@@ -62,6 +63,11 @@ class TelegramNotifier:
         if hasattr(sys, "is_finalizing") and sys.is_finalizing():
             return True
         return False
+
+    @staticmethod
+    def _escape_html(value: str) -> str:
+        """Escape dynamic content for safe HTML parse_mode."""
+        return html.escape(str(value), quote=False)
 
     def _send_loop(self):
         """Background thread for sending messages"""
@@ -257,12 +263,15 @@ class TelegramNotifier:
 
     def notify_error(self, node_name: str, symbol: str, error: str):
         """Notify about trade error"""
+        safe_node = self._escape_html(node_name)
+        safe_symbol = self._escape_html(symbol)
+        safe_error = self._escape_html(error)
         msg = f"""
 ⚠️ <b>ПОМИЛКА ТОРГІВЛІ</b>
 
-👤 <b>Вузол:</b> <code>{node_name}</code>
-📊 <b>Пара:</b> <code>{symbol}</code>
-❌ <b>Помилка:</b> <code>{error}</code>
+👤 <b>Вузол:</b> <code>{safe_node}</code>
+📊 <b>Пара:</b> <code>{safe_symbol}</code>
+❌ <b>Помилка:</b> <code>{safe_error}</code>
 ⏰ <b>Час:</b> <code>{datetime.now().strftime('%H:%M:%S')}</code>
 """
         self.send(msg.strip())
@@ -341,11 +350,13 @@ class TelegramNotifier:
         """Notify specific user about error"""
         if not user_chat_id:
             return
+        safe_symbol = self._escape_html(symbol)
+        safe_error = self._escape_html(error)
         msg = f"""
 ⚠️ <b>ПОМИЛКА ТОРГІВЛІ</b>
 
-📊 <b>Пара:</b> <code>{symbol}</code>
-❌ <b>Помилка:</b> <code>{error}</code>
+📊 <b>Пара:</b> <code>{safe_symbol}</code>
+❌ <b>Помилка:</b> <code>{safe_error}</code>
 ⏰ <b>Час:</b> <code>{datetime.now().strftime('%H:%M:%S')}</code>
 """
         self.send(msg.strip(), chat_id=user_chat_id)
