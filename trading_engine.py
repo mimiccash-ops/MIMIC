@@ -2017,15 +2017,16 @@ class TradingEngine:
             position_type = 1 if str(action).lower() == 'long' else 2
             last_err = None
             for open_type in (2, 1):  # Prefer cross (2), fallback to isolated (1)
-                try:
-                    await exchange.set_leverage(
-                        lev_int,
-                        symbol,
-                        params={'openType': open_type, 'positionType': position_type}
-                    )
-                    return lev_int
-                except Exception as e:
-                    last_err = e
+                for use_str in (False, True):
+                    try:
+                        params = {
+                            'openType': str(open_type) if use_str else open_type,
+                            'positionType': str(position_type) if use_str else position_type
+                        }
+                        await exchange.set_leverage(lev_int, symbol, params=params)
+                        return lev_int
+                    except Exception as e:
+                        last_err = e
             if last_err:
                 raise last_err
             return lev_int
@@ -2035,12 +2036,24 @@ class TradingEngine:
             return lev_int
         except Exception as e:
             max_lev = self._extract_max_leverage_from_error(e)
+            # Some exchanges return leverage values scaled by 100 (e.g., 5000 = 50x)
+            if max_lev and max_lev > 1000 and lev_int <= 100:
+                max_lev = int(max_lev / 100)
             if max_lev and max_lev > 0 and max_lev < lev_int:
                 try:
                     await exchange.set_leverage(max_lev, symbol)
                     return max_lev
                 except Exception:
                     pass
+            # Fallback for exchanges that don't return max leverage in error payloads
+            if exchange_key in ('okx', 'bybit') and 'maximum' in str(e).lower():
+                for candidate in (20, 10, 5, 2):
+                    if candidate < lev_int:
+                        try:
+                            await exchange.set_leverage(candidate, symbol)
+                            return candidate
+                        except Exception:
+                            continue
             raise
 
     async def get_all_master_positions_async(self) -> list:

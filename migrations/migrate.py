@@ -155,6 +155,41 @@ def apply_schema_updates(connection, db_type: str) -> int:
         if add_column_if_missing(connection, inspector, db_type, "push_subscriptions", *col):
             changes += 1
 
+    task_participation_columns = [
+        ("reward_type_given", "VARCHAR(50)", "VARCHAR(50)", None, None),
+        ("reward_description_given", "VARCHAR(500)", "VARCHAR(500)", None, None),
+        ("payout_method", "VARCHAR(50)", "VARCHAR(50)", None, None),
+        ("payout_details", "TEXT", "TEXT", None, None),
+        ("payout_contact", "VARCHAR(200)", "VARCHAR(200)", None, None),
+        ("payout_status", "VARCHAR(20)", "VARCHAR(20)", "'pending'", "'pending'"),
+        ("payout_reference", "VARCHAR(200)", "VARCHAR(200)", None, None),
+    ]
+    for col in task_participation_columns:
+        if add_column_if_missing(connection, inspector, db_type, "task_participations", *col):
+            changes += 1
+
+    try:
+        connection.execute(
+            text(
+                """
+                UPDATE task_participations
+                SET payout_status = 'paid'
+                WHERE reward_given = TRUE AND payout_status IS NULL
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE task_participations
+                SET payout_status = 'pending'
+                WHERE payout_status IS NULL
+                """
+            )
+        )
+    except Exception:
+        pass
+
     return changes
 
 

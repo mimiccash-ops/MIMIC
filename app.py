@@ -5948,21 +5948,6 @@ def queue_signal_to_arq(signal: dict) -> tuple:
         import asyncio
         import concurrent.futures
 
-        # Detect if an event loop is already running in this thread
-        running_loop = None
-        try:
-            running_loop = asyncio.get_running_loop()
-        except RuntimeError:
-            running_loop = None
-
-        if running_loop is None:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    running_loop = loop
-            except RuntimeError:
-                running_loop = None
-
         def run_in_thread():
             # Use a separate thread with its own event loop to avoid loop conflicts
             def run_in_new_loop():
@@ -5977,21 +5962,9 @@ def queue_signal_to_arq(signal: dict) -> tuple:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(run_in_new_loop)
                 return future.result(timeout=5)
-
-        if running_loop and running_loop.is_running():
-            # Running loop detected - use a separate thread with its own loop
-            job_id = run_in_thread()
-        else:
-            # No running loop - safe to use asyncio.run()
-            try:
-                job_id = asyncio.run(enqueue_signal_task(signal))
-            except RuntimeError as e:
-                # Fallback if a loop is actually running in this thread
-                msg = str(e).lower()
-                if "another loop is running" in msg or "cannot run the event loop" in msg:
-                    job_id = run_in_thread()
-                else:
-                    raise
+        
+        # Always execute in a dedicated thread to avoid loop conflicts
+        job_id = run_in_thread()
         
         if job_id:
             return True, job_id
@@ -6551,12 +6524,18 @@ def admin_trading():
     if current_user.role != 'admin':
         abort(403)
 
-    history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
-    history_data = [h.to_dict() for h in history_objs]
-    total_trades = len(history_objs)
-    winning_trades = sum(1 for h in history_objs if (h.pnl or 0) > 0)
-    total_pnl = sum(float(h.pnl or 0) for h in history_objs)
-    win_rate = round((winning_trades / total_trades) * 100, 1) if total_trades else 0.0
+    history_data = []
+    total_pnl = 0.0
+    win_rate = 0.0
+    try:
+        history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
+        history_data = [h.to_dict() for h in history_objs]
+        total_trades = len(history_objs)
+        winning_trades = sum(1 for h in history_objs if (h.pnl or 0) > 0)
+        total_pnl = sum(float(h.pnl or 0) for h in history_objs)
+        win_rate = round((winning_trades / total_trades) * 100, 1) if total_trades else 0.0
+    except Exception as e:
+        logger.warning(f"Admin overview trade stats unavailable: {e}")
 
     return render_template(
         'admin_trading.html',
@@ -6632,12 +6611,18 @@ def admin_overview():
     if not has_master_exchanges:
         m_bal = "No exchanges configured" if not has_enabled_configs else "Master exchanges not connected"
 
-    history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
-    history_data = [h.to_dict() for h in history_objs]
-    total_trades = len(history_objs)
-    winning_trades = sum(1 for h in history_objs if (h.pnl or 0) > 0)
-    total_pnl = sum(float(h.pnl or 0) for h in history_objs)
-    win_rate = round((winning_trades / total_trades) * 100, 1) if total_trades else 0.0
+    history_data = []
+    total_pnl = 0.0
+    win_rate = 0.0
+    try:
+        history_objs = TradeHistory.query.order_by(TradeHistory.close_time.desc()).limit(100).all()
+        history_data = [h.to_dict() for h in history_objs]
+        total_trades = len(history_objs)
+        winning_trades = sum(1 for h in history_objs if (h.pnl or 0) > 0)
+        total_pnl = sum(float(h.pnl or 0) for h in history_objs)
+        win_rate = round((winning_trades / total_trades) * 100, 1) if total_trades else 0.0
+    except Exception as e:
+        logger.warning(f"Admin overview trade stats unavailable: {e}")
 
     master_exchange_balances = []
     master_balances_loaded = False
