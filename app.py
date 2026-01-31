@@ -4092,6 +4092,17 @@ def get_master_positions():
         return jsonify({'error': 'Доступ заборонено'}), 403
     
     try:
+        # Ensure master clients are initialized if configs exist
+        enabled_configs = ExchangeConfig.query.filter_by(is_enabled=True, is_verified=True).all()
+        if not engine.master_clients and enabled_configs:
+            last_attempt = getattr(engine, "_last_master_init_attempt", 0)
+            now = time.time()
+            if now - last_attempt > 60:
+                engine._last_master_init_attempt = now
+                try:
+                    engine.init_master()
+                except Exception as e:
+                    logger.warning(f"Failed to init master exchanges in positions API: {e}")
         positions = engine.get_all_master_positions()
         return jsonify({
             'success': True,

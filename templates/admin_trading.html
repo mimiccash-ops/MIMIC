@@ -638,6 +638,10 @@
             console.warn('Failed to refresh master positions:', err);
         }
     }
+
+    // Periodic refresh in case socket is delayed or the page was reloaded
+    setTimeout(refreshMasterPositions, 800);
+    setInterval(refreshMasterPositions, 15000);
     
     function formatNumber(value, digits = 2, emptyIfZero = false) {
         const num = Number(value);
