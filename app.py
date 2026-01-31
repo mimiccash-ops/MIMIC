@@ -5692,29 +5692,39 @@ def queue_signal_to_arq(signal: dict) -> tuple:
         if not ARQ_REDIS_SETTINGS:
             return False, "ARQ_REDIS_SETTINGS not configured"
         import asyncio
-        
-        # Try to get existing event loop or create new one
+        import concurrent.futures
+
+        # Detect if an event loop is already running in this thread
+        running_loop = None
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Running in async context - cannot use asyncio.run() from running loop
-                # Instead, create a new event loop in a separate thread
-                import concurrent.futures
-                def run_in_new_loop():
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    try:
-                        return new_loop.run_until_complete(enqueue_signal_task(signal))
-                    finally:
-                        new_loop.close()
-                
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(run_in_new_loop)
-                    job_id = future.result(timeout=5)
-            else:
-                job_id = loop.run_until_complete(enqueue_signal_task(signal))
+            running_loop = asyncio.get_running_loop()
         except RuntimeError:
-            # No event loop, create new one
+            running_loop = None
+
+        if running_loop is None:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    running_loop = loop
+            except RuntimeError:
+                running_loop = None
+
+        if running_loop and running_loop.is_running():
+            # Running loop detected - use a separate thread with its own loop
+            def run_in_new_loop():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    return new_loop.run_until_complete(enqueue_signal_task(signal))
+                finally:
+                    new_loop.close()
+                    asyncio.set_event_loop(None)
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_in_new_loop)
+                job_id = future.result(timeout=5)
+        else:
+            # No running loop - safe to use asyncio.run()
             job_id = asyncio.run(enqueue_signal_task(signal))
         
         if job_id:

@@ -589,9 +589,22 @@ def validate_webhook(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         ip = get_client_ip()
-        
-        # Rate limit webhooks
-        if not webhook_limiter.check(ip, max_requests=30, window=60):
+
+        # Rate limit webhooks (higher limits for valid passphrase)
+        max_requests = 30
+        window = 60
+        try:
+            data = request.get_json(silent=True) or {}
+            received_pass = data.get('passphrase', '') or data.get('secret_key', '') or data.get('secret', '')
+            if received_pass:
+                from config import Config
+                if secrets.compare_digest(str(received_pass), str(Config.WEBHOOK_PASSPHRASE)):
+                    max_requests = 1200
+        except Exception:
+            # If parsing fails, keep strict rate limit
+            pass
+
+        if not webhook_limiter.check(ip, max_requests=max_requests, window=window):
             logger.warning(f"Webhook rate limit exceeded for {ip}")
             return jsonify({'error': 'Rate limit exceeded'}), 429
         

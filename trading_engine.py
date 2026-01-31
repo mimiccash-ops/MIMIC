@@ -605,6 +605,9 @@ class TradingEngine:
         if exchange_name == 'okx':
             config['options']['defaultMarginMode'] = 'cross'
             config['options']['positionMode'] = 'net_mode'
+        if exchange_name == 'bybit':
+            config['options']['recvWindow'] = 10000
+            config['options']['adjustForTimeDifference'] = True
 
         exchange_class = getattr(ccxt_sync, ccxt_class_name)
         exchange = exchange_class(config)
@@ -1210,6 +1213,11 @@ class TradingEngine:
                                 # Use net position mode (one-way) for OKX
                                 config['options']['positionMode'] = 'net_mode'
                             
+                            # Bybit-specific options (timestamp drift tolerance)
+                            if (exchange_name or '').lower() == 'bybit':
+                                config['options']['recvWindow'] = 10000
+                                config['options']['adjustForTimeDifference'] = True
+                            
                             if passphrase and exchange_name in PASSPHRASE_EXCHANGES:
                                 config['password'] = passphrase
 
@@ -1402,6 +1410,11 @@ class TradingEngine:
                         }
                         if passphrase:
                             config['password'] = passphrase
+                        
+                        # Bybit-specific options (timestamp drift tolerance)
+                        if (exchange_name or '').lower() == 'bybit':
+                            config['options']['recvWindow'] = 10000
+                            config['options']['adjustForTimeDifference'] = True
                         
                         # Add proxy configuration for CCXT
                         if proxy_config:
@@ -1830,6 +1843,64 @@ class TradingEngine:
             'exchange': data.get('exchange')
         }
 
+    def _get_or_create_event_loop(self):
+        """Return a reusable event loop for CCXT async calls (prevents closed-loop reuse)."""
+        if self._event_loop and not self._event_loop.is_closed():
+            return self._event_loop
+        self._event_loop = asyncio.new_event_loop()
+        return self._event_loop
+
+    @staticmethod
+    def _is_event_loop_closed_error(err: Exception) -> bool:
+        msg = str(err).lower()
+        return "event loop is closed" in msg or "loop is closed" in msg
+
+    @staticmethod
+    def _is_bybit_timestamp_error(exchange_name: str, err: Exception) -> bool:
+        if (exchange_name or "").lower() != "bybit":
+            return False
+        msg = str(err).lower()
+        return "10002" in msg and ("timestamp" in msg or "recv_window" in msg or "recv window" in msg)
+
+    async def _ensure_ccxt_time_sync(self, exchange, exchange_name: str, force: bool = False):
+        """Sync time difference for exchanges that require tight timestamps (Bybit)."""
+        if not exchange or (exchange_name or "").lower() != "bybit":
+            return
+        now = time.time()
+        last_sync = getattr(exchange, "_last_time_sync", 0)
+        if not force and last_sync and (now - last_sync) < 60:
+            return
+        try:
+            await exchange.load_time_difference()
+            exchange._last_time_sync = now
+        except Exception as e:
+            logger.warning(f"{exchange_name} time sync failed: {e}")
+
+    async def _fetch_ccxt_positions(self, exchange, exchange_name: str, symbols: list = None):
+        """Fetch positions with retry for timestamp drift or closed event loops."""
+        if not exchange:
+            return []
+        await self._ensure_ccxt_time_sync(exchange, exchange_name)
+
+        async def _call():
+            if symbols:
+                return await exchange.fetch_positions(symbols)
+            return await exchange.fetch_positions()
+
+        try:
+            return await _call()
+        except Exception as e:
+            if self._is_bybit_timestamp_error(exchange_name, e):
+                await self._ensure_ccxt_time_sync(exchange, exchange_name, force=True)
+                return await _call()
+            if self._is_event_loop_closed_error(e):
+                try:
+                    await exchange.close()
+                except Exception:
+                    pass
+                return await _call()
+            raise
+
     async def get_all_master_positions_async(self) -> list:
         """Get positions from ALL master exchanges with exchange info - ASYNC VERSION"""
         all_positions = []
@@ -1841,7 +1912,7 @@ class TradingEngine:
                 if master_data.get('is_async') and master_data.get('is_ccxt'):
                     # Async CCXT exchange
                     exchange = master_data['client']
-                    positions = await exchange.fetch_positions()
+                    positions = await self._fetch_ccxt_positions(exchange, exchange_name)
                     for pos in positions:
                         normalized = self._normalize_ccxt_position(pos, exchange_name)
                         if normalized:
@@ -1881,20 +1952,29 @@ class TradingEngine:
         
         if has_async:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Avoid asyncio loop conflicts by returning cached positions
-                    with self.positions_lock:
-                        return [self._normalize_cached_master_position(s, d) for s, d in self.master_positions.items()]
-                return loop.run_until_complete(self.get_all_master_positions_async())
+                running_loop = asyncio.get_running_loop()
             except RuntimeError:
-                # No event loop running, create a new one
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    return loop.run_until_complete(self.get_all_master_positions_async())
-                finally:
-                    loop.close()
+                running_loop = None
+
+            if running_loop and running_loop.is_running():
+                # Avoid asyncio loop conflicts by returning cached positions
+                with self.positions_lock:
+                    return [self._normalize_cached_master_position(s, d) for s, d in self.master_positions.items()]
+
+            loop = self._get_or_create_event_loop()
+            if loop.is_running():
+                with self.positions_lock:
+                    return [self._normalize_cached_master_position(s, d) for s, d in self.master_positions.items()]
+
+            try:
+                return loop.run_until_complete(self.get_all_master_positions_async())
+            except RuntimeError as e:
+                if self._is_event_loop_closed_error(e):
+                    self._event_loop = asyncio.new_event_loop()
+                    return self._event_loop.run_until_complete(self.get_all_master_positions_async())
+                logger.warning(f"Async positions fetch failed in sync context: {e}")
+                with self.positions_lock:
+                    return [self._normalize_cached_master_position(s, d) for s, d in self.master_positions.items()]
         
         # Legacy sync implementation
         all_positions = []
@@ -1993,6 +2073,7 @@ class TradingEngine:
             return loop.run_until_complete(self.get_all_master_balances_async())
         finally:
             loop.close()
+            asyncio.set_event_loop(None)
 
     def get_all_master_balances(self) -> list:
         """Get balances from ALL master exchanges - SYNC WRAPPER"""
@@ -2592,11 +2673,12 @@ class TradingEngine:
         """Close all positions on a CCXT exchange (OKX, Bybit, etc.) - ASYNC VERSION"""
         exchange = master_data.get('client')
         name = master_data.get('fullname', 'CCXT')
+        exchange_name = master_data.get('exchange_type') or master_data.get('exchange_name', name)
         closed_count = 0
         
         try:
             # Fetch all open positions
-            positions = await exchange.fetch_positions()
+            positions = await self._fetch_ccxt_positions(exchange, exchange_name)
             
             for pos in positions:
                 contracts = float(pos.get('contracts', 0) or 0)
@@ -2922,7 +3004,7 @@ class TradingEngine:
                         logger.warning(f"⚠️ [{node_name}] {error_msg}")
                         self.log_event(user_id, symbol, error_msg, is_error=True)
                         return
-                    positions = await exchange.fetch_positions([ccxt_symbol])
+                    positions = await self._fetch_ccxt_positions(exchange, exchange_type, [ccxt_symbol])
                     for pos in positions:
                         if pos['contracts'] and float(pos['contracts']) != 0:
                             side = 'sell' if pos['side'] == 'long' else 'buy'
@@ -2986,7 +3068,7 @@ class TradingEngine:
                 try:
                     # Get open positions on THIS exchange (async)
                     await self.api_limiter.wait_and_proceed_async(f"pos_{user_id}")
-                    positions = await exchange.fetch_positions()
+                    positions = await self._fetch_ccxt_positions(exchange, exchange_type)
                     open_cnt = 0
                     has_position_on_symbol = False
                     
@@ -3277,7 +3359,7 @@ class TradingEngine:
                     await asyncio.sleep(0.1)  # Small delay to allow exchange to update
                     position_found = False
                     try:
-                        positions = await exchange.fetch_positions([ccxt_symbol])
+                        positions = await self._fetch_ccxt_positions(exchange, exchange_type, [ccxt_symbol])
                         for pos in positions:
                             if pos.get('symbol') == ccxt_symbol and pos.get('contracts'):
                                 contracts = float(pos['contracts'])
@@ -4351,7 +4433,10 @@ class TradingEngine:
         for client_data in user_clients:
             try:
                 if client_data.get('is_async'):
-                    positions = await client_data['client'].fetch_positions()
+                    positions = await self._fetch_ccxt_positions(
+                        client_data['client'],
+                        client_data.get('exchange_type') or client_data.get('exchange_name', 'Unknown')
+                    )
                     for pos in positions:
                         if pos.get('contracts') and float(pos['contracts']) != 0:
                             total_open += 1
@@ -4682,6 +4767,7 @@ class TradingEngine:
                 loop.run_until_complete(self.process_signal_async(signal))
             finally:
                 loop.close()
+                asyncio.set_event_loop(None)
     
     def _run_async_signal_in_thread(self, signal: dict):
         """Helper to run async signal processing in a separate thread with its own event loop"""
@@ -4691,6 +4777,7 @@ class TradingEngine:
             return loop.run_until_complete(self.process_signal_async(signal))
         finally:
             loop.close()
+            asyncio.set_event_loop(None)
     
     async def get_global_master_position_count_async(self) -> tuple:
         """
@@ -4710,7 +4797,7 @@ class TradingEngine:
                 if master_data.get('is_async') and master_data.get('is_ccxt'):
                     # Async CCXT exchange
                     exchange = master_data['client']
-                    positions = await exchange.fetch_positions()
+                    positions = await self._fetch_ccxt_positions(exchange, master_data.get('exchange_name', 'Unknown'))
                     for pos in positions:
                         if pos.get('contracts') and float(pos['contracts']) != 0:
                             symbol = pos.get('symbol', '').replace('/USDT:USDT', 'USDT').replace('/', '')
@@ -4794,7 +4881,11 @@ class TradingEngine:
                     
                     positions = None
                     if slave_data.get('is_ccxt') and slave_data.get('is_async'):
-                        positions = await client.fetch_positions([symbol])
+                        positions = await self._fetch_ccxt_positions(
+                            client,
+                            slave_data.get('exchange_type') or slave_data.get('exchange_name', 'Unknown'),
+                            [symbol]
+                        )
                     elif not slave_data.get('is_ccxt'):
                         positions = client.futures_position_information(symbol=symbol)
                     
