@@ -4666,7 +4666,7 @@ def request_payout():
                     f"💵 Amount: <code>${amount:.2f}</code>\n"
                     f"💳 Method: <code>{payment_method}</code>\n"
                     f"📝 Address: <code>{payment_address[:30]}...</code>\n\n"
-                    f"Review at: /admin/payouts"
+                    f"Review at: /admin/subscription#referral-payouts"
                 )
         except Exception as e:
             logger.warning(f"Failed to send payout notification: {e}")
@@ -5056,6 +5056,7 @@ def admin_subscription_stats():
     try:
         def _compute_stats():
             from datetime import datetime, timezone
+            from sqlalchemy import func
             
             # Count premium users (non-free, non-expired subscriptions)
             now = datetime.now(timezone.utc)
@@ -5069,6 +5070,26 @@ def admin_subscription_stats():
                 )
             ).count()
             
+            expired_count = User.query.filter(
+                User.subscription_plan != 'free',
+                User.subscription_plan.isnot(None),
+                User.subscription_expires_at.isnot(None),
+                User.subscription_expires_at <= now
+            ).count()
+            
+            total_users = User.query.filter(User.role == 'user').count()
+            free_count = User.query.filter(
+                User.role == 'user',
+                db.or_(User.subscription_plan == 'free', User.subscription_plan.is_(None))
+            ).count()
+            
+            pending_payments = Payment.query.filter(
+                Payment.status.in_(['pending', 'awaiting_confirmation'])
+            ).count()
+            
+            total_revenue = db.session.query(func.coalesce(func.sum(Payment.amount_usd), 0.0))\
+                .filter(Payment.status == 'completed').scalar()
+            
             # Count by plan
             plan_counts = db.session.query(User.subscription_plan, db.func.count(User.id))\
                 .filter(User.role == 'user')\
@@ -5079,8 +5100,12 @@ def admin_subscription_stats():
             return {
                 'success': True,
                 'premium_count': premium_count,
+                'expired_count': expired_count,
+                'free_count': free_count,
+                'pending_payments': pending_payments,
+                'total_revenue': float(total_revenue or 0),
                 'plans': plans,
-                'total_users': User.query.filter(User.role == 'user').count()
+                'total_users': total_users
             }
         
         data = get_admin_stats_cached('subscription_stats', _compute_stats)
@@ -5090,7 +5115,167 @@ def admin_subscription_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/admin/subscribers', methods=['GET'])
+@login_required
+def admin_get_subscribers():
+    """Get subscription info for all users (admin only)"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Потрібен доступ адміністратора'}), 403
+    
+    try:
+        from datetime import datetime, timezone
+        
+        status = request.args.get('status', 'all')
+        search = (request.args.get('q') or '').strip()
+        limit = min(int(request.args.get('limit', 200)), 500)
+        
+        query = User.query.filter(User.role == 'user')
+        
+        if search:
+            like = f"%{search}%"
+            query = query.filter(db.or_(User.username.ilike(like), User.email.ilike(like)))
+        
+        now = datetime.now(timezone.utc)
+        
+        if status == 'active':
+            query = query.filter(
+                User.subscription_plan != 'free',
+                User.subscription_plan.isnot(None),
+                db.or_(User.subscription_expires_at.is_(None), User.subscription_expires_at > now)
+            )
+        elif status == 'expired':
+            query = query.filter(
+                User.subscription_plan != 'free',
+                User.subscription_plan.isnot(None),
+                User.subscription_expires_at.isnot(None),
+                User.subscription_expires_at <= now
+            )
+        elif status == 'free':
+            query = query.filter(db.or_(User.subscription_plan == 'free', User.subscription_plan.is_(None)))
+        
+        users = query.order_by(User.created_at.desc()).limit(limit).all()
+        result = []
+        for user in users:
+            expires_at = user.subscription_expires_at
+            if expires_at and expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            result.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'plan': user.subscription_plan or 'free',
+                'is_active': user.is_active,
+                'has_active_subscription': user.has_active_subscription(),
+                'expires_at': expires_at.isoformat() if expires_at else None,
+                'days_remaining': user.subscription_days_remaining(),
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'users': result,
+            'total': len(result)
+        })
+    except Exception as e:
+        logger.error(f"Error getting subscribers: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ==================== SUBSCRIPTION MANAGEMENT ====================
+
+def _get_subscription_plan_overrides():
+    from models import SystemSetting
+    raw = SystemSetting.get_setting('subscription_plans', 'data', '')
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except (TypeError, ValueError):
+        return {}
+
+
+def _get_subscription_plans():
+    from models import SystemSetting
+    overrides = _get_subscription_plan_overrides()
+    plans = {}
+    for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+        plan = dict(plan_data)
+        override = overrides.get(plan_id, {})
+        if isinstance(override, dict):
+            if 'name' in override and override['name']:
+                plan['name'] = override['name']
+            if 'price' in override:
+                try:
+                    plan['price'] = float(override['price'])
+                except (TypeError, ValueError):
+                    pass
+            if 'days' in override:
+                try:
+                    plan['days'] = int(override['days'])
+                except (TypeError, ValueError):
+                    pass
+            if 'enabled' in override:
+                plan['enabled'] = bool(override['enabled'])
+        if 'enabled' not in plan:
+            plan['enabled'] = True
+        plans[plan_id] = plan
+    return plans
+
+
+def _get_payment_methods():
+    from models import SystemSetting
+    raw = SystemSetting.get_setting('payment_methods', 'list', '')
+    methods = []
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                methods = parsed
+        except (TypeError, ValueError):
+            methods = []
+    
+    cleaned = []
+    for m in methods:
+        if not isinstance(m, dict):
+            continue
+        method_id = (m.get('id') or '').strip()
+        label = (m.get('label') or '').strip()
+        if not method_id or not label:
+            continue
+        cleaned.append({
+            'id': method_id,
+            'label': label,
+            'type': (m.get('type') or 'wallet').strip(),
+            'details': (m.get('details') or '').strip(),
+            'enabled': bool(m.get('enabled', True))
+        })
+    
+    if cleaned:
+        return cleaned
+    
+    # Fallback to wallet settings if no methods configured
+    wallets = SystemSetting.get_category_settings('wallet')
+    network_info = {
+        'usdt_trc20': {'label': 'USDT (TRC20)', 'type': 'wallet'},
+        'usdt_erc20': {'label': 'USDT (ERC20)', 'type': 'wallet'},
+        'usdt_bep20': {'label': 'USDT (BEP20)', 'type': 'wallet'},
+        'btc': {'label': 'Bitcoin (BTC)', 'type': 'wallet'},
+        'eth': {'label': 'Ethereum (ETH)', 'type': 'wallet'},
+        'ltc': {'label': 'Litecoin (LTC)', 'type': 'wallet'},
+        'sol': {'label': 'Solana (SOL)', 'type': 'wallet'}
+    }
+    for key, info in network_info.items():
+        address = (wallets.get(key) or '').strip()
+        if address:
+            cleaned.append({
+                'id': key,
+                'label': info['label'],
+                'type': info['type'],
+                'details': address,
+                'enabled': True
+            })
+    return cleaned
 
 @app.route('/api/admin/subscription-settings', methods=['GET'])
 @login_required
@@ -5106,15 +5291,17 @@ def get_subscription_settings():
         subscription_settings = SystemSetting.get_category_settings('subscription')
         wallet_settings = SystemSetting.get_category_settings('wallet')
         insurance_settings = SystemSetting.get_category_settings('insurance_fund')
+        plans_config = _get_subscription_plans()
+        payment_methods = _get_payment_methods()
         
-        # Get subscription plans from config
         plans = []
-        for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+        for plan_id, plan_data in plans_config.items():
             plans.append({
                 'id': plan_id,
                 'name': plan_data['name'],
                 'price': plan_data['price'],
-                'days': plan_data['days']
+                'days': plan_data['days'],
+                'enabled': plan_data.get('enabled', True)
             })
         
         return jsonify({
@@ -5139,7 +5326,8 @@ def get_subscription_settings():
                 'wallet_network': insurance_settings.get('wallet_network', 'USDT_TRC20'),
                 'contribution_rate': float(insurance_settings.get('contribution_rate', '5'))
             },
-            'plans': plans
+            'plans': plans,
+            'payment_methods': payment_methods
         })
     except Exception as e:
         logger.error(f"Error getting subscription settings: {e}")
@@ -5184,6 +5372,49 @@ def update_subscription_settings():
                 if network in ['usdt_trc20', 'usdt_erc20', 'usdt_bep20', 'btc', 'eth', 'ltc', 'sol']:
                     SystemSetting.set_setting('wallet', network, address or '')
                     updated.append(f'wallet.{network}')
+
+        # Update subscription plans
+        if 'plans' in data:
+            plan_payload = data['plans']
+            overrides = {}
+            if isinstance(plan_payload, list):
+                for p in plan_payload:
+                    if not isinstance(p, dict):
+                        continue
+                    pid = (p.get('id') or '').strip()
+                    if not pid:
+                        continue
+                    overrides[pid] = {
+                        'name': (p.get('name') or '').strip(),
+                        'price': p.get('price'),
+                        'days': p.get('days'),
+                        'enabled': bool(p.get('enabled', True))
+                    }
+            elif isinstance(plan_payload, dict):
+                overrides = plan_payload
+            SystemSetting.set_setting('subscription_plans', 'data', json.dumps(overrides, ensure_ascii=False))
+            updated.append('subscription_plans.data')
+
+        # Update payment methods
+        if 'payment_methods' in data:
+            methods = []
+            if isinstance(data['payment_methods'], list):
+                for m in data['payment_methods']:
+                    if not isinstance(m, dict):
+                        continue
+                    method_id = (m.get('id') or '').strip()
+                    label = (m.get('label') or '').strip()
+                    if not method_id or not label:
+                        continue
+                    methods.append({
+                        'id': method_id,
+                        'label': label,
+                        'type': (m.get('type') or 'wallet').strip(),
+                        'details': (m.get('details') or '').strip(),
+                        'enabled': bool(m.get('enabled', True))
+                    })
+            SystemSetting.set_setting('payment_methods', 'list', json.dumps(methods, ensure_ascii=False))
+            updated.append('payment_methods.list')
         
         # Update insurance fund settings
         if 'insurance_fund' in data:
@@ -5429,22 +5660,32 @@ def create_direct_payment():
             return jsonify({'success': False, 'error': 'Дані не надано'}), 400
         
         plan_id = data.get('plan', 'basic')
-        network = data.get('network', 'usdt_trc20')
+        payment_method_id_raw = data.get('payment_method_id') or data.get('network')
+        payment_method_id = (payment_method_id_raw or '').strip()
+        
+        plans_config = _get_subscription_plans()
         
         # Validate plan
-        if plan_id not in Config.SUBSCRIPTION_PLANS:
+        if plan_id not in plans_config:
             return jsonify({'success': False, 'error': f'Невірний план: {plan_id}'}), 400
         
-        plan = Config.SUBSCRIPTION_PLANS[plan_id]
+        plan = plans_config[plan_id]
+        if not plan.get('enabled', True):
+            return jsonify({'success': False, 'error': 'Цей план тимчасово недоступний.'}), 400
         
-        # Get wallet address for the selected network
-        wallet_address = SystemSetting.get_setting('wallet', network, '')
+        payment_methods = _get_payment_methods()
+        lookup_id = payment_method_id.lower()
+        method = next(
+            (m for m in payment_methods if (m['id'] == payment_method_id or m['id'] == lookup_id) and m.get('enabled', True)),
+            None
+        )
+        if not method:
+            return jsonify({'success': False, 'error': 'Payment method not available.'}), 400
         
-        if not wallet_address:
-            return jsonify({
-                'success': False, 
-                'error': f'Wallet address not configured for {network}. Please contact admin.'
-            }), 400
+        payment_details = method.get('details') or ''
+        if not payment_details:
+            return jsonify({'success': False, 'error': 'Payment details not configured. Please contact admin.'}), 400
+        wallet_address = payment_details
         
         # Check if subscription system is enabled
         subscription_enabled = SystemSetting.get_setting('subscription', 'enabled', 'false').lower() == 'true'
@@ -5460,10 +5701,10 @@ def create_direct_payment():
         # Create pending payment record
         payment = Payment(
             user_id=current_user.id,
-            provider='direct_wallet',
+            provider='manual_method',
             provider_txn_id=payment_ref,
             amount_usd=plan['price'],
-            currency=network.upper(),
+            currency=method['id'],
             plan=plan_id,
             days=plan['days'],
             status='pending',
@@ -5475,16 +5716,6 @@ def create_direct_payment():
         db.session.commit()
         
         # Network display names
-        network_names = {
-            'usdt_trc20': 'USDT (TRC20 - Tron)',
-            'usdt_erc20': 'USDT (ERC20 - Ethereum)',
-            'usdt_bep20': 'USDT (BEP20 - BSC)',
-            'btc': 'Bitcoin (BTC)',
-            'eth': 'Ethereum (ETH)',
-            'ltc': 'Litecoin (LTC)',
-            'sol': 'Solana (SOL)'
-        }
-        
         return jsonify({
             'success': True,
             'payment': {
@@ -5493,12 +5724,14 @@ def create_direct_payment():
                 'plan_name': plan['name'],
                 'amount_usd': plan['price'],
                 'days': plan['days'],
-                'network': network,
-                'network_name': network_names.get(network, network),
+                'payment_method_id': method['id'],
+                'payment_method_label': method['label'],
+                'payment_method_type': method['type'],
+                'payment_details': payment_details,
                 'wallet_address': wallet_address,
                 'expires_at': payment.expires_at.isoformat()
             },
-            'message': f'Send ${plan["price"]:.2f} worth of {network_names.get(network, network)} to the wallet address below'
+            'message': f'Payment details for {method["label"]} are shown below.'
         })
     except Exception as e:
         logger.error(f"Error creating direct payment: {e}")
@@ -5647,31 +5880,23 @@ def get_available_payment_networks():
         # Check if subscription is enabled
         subscription_enabled = SystemSetting.get_setting('subscription', 'enabled', 'false').lower() == 'true'
         
-        networks = []
-        network_info = {
-            'usdt_trc20': {'name': 'USDT (TRC20)', 'icon': 'tron', 'symbol': 'USDT'},
-            'usdt_erc20': {'name': 'USDT (ERC20)', 'icon': 'ethereum', 'symbol': 'USDT'},
-            'usdt_bep20': {'name': 'USDT (BEP20)', 'icon': 'binance', 'symbol': 'USDT'},
-            'btc': {'name': 'Bitcoin', 'icon': 'bitcoin', 'symbol': 'BTC'},
-            'eth': {'name': 'Ethereum', 'icon': 'ethereum', 'symbol': 'ETH'},
-            'ltc': {'name': 'Litecoin', 'icon': 'litecoin', 'symbol': 'LTC'},
-            'sol': {'name': 'Solana', 'icon': 'solana', 'symbol': 'SOL'}
-        }
-        
-        for network_id, info in network_info.items():
-            wallet = SystemSetting.get_setting('wallet', network_id, '')
-            if wallet:  # Only show networks with configured wallets
-                networks.append({
-                    'id': network_id,
-                    'name': info['name'],
-                    'icon': info['icon'],
-                    'symbol': info['symbol'],
-                    'available': True
-                })
+        methods = _get_payment_methods()
+        payment_methods = [
+            {
+                'id': m['id'],
+                'label': m['label'],
+                'type': m['type'],
+                'available': True
+            }
+            for m in methods if m.get('enabled', True)
+        ]
         
         # Get subscription plans
+        plans_config = _get_subscription_plans()
         plans = []
-        for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+        for plan_id, plan_data in plans_config.items():
+            if not plan_data.get('enabled', True):
+                continue
             plans.append({
                 'id': plan_id,
                 'name': plan_data['name'],
@@ -5682,7 +5907,7 @@ def get_available_payment_networks():
         return jsonify({
             'success': True,
             'subscription_enabled': subscription_enabled,
-            'networks': networks,
+            'payment_methods': payment_methods,
             'plans': plans
         })
     except Exception as e:
@@ -6278,32 +6503,12 @@ def actions(action_type):
 @app.route('/admin/payouts')
 @login_required
 def admin_payouts():
-    """Admin page to view and manage payout requests"""
+    """Legacy payout page (redirected to subscription admin)"""
     if current_user.role != 'admin':
         abort(403)
     
-    from models import PayoutRequest
-    
     status_filter = request.args.get('status', 'pending')
-    
-    if status_filter == 'all':
-        payouts = PayoutRequest.query.order_by(PayoutRequest.created_at.desc()).limit(100).all()
-    else:
-        payouts = PayoutRequest.query.filter_by(status=status_filter).order_by(PayoutRequest.created_at.desc()).limit(100).all()
-    
-    # Get counts for each status
-    pending_count = PayoutRequest.query.filter_by(status='pending').count()
-    approved_count = PayoutRequest.query.filter_by(status='approved').count()
-    paid_count = PayoutRequest.query.filter_by(status='paid').count()
-    rejected_count = PayoutRequest.query.filter_by(status='rejected').count()
-    
-    return render_template('admin_payouts.html',
-                           payouts=payouts,
-                           status_filter=status_filter,
-                           pending_count=pending_count,
-                           approved_count=approved_count,
-                           paid_count=paid_count,
-                           rejected_count=rejected_count)
+    return redirect(url_for('admin_subscription', payout_status=status_filter) + '#referral-payouts')
 
 
 @app.route('/admin/subscription')
@@ -6312,7 +6517,31 @@ def admin_subscription():
     """Admin page to manage subscriptions and payment settings"""
     if current_user.role != 'admin':
         abort(403)
-    return render_template('admin_subscription.html')
+    
+    from models import PayoutRequest
+    
+    payout_status = request.args.get('payout_status', 'pending')
+    if payout_status not in ['pending', 'approved', 'paid', 'rejected', 'all']:
+        payout_status = 'pending'
+    if payout_status == 'all':
+        payouts = PayoutRequest.query.order_by(PayoutRequest.created_at.desc()).limit(100).all()
+    else:
+        payouts = PayoutRequest.query.filter_by(status=payout_status)\
+            .order_by(PayoutRequest.created_at.desc()).limit(100).all()
+    
+    payout_counts = {
+        'pending': PayoutRequest.query.filter_by(status='pending').count(),
+        'approved': PayoutRequest.query.filter_by(status='approved').count(),
+        'paid': PayoutRequest.query.filter_by(status='paid').count(),
+        'rejected': PayoutRequest.query.filter_by(status='rejected').count(),
+    }
+    
+    return render_template(
+        'admin_subscription.html',
+        payouts=payouts,
+        payout_status_filter=payout_status,
+        payout_counts=payout_counts
+    )
 
 
 @app.route('/admin/trading')
@@ -6467,7 +6696,7 @@ def admin_approve_payout(payout_id):
     except ValueError as e:
         flash(str(e), 'error')
     
-    return redirect(url_for('admin_payouts', status='approved'))
+    return redirect(url_for('admin_subscription', payout_status='approved') + '#referral-payouts')
 
 
 @app.route('/admin/payout/<int:payout_id>/reject', methods=['POST'])
@@ -6506,7 +6735,7 @@ def admin_reject_payout(payout_id):
     except ValueError as e:
         flash(str(e), 'error')
     
-    return redirect(url_for('admin_payouts'))
+    return redirect(url_for('admin_subscription', payout_status='rejected') + '#referral-payouts')
 
 
 @app.route('/admin/payout/<int:payout_id>/pay', methods=['POST'])
@@ -6547,7 +6776,7 @@ def admin_mark_payout_paid(payout_id):
     except ValueError as e:
         flash(str(e), 'error')
     
-    return redirect(url_for('admin_payouts', status='paid'))
+    return redirect(url_for('admin_subscription', payout_status='paid') + '#referral-payouts')
 
 
 @app.route('/api/admin/payout/<int:payout_id>', methods=['GET'])
@@ -8906,7 +9135,10 @@ PLISIO_API_URL = "https://plisio.net/api/v1"
 def get_payment_plans():
     """Get available subscription plans with pricing"""
     plans = []
-    for plan_id, plan_data in Config.SUBSCRIPTION_PLANS.items():
+    plans_config = _get_subscription_plans()
+    for plan_id, plan_data in plans_config.items():
+        if not plan_data.get('enabled', True):
+            continue
         plans.append({
             'id': plan_id,
             'name': plan_data['name'],
@@ -8948,10 +9180,13 @@ def create_payment():
     plan_id = data.get('plan', 'basic')
     currency = data.get('currency', 'USDT_TRC20')
     
-    if plan_id not in Config.SUBSCRIPTION_PLANS:
+    plans_config = _get_subscription_plans()
+    if plan_id not in plans_config:
         return jsonify({'success': False, 'error': f'Invalid plan: {plan_id}'}), 400
     
-    plan = Config.SUBSCRIPTION_PLANS[plan_id]
+    plan = plans_config[plan_id]
+    if not plan.get('enabled', True):
+        return jsonify({'success': False, 'error': 'Plan is currently disabled'}), 400
     amount_usd = plan['price']
     days = plan['days']
     

@@ -322,14 +322,6 @@
                         <i class="fas fa-key"></i>
                         <span data-i18n="nav.changePassword">Security</span>
                     </a>
-                    {% if current_user.role == 'admin' %}
-                    <div class="dropdown-divider"></div>
-                    <!-- Admin Tools -->
-                    <a href="{{ url_for('admin_payouts') }}" class="dropdown-item">
-                        <i class="fas fa-wallet"></i>
-                        <span data-i18n="nav.payouts">Payouts</span>
-                    </a>
-                    {% endif %}
                     <div class="dropdown-divider"></div>
                     <a href="{{ url_for('logout') }}" class="dropdown-item danger">
                         <i class="fas fa-power-off"></i>

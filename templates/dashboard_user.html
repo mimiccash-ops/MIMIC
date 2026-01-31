@@ -1704,7 +1704,7 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs text-white/50 mb-2">Select Network</label>
+                            <label class="block text-xs text-white/50 mb-2">Payment Method</label>
                             <select id="payment-network" class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none">
                                 <option value="">Завантаження мереж...</option>
                             </select>
@@ -1713,7 +1713,7 @@
                     
                     <!-- Wallet Address Display -->
                     <div id="wallet-display" class="hidden mb-4">
-                        <label class="block text-xs text-white/50 mb-2">Send Payment To</label>
+                        <label class="block text-xs text-white/50 mb-2">Payment Details</label>
                         <div class="p-4 rounded-lg bg-black/50 border border-purple-500/30">
                             <div class="flex items-center justify-between">
                                 <code class="text-sm text-purple-300 break-all" id="payment-wallet-address">-</code>
@@ -1725,9 +1725,8 @@
                         <div class="mt-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
                             <div class="flex items-start gap-2">
                                 <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
-                                <div class="text-xs text-yellow-200/80">
-                                    <strong>Important:</strong> Send exactly <span id="payment-amount-display" class="font-mono text-yellow-400">$0.00</span> worth of crypto to this address. 
-                                    Wrong amount or network may result in lost funds.
+                                <div class="text-xs text-yellow-200/80" id="payment-help-text">
+                                    <strong>Important:</strong> Follow the payment instructions and send exactly <span id="payment-amount-display" class="font-mono text-yellow-400">$0.00</span>.
                                 </div>
                             </div>
                         </div>
@@ -1735,8 +1734,8 @@
                     
                     <!-- TX Hash Input -->
                     <div id="tx-hash-section" class="hidden mb-4">
-                        <label class="block text-xs text-white/50 mb-2">Transaction Hash (Optional)</label>
-                        <input type="text" id="tx-hash-input" placeholder="Введіть хеш транзакції для швидшої перевірки" 
+                        <label class="block text-xs text-white/50 mb-2">Payment Reference (Optional)</label>
+                        <input type="text" id="tx-hash-input" placeholder="Введіть референс/примітку для швидшої перевірки" 
                                class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none font-mono text-sm">
                     </div>
                     
@@ -2917,7 +2916,7 @@
     let subscriptionData = null;
     let selectedPlan = null;
     let currentPaymentId = null;
-    let availableNetworks = [];
+    let paymentMethods = [];
 
     function openSectionAndScroll(section, targetId) {
         if (typeof window.showSection === 'function') {
@@ -3065,7 +3064,8 @@
         if (pendingPayments && pendingPayments.length > 0) {
             alert.classList.remove('hidden');
             const p = pendingPayments[0];
-            details.textContent = `${p.plan.toUpperCase()} plan - $${p.amount_usd.toFixed(2)} (${p.status === 'awaiting_confirmation' ? 'Awaiting admin confirmation' : 'Waiting for payment'})`;
+            const methodLabel = getPaymentMethodLabel(p.currency);
+            details.textContent = `${p.plan.toUpperCase()} plan - $${p.amount_usd.toFixed(2)} (${methodLabel}) - ${p.status === 'awaiting_confirmation' ? 'Awaiting admin confirmation' : 'Waiting for payment'}`;
         } else {
             alert.classList.add('hidden');
         }
@@ -3125,9 +3125,9 @@
                     return;
                 }
                 
-                availableNetworks = data.networks || [];
+                paymentMethods = data.payment_methods || data.networks || [];
                 renderPlans(data.plans || []);
-                updateNetworkSelect(data.networks || []);
+                updateNetworkSelect(paymentMethods);
             })
             .catch(err => {
                 console.error('Error loading plans:', err);
@@ -3192,11 +3192,18 @@
             return;
         }
         
-        let html = '<option value="">Select payment network...</option>';
+        let html = '<option value="">Select payment method...</option>';
         networks.forEach(n => {
-            html += `<option value="${n.id}">${n.name}</option>`;
+            const label = n.label || n.name || n.id;
+            html += `<option value="${n.id}">${label}</option>`;
         });
         select.innerHTML = html;
+    }
+    
+    function getPaymentMethodLabel(methodId) {
+        const key = (methodId || '').toLowerCase();
+        const method = paymentMethods.find(m => m.id === methodId || m.id === key);
+        return method ? method.label : methodId;
     }
     
     function createPayment() {
@@ -3205,8 +3212,8 @@
             return;
         }
         
-        const network = document.getElementById('payment-network').value;
-        if (!network) {
+        const methodId = document.getElementById('payment-network').value;
+        if (!methodId) {
             showToast(t('dash.selectPaymentNetwork'), 'warning');
             return;
         }
@@ -3221,7 +3228,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 plan: selectedPlan.id,
-                network: network
+                payment_method_id: methodId
             })
         })
         .then(r => r.json())
@@ -3236,8 +3243,18 @@
             // Show wallet address
             document.getElementById('wallet-display').classList.remove('hidden');
             document.getElementById('tx-hash-section').classList.remove('hidden');
-            document.getElementById('payment-wallet-address').textContent = data.payment.wallet_address;
+            const paymentDetails = data.payment.payment_details || data.payment.wallet_address || '-';
+            document.getElementById('payment-wallet-address').textContent = paymentDetails;
             document.getElementById('payment-amount-display').textContent = `$${data.payment.amount_usd.toFixed(2)}`;
+            
+            const helpText = document.getElementById('payment-help-text');
+            if (helpText) {
+                if (data.payment.payment_method_type === 'wallet') {
+                    helpText.innerHTML = `<strong>Important:</strong> Send exactly <span class="font-mono text-yellow-400">$${data.payment.amount_usd.toFixed(2)}</span> to this address.`;
+                } else {
+                    helpText.innerHTML = `<strong>Important:</strong> Use the details above and send exactly <span class="font-mono text-yellow-400">$${data.payment.amount_usd.toFixed(2)}</span>.`;
+                }
+            }
             
             // Toggle buttons
             btn.classList.add('hidden');
@@ -3306,6 +3323,12 @@
         document.getElementById('btn-create-payment').classList.remove('hidden');
         document.getElementById('btn-mark-paid').classList.add('hidden');
         document.getElementById('tx-hash-input').value = '';
+        const helpText = document.getElementById('payment-help-text');
+        if (helpText) {
+            helpText.innerHTML = '<strong>Important:</strong> Follow the payment instructions and send exactly <span class="font-mono text-yellow-400">$0.00</span>.';
+        }
+        const detailsEl = document.getElementById('payment-wallet-address');
+        if (detailsEl) detailsEl.textContent = '-';
         selectedPlan = null;
         currentPaymentId = null;
         loadAvailablePlans();

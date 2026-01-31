@@ -8,13 +8,17 @@
         position: fixed !important;
         inset: 0 !important;
         z-index: 9999 !important;
-        display: none !important;
+        display: none;
         align-items: center !important;
         justify-content: center !important;
         padding: 20px;
         background: rgba(0, 0, 0, 0.85) !important;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .modal-overlay.active {
+        display: flex;
     }
     
     .modal-header {
@@ -99,61 +103,263 @@
             <!-- Stats Row -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Premium Users</div>
-                    <div class="font-mono text-2xl font-bold text-cyan" id="admin-premium-users">0</div>
+                    <div class="text-xs text-muted mb-1">Total Users</div>
+                    <div class="font-mono text-2xl font-bold text-cyan" id="admin-total-users">0</div>
                 </div>
                 <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Pending Payments</div>
-                    <div class="font-mono text-2xl font-bold text-yellow" id="admin-pending-payments">0</div>
+                    <div class="text-xs text-muted mb-1">Active Subscribers</div>
+                    <div class="font-mono text-2xl font-bold text-green" id="admin-active-subscribers">0</div>
+                </div>
+                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                    <div class="text-xs text-muted mb-1">Expired</div>
+                    <div class="font-mono text-2xl font-bold text-yellow" id="admin-expired-subscribers">0</div>
                 </div>
                 <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                     <div class="text-xs text-muted mb-1">Total Revenue</div>
-                    <div class="font-mono text-2xl font-bold text-green" id="admin-total-revenue">$0</div>
-                </div>
-                <div class="p-3 rounded-xl text-center" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Insurance Fund</div>
-                    <div class="font-mono text-2xl font-bold text-magenta" id="admin-insurance-fund">$0</div>
+                    <div class="font-mono text-2xl font-bold text-magenta" id="admin-total-revenue">$0</div>
                 </div>
             </div>
             
-            <!-- Wallet Addresses Section -->
-            <div id="subscription-wallets" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
-                    <i class="fas fa-wallet text-purple"></i>
-                    <span>Payment Wallet Addresses</span>
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="wallet-addresses-grid">
-                    <div class="flex items-center justify-center py-4">
-                        <i class="fas fa-spinner fa-spin text-muted"></i>
-                    </div>
-                </div>
-                <div class="mt-4 pt-4 border-t border-[var(--color-border)]">
-                    <button onclick="openWalletSettingsModal()" class="cyber-btn cyber-btn-gradient-purple w-full">
-                        <i class="fas fa-edit"></i>
-                        <span>Edit Wallet Addresses</span>
+            <!-- Subscription Plans -->
+            <div id="subscription-plans" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-display font-semibold flex items-center gap-2">
+                        <i class="fas fa-tags text-cyan"></i>
+                        <span>Subscription Plans</span>
+                    </h3>
+                    <button onclick="savePlanSettings()" class="cyber-btn cyber-btn-gradient-purple cyber-btn-sm">
+                        <i class="fas fa-save"></i>
+                        <span>Save Plans</span>
                     </button>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="plan-settings-grid"></div>
+                <p class="text-xs text-muted mt-3">These prices are shown to users in their subscription section.</p>
             </div>
             
-            <!-- Insurance Fund Settings -->
-            <div class="p-4 rounded-xl mb-4" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
-                <h3 class="font-display font-semibold flex items-center gap-2 mb-3">
-                    <i class="fas fa-shield-alt text-purple"></i>
-                    <span>Insurance Fund (Safety Pool)</span>
+            <!-- Payment Methods -->
+            <div id="payment-methods-section" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-display font-semibold flex items-center gap-2">
+                        <i class="fas fa-wallet text-purple"></i>
+                        <span>Payment Methods</span>
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="addPaymentMethodRow()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                            <i class="fas fa-plus"></i>
+                            <span>Add</span>
+                        </button>
+                        <button onclick="savePaymentMethods()" class="cyber-btn cyber-btn-gradient-purple cyber-btn-sm">
+                            <i class="fas fa-save"></i>
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="payment-methods-list" class="space-y-3"></div>
+                <p class="text-xs text-muted mt-3">Add bank/card details or wallet addresses for user payments.</p>
+            </div>
+            
+            <!-- Bonus / Manual Extension -->
+            <div id="subscription-bonus" class="p-4 rounded-xl mb-4" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2);">
+                <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-gift text-green"></i>
+                    <span>Bonus & Manual Extension</span>
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Fund Wallet Address</label>
-                        <div class="font-mono text-sm text-purple break-all" id="insurance-wallet-display">Not configured</div>
+                        <label class="text-xs text-muted mb-1 block">User</label>
+                        <select id="bonus-user-select" class="input"></select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Network</label>
-                        <div class="font-semibold text-bright" id="insurance-network-display">-</div>
+                        <label class="text-xs text-muted mb-1 block">Plan</label>
+                        <select id="bonus-plan-select" class="input"></select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Contribution Rate</label>
-                        <div class="font-semibold text-bright" id="insurance-rate-display">5%</div>
+                        <label class="text-xs text-muted mb-1 block">Days to Add</label>
+                        <input type="number" id="bonus-days-input" class="input" min="1" value="30">
                     </div>
+                    <div class="flex items-end">
+                        <button onclick="grantSubscription()" class="cyber-btn cyber-btn-success w-full">
+                            <i class="fas fa-check"></i>
+                            <span>Apply Bonus</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-xs text-muted mt-3">Use for free bonus access or manual month extensions.</p>
+            </div>
+            
+            <!-- Subscribers List -->
+            <div id="subscribers-list-section" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <h3 class="font-display font-semibold flex items-center gap-2">
+                        <i class="fas fa-users text-cyan"></i>
+                        <span>Subscribers</span>
+                    </h3>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="subscribers-search" class="input" placeholder="Search user..." oninput="loadSubscribers()">
+                        <select id="subscribers-filter" class="input" onchange="loadSubscribers()">
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="expired">Expired</option>
+                            <option value="free">Free</option>
+                        </select>
+                        <button onclick="loadSubscribers()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                            <i class="fas fa-sync"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="subscribers-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+            </div>
+
+            <!-- Referral Payouts -->
+            <div id="referral-payouts" class="p-4 rounded-xl mb-4" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-display font-semibold flex items-center gap-2">
+                        <i class="fas fa-hand-holding-usd text-green"></i>
+                        <span>Referral Payouts</span>
+                    </h3>
+                    <span class="text-xs text-muted">Filter by status</span>
+                </div>
+                
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                        <div class="text-xs text-muted mb-1">Total Referrals</div>
+                        <div class="font-mono text-lg font-bold text-cyan" id="admin-total-referrals">0</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                        <div class="text-xs text-muted mb-1">Pending Payouts</div>
+                        <div class="font-mono text-lg font-bold text-yellow" id="admin-pending-payout-amount">$0.00</div>
+                    </div>
+                    <div class="p-3 rounded-lg text-center" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                        <div class="text-xs text-muted mb-1">Pending Requests</div>
+                        <div class="font-mono text-lg font-bold text-green" id="admin-pending-payout-requests">0</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                    <a href="{{ url_for('admin_subscription', payout_status='pending') }}#referral-payouts"
+                       class="p-3 rounded-lg border text-xs {{ 'bg-yellow-500/10 border-yellow-500/40 text-yellow-300' if payout_status_filter == 'pending' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                        <div class="flex items-center justify-between">
+                            <span>Pending</span>
+                            <span class="badge badge-yellow">{{ payout_counts.pending }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_subscription', payout_status='approved') }}#referral-payouts"
+                       class="p-3 rounded-lg border text-xs {{ 'bg-blue-500/10 border-blue-500/40 text-blue-300' if payout_status_filter == 'approved' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                        <div class="flex items-center justify-between">
+                            <span>Approved</span>
+                            <span class="badge badge-blue">{{ payout_counts.approved }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_subscription', payout_status='paid') }}#referral-payouts"
+                       class="p-3 rounded-lg border text-xs {{ 'bg-green-500/10 border-green-500/40 text-green-300' if payout_status_filter == 'paid' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                        <div class="flex items-center justify-between">
+                            <span>Paid</span>
+                            <span class="badge badge-green">{{ payout_counts.paid }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_subscription', payout_status='rejected') }}#referral-payouts"
+                       class="p-3 rounded-lg border text-xs {{ 'bg-red-500/10 border-red-500/40 text-red-300' if payout_status_filter == 'rejected' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                        <div class="flex items-center justify-between">
+                            <span>Rejected</span>
+                            <span class="badge badge-red">{{ payout_counts.rejected }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_subscription', payout_status='all') }}#referral-payouts"
+                       class="p-3 rounded-lg border text-xs {{ 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' if payout_status_filter == 'all' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
+                        <div class="flex items-center justify-between">
+                            <span>All</span>
+                            <span class="badge badge-cyan">{{ payout_counts.pending + payout_counts.approved + payout_counts.paid + payout_counts.rejected }}</span>
+                        </div>
+                    </a>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    {% if payouts %}
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs text-white/40 border-b border-white/10">
+                                <th class="pb-2">User</th>
+                                <th class="pb-2">Amount</th>
+                                <th class="pb-2">Method</th>
+                                <th class="pb-2">Address</th>
+                                <th class="pb-2">Status</th>
+                                <th class="pb-2">Date</th>
+                                <th class="pb-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            {% for payout in payouts %}
+                            <tr class="hover:bg-white/5">
+                                <td class="py-3">
+                                    <div class="font-semibold text-white">{{ payout.user.username }}</div>
+                                    <div class="text-xs text-white/40">{{ payout.user.email or '—' }}</div>
+                                </td>
+                                <td class="py-3 font-mono font-semibold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
+                                <td class="py-3 text-white/60">
+                                    {{ payout.PAYMENT_METHODS.get(payout.payment_method, payout.payment_method) }}
+                                </td>
+                                <td class="py-3">
+                                    {% set address = payout.payment_address or '' %}
+                                    <div class="max-w-xs truncate font-mono text-xs text-white/60" title="{{ address }}">
+                                        {{ address[:30] }}{% if address|length > 30 %}...{% endif %}
+                                    </div>
+                                    <button onclick="copyPayoutAddress('{{ address }}')" class="text-xs text-cyan-400 hover:text-cyan-300">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                </td>
+                                <td class="py-3">
+                                    {% if payout.status == 'paid' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                                        <i class="fas fa-check"></i> Paid
+                                    </span>
+                                    {% elif payout.status == 'approved' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400">
+                                        <i class="fas fa-thumbs-up"></i> Approved
+                                    </span>
+                                    {% elif payout.status == 'pending' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                    {% elif payout.status == 'rejected' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400">
+                                        <i class="fas fa-times"></i> Rejected
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-xs text-white/40">
+                                    {{ payout.created_at.strftime('%d %b %Y') if payout.created_at else '-' }}
+                                </td>
+                                <td class="py-3 text-right">
+                                    {% if payout.status == 'pending' %}
+                                    <div class="flex gap-2 justify-end">
+                                        <button onclick="openPayoutApproveModal('{{ payout.id }}')" class="cyber-btn cyber-btn-success cyber-btn-sm">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button onclick="openPayoutRejectModal('{{ payout.id }}')" class="cyber-btn cyber-btn-danger cyber-btn-sm">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    {% elif payout.status == 'approved' %}
+                                    <button onclick="openPayoutPayModal('{{ payout.id }}')" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                                        <i class="fas fa-money-bill"></i>
+                                    </button>
+                                    {% else %}
+                                    <button onclick="viewPayoutDetails('{{ payout.id }}')" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-6 text-muted">
+                        <i class="fas fa-inbox text-2xl mb-2 opacity-50"></i>
+                        <div>No payout requests</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
@@ -162,6 +368,7 @@
                 <h3 class="font-display font-semibold flex items-center gap-2 mb-4">
                     <i class="fas fa-clock text-yellow"></i>
                     <span>Pending Payments</span>
+                    <span class="badge badge-yellow ml-2" id="admin-pending-payments">0</span>
                 </h3>
                 <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto">
                     <div class="text-center py-4 text-muted text-sm">
@@ -173,137 +380,171 @@
     </div>
 </div>
 
-<!-- Wallet Settings Modal -->
-<div id="walletSettingsModal" class="modal-overlay" onclick="if(event.target===this)closeWalletSettingsModal()">
-    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto;">
-        <div class="modal-header" style="position: sticky; top: 0; background: var(--color-surface-2); z-index: 10;">
+<!-- Payout Approve Modal -->
+<div id="payoutApproveModal" class="modal-overlay" onclick="if(event.target===this)closePayoutModal('payoutApproveModal')">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="background: var(--color-surface-2);">
             <div class="modal-title">
-                <i class="fas fa-wallet text-purple"></i>
-                <span>Wallet & Payment Settings</span>
+                <i class="fas fa-check-circle text-green"></i>
+                <span>Approve Payout</span>
             </div>
-            <button onclick="closeWalletSettingsModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+            <button onclick="closePayoutModal('payoutApproveModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="modal-body">
-            <!-- Payment Wallet Addresses -->
-            <div class="mb-6">
-                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
-                    <i class="fas fa-coins text-yellow"></i>
-                    <span>Payment Wallet Addresses</span>
-                </h4>
-                <p class="text-xs text-muted mb-4">Configure wallet addresses for each network. Only networks with configured addresses will be shown to users.</p>
-                
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">USDT (TRC20)</label>
-                        <input type="text" id="wallet-usdt-trc20" placeholder="Адреса TRON гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">USDT (ERC20)</label>
-                        <input type="text" id="wallet-usdt-erc20" placeholder="Адреса Ethereum гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">USDT (BEP20)</label>
-                        <input type="text" id="wallet-usdt-bep20" placeholder="Адреса BSC гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Bitcoin (BTC)</label>
-                        <input type="text" id="wallet-btc" placeholder="Адреса Bitcoin гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Ethereum (ETH)</label>
-                        <input type="text" id="wallet-eth" placeholder="Адреса ETH гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Litecoin (LTC)</label>
-                        <input type="text" id="wallet-ltc" placeholder="Адреса Litecoin гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Solana (SOL)</label>
-                        <input type="text" id="wallet-sol" placeholder="Адреса Solana гаманця" class="input flex-1 font-mono text-sm">
-                    </div>
-                </div>
+        <form id="payoutApproveForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-3">Approve this payout request?</p>
+                <label class="text-xs text-muted mb-2 block">Notes (optional)</label>
+                <textarea name="notes" class="input" rows="2" placeholder="Add notes for reference..."></textarea>
             </div>
-            
-            <!-- Insurance Fund Settings -->
-            <div class="mb-6 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border: 1px solid rgba(139, 92, 246, 0.3);">
-                <h4 class="font-display font-semibold flex items-center gap-2 mb-4">
-                    <i class="fas fa-shield-alt text-purple"></i>
-                    <span>Insurance Fund Wallet</span>
-                </h4>
-                <p class="text-xs text-muted mb-4">Configure the wallet address for storing Insurance Fund (Safety Pool) funds.</p>
-                
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Wallet Address</label>
-                        <input type="text" id="insurance-wallet" placeholder="Адреса гаманця страхового фонду" class="input flex-1 font-mono text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Network</label>
-                        <select id="insurance-network" class="input flex-1">
-                            <option value="USDT_TRC20">USDT (TRC20 - Tron)</option>
-                            <option value="USDT_ERC20">USDT (ERC20 - Ethereum)</option>
-                            <option value="USDT_BEP20">USDT (BEP20 - BSC)</option>
-                            <option value="BTC">Bitcoin (BTC)</option>
-                            <option value="ETH">Ethereum (ETH)</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-muted w-28">Contribution %</label>
-                        <input type="number" id="insurance-rate" value="5" min="0" max="100" step="0.5" class="input w-24">
-                        <span class="text-xs text-muted">% of platform fees</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Auto Confirm Setting -->
-            <div class="mb-6 p-4 rounded-xl" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-display font-semibold flex items-center gap-2">
-                            <i class="fas fa-magic text-cyan"></i>
-                            <span>Auto-Confirm Payments</span>
-                        </h4>
-                        <p class="text-xs text-muted mt-1">⚠️ RISKY: Automatically activate subscription when user marks payment as sent</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="auto-confirm-toggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan"></div>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Save Button -->
-            <div class="flex gap-3">
-                <button onclick="saveWalletSettings()" class="cyber-btn cyber-btn-gradient-purple flex-1">
-                    <i class="fas fa-save"></i>
-                    <span data-i18n="settings.saveAll">Зберегти всі налаштування</span>
+            <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
+                <button type="button" onclick="closePayoutModal('payoutApproveModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="submit" class="cyber-btn cyber-btn-success">
+                    <i class="fas fa-check"></i>
+                    <span>Approve</span>
                 </button>
-                <button onclick="closeWalletSettingsModal()" class="cyber-btn cyber-btn-outline">
-                    <span>Cancel</span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Payout Reject Modal -->
+<div id="payoutRejectModal" class="modal-overlay" onclick="if(event.target===this)closePayoutModal('payoutRejectModal')">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="background: var(--color-surface-2);">
+            <div class="modal-title">
+                <i class="fas fa-times-circle text-red"></i>
+                <span>Reject Payout</span>
+            </div>
+            <button onclick="closePayoutModal('payoutRejectModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="payoutRejectForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-3">Please provide a reason for rejection.</p>
+                <label class="text-xs text-muted mb-2 block">Reason</label>
+                <textarea name="reason" class="input" rows="3" placeholder="Reason for rejection..." required></textarea>
+            </div>
+            <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
+                <button type="button" onclick="closePayoutModal('payoutRejectModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="submit" class="cyber-btn cyber-btn-danger">
+                    <i class="fas fa-times"></i>
+                    <span>Reject</span>
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Payout Mark Paid Modal -->
+<div id="payoutPayModal" class="modal-overlay" onclick="if(event.target===this)closePayoutModal('payoutPayModal')">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="background: var(--color-surface-2);">
+            <div class="modal-title">
+                <i class="fas fa-money-bill-wave text-cyan"></i>
+                <span>Mark as Paid</span>
+            </div>
+            <button onclick="closePayoutModal('payoutPayModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="payoutPayForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
+            <div class="modal-body">
+                <p class="text-sm text-muted mb-3">Confirm the payout was sent.</p>
+                <label class="text-xs text-muted mb-2 block">Transaction ID</label>
+                <input type="text" name="txn_id" class="input" placeholder="Transaction reference (optional)">
+                <label class="text-xs text-muted mb-2 block mt-3">Notes (optional)</label>
+                <textarea name="notes" class="input" rows="2" placeholder="Add notes for reference..."></textarea>
+            </div>
+            <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
+                <button type="button" onclick="closePayoutModal('payoutPayModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="submit" class="cyber-btn cyber-btn-success">
+                    <i class="fas fa-check"></i>
+                    <span>Confirm Paid</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Payout Details Modal -->
+<div id="payoutDetailsModal" class="modal-overlay" onclick="if(event.target===this)closePayoutModal('payoutDetailsModal')">
+    <div style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="background: var(--color-surface-2);">
+            <div class="modal-title">
+                <i class="fas fa-info-circle text-purple"></i>
+                <span>Payout Details</span>
+            </div>
+            <button onclick="closePayoutModal('payoutDetailsModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="payout-details-content">
+            <div class="text-center py-6 text-muted">
+                <i class="fas fa-spinner fa-spin"></i> Loading...
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     let subscriptionSettings = null;
+    let paymentMethods = [];
     
     async function loadSubscriptionStats() {
         try {
             const response = await fetch('/api/admin/subscription-stats');
             const data = await response.json();
             if (data.success) {
-                const premiumEl = document.getElementById('admin-premium-users');
-                if (premiumEl) premiumEl.textContent = data.premium_count || 0;
+                const totalEl = document.getElementById('admin-total-users');
+                const activeEl = document.getElementById('admin-active-subscribers');
+                const expiredEl = document.getElementById('admin-expired-subscribers');
+                const revenueEl = document.getElementById('admin-total-revenue');
+                
+                if (totalEl) totalEl.textContent = data.total_users || 0;
+                if (activeEl) activeEl.textContent = data.premium_count || 0;
+                if (expiredEl) expiredEl.textContent = data.expired_count || 0;
+                if (revenueEl) revenueEl.textContent = `$${(data.total_revenue || 0).toFixed(2)}`;
             }
         } catch (err) {
-            const premiumEl = document.getElementById('admin-premium-users');
-            if (premiumEl) premiumEl.textContent = '0';
+            const totalEl = document.getElementById('admin-total-users');
+            const activeEl = document.getElementById('admin-active-subscribers');
+            const expiredEl = document.getElementById('admin-expired-subscribers');
+            const revenueEl = document.getElementById('admin-total-revenue');
+            
+            if (totalEl) totalEl.textContent = '0';
+            if (activeEl) activeEl.textContent = '0';
+            if (expiredEl) expiredEl.textContent = '0';
+            if (revenueEl) revenueEl.textContent = '$0.00';
+        }
+    }
+
+    async function loadReferralStats() {
+        try {
+            const response = await fetch('/api/admin/referral-stats');
+            const data = await response.json();
+            if (data.success) {
+                const totalRefEl = document.getElementById('admin-total-referrals');
+                const pendingAmountEl = document.getElementById('admin-pending-payout-amount');
+                const pendingReqEl = document.getElementById('admin-pending-payout-requests');
+                
+                if (totalRefEl) totalRefEl.textContent = data.total_referrals || 0;
+                if (pendingAmountEl) pendingAmountEl.textContent = `$${(data.pending_payouts || 0).toFixed(2)}`;
+                if (pendingReqEl) pendingReqEl.textContent = data.pending_requests || 0;
+            }
+        } catch (err) {
+            const totalRefEl = document.getElementById('admin-total-referrals');
+            const pendingAmountEl = document.getElementById('admin-pending-payout-amount');
+            const pendingReqEl = document.getElementById('admin-pending-payout-requests');
+            
+            if (totalRefEl) totalRefEl.textContent = '0';
+            if (pendingAmountEl) pendingAmountEl.textContent = '$0.00';
+            if (pendingReqEl) pendingReqEl.textContent = '0';
         }
     }
     
@@ -326,83 +567,434 @@
                 toggle.checked = data.subscription.enabled;
                 if (label) label.textContent = data.subscription.enabled ? 'ON' : 'OFF';
             }
-            
-            // Update wallet addresses grid
-            renderWalletAddresses(data.wallets);
-            
-            // Update insurance fund display
-            const insWallet = document.getElementById('insurance-wallet-display');
-            const insNetwork = document.getElementById('insurance-network-display');
-            const insRate = document.getElementById('insurance-rate-display');
-            
-            if (insWallet) {
-                insWallet.textContent = data.insurance_fund.wallet_address || 'Not configured';
-            }
-            if (insNetwork) {
-                insNetwork.textContent = data.insurance_fund.wallet_network || '-';
-            }
-            if (insRate) {
-                insRate.textContent = `${data.insurance_fund.contribution_rate}%`;
-            }
-            
-            // Load insurance fund balance
-            loadInsuranceFundBalance();
+            renderPlanSettings(data.plans || []);
+            renderPaymentMethods(data.payment_methods || []);
+            populateBonusPlans(data.plans || []);
             
         } catch (err) {
             console.error('Error loading subscription settings:', err);
         }
     }
-    
-    function renderWalletAddresses(wallets) {
-        const grid = document.getElementById('wallet-addresses-grid');
+
+    function renderPlanSettings(plans) {
+        const grid = document.getElementById('plan-settings-grid');
         if (!grid) return;
         
-        const networkNames = {
-            'usdt_trc20': { name: 'USDT (TRC20)', icon: 'fas fa-coins', color: 'text-green' },
-            'usdt_erc20': { name: 'USDT (ERC20)', icon: 'fab fa-ethereum', color: 'text-blue-400' },
-            'usdt_bep20': { name: 'USDT (BEP20)', icon: 'fas fa-coins', color: 'text-yellow' },
-            'btc': { name: 'Bitcoin', icon: 'fab fa-bitcoin', color: 'text-orange-500' },
-            'eth': { name: 'Ethereum', icon: 'fab fa-ethereum', color: 'text-purple' },
-            'ltc': { name: 'Litecoin', icon: 'fas fa-coins', color: 'text-gray-400' },
-            'sol': { name: 'Solana', icon: 'fas fa-sun', color: 'text-purple-400' }
-        };
+        if (!plans || plans.length === 0) {
+            grid.innerHTML = '<div class="text-center py-4 text-muted">No plans configured</div>';
+            return;
+        }
         
         let html = '';
-        for (const [key, info] of Object.entries(networkNames)) {
-            const address = wallets[key] || '';
-            const hasAddress = address && address.length > 0;
-            
+        plans.forEach(plan => {
             html += `
-                <div class="p-3 rounded-lg flex items-center gap-3" style="background: ${hasAddress ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.02)'}; border: 1px solid ${hasAddress ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-border)'};">
-                    <i class="${info.icon} ${info.color}"></i>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs text-muted">${info.name}</div>
-                        <div class="font-mono text-xs ${hasAddress ? 'text-bright' : 'text-muted'} truncate">
-                            ${hasAddress ? address.substring(0, 12) + '...' + address.slice(-6) : 'Not set'}
+                <div class="p-3 rounded-lg border" data-plan-id="${plan.id}" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
+                    <div class="flex items-center justify-between mb-2">
+                        <input type="text" class="input text-sm font-semibold" data-field="name" value="${plan.name || ''}" placeholder="Plan name">
+                        <label class="flex items-center gap-2 text-xs text-muted">
+                            <input type="checkbox" data-field="enabled" ${plan.enabled ? 'checked' : ''} class="cyber-checkbox">
+                            <span>Enabled</span>
+                        </label>
+                    </div>
+                    <div class="text-xs text-muted mb-3">${plan.id.toUpperCase()}</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-muted mb-1 block">Price ($)</label>
+                            <input type="number" step="0.01" min="0" class="input" data-field="price" value="${plan.price}">
+                        </div>
+                        <div>
+                            <label class="text-xs text-muted mb-1 block">Days</label>
+                            <input type="number" step="1" min="1" class="input" data-field="days" value="${plan.days}">
                         </div>
                     </div>
-                    <span class="w-2 h-2 rounded-full ${hasAddress ? 'bg-green-500' : 'bg-gray-600'}"></span>
                 </div>
             `;
-        }
+        });
         grid.innerHTML = html;
     }
     
-    async function loadInsuranceFundBalance() {
-        const fundEl = document.getElementById('admin-insurance-fund');
-        if (!fundEl) return;
+    async function savePlanSettings() {
+        const cards = document.querySelectorAll('[data-plan-id]');
+        const plans = Array.from(cards).map(card => {
+            const id = card.dataset.planId;
+            return {
+                id,
+                name: card.querySelector('[data-field="name"]').value.trim(),
+                price: parseFloat(card.querySelector('[data-field="price"]').value) || 0,
+                days: parseInt(card.querySelector('[data-field="days"]').value) || 1,
+                enabled: card.querySelector('[data-field="enabled"]').checked
+            };
+        });
         
         try {
-            const response = await fetch('/api/master/exchange_balances');
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plans })
+            });
             const data = await response.json();
-            if (data.success && typeof data.total_balance === 'number') {
-                fundEl.textContent = `$${data.total_balance.toFixed(2)}`;
+            if (data.success) {
+                showToast('Plans updated', 'success');
+                loadSubscriptionSettings();
+                loadSubscriptionStats();
             } else {
-                fundEl.textContent = '$0.00';
+                showToast(data.error || 'Failed to update plans', 'error');
             }
         } catch (err) {
-            fundEl.textContent = '$0.00';
+            showToast('Network error', 'error');
         }
+    }
+    
+    function renderPaymentMethods(methods) {
+        const container = document.getElementById('payment-methods-list');
+        if (!container) return;
+        
+        paymentMethods = methods || [];
+        
+        if (!methods || methods.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">No payment methods configured</div>';
+            return;
+        }
+        
+        let html = '';
+        methods.forEach(method => {
+            html += buildPaymentMethodRow(method);
+        });
+        container.innerHTML = html;
+    }
+    
+    function buildPaymentMethodRow(method = {}) {
+        const id = method.id || '';
+        const label = method.label || '';
+        const type = method.type || 'wallet';
+        const details = method.details || '';
+        const enabled = method.enabled !== false;
+        
+        return `
+            <div class="p-3 rounded-lg border payment-method-row" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Label</label>
+                        <input type="text" class="input" data-field="label" value="${label}" placeholder="e.g., Bank Transfer">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">ID</label>
+                        <input type="text" class="input" data-field="id" value="${id}" placeholder="bank_transfer">
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Type</label>
+                        <select class="input" data-field="type">
+                            <option value="wallet" ${type === 'wallet' ? 'selected' : ''}>Wallet</option>
+                            <option value="bank" ${type === 'bank' ? 'selected' : ''}>Bank</option>
+                            <option value="card" ${type === 'card' ? 'selected' : ''}>Card</option>
+                            <option value="exchange" ${type === 'exchange' ? 'selected' : ''}>Exchange Wallet</option>
+                            <option value="other" ${type === 'other' ? 'selected' : ''}>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-muted mb-1 block">Details</label>
+                        <textarea class="input" data-field="details" rows="2" placeholder="Account / Card / Wallet details">${details}</textarea>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <label class="flex items-center gap-2 text-xs text-muted">
+                        <input type="checkbox" data-field="enabled" ${enabled ? 'checked' : ''} class="cyber-checkbox">
+                        <span>Enabled</span>
+                    </label>
+                    <button onclick="removePaymentMethodRow(this)" class="cyber-btn cyber-btn-outline cyber-btn-sm">
+                        <i class="fas fa-trash"></i>
+                        <span>Remove</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function addPaymentMethodRow() {
+        const container = document.getElementById('payment-methods-list');
+        if (!container) return;
+        container.insertAdjacentHTML('beforeend', buildPaymentMethodRow());
+    }
+    
+    function removePaymentMethodRow(btn) {
+        const row = btn.closest('.payment-method-row');
+        if (row) row.remove();
+    }
+    
+    async function savePaymentMethods() {
+        const rows = document.querySelectorAll('.payment-method-row');
+        const methods = Array.from(rows).map(row => {
+            return {
+                label: row.querySelector('[data-field="label"]').value.trim(),
+                id: row.querySelector('[data-field="id"]').value.trim(),
+                type: row.querySelector('[data-field="type"]').value,
+                details: row.querySelector('[data-field="details"]').value.trim(),
+                enabled: row.querySelector('[data-field="enabled"]').checked
+            };
+        }).filter(m => m.id && m.label);
+        
+        try {
+            const response = await fetch('/api/admin/subscription-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payment_methods: methods })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Payment methods updated', 'success');
+                loadSubscriptionSettings();
+            } else {
+                showToast(data.error || 'Failed to update payment methods', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    function populateBonusPlans(plans) {
+        const select = document.getElementById('bonus-plan-select');
+        if (!select) return;
+        if (!plans || plans.length === 0) {
+            select.innerHTML = '<option value="">No plans</option>';
+            return;
+        }
+        select.innerHTML = plans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+    
+    async function loadSubscribers() {
+        const search = document.getElementById('subscribers-search')?.value.trim() || '';
+        const status = document.getElementById('subscribers-filter')?.value || 'all';
+        const url = `/api/admin/subscribers?status=${encodeURIComponent(status)}&q=${encodeURIComponent(search)}`;
+        
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.success) {
+                renderSubscribers(data.users || []);
+                populateBonusUsers(data.users || []);
+            } else {
+                showToast(data.error || 'Failed to load subscribers', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+    
+    function populateBonusUsers(users) {
+        const select = document.getElementById('bonus-user-select');
+        if (!select) return;
+        if (!users || users.length === 0) {
+            select.innerHTML = '<option value="">No users</option>';
+            return;
+        }
+        select.innerHTML = users.map(u => `<option value="${u.id}">${u.username} (${u.plan})</option>`).join('');
+    }
+    
+    function renderSubscribers(users) {
+        const container = document.getElementById('subscribers-list');
+        if (!container) return;
+        
+        if (!users || users.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">No subscribers found</div>';
+            return;
+        }
+        
+        const rows = users.map(u => {
+            const status = u.has_active_subscription ? 'Active' : (u.plan === 'free' ? 'Free' : 'Expired');
+            const expires = u.expires_at ? new Date(u.expires_at).toLocaleDateString() : '—';
+            return `
+                <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/10">
+                            <i class="fas fa-user text-cyan"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-bright">${u.username}</div>
+                            <div class="text-xs text-muted">${u.email || '—'}</div>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-muted">
+                        <div>${u.plan.toUpperCase()} • ${status}</div>
+                        <div>Expires: ${expires}</div>
+                        <div>Days: ${u.days_remaining}</div>
+                    </div>
+                    <button onclick="setBonusUser(${u.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm ml-3">
+                        <i class="fas fa-gift"></i>
+                        <span>Bonus</span>
+                    </button>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = rows;
+    }
+    
+    function setBonusUser(userId) {
+        const select = document.getElementById('bonus-user-select');
+        if (select) select.value = String(userId);
+        select?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    async function grantSubscription() {
+        const userId = document.getElementById('bonus-user-select')?.value;
+        const plan = document.getElementById('bonus-plan-select')?.value;
+        const days = parseInt(document.getElementById('bonus-days-input')?.value || '0');
+        
+        if (!userId || !plan || !days) {
+            showToast('Please select user, plan and days', 'warning');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/admin/activate-subscription/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan, days })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast(data.message || 'Subscription updated', 'success');
+                loadSubscribers();
+                loadSubscriptionStats();
+            } else {
+                showToast(data.error || 'Failed to update subscription', 'error');
+            }
+        } catch (err) {
+            showToast('Network error', 'error');
+        }
+    }
+
+    function copyPayoutAddress(address) {
+        if (!address) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(address).then(() => {
+                showToast('Address copied', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
+        } else {
+            const temp = document.createElement('input');
+            temp.value = address;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('Address copied', 'success');
+        }
+    }
+    
+    function openPayoutApproveModal(payoutId) {
+        const form = document.getElementById('payoutApproveForm');
+        if (form) form.action = `/admin/payout/${payoutId}/approve`;
+        openPayoutModal('payoutApproveModal');
+    }
+    
+    function openPayoutRejectModal(payoutId) {
+        const form = document.getElementById('payoutRejectForm');
+        if (form) form.action = `/admin/payout/${payoutId}/reject`;
+        openPayoutModal('payoutRejectModal');
+    }
+    
+    function openPayoutPayModal(payoutId) {
+        const form = document.getElementById('payoutPayForm');
+        if (form) form.action = `/admin/payout/${payoutId}/pay`;
+        openPayoutModal('payoutPayModal');
+    }
+    
+    function openPayoutModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closePayoutModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    function validatePayoutForm(form) {
+        const action = form.getAttribute('action');
+        if (!action || action === 'javascript:void(0)') {
+            showToast('Action not set', 'error');
+            return false;
+        }
+        return true;
+    }
+    
+    function viewPayoutDetails(payoutId) {
+        const content = document.getElementById('payout-details-content');
+        if (content) {
+            content.innerHTML = '<div class="text-center py-6 text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        }
+        openPayoutModal('payoutDetailsModal');
+        
+        fetch(`/api/admin/payout/${payoutId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    if (content) content.innerHTML = '<div class="text-center text-red-400">Failed to load details</div>';
+                    return;
+                }
+                const p = data.payout;
+                const u = data.user;
+                const created = p.created_at ? new Date(p.created_at).toLocaleString() : 'N/A';
+                const processed = p.paid_at || p.reviewed_at;
+                const processedLabel = processed ? new Date(processed).toLocaleString() : 'N/A';
+                
+                if (content) {
+                    content.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">User</div>
+                                <div class="font-semibold">${u.username}</div>
+                                <div class="text-xs text-white/40">${u.email || '—'}</div>
+                            </div>
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">Amount</div>
+                                <div class="font-mono font-semibold text-green-400">$${p.amount.toFixed(2)}</div>
+                            </div>
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">Status</div>
+                                <div class="font-semibold">${p.status}</div>
+                            </div>
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">Method</div>
+                                <div class="font-semibold">${p.payment_method_label}</div>
+                            </div>
+                            <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
+                                <div class="text-xs text-muted">Address / Details</div>
+                                <div class="font-mono text-sm break-all">${p.payment_address || '—'}</div>
+                            </div>
+                            ${p.txn_id ? `
+                            <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
+                                <div class="text-xs text-muted">Transaction ID</div>
+                                <div class="font-mono text-sm break-all">${p.txn_id}</div>
+                            </div>` : ''}
+                            ${p.admin_notes ? `
+                            <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
+                                <div class="text-xs text-muted">Admin Notes</div>
+                                <div class="text-sm">${p.admin_notes}</div>
+                            </div>` : ''}
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">Created</div>
+                                <div class="text-sm">${created}</div>
+                            </div>
+                            <div class="p-3 rounded-lg border border-white/10">
+                                <div class="text-xs text-muted">Processed</div>
+                                <div class="text-sm">${processedLabel}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(() => {
+                if (content) content.innerHTML = '<div class="text-center text-red-400">Failed to load details</div>';
+            });
     }
     
     async function loadPendingPayments() {
@@ -418,27 +1010,8 @@
             
             // Render list
             renderPendingPaymentsList(data.payments);
-            
-            // Calculate total revenue from completed payments
-            loadTotalRevenue();
-            
         } catch (err) {
             console.error('Error loading pending payments:', err);
-        }
-    }
-    
-    async function loadTotalRevenue() {
-        try {
-            const response = await fetch('/api/admin/subscription-payments?status=completed');
-            const data = await response.json();
-            
-            if (data.success) {
-                const total = data.payments.reduce((sum, p) => sum + (p.amount_usd || 0), 0);
-                const el = document.getElementById('admin-total-revenue');
-                if (el) el.textContent = `$${total.toFixed(2)}`;
-            }
-        } catch (err) {
-            console.error('Error loading revenue:', err);
         }
     }
     
@@ -459,6 +1032,8 @@
         let html = '';
         payments.forEach(p => {
             const createdAt = new Date(p.created_at);
+            const currencyKey = (p.currency || '').toLowerCase();
+            const methodLabel = paymentMethods.find(m => m.id === p.currency || m.id === currencyKey)?.label || p.currency;
             html += `
                 <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2);">
                     <div class="flex items-center gap-3">
@@ -467,7 +1042,7 @@
                         </div>
                         <div>
                             <div class="font-semibold text-bright">${p.username}</div>
-                            <div class="text-xs text-muted">${p.plan.toUpperCase()} - ${p.currency}</div>
+                            <div class="text-xs text-muted">${p.plan.toUpperCase()} - ${methodLabel}</div>
                         </div>
                     </div>
                     <div class="text-right">
@@ -571,106 +1146,19 @@
             loadSubscriptionSettings(),
             loadPendingPayments(),
             loadSubscriptionStats(),
-            loadInsuranceFundBalance()
+            loadSubscribers(),
+            loadReferralStats()
         ]).finally(() => {
             if (icon) icon.classList.remove('fa-spin');
         });
-    }
-    
-    function openWalletSettingsModal() {
-        const modal = document.getElementById('walletSettingsModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            populateWalletForm();
-        }
-    }
-    
-    function closeWalletSettingsModal() {
-        const modal = document.getElementById('walletSettingsModal');
-        if (modal) modal.style.display = 'none';
-    }
-    
-    function populateWalletForm() {
-        if (!subscriptionSettings) return;
-        
-        const wallets = subscriptionSettings.wallets || {};
-        const insurance = subscriptionSettings.insurance_fund || {};
-        
-        // Payment wallets
-        document.getElementById('wallet-usdt-trc20').value = wallets.usdt_trc20 || '';
-        document.getElementById('wallet-usdt-erc20').value = wallets.usdt_erc20 || '';
-        document.getElementById('wallet-usdt-bep20').value = wallets.usdt_bep20 || '';
-        document.getElementById('wallet-btc').value = wallets.btc || '';
-        document.getElementById('wallet-eth').value = wallets.eth || '';
-        document.getElementById('wallet-ltc').value = wallets.ltc || '';
-        document.getElementById('wallet-sol').value = wallets.sol || '';
-        
-        // Insurance fund
-        document.getElementById('insurance-wallet').value = insurance.wallet_address || '';
-        document.getElementById('insurance-network').value = insurance.wallet_network || 'USDT_TRC20';
-        document.getElementById('insurance-rate').value = insurance.contribution_rate || 5;
-        
-        // Auto confirm
-        const autoConfirm = document.getElementById('auto-confirm-toggle');
-        if (autoConfirm) {
-            autoConfirm.checked = subscriptionSettings.subscription?.auto_confirm || false;
-        }
-    }
-    
-    async function saveWalletSettings() {
-        const btn = document.querySelector('#walletSettingsModal button[onclick="saveWalletSettings()"]');
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        
-        try {
-            const payload = {
-                wallets: {
-                    usdt_trc20: document.getElementById('wallet-usdt-trc20').value.trim(),
-                    usdt_erc20: document.getElementById('wallet-usdt-erc20').value.trim(),
-                    usdt_bep20: document.getElementById('wallet-usdt-bep20').value.trim(),
-                    btc: document.getElementById('wallet-btc').value.trim(),
-                    eth: document.getElementById('wallet-eth').value.trim(),
-                    ltc: document.getElementById('wallet-ltc').value.trim(),
-                    sol: document.getElementById('wallet-sol').value.trim()
-                },
-                insurance_fund: {
-                    wallet_address: document.getElementById('insurance-wallet').value.trim(),
-                    wallet_network: document.getElementById('insurance-network').value,
-                    contribution_rate: parseFloat(document.getElementById('insurance-rate').value) || 5
-                },
-                subscription: {
-                    auto_confirm: document.getElementById('auto-confirm-toggle')?.checked || false
-                }
-            };
-            
-            const response = await fetch('/api/admin/subscription-settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast(t('admin.settingsSaved'), 'success');
-                closeWalletSettingsModal();
-                loadSubscriptionSettings();
-            } else {
-                showToast(data.error || 'Failed to save', 'error');
-            }
-        } catch (err) {
-            showToast(t('dash.networkError'), 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        }
     }
     
     document.addEventListener('DOMContentLoaded', () => {
         loadSubscriptionStats();
         loadSubscriptionSettings();
         loadPendingPayments();
+        loadSubscribers();
+        loadReferralStats();
     });
 </script>
 {% endblock %}
