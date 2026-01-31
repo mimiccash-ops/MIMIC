@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from config import Config
@@ -17,12 +17,26 @@ if Config.MASTER_KEY_ENCRYPTION:
     except Exception as e:
         print(f"⚠️ Encryption setup failed: {e}")
 
-# Password hashing context (bcrypt)
-_password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt 4.x removed __about__; patch for passlib compatibility.
+try:
+    import bcrypt as _bcrypt  # type: ignore
+    if not hasattr(_bcrypt, "__about__"):
+        class _About:  # pragma: no cover - runtime compatibility shim
+            __version__ = getattr(_bcrypt, "__version__", "unknown")
+        _bcrypt.__about__ = _About()
+except Exception:
+    _bcrypt = None
+
+# Password hashing context (bcrypt with SHA256 pre-hash for long passwords)
+_password_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 
 def _hash_secret(value: str) -> str:
-    return _password_context.hash(value)
+    try:
+        return _password_context.hash(value)
+    except Exception:
+        # Fallback to werkzeug PBKDF2 if bcrypt backend fails
+        return generate_password_hash(value, method="pbkdf2:sha256")
 
 
 def _verify_hash(stored_hash: str, value: str) -> bool:

@@ -2914,6 +2914,14 @@ class TradingEngine:
             # === CLOSE POSITION ===
             if action == 'close':
                 try:
+                    # Ensure exchange supports the symbol before attempting close
+                    if not getattr(exchange, "markets", None):
+                        await exchange.load_markets()
+                    if ccxt_symbol not in exchange.markets:
+                        error_msg = f"({exchange_type.upper()}) Symbol not supported on exchange: {ccxt_symbol}"
+                        logger.warning(f"⚠️ [{node_name}] {error_msg}")
+                        self.log_event(user_id, symbol, error_msg, is_error=True)
+                        return
                     positions = await exchange.fetch_positions([ccxt_symbol])
                     for pos in positions:
                         if pos['contracts'] and float(pos['contracts']) != 0:
