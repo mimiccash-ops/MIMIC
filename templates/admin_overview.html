@@ -250,14 +250,16 @@
                 <div class="stat-icon green overview-stat-icon"><i class="fas fa-chart-line"></i></div>
                 <div class="overview-stat-body">
                     <div class="overview-stat-label" data-i18n="dash.result">Result</div>
-                    <div class="overview-stat-value text-green" id="overview-result">+$0</div>
+                    <div class="overview-stat-value {{ 'text-green' if overview_total_pnl >= 0 else 'text-red' }}" id="overview-result">
+                        {{ '+' if overview_total_pnl >= 0 else '-' }}${{ "{:,.2f}".format(overview_total_pnl|abs) }}
+                    </div>
                 </div>
             </div>
             <div class="stat-card overview-stat-card">
                 <div class="stat-icon yellow overview-stat-icon"><i class="fas fa-percentage"></i></div>
                 <div class="overview-stat-body">
                     <div class="overview-stat-label" data-i18n="dash.winRate">Win Rate</div>
-                    <div class="overview-stat-value text-yellow" id="overview-winrate">0%</div>
+                    <div class="overview-stat-value text-yellow" id="overview-winrate">{{ "{:.1f}".format(overview_winrate) }}%</div>
                 </div>
             </div>
         </div>
