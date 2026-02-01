@@ -3944,6 +3944,9 @@ def admin_delete_user(user_id):
         
         # Delete messages (sent and received)
         Message.query.filter((Message.sender_id == user_id) | (Message.recipient_id == user_id)).delete()
+
+        # Delete live chat messages to avoid FK null updates
+        ChatMessage.query.filter_by(user_id=user_id).delete()
         
         # Delete password reset tokens
         PasswordResetToken.query.filter_by(user_id=user_id).delete()
