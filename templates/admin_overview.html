@@ -195,12 +195,28 @@
                     </div>
                     </div>
                     <div class="master-balance-card">
-                        <div class="master-balance-label">Загальний баланс</div>
+                        <div class="master-balance-label" data-i18n="admin.totalBalance">Total Balance</div>
                         <div id="master-balance" class="master-balance-value">
                             {% if master_balance and master_balance not in ['Connecting...', 'Error', 'N/A', 'No exchanges configured', 'Master exchanges not connected', 'Помилка', 'Error fetching balances'] %}
                                 ${{ master_balance }}
                             {% else %}
-                                <span class="text-muted">{{ master_balance or 'Connecting...' }}</span>
+                                {% set balance_status_key = None %}
+                                {% if not master_balance %}
+                                    {% set balance_status_key = 'admin.connecting' %}
+                                {% elif master_balance == 'Connecting...' %}
+                                    {% set balance_status_key = 'admin.connecting' %}
+                                {% elif master_balance in ['Error', 'Помилка'] %}
+                                    {% set balance_status_key = 'dash.error' %}
+                                {% elif master_balance == 'Error fetching balances' %}
+                                    {% set balance_status_key = 'admin.errorFetchingBalances' %}
+                                {% elif master_balance == 'No exchanges configured' %}
+                                    {% set balance_status_key = 'admin.noExchangesConfigured' %}
+                                {% elif master_balance == 'Master exchanges not connected' %}
+                                    {% set balance_status_key = 'admin.masterExchangesNotConnected' %}
+                                {% elif master_balance == 'N/A' %}
+                                    {% set balance_status_key = 'common.notAvailable' %}
+                                {% endif %}
+                                <span class="text-muted"{% if balance_status_key %} data-i18n="{{ balance_status_key }}"{% endif %}>{{ master_balance or 'Connecting...' }}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -223,7 +239,7 @@
                                 </a>
                             {% endif %}
                         {% else %}
-                            <span class="text-muted text-xs">Loading...</span>
+                            <span class="text-muted text-xs" data-i18n="common.loading">Loading...</span>
                         {% endif %}
                     </div>
                 </div>
@@ -284,7 +300,7 @@
                 <div class="text-right hidden md:block">
                     <div class="text-muted text-xs mb-1" data-i18n="admin.safetyPool">Safety Pool</div>
                     <div class="text-xs" style="color: rgba(255,255,255,0.4);" data-i18n="admin.feesToFund">5% of fees → fund</div>
-                    <div class="text-xs mt-1" style="color: rgba(255,255,255,0.3);" title="Covers slippage in extreme markets">
+                    <div class="text-xs mt-1" style="color: rgba(255,255,255,0.3);" title="Covers slippage in extreme markets" data-i18n-title="admin.slippageHint">
                         <i class="fas fa-info-circle"></i> <span data-i18n="admin.slippageProtection">Slippage protection</span>
                     </div>
                 </div>
@@ -386,11 +402,11 @@
                             </td>
                             <td class="text-center py-3 px-2">
                                 {% if user.is_paused %}
-                                <span class="badge badge-warning" title="Paused"><i class="fas fa-pause"></i></span>
+                                <span class="badge badge-warning" title="Paused" data-i18n-title="admin.userStatusPaused"><i class="fas fa-pause"></i></span>
                                 {% elif user.is_active %}
-                                <span class="badge badge-success" title="Active"><span class="status-dot online" style="width: 4px; height: 4px;"></span></span>
+                                <span class="badge badge-success" title="Active" data-i18n-title="admin.userStatusActive"><span class="status-dot online" style="width: 4px; height: 4px;"></span></span>
                                 {% else %}
-                                <span class="badge badge-danger" title="Inactive"><i class="fas fa-times"></i></span>
+                                <span class="badge badge-danger" title="Inactive" data-i18n-title="admin.userStatusInactive"><i class="fas fa-times"></i></span>
                                 {% endif %}
                             </td>
                             <td class="py-3 px-2 balance-cell">
@@ -398,7 +414,7 @@
                                 <div class="flex flex-col gap-1">
                                     {% for ex in user_exchange_details.get(user.id, []) %}
                                     <div class="flex items-center gap-1 text-xs">
-                                        <span class="w-2 h-2 rounded-full {{ 'bg-green' if ex.trading_enabled else 'bg-yellow' }}" title="{{ 'Trading enabled' if ex.trading_enabled else 'Trading disabled' }}"></span>
+                                        <span class="w-2 h-2 rounded-full {{ 'bg-green' if ex.trading_enabled else 'bg-yellow' }}" title="{{ 'Trading enabled' if ex.trading_enabled else 'Trading disabled' }}" data-i18n-title="{{ 'admin.tradingEnabled' if ex.trading_enabled else 'admin.tradingDisabled' }}"></span>
                                         <span class="text-muted truncate" style="max-width: 60px;" title="{{ ex.label }}">{{ ex.exchange_name[:3]|upper }}</span>
                                         {% if ex.balance is not none %}
                                         <span class="text-green font-bold font-mono">${{ "{:,.0f}".format(ex.balance) }}</span>
@@ -425,20 +441,20 @@
                             </td>
                             <td class="text-right py-3 px-2" onclick="event.stopPropagation();">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button onclick="openUserDetailsModal({{ user.id }})" class="action-btn cyber-btn-icon" title="View Details">
+                                    <button onclick="openUserDetailsModal({{ user.id }})" class="action-btn cyber-btn-icon" title="View Details" data-i18n-title="admin.viewDetails">
                                         <i class="fas fa-info-circle"></i>
                                     </button>
                                     {% if user.is_paused %}
                                     <form method="POST" action="{{ url_for('approve_user', user_id=user.id) }}" style="display: inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="action-btn cyber-btn-success cyber-btn-icon" title="Activate">
+                                        <button type="submit" class="action-btn cyber-btn-success cyber-btn-icon" title="Activate" data-i18n-title="admin.activate">
                                             <i class="fas fa-play"></i>
                                         </button>
                                     </form>
                                     {% else %}
                                     <form method="POST" action="{{ url_for('disconnect_user', user_id=user.id) }}" style="display: inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="action-btn cyber-btn-gradient-yellow cyber-btn-icon" title="Pause">
+                                        <button type="submit" class="action-btn cyber-btn-gradient-yellow cyber-btn-icon" title="Pause" data-i18n-title="admin.pause">
                                             <i class="fas fa-pause"></i>
                                         </button>
                                     </form>
@@ -460,7 +476,7 @@
         <div class="modal-header">
             <div class="modal-title">
                 <i class="fas fa-user text-cyan"></i>
-                <span>User Details</span>
+                <span data-i18n="admin.userDetails">User Details</span>
             </div>
             <button onclick="closeUserDetailsModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -479,6 +495,15 @@
 {% block extra_scripts %}
 <script>
     let socket = null;
+
+    function formatT(key, params) {
+        let text = t(key);
+        if (!params) return text;
+        Object.keys(params).forEach((param) => {
+            text = text.split(`{${param}}`).join(params[param]);
+        });
+        return text;
+    }
 
     function initSocket() {
         if (typeof io === 'undefined') {
@@ -510,10 +535,12 @@
                     }
                 } else if (data.exchange_balances && data.exchange_balances.length > 0) {
                     const total = data.exchange_balances.reduce((sum, ex) => sum + (ex.balance || 0), 0);
-                    balanceEl.innerHTML = total > 0 ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '<span class="text-muted">No balance</span>';
+                    balanceEl.innerHTML = total > 0
+                        ? '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                        : `<span class="text-muted" data-i18n="admin.noBalance">${t('admin.noBalance')}</span>`;
                     totalBalance = total;
                 } else {
-                    balanceEl.innerHTML = '<span class="text-muted">No exchanges configured</span>';
+                    balanceEl.innerHTML = `<span class="text-muted" data-i18n="admin.noExchangesConfigured">${t('admin.noExchangesConfigured')}</span>`;
                 }
             }
             if (totalBalance !== null) {
@@ -572,13 +599,13 @@
             const res = await fetch('/api/master/exchange_balances');
             const data = await res.json();
             if (!data.success) {
-                throw new Error(data.error || 'Failed to load balances');
+                throw new Error(data.error || t('admin.failedLoadBalances'));
             }
             const balanceEl = document.getElementById('master-balance');
             if (balanceEl) {
                 balanceEl.innerHTML = data.total_balance > 0
                     ? '$' + data.total_balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
-                    : '<span class="text-muted">No balance</span>';
+                    : `<span class="text-muted" data-i18n="admin.noBalance">${t('admin.noBalance')}</span>`;
             }
             if (Number.isFinite(data.total_balance)) {
                 updateSafetyPoolDisplay(data.total_balance);
@@ -588,7 +615,7 @@
             console.warn('Failed to refresh master balances:', err);
             const balanceEl = document.getElementById('master-balance');
             if (balanceEl) {
-                balanceEl.innerHTML = '<span class="text-muted">Error fetching balances</span>';
+                balanceEl.innerHTML = `<span class="text-muted" data-i18n="admin.errorFetchingBalances">${t('admin.errorFetchingBalances')}</span>`;
             }
         }
     }
@@ -598,7 +625,7 @@
         if (!container) return;
         
         if (!balances || balances.length === 0) {
-            container.innerHTML = '<a href="{{ url_for('admin_exchange') }}" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-plus-circle"></i><span>' + t('admin.configureExchanges') + '</span></a>';
+            container.innerHTML = `<a href="{{ url_for('admin_exchange') }}" class="text-cyan text-xs hover:underline" style="display: flex; align-items: center; gap: 6px;"><i class="fas fa-plus-circle"></i><span data-i18n="admin.configureExchanges">${t('admin.configureExchanges')}</span></a>`;
             return;
         }
         
@@ -631,7 +658,7 @@
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         
-        content.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin: 0 auto 16px;"></div><p data-i18n="dash.loadingData">Завантаження...</p></div>`;
+        content.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin: 0 auto 16px;"></div><p data-i18n="dash.loadingData">${t('dash.loadingData')}</p></div>`;
         
         fetch(`/api/admin/user/${userId}/details`)
             .then(r => r.json())
@@ -658,7 +685,11 @@
                                 <p class="text-sm text-muted">@${u.username}</p>
                                 <div class="flex items-center gap-2 mt-1">
                                     <span class="badge ${u.is_paused ? 'badge-warning' : (u.is_active ? 'badge-success' : 'badge-danger')}" style="font-size: 0.45rem;">
-                                        ${u.is_paused ? '⏸️ Paused' : (u.is_active ? '🟢 Active' : '🔴 Inactive')}
+                                        ${u.is_paused
+                                            ? '⏸️ <span data-i18n="admin.userStatusPaused">' + t('admin.userStatusPaused') + '</span>'
+                                            : (u.is_active
+                                                ? '🟢 <span data-i18n="admin.userStatusActive">' + t('admin.userStatusActive') + '</span>'
+                                                : '🔴 <span data-i18n="admin.userStatusInactive">' + t('admin.userStatusInactive') + '</span>')}
                                     </span>
                                     ${u.telegram_enabled ? '<span class="badge badge-primary" style="font-size: 0.45rem;"><i class="fab fa-telegram"></i> TG</span>' : ''}
                                 </div>
@@ -668,17 +699,17 @@
                         <div class="p-3 mb-4 rounded-lg border" style="background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 0, 212, 0.1)); border-color: rgba(0, 212, 255, 0.3);">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <div class="text-xxs text-muted">Current Balance</div>
+                                    <div class="text-xxs text-muted" data-i18n="admin.currentBalance">${t('admin.currentBalance')}</div>
                                     <div class="text-xl font-mono font-bold text-cyan">$${u.current_balance?.toLocaleString() || '0'}</div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-xxs text-muted">30d Growth</div>
+                                    <div class="text-xxs text-muted" data-i18n="admin.growth30d">${t('admin.growth30d')}</div>
                                     <div class="text-sm font-bold ${growthColor}">${growthSign}${u.balance_growth_30d || 0}%</div>
                                 </div>
                             </div>
                             <div class="mt-2 pt-2 border-t border-[rgba(0,212,255,0.2)]">
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-muted">Target:</span>
+                                    <span class="text-muted" data-i18n="admin.targetLabel">${t('admin.targetLabel')}</span>
                                     <span class="text-cyan font-mono">$${u.target_balance?.toLocaleString() || '1,000'}</span>
                                 </div>
                             </div>
@@ -686,34 +717,34 @@
                         
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
-                                <div class="text-xxs text-muted mb-1"><i class="fas fa-envelope text-purple"></i> Email</div>
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-envelope text-purple"></i> <span data-i18n="admin.email">${t('admin.email')}</span></div>
                                 <div class="text-sm font-mono truncate" title="${u.email || ''}">${u.email || '—'}</div>
                             </div>
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
-                                <div class="text-xxs text-muted mb-1"><i class="fas fa-phone text-cyan"></i> Phone</div>
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-phone text-cyan"></i> <span data-i18n="admin.phone">${t('admin.phone')}</span></div>
                                 <div class="text-sm font-mono">${u.phone || '—'}</div>
                             </div>
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
-                                <div class="text-xxs text-muted mb-1"><i class="fas fa-calendar text-green"></i> Registered</div>
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-calendar text-green"></i> <span data-i18n="admin.registered">${t('admin.registered')}</span></div>
                                 <div class="text-sm">${u.created_at || '—'}</div>
                             </div>
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg">
-                                <div class="text-xxs text-muted mb-1"><i class="fas fa-clock text-yellow"></i> Days Active</div>
-                                <div class="text-sm font-bold">${u.days_registered || 0} days</div>
+                                <div class="text-xxs text-muted mb-1"><i class="fas fa-clock text-yellow"></i> <span data-i18n="admin.daysActive">${t('admin.daysActive')}</span></div>
+                                <div class="text-sm font-bold">${u.days_registered || 0} <span data-i18n="admin.days">${t('admin.days')}</span></div>
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-3 gap-3 mb-4">
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
-                                <div class="text-xxs text-muted mb-1">Risk</div>
-                                <div class="text-sm font-bold">${u.custom_risk > 0 ? u.custom_risk + '%' : 'AUTO'}</div>
+                                <div class="text-xxs text-muted mb-1" data-i18n="admin.risk">${t('admin.risk')}</div>
+                                <div class="text-sm font-bold">${u.custom_risk > 0 ? u.custom_risk + '%' : t('common.auto')}</div>
                             </div>
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
-                                <div class="text-xxs text-muted mb-1">Leverage</div>
-                                <div class="text-sm font-bold">${u.custom_leverage > 0 ? 'x' + u.custom_leverage : 'AUTO'}</div>
+                                <div class="text-xxs text-muted mb-1" data-i18n="admin.leverage">${t('admin.leverage')}</div>
+                                <div class="text-sm font-bold">${u.custom_leverage > 0 ? 'x' + u.custom_leverage : t('common.auto')}</div>
                             </div>
                             <div class="p-3 bg-[var(--color-surface-2)] rounded-lg text-center">
-                                <div class="text-xxs text-muted mb-1">Max Pos</div>
+                                <div class="text-xxs text-muted mb-1" data-i18n="admin.maxPositionsShort">${t('admin.maxPositionsShort')}</div>
                                 <div class="text-sm font-bold">${u.max_positions}</div>
                             </div>
                         </div>
@@ -721,36 +752,36 @@
                         <div class="grid grid-cols-4 gap-2 mb-4">
                             <div class="p-2 bg-[rgba(0,245,255,0.08)] border border-[rgba(0,245,255,0.2)] rounded-lg text-center">
                                 <div class="text-lg font-bold text-cyan">${u.total_trades}</div>
-                                <div class="text-xxs text-muted">Trades</div>
+                                <div class="text-xxs text-muted" data-i18n="dash.trades">${t('dash.trades')}</div>
                             </div>
                             <div class="p-2 bg-[rgba(0,255,136,0.08)] border border-[rgba(0,255,136,0.2)] rounded-lg text-center">
                                 <div class="text-lg font-bold text-green">${u.winning_trades}</div>
-                                <div class="text-xxs text-muted">Wins</div>
+                                <div class="text-xxs text-muted" data-i18n="admin.wins">${t('admin.wins')}</div>
                             </div>
                             <div class="p-2 bg-[rgba(255,51,102,0.08)] border border-[rgba(255,51,102,0.2)] rounded-lg text-center">
                                 <div class="text-lg font-bold text-red">${u.losing_trades || 0}</div>
-                                <div class="text-xxs text-muted">Losses</div>
+                                <div class="text-xxs text-muted" data-i18n="admin.losses">${t('admin.losses')}</div>
                             </div>
                             <div class="p-2 bg-[rgba(255,0,212,0.08)] border border-[rgba(255,0,212,0.2)] rounded-lg text-center">
                                 <div class="text-lg font-bold text-magenta">${u.win_rate}%</div>
-                                <div class="text-xxs text-muted">Win Rate</div>
+                                <div class="text-xxs text-muted" data-i18n="dash.winRate">${t('dash.winRate')}</div>
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-2 gap-3 mb-4">
                             <div class="p-3 bg-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.08)' : 'rgba(255,51,102,0.08)'}] border border-[${u.total_pnl >= 0 ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,102,0.2)'}] rounded-lg text-center">
                                 <div class="text-xl font-bold font-mono ${u.total_pnl >= 0 ? 'text-green' : 'text-red'}">${u.total_pnl >= 0 ? '+' : ''}$${u.total_pnl?.toLocaleString() || '0'}</div>
-                                <div class="text-xxs text-muted">Total PnL</div>
+                                <div class="text-xxs text-muted" data-i18n="admin.totalPnl">${t('admin.totalPnl')}</div>
                             </div>
                             <div class="p-3 bg-[rgba(255,208,0,0.08)] border border-[rgba(255,208,0,0.2)] rounded-lg text-center">
                                 <div class="text-xl font-bold font-mono text-yellow">${u.avg_roi >= 0 ? '+' : ''}${u.avg_roi || 0}%</div>
-                                <div class="text-xxs text-muted">Avg ROI</div>
+                                <div class="text-xxs text-muted" data-i18n="admin.avgRoi">${t('admin.avgRoi')}</div>
                             </div>
                         </div>
                         
                         ${u.last_trade ? `
                         <div class="p-3 mb-4 bg-[var(--color-surface-2)] rounded-lg">
-                            <div class="text-xxs text-muted mb-2"><i class="fas fa-history"></i> Last Trade</div>
+                            <div class="text-xxs text-muted mb-2"><i class="fas fa-history"></i> <span data-i18n="admin.lastTrade">${t('admin.lastTrade')}</span></div>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <span class="badge ${u.last_trade.side === 'LONG' ? 'badge-success' : 'badge-danger'}" style="font-size: 0.45rem;">${u.last_trade.side}</span>
@@ -766,7 +797,7 @@
                         
                         ${u.exchanges && u.exchanges.length > 0 ? `
                         <div class="mb-4">
-                            <div class="text-xs text-muted mb-2"><i class="fas fa-plug"></i> Connected Exchanges (${u.exchanges.length})</div>
+                            <div class="text-xs text-muted mb-2"><i class="fas fa-plug"></i> <span data-i18n="admin.connectedExchanges">${t('admin.connectedExchanges')}</span> (${u.exchanges.length})</div>
                             <div class="flex flex-col gap-2">
                                 ${u.exchanges.map(ex => `
                                     <div class="p-2 bg-[var(--color-surface-2)] rounded-lg">
@@ -780,36 +811,40 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <span class="badge ${ex.status === 'APPROVED' ? (ex.trading_enabled ? 'badge-success' : 'badge-primary') : 'badge-warning'}" style="font-size: 0.5rem;">
-                                                    ${ex.trading_enabled ? '🟢 Trading' : ex.status}
+                                                    ${ex.trading_enabled
+                                                        ? '🟢 <span data-i18n="admin.tradingLabel">' + t('admin.tradingLabel') + '</span>'
+                                                        : ex.status}
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="mt-2 pt-2 border-t border-[var(--color-border)] flex items-center justify-between">
-                                            <span class="text-xxs text-muted">Balance:</span>
+                                            <span class="text-xxs text-muted" data-i18n="admin.balanceLabel">${t('admin.balanceLabel')}</span>
                                             ${ex.balance !== null && ex.balance !== undefined 
                                                 ? `<span class="font-mono font-bold ${ex.balance > 0 ? 'text-green' : 'text-muted'}">$${ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` 
                                                 : (ex.balance_error 
                                                     ? `<span class="text-red text-xs" title="${ex.balance_error}">⚠️ ${ex.balance_error.substring(0, 20)}</span>` 
                                                     : (ex.status === 'PENDING' 
-                                                        ? '<span class="text-yellow text-xs">⏳ Pending approval</span>' 
+                                                        ? '<span class="text-yellow text-xs" data-i18n="admin.pendingApproval">⏳ ' + t('admin.pendingApproval') + '</span>' 
                                                         : '<span class="text-muted">—</span>'))}
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
-                        ` : '<div class="p-3 mb-4 bg-[rgba(255,200,0,0.08)] border border-[rgba(255,200,0,0.2)] rounded-lg text-center text-yellow text-sm"><i class="fas fa-exclamation-triangle"></i> No exchanges connected</div>'}
+                        ` : '<div class="p-3 mb-4 bg-[rgba(255,200,0,0.08)] border border-[rgba(255,200,0,0.2)] rounded-lg text-center text-yellow text-sm"><i class="fas fa-exclamation-triangle"></i> <span data-i18n="admin.noExchangesConnected">' + t('admin.noExchangesConnected') + '</span></div>'}
                         
                         <div class="p-2 mb-4 bg-[var(--color-surface-2)] rounded-lg flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <i class="fab fa-telegram" style="color: ${u.telegram_enabled ? '#0088cc' : 'var(--text-muted)'}; font-size: 1.25rem;"></i>
                                 <div>
-                                    <div class="text-sm">Telegram Notifications</div>
-                                    <div class="text-xxs text-muted">${u.telegram_chat_id ? 'ID: ' + u.telegram_chat_id : 'Not configured'}</div>
+                                    <div class="text-sm" data-i18n="admin.telegramNotifications">${t('admin.telegramNotifications')}</div>
+                                    <div class="text-xxs text-muted">${u.telegram_chat_id ? formatT('admin.telegramId', { id: u.telegram_chat_id }) : t('admin.notConfigured')}</div>
                                 </div>
                             </div>
                             <span class="badge ${u.telegram_enabled ? 'badge-success' : 'badge-warning'}" style="font-size: 0.5rem;">
-                                ${u.telegram_enabled ? 'Enabled' : 'Disabled'}
+                                ${u.telegram_enabled
+                                    ? '<span data-i18n="admin.enabled">' + t('admin.enabled') + '</span>'
+                                    : '<span data-i18n="admin.disabled">' + t('admin.disabled') + '</span>'}
                             </span>
                         </div>
                         
@@ -817,21 +852,21 @@
                             <input type="file" id="userAvatarUpload-${u.id}" accept="image/png,image/jpeg,image/gif,image/webp" style="display: none;" onchange="uploadUserAvatar(${u.id}, this)">
                             <button onclick="document.getElementById('userAvatarUpload-${u.id}').click()" class="cyber-btn cyber-btn-outline cyber-btn-sm w-full">
                                 <i class="fas fa-camera"></i>
-                                <span>Upload User Avatar</span>
+                                <span data-i18n="admin.uploadUserAvatar">${t('admin.uploadUserAvatar')}</span>
                             </button>
                             <button onclick="confirmDeleteUser(${u.id}, '${u.username}')" class="cyber-btn cyber-btn-danger cyber-btn-sm w-full">
                                 <i class="fas fa-trash"></i>
-                                <span>Delete User</span>
+                                <span data-i18n="admin.deleteUser">${t('admin.deleteUser')}</span>
                             </button>
                         </div>
                     `;
                 } else {
-                    content.innerHTML = `<div class="text-center text-red py-4">Error: ${data.error}</div>`;
+                    content.innerHTML = `<div class="text-center text-red py-4">${t('dash.error')}: ${data.error}</div>`;
                 }
             })
             .catch(err => {
                 console.error(err);
-                content.innerHTML = `<div class="text-center text-red py-4">Failed to load user details</div>`;
+                content.innerHTML = `<div class="text-center text-red py-4" data-i18n="admin.failedLoadUserDetails">${t('admin.failedLoadUserDetails')}</div>`;
             });
     }
     
@@ -867,7 +902,7 @@
                 openUserDetailsModal(userId);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                showToast(result.error || 'Error', 'error');
+                showToast(result.error || t('dash.error'), 'error');
             }
         })
         .catch(err => {
@@ -900,7 +935,7 @@
                             let html = '<div class="flex flex-col gap-1">';
                             user.exchanges.forEach(ex => {
                                 const statusClass = ex.trading_enabled ? 'bg-green' : 'bg-yellow';
-                                const statusTitle = ex.trading_enabled ? 'Трейдинг увімкнено' : 'Трейдинг вимкнено';
+                                const statusTitle = ex.trading_enabled ? t('admin.tradingEnabled') : t('admin.tradingDisabled');
                                 let balanceHtml = '';
                                 
                                 if (ex.balance !== null) {
@@ -914,7 +949,7 @@
                                 }
                                 
                                 html += `<div class="flex items-center gap-1 text-xs">
-                                    <span class="w-2 h-2 rounded-full ${statusClass}" title="${statusTitle}"></span>
+                                    <span class="w-2 h-2 rounded-full ${statusClass}" title="${statusTitle}" data-i18n-title="${ex.trading_enabled ? 'admin.tradingEnabled' : 'admin.tradingDisabled'}"></span>
                                     <span class="text-muted truncate" style="max-width: 60px;" title="${ex.label}">${ex.exchange_name.substring(0, 3).toUpperCase()}</span>
                                     ${balanceHtml}
                                 </div>`;
@@ -951,11 +986,11 @@
     
     // Delete User Functions
     function confirmDeleteUser(userId, username) {
-        if (!confirm(`⚠️ Ти впевнений, що хочеш видалити користувача "${username}"?\n\nЦе назавжди видалить:\n- Всю історію угод\n- Всю історію балансу\n- Всі підключення бірж\n- Всі повідомлення\n\nЦю дію НЕМОЖЛИВО скасувати!`)) {
+        if (!confirm(formatT('admin.confirmDeleteUser', { username }))) {
             return;
         }
 
-        const confirmText = prompt(`Введи "${username}" для підтвердження видалення:`);
+        const confirmText = prompt(formatT('admin.confirmDeletePrompt', { username }));
         if (confirmText !== username) {
             showToast(t('admin.deletionCancelled'), 'warning');
             return;
@@ -974,7 +1009,7 @@
         .then(r => r.json())
         .then(result => {
             if (result.success) {
-                showToast(result.message || `User ${username} deleted`, 'success');
+                showToast(result.message || formatT('admin.userDeleted', { username }), 'success');
                 closeUserDetailsModal();
                 const row = document.querySelector(`tr[data-user-id="${userId}"]`);
                 if (row) {
@@ -982,12 +1017,12 @@
                     setTimeout(() => row.remove(), 300);
                 }
             } else {
-                showToast(result.error || 'Failed to delete user', 'error');
+                showToast(result.error || t('admin.failedDeleteUser'), 'error');
             }
         })
         .catch(err => {
             console.error('Error deleting user:', err);
-            showToast('Network error while deleting user', 'error');
+            showToast(t('admin.networkErrorDeleteUser'), 'error');
         });
     }
 

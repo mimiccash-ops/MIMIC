@@ -356,7 +356,7 @@
                 <i class="fas fa-tasks text-cyan"></i>
                 <span data-i18n="admin.taskManagement">Task Management</span>
             </h1>
-            <p class="text-muted text-sm mt-1">Create challenges and rewards for users to complete</p>
+            <p class="text-muted text-sm mt-1" data-i18n="admin.taskSubtitle">Create challenges and rewards for users to complete</p>
         </div>
     </div>
 
@@ -367,7 +367,7 @@
                 <i class="fas fa-tasks text-cyan"></i>
             </div>
             <div class="task-stat-body">
-                <div class="task-stat-label">Active Tasks</div>
+                <div class="task-stat-label" data-i18n="admin.activeTasks">Active Tasks</div>
                 <div class="task-stat-value" id="admin-active-tasks">0</div>
             </div>
         </div>
@@ -376,7 +376,7 @@
                 <i class="fas fa-clock text-yellow"></i>
             </div>
             <div class="task-stat-body">
-                <div class="task-stat-label">Pending Reviews</div>
+                <div class="task-stat-label" data-i18n="admin.pendingReviews">Pending Reviews</div>
                 <div class="task-stat-value" id="admin-pending-reviews">0</div>
             </div>
         </div>
@@ -385,7 +385,7 @@
                 <i class="fas fa-check-circle text-green"></i>
             </div>
             <div class="task-stat-body">
-                <div class="task-stat-label">Total Completions</div>
+                <div class="task-stat-label" data-i18n="admin.totalCompletions">Total Completions</div>
                 <div class="task-stat-value" id="admin-total-completions">0</div>
             </div>
         </div>
@@ -394,7 +394,7 @@
                 <i class="fas fa-gift text-purple"></i>
             </div>
             <div class="task-stat-body">
-                <div class="task-stat-label">Rewards Given</div>
+                <div class="task-stat-label" data-i18n="admin.rewardsGiven">Rewards Given</div>
                 <div class="task-stat-value" id="admin-rewards-given">$0</div>
             </div>
         </div>
@@ -404,11 +404,11 @@
     <div class="tasks-actions flex items-center gap-3 mb-6">
         <button onclick="refreshTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
             <i class="fas fa-sync-alt" id="tasks-refresh-icon"></i>
-            <span>Refresh</span>
+            <span data-i18n="btn.refresh">Refresh</span>
         </button>
         <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary">
             <i class="fas fa-plus"></i>
-            <span>Create Task</span>
+            <span data-i18n="admin.createTask">Create Task</span>
         </button>
     </div>
 
@@ -417,7 +417,7 @@
         <div class="flex items-center justify-between mb-4">
             <h2 class="font-display font-semibold flex items-center gap-2">
                 <i class="fas fa-clock text-yellow"></i>
-                <span>Pending Submissions</span>
+                <span data-i18n="admin.pendingSubmissions">Pending Submissions</span>
                 <span class="badge badge-yellow" id="pending-reviews-badge">0</span>
             </h2>
         </div>
@@ -431,15 +431,15 @@
         <div class="flex items-center justify-between mb-4">
             <h2 class="font-display font-semibold flex items-center gap-2">
                 <i class="fas fa-list text-cyan"></i>
-                <span>All Tasks</span>
+                <span data-i18n="admin.allTasks">All Tasks</span>
             </h2>
             <div class="flex items-center gap-2">
                 <select id="admin-task-status-filter" class="input" style="width: auto;" onchange="loadAdminTasks()">
-                    <option value="all">All Status</option>
-                    <option value="active" selected>Active</option>
-                    <option value="draft">Draft</option>
-                    <option value="paused">Paused</option>
-                    <option value="completed">Completed</option>
+                    <option value="all" data-i18n="admin.allStatus">All Status</option>
+                    <option value="active" selected data-i18n="admin.statusActive">Active</option>
+                    <option value="draft" data-i18n="admin.statusDraft">Draft</option>
+                    <option value="paused" data-i18n="admin.statusPaused">Paused</option>
+                    <option value="completed" data-i18n="admin.statusCompleted">Completed</option>
                 </select>
             </div>
         </div>
@@ -458,7 +458,7 @@
         <div class="modal-header">
             <div class="modal-title">
                 <i class="fas fa-plus-circle text-cyan"></i>
-                <span id="task-modal-title">Create New Task</span>
+                <span id="task-modal-title" data-i18n="admin.createNewTask">Create New Task</span>
             </div>
             <button onclick="closeCreateTaskModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -470,34 +470,34 @@
             <!-- Basic Info -->
             <div class="space-y-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Title *</label>
-                    <input type="text" id="task-title" class="input" placeholder="e.g., Follow us on Twitter" required>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskTitleLabel">Title *</label>
+                    <input type="text" id="task-title" class="input" data-i18n-placeholder="admin.taskTitlePlaceholder" placeholder="e.g., Follow us on Twitter" required>
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Description</label>
-                    <textarea id="task-description" class="input" rows="2" placeholder="Короткий опис завдання"></textarea>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskDescriptionLabel">Description</label>
+                    <textarea id="task-description" class="input" rows="2" data-i18n-placeholder="admin.taskDescriptionPlaceholder" placeholder="Short task description"></textarea>
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Instructions (what users need to do)</label>
-                    <textarea id="task-instructions" class="input" rows="3" placeholder="Покрокові інструкції для виконання завдання"></textarea>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskInstructionsLabel">Instructions (what users need to do)</label>
+                    <textarea id="task-instructions" class="input" rows="3" data-i18n-placeholder="admin.taskInstructionsPlaceholder" placeholder="Step-by-step instructions for completing the task"></textarea>
                 </div>
             </div>
 
             <!-- Type & Category -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Task Type</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskTypeLabel">Task Type</label>
                     <select id="task-type" class="input">
-                        <option value="custom">Special</option>
-                        <option value="social">Social Media</option>
-                        <option value="trading">Trading</option>
-                        <option value="referral">Referral</option>
-                        <option value="community">Community</option>
+                        <option value="custom" data-i18n="admin.taskTypeCustom">Special</option>
+                        <option value="social" data-i18n="admin.taskTypeSocial">Social Media</option>
+                        <option value="trading" data-i18n="admin.taskTypeTrading">Trading</option>
+                        <option value="referral" data-i18n="admin.taskTypeReferral">Referral</option>
+                        <option value="community" data-i18n="admin.taskTypeCommunity">Community</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Category (optional)</label>
-                    <input type="text" id="task-category" class="input" placeholder="e.g., Social, Weekly, etc.">
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskCategoryLabel">Category (optional)</label>
+                    <input type="text" id="task-category" class="input" data-i18n-placeholder="admin.taskCategoryPlaceholder" placeholder="e.g., Social, Weekly, etc.">
                 </div>
             </div>
 
@@ -505,37 +505,37 @@
             <div class="p-4 rounded-xl mb-6" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
                 <h3 class="font-semibold text-sm flex items-center gap-2 mb-4">
                     <i class="fas fa-gift text-green"></i>
-                    <span>Reward Settings</span>
+                    <span data-i18n="admin.rewardSettings">Reward Settings</span>
                 </h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.rewardTypeLabel">Reward Type</label>
                         <select id="task-reward-type" class="input" onchange="updateRewardAmountLabel()">
-                            <option value="money">Cash ($)</option>
-                            <option value="xp">XP Points</option>
-                            <option value="subscription">Subscription Days</option>
-                            <option value="goods">Goods/Prizes</option>
+                            <option value="money" data-i18n="admin.rewardTypeMoney">Cash ($)</option>
+                            <option value="xp" data-i18n="admin.rewardTypeXp">XP Points</option>
+                            <option value="subscription" data-i18n="admin.rewardTypeSubscription">Subscription Days</option>
+                            <option value="goods" data-i18n="admin.rewardTypeGoods">Goods/Prizes</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block" id="reward-amount-label">Amount ($)</label>
+                        <label class="text-xs text-muted mb-1 block" id="reward-amount-label" data-i18n="admin.rewardAmountMoney">Amount ($)</label>
                         <input type="number" id="task-reward-amount" class="input" value="0" min="0" step="0.01">
                     </div>
                 </div>
                 <div class="mt-3">
-                    <label class="text-xs text-muted mb-1 block">Reward Description</label>
-                    <input type="text" id="task-reward-description" class="input" placeholder="e.g., $10 credited to your balance">
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.rewardDescriptionLabel">Reward Description</label>
+                    <input type="text" id="task-reward-description" class="input" data-i18n-placeholder="admin.rewardDescriptionPlaceholder" placeholder="e.g., $10 credited to your balance">
                 </div>
             </div>
 
             <!-- Limits & Requirements -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Max Participants (empty = unlimited)</label>
-                    <input type="number" id="task-max-participants" class="input" placeholder="Без обмежень" min="1">
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.maxParticipantsLabel">Max Participants (empty = unlimited)</label>
+                    <input type="number" id="task-max-participants" class="input" data-i18n-placeholder="admin.maxParticipantsPlaceholder" placeholder="Unlimited" min="1">
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Max Completions Per User</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.maxCompletionsLabel">Max Completions Per User</label>
                     <input type="number" id="task-max-completions" class="input" value="1" min="1">
                 </div>
             </div>
@@ -543,11 +543,11 @@
             <!-- Visual Settings -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Icon (FontAwesome)</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskIconLabel">Icon (FontAwesome)</label>
                     <input type="text" id="task-icon" class="input" value="fa-tasks" placeholder="fa-tasks">
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Color</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.taskColorLabel">Color</label>
                     <input type="color" id="task-color" class="input" value="#00f5ff" style="height: 42px; padding: 4px;">
                 </div>
             </div>
@@ -555,21 +555,21 @@
             <!-- Status & Options -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Status</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.statusLabel">Status</label>
                     <select id="task-status" class="input">
-                        <option value="active">Active</option>
-                        <option value="draft">Draft</option>
-                        <option value="paused">Paused</option>
+                        <option value="active" data-i18n="admin.statusActive">Active</option>
+                        <option value="draft" data-i18n="admin.statusDraft">Draft</option>
+                        <option value="paused" data-i18n="admin.statusPaused">Paused</option>
                     </select>
                 </div>
                 <div class="flex items-end gap-4">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="task-requires-approval" checked class="cyber-checkbox">
-                        <span class="text-sm">Requires Approval</span>
+                        <span class="text-sm" data-i18n="admin.requiresApproval">Requires Approval</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="task-is-featured" class="cyber-checkbox">
-                        <span class="text-sm">Featured</span>
+                        <span class="text-sm" data-i18n="admin.featuredLabel">Featured</span>
                     </label>
                 </div>
             </div>
@@ -577,23 +577,23 @@
             <!-- Dates (optional) -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Start Date (optional)</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.startDateLabel">Start Date (optional)</label>
                     <input type="datetime-local" id="task-start-date" class="input">
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">End Date (optional)</label>
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.endDateLabel">End Date (optional)</label>
                     <input type="datetime-local" id="task-end-date" class="input">
                 </div>
             </div>
 
             <!-- Actions -->
             <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
-                <button onclick="closeCreateTaskModal()" class="cyber-btn cyber-btn-outline flex-1">
+                <button onclick="closeCreateTaskModal()" class="cyber-btn cyber-btn-outline flex-1" data-i18n="btn.cancel">
                     Cancel
                 </button>
                 <button onclick="saveTask()" class="cyber-btn cyber-btn-primary flex-1" id="save-task-btn">
                     <i class="fas fa-save"></i>
-                    <span>Create Task</span>
+                    <span data-i18n="admin.createTask">Create Task</span>
                 </button>
             </div>
         </div>
@@ -606,7 +606,7 @@
         <div class="modal-header">
             <div class="modal-title">
                 <i class="fas fa-clipboard-check text-yellow"></i>
-                <span>Review Submission</span>
+                <span data-i18n="admin.reviewSubmission">Review Submission</span>
             </div>
             <button onclick="closeReviewModal()" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -621,54 +621,54 @@
 
             <div class="mb-4">
                 <div class="p-3 rounded-lg" style="background: var(--color-surface-3); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Payout Details</div>
+                    <div class="text-xs text-muted mb-1" data-i18n="admin.payoutDetails">Payout Details</div>
                     <div id="review-payout-info" class="text-sm text-muted">—</div>
                 </div>
             </div>
             
             <div class="mb-4">
-                <label class="text-xs text-muted mb-1 block">Reward Type</label>
+                <label class="text-xs text-muted mb-1 block" data-i18n="admin.reviewRewardTypeLabel">Reward Type</label>
                 <select id="review-reward-type" class="input" onchange="updateReviewRewardLabel()">
-                    <option value="money">Cash ($)</option>
-                    <option value="xp">XP Points</option>
-                    <option value="subscription">Subscription Days</option>
-                    <option value="goods">Goods/Prizes</option>
-                    <option value="custom">Custom</option>
+                    <option value="money" data-i18n="admin.rewardTypeMoney">Cash ($)</option>
+                    <option value="xp" data-i18n="admin.rewardTypeXp">XP Points</option>
+                    <option value="subscription" data-i18n="admin.rewardTypeSubscription">Subscription Days</option>
+                    <option value="goods" data-i18n="admin.rewardTypeGoods">Goods/Prizes</option>
+                    <option value="custom" data-i18n="admin.rewardTypeCustom">Custom</option>
                 </select>
             </div>
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <div>
-                    <label class="text-xs text-muted mb-1 block" id="review-reward-amount-label">Amount ($)</label>
+                    <label class="text-xs text-muted mb-1 block" id="review-reward-amount-label" data-i18n="admin.rewardAmountMoney">Amount ($)</label>
                     <input type="number" id="review-reward-amount" class="input" value="0" min="0" step="0.01">
                 </div>
                 <div>
-                    <label class="text-xs text-muted mb-1 block">Reward Description</label>
-                    <input type="text" id="review-reward-description" class="input" placeholder="Optional description">
+                    <label class="text-xs text-muted mb-1 block" data-i18n="admin.reviewRewardDescriptionLabel">Reward Description</label>
+                    <input type="text" id="review-reward-description" class="input" data-i18n-placeholder="admin.reviewRewardDescriptionPlaceholder" placeholder="Optional description">
                 </div>
             </div>
             <div class="mb-4">
-                <label class="text-xs text-muted mb-1 block">Payout Reference (optional)</label>
-                <input type="text" id="review-payout-reference" class="input" placeholder="TxID / receipt / note">
+                <label class="text-xs text-muted mb-1 block" data-i18n="admin.payoutReferenceLabel">Payout Reference (optional)</label>
+                <input type="text" id="review-payout-reference" class="input" data-i18n-placeholder="admin.payoutReferencePlaceholder" placeholder="TxID / receipt / note">
             </div>
             
             <div class="mb-4">
-                <label class="text-xs text-muted mb-1 block">Admin Notes (optional)</label>
-                <textarea id="review-notes" class="input" rows="2" placeholder="Нотатки для внутрішнього відстеження"></textarea>
+                <label class="text-xs text-muted mb-1 block" data-i18n="admin.adminNotesLabel">Admin Notes (optional)</label>
+                <textarea id="review-notes" class="input" rows="2" data-i18n-placeholder="admin.adminNotesPlaceholder" placeholder="Notes for internal tracking"></textarea>
             </div>
             
             <div id="rejection-reason-field" class="mb-4" style="display: none;">
-                <label class="text-xs text-muted mb-1 block">Rejection Reason</label>
-                <input type="text" id="review-rejection-reason" class="input" placeholder="Чому це відхиляється?">
+                <label class="text-xs text-muted mb-1 block" data-i18n="admin.rejectionReasonLabel">Rejection Reason</label>
+                <input type="text" id="review-rejection-reason" class="input" data-i18n-placeholder="admin.rejectionReasonPlaceholder" placeholder="Why is this rejected?">
             </div>
             
             <div class="flex gap-3 pt-4 border-t border-[var(--color-border)]">
                 <button onclick="rejectSubmission()" class="cyber-btn cyber-btn-danger flex-1">
                     <i class="fas fa-times"></i>
-                    <span>Reject</span>
+                    <span data-i18n="admin.reject">Reject</span>
                 </button>
                 <button onclick="approveSubmission()" class="cyber-btn cyber-btn-success flex-1">
                     <i class="fas fa-check"></i>
-                    <span>Approve & Give Reward</span>
+                    <span data-i18n="admin.approveAndGiveReward">Approve & Give Reward</span>
                 </button>
             </div>
         </div>
@@ -715,6 +715,45 @@
     let pendingReviews = [];
     let taskTypes = {};
     let rewardTypes = {};
+    const taskStatusKeyMap = {
+        active: 'admin.statusActive',
+        draft: 'admin.statusDraft',
+        paused: 'admin.statusPaused',
+        completed: 'admin.statusCompleted'
+    };
+    const taskTypeKeyMap = {
+        custom: 'admin.taskTypeCustom',
+        social: 'admin.taskTypeSocial',
+        trading: 'admin.taskTypeTrading',
+        referral: 'admin.taskTypeReferral',
+        community: 'admin.taskTypeCommunity'
+    };
+    const rewardTypeKeyMap = {
+        money: 'admin.rewardTypeMoney',
+        xp: 'admin.rewardTypeXp',
+        subscription: 'admin.rewardTypeSubscription',
+        goods: 'admin.rewardTypeGoods',
+        custom: 'admin.rewardTypeCustom'
+    };
+    const payoutMethodKeyMap = {
+        usdt_trc20: 'admin.payoutMethodUsdtTrc20',
+        usdt_erc20: 'admin.payoutMethodUsdtErc20',
+        bank: 'admin.payoutMethodBank',
+        card: 'admin.payoutMethodCard',
+        gift: 'admin.payoutMethodGift',
+        other: 'admin.payoutMethodOther'
+    };
+    
+    function setI18nText(el, key) {
+        if (!el) return;
+        el.textContent = t(key);
+        el.setAttribute('data-i18n', key);
+    }
+    
+    function getTranslatedLabel(map, key, fallback) {
+        const i18nKey = map[key];
+        return i18nKey ? t(i18nKey) : (fallback || key);
+    }
     
     async function loadAdminTasks() {
         const status = document.getElementById('admin-task-status-filter')?.value || 'active';
@@ -735,7 +774,7 @@
         } catch (err) {
             console.error('Error loading tasks:', err);
             if (!err.message || !err.message.includes('429')) {
-                showToast('Помилка завантаження завдань', 'error');
+                showToast(t('admin.failedToLoadTasks'), 'error');
             }
         }
     }
@@ -782,9 +821,9 @@
             container.innerHTML = `
                 <div class="text-center py-8 text-muted">
                     <i class="fas fa-tasks text-3xl mb-3 opacity-50"></i>
-                    <p data-i18n="admin.noTasks">Завдань не знайдено</p>
+                    <p data-i18n="admin.noTasks">${t('admin.noTasks')}</p>
                     <button onclick="openCreateTaskModal()" class="cyber-btn cyber-btn-primary cyber-btn-sm mt-3">
-                        <i class="fas fa-plus"></i> Create First Task
+                        <i class="fas fa-plus"></i> <span data-i18n="admin.createFirstTask">${t('admin.createFirstTask')}</span>
                     </button>
                 </div>
             `;
@@ -795,6 +834,10 @@
         adminTasks.forEach(task => {
             const typeInfo = taskTypes[task.task_type] || { name: task.task_type, icon: 'fa-tasks', color: '#888' };
             const rewardInfo = rewardTypes[task.reward_type] || { name: task.reward_type, icon: 'fa-gift', color: '#888' };
+            const typeLabel = getTranslatedLabel(taskTypeKeyMap, task.task_type, typeInfo.name);
+            const rewardLabel = getTranslatedLabel(rewardTypeKeyMap, task.reward_type, rewardInfo.name);
+            const statusKey = taskStatusKeyMap[task.status];
+            const statusLabel = statusKey ? t(statusKey) : task.status;
             const statusColors = {
                 'active': 'text-green',
                 'draft': 'text-muted',
@@ -811,25 +854,25 @@
                         <div class="task-card-info">
                             <div class="task-card-title">
                                 <span class="task-title-text">${task.title}</span>
-                                ${task.is_featured ? '<span class="badge badge-yellow" style="font-size: 0.55rem;">FEATURED</span>' : ''}
-                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.55rem; text-transform: uppercase;">${task.status}</span>
+                                ${task.is_featured ? `<span class="badge badge-yellow" style="font-size: 0.55rem;" data-i18n="admin.featured">${t('admin.featured')}</span>` : ''}
+                                <span class="badge ${statusColors[task.status] || 'text-muted'}" style="font-size: 0.55rem; text-transform: uppercase;" ${statusKey ? `data-i18n="${statusKey}"` : ''}>${statusLabel}</span>
                             </div>
                             <div class="task-card-meta">
-                                <span><i class="fas ${typeInfo.icon} mr-1"></i>${typeInfo.name}</span>
-                                <span><i class="fas ${rewardInfo.icon} mr-1"></i>${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardInfo.name}</span>
-                                <span><i class="fas fa-users mr-1"></i>${task.total_participants} participants</span>
-                                <span><i class="fas fa-check-circle mr-1"></i>${task.total_completions} completed</span>
+                                <span><i class="fas ${typeInfo.icon} mr-1"></i>${typeLabel}</span>
+                                <span><i class="fas ${rewardInfo.icon} mr-1"></i>${task.reward_type === 'money' ? '$' + task.reward_amount : task.reward_amount + ' ' + rewardLabel}</span>
+                                <span><i class="fas fa-users mr-1"></i>${task.total_participants} <span data-i18n="admin.participants">${t('admin.participants')}</span></span>
+                                <span><i class="fas fa-check-circle mr-1"></i>${task.total_completions} <span data-i18n="admin.completed">${t('admin.completed')}</span></span>
                             </div>
                         </div>
                     </div>
                     <div class="task-card-actions">
-                        <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="View Participations">
+                        <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${t('admin.viewParticipations')}" data-i18n-title="admin.viewParticipations">
                             <i class="fas fa-users"></i>
                         </button>
-                        <button onclick="editTask(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Edit">
+                        <button onclick="editTask(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${t('admin.edit')}" data-i18n-title="admin.edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="deleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Delete">
+                        <button onclick="deleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="${t('admin.delete')}" data-i18n-title="admin.delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -844,7 +887,7 @@
         const container = document.getElementById('pending-reviews-list');
         
         if (pendingReviews.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted">' + t('admin.noPendingReviews') + '</div>';
+            container.innerHTML = '<div class="text-center py-4 text-muted" data-i18n="admin.noPendingReviews">' + t('admin.noPendingReviews') + '</div>';
             return;
         }
         
@@ -859,15 +902,15 @@
                         </div>
                         <div>
                             <div class="font-semibold text-bright">${p.username}</div>
-                            <div class="text-xs text-muted">${p.task?.title || 'Task #' + p.task_id}</div>
+                            <div class="text-xs text-muted">${p.task?.title || `${t('admin.taskLabel')} #${p.task_id}`}</div>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xs text-muted">${submittedAt.toLocaleDateString()}</div>
+                        <div class="text-xs text-muted"><span data-i18n="admin.submittedLabel">${t('admin.submittedLabel')}</span>: ${submittedAt.toLocaleDateString()}</div>
                         <div class="text-xs text-muted">${submittedAt.toLocaleTimeString()}</div>
                     </div>
                     <button onclick="openReviewModal(${p.id})" class="cyber-btn cyber-btn-primary cyber-btn-sm ml-3">
-                        <i class="fas fa-eye"></i> Review
+                        <i class="fas fa-eye"></i> <span data-i18n="admin.review">${t('admin.review')}</span>
                     </button>
                 </div>
             `;
@@ -878,8 +921,8 @@
     
     function openCreateTaskModal() {
         document.getElementById('task-edit-id').value = '';
-        document.getElementById('task-modal-title').textContent = 'Create New Task';
-        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Create Task';
+        setI18nText(document.getElementById('task-modal-title'), 'admin.createNewTask');
+        document.getElementById('save-task-btn').innerHTML = `<i class="fas fa-save"></i> <span data-i18n="admin.createTask">${t('admin.createTask')}</span>`;
         
         document.getElementById('task-title').value = '';
         document.getElementById('task-description').value = '';
@@ -912,8 +955,8 @@
         if (!task) return;
         
         document.getElementById('task-edit-id').value = task.id;
-        document.getElementById('task-modal-title').textContent = 'Edit Task';
-        document.getElementById('save-task-btn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        setI18nText(document.getElementById('task-modal-title'), 'admin.editTask');
+        document.getElementById('save-task-btn').innerHTML = `<i class="fas fa-save"></i> <span data-i18n="btn.saveChanges">${t('btn.saveChanges')}</span>`;
         
         document.getElementById('task-title').value = task.title || '';
         document.getElementById('task-description').value = task.description || '';
@@ -951,11 +994,11 @@
         const label = document.getElementById('reward-amount-label');
         
         switch (rewardType) {
-            case 'money': label.textContent = 'Amount ($)'; break;
-            case 'xp': label.textContent = 'XP Points'; break;
-            case 'subscription': label.textContent = 'Days'; break;
-            case 'goods': label.textContent = 'Value ($)'; break;
-            default: label.textContent = 'Amount';
+            case 'money': setI18nText(label, 'admin.rewardAmountMoney'); break;
+            case 'xp': setI18nText(label, 'admin.rewardAmountXp'); break;
+            case 'subscription': setI18nText(label, 'admin.rewardAmountDays'); break;
+            case 'goods': setI18nText(label, 'admin.rewardAmountValue'); break;
+            default: setI18nText(label, 'admin.rewardAmountGeneric');
         }
     }
 
@@ -965,11 +1008,11 @@
         if (!label) return;
         
         switch (rewardType) {
-            case 'money': label.textContent = 'Amount ($)'; break;
-            case 'xp': label.textContent = 'XP Points'; break;
-            case 'subscription': label.textContent = 'Days'; break;
-            case 'goods': label.textContent = 'Value ($)'; break;
-            default: label.textContent = 'Amount';
+            case 'money': setI18nText(label, 'admin.rewardAmountMoney'); break;
+            case 'xp': setI18nText(label, 'admin.rewardAmountXp'); break;
+            case 'subscription': setI18nText(label, 'admin.rewardAmountDays'); break;
+            case 'goods': setI18nText(label, 'admin.rewardAmountValue'); break;
+            default: setI18nText(label, 'admin.rewardAmountGeneric');
         }
     }
     
@@ -977,7 +1020,7 @@
         const btn = document.getElementById('save-task-btn');
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="admin.saving">${t('admin.saving')}</span>`;
         
         const taskId = document.getElementById('task-edit-id').value;
         const isEdit = !!taskId;
@@ -1026,7 +1069,7 @@
                 closeCreateTaskModal();
                 loadAdminTasks();
             } else {
-                showToast(data.error || 'Failed to save task', 'error');
+                showToast(data.error || t('admin.failedToSaveTask'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');
@@ -1037,7 +1080,7 @@
     }
     
     async function deleteTask(taskId, taskTitle) {
-        if (!confirm(`Ти впевнений, що хочеш видалити завдання "${taskTitle}"? Це також видалить всі участі.`)) return;
+        if (!confirm(t('admin.confirmDeleteTask').replace('{title}', taskTitle))) return;
         
         try {
             const response = await fetch(`/api/admin/tasks/${taskId}`, {
@@ -1050,7 +1093,7 @@
                 showToast(data.message || t('admin.taskDeleted'), 'success');
                 loadAdminTasks();
             } else {
-                showToast(data.error || 'Failed to delete', 'error');
+                showToast(data.error || t('admin.failedToDeleteTask'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');
@@ -1066,16 +1109,16 @@
                 const task = data.task;
                 const parts = data.participations;
                 
-                let msg = `Task: ${task.title}\nParticipants: ${parts.length}\n\n`;
+                let msg = `${t('admin.taskLabel')}: ${task.title}\n${t('admin.participantsLabel')}: ${parts.length}\n\n`;
                 parts.slice(0, 10).forEach(p => {
                     msg += `• ${p.username}: ${p.status}\n`;
                 });
-                if (parts.length > 10) msg += `... and ${parts.length - 10} more`;
+                if (parts.length > 10) msg += t('admin.andMore').replace('{count}', parts.length - 10);
                 
                 alert(msg);
             }
         } catch (err) {
-            showToast('Error loading participations', 'error');
+            showToast(t('admin.errorLoadingParticipations'), 'error');
         }
     }
     
@@ -1085,6 +1128,10 @@
         
         document.getElementById('review-participation-id').value = participationId;
         
+        const rewardLabel = participation.task?.reward_type
+            ? getTranslatedLabel(rewardTypeKeyMap, participation.task.reward_type, participation.task.reward_type)
+            : participation.task?.reward_type;
+        const taskTitle = participation.task?.title || `#${participation.task_id}`;
         const detailsHtml = `
             <div class="p-4 rounded-lg" style="background: var(--color-surface-3); border: 1px solid var(--color-border);">
                 <div class="flex items-center gap-3 mb-3">
@@ -1093,17 +1140,17 @@
                     </div>
                     <div>
                         <div class="font-semibold">${participation.username}</div>
-                        <div class="text-xs text-muted">Submitted: ${new Date(participation.submitted_at).toLocaleString()}</div>
+                        <div class="text-xs text-muted"><span data-i18n="admin.submittedLabel">${t('admin.submittedLabel')}</span>: ${new Date(participation.submitted_at).toLocaleString()}</div>
                     </div>
                 </div>
                 <div class="text-sm mb-2">
-                    <strong>Task:</strong> ${participation.task?.title || 'Task #' + participation.task_id}
+                    <strong data-i18n="admin.taskLabel">${t('admin.taskLabel')}</strong>: ${taskTitle}
                 </div>
                 <div class="text-sm mb-2">
-                    <strong>Reward:</strong> ${participation.task?.reward_type === 'money' ? '$' + participation.task?.reward_amount : participation.task?.reward_amount + ' ' + participation.task?.reward_type}
+                    <strong data-i18n="admin.rewardLabel">${t('admin.rewardLabel')}</strong>: ${participation.task?.reward_type === 'money' ? '$' + participation.task?.reward_amount : participation.task?.reward_amount + ' ' + (rewardLabel || '')}
                 </div>
-                ${participation.submission_text ? `<div class="text-sm mb-2"><strong>Submission:</strong> ${participation.submission_text}</div>` : ''}
-                ${participation.submission_url ? `<div class="text-sm"><strong>Proof URL:</strong> <a href="${participation.submission_url}" target="_blank" class="text-cyan hover:underline">${participation.submission_url}</a></div>` : ''}
+                ${participation.submission_text ? `<div class="text-sm mb-2"><strong data-i18n="admin.submissionLabel">${t('admin.submissionLabel')}</strong>: ${participation.submission_text}</div>` : ''}
+                ${participation.submission_url ? `<div class="text-sm"><strong data-i18n="admin.proofUrlLabel">${t('admin.proofUrlLabel')}</strong>: <a href="${participation.submission_url}" target="_blank" class="text-cyan hover:underline">${participation.submission_url}</a></div>` : ''}
             </div>
         `;
         
@@ -1111,25 +1158,18 @@
         
         const payoutInfo = [];
         if (participation.payout_method) {
-            const payoutLabels = {
-                'usdt_trc20': 'USDT (TRC20)',
-                'usdt_erc20': 'USDT (ERC20)',
-                'bank': 'Bank Transfer',
-                'card': 'Card',
-                'gift': 'Gift',
-                'other': 'Other'
-            };
-            payoutInfo.push(`<div><strong>Method:</strong> ${payoutLabels[participation.payout_method] || participation.payout_method}</div>`);
+            const payoutLabel = getTranslatedLabel(payoutMethodKeyMap, participation.payout_method, participation.payout_method);
+            payoutInfo.push(`<div><strong data-i18n="admin.payoutMethodLabel">${t('admin.payoutMethodLabel')}</strong>: ${payoutLabel}</div>`);
         }
         if (participation.payout_details) {
-            payoutInfo.push(`<div><strong>Details:</strong> ${participation.payout_details}</div>`);
+            payoutInfo.push(`<div><strong data-i18n="admin.payoutDetailsLabel">${t('admin.payoutDetailsLabel')}</strong>: ${participation.payout_details}</div>`);
         }
         if (participation.payout_contact) {
-            payoutInfo.push(`<div><strong>Contact:</strong> ${participation.payout_contact}</div>`);
+            payoutInfo.push(`<div><strong data-i18n="admin.payoutContactLabel">${t('admin.payoutContactLabel')}</strong>: ${participation.payout_contact}</div>`);
         }
         document.getElementById('review-payout-info').innerHTML = payoutInfo.length
             ? payoutInfo.join('')
-            : '<span class="text-muted">No payout details provided.</span>';
+            : `<span class="text-muted" data-i18n="admin.noPayoutDetails">${t('admin.noPayoutDetails')}</span>`;
         
         const rewardTypeSelect = document.getElementById('review-reward-type');
         if (rewardTypeSelect) {
@@ -1184,7 +1224,7 @@
                 loadPendingReviews();
                 loadAdminTasks();
             } else {
-                showToast(data.error || 'Failed to approve', 'error');
+                showToast(data.error || t('admin.failedToApproveSubmission'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');
@@ -1200,7 +1240,7 @@
         
         const participationId = document.getElementById('review-participation-id').value;
         const notes = document.getElementById('review-notes').value.trim();
-        const reason = document.getElementById('review-rejection-reason').value.trim() || 'Подання не відповідає вимогам';
+        const reason = document.getElementById('review-rejection-reason').value.trim() || t('admin.defaultRejectionReason');
         
         try {
             const response = await fetch(`/api/admin/tasks/participation/${participationId}/reject`, {
@@ -1216,7 +1256,7 @@
                 closeReviewModal();
                 loadPendingReviews();
             } else {
-                showToast(data.error || 'Failed to reject', 'error');
+                showToast(data.error || t('admin.failedToRejectSubmission'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');

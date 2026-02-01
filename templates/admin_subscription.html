@@ -217,13 +217,13 @@
                         <i class="fas fa-crown text-xl text-yellow-300"></i>
                     </div>
                     <div>
-                        <h1 class="text-3xl font-display font-bold text-white mb-2 subscription-hero-title">Підписка</h1>
-                        <p class="text-white/60 subscription-hero-subtitle">Налаштування підписок, гаманців та платежів</p>
+                        <h1 class="text-3xl font-display font-bold text-white mb-2 subscription-hero-title" data-i18n="admin.subscriptionTitle">Підписка</h1>
+                        <p class="text-white/60 subscription-hero-subtitle" data-i18n="admin.subscriptionSubtitle">Налаштування підписок, гаманців та платежів</p>
                     </div>
                 </div>
                 <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-outline">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Назад до панелі</span>
+                    <span data-i18n="nav.backToDashboard">Назад до панелі</span>
                 </a>
             </div>
         </div>
@@ -233,11 +233,11 @@
             <div class="flex items-center justify-between mb-4 subscription-section-header">
                 <h2 class="font-display font-semibold flex items-center gap-2">
                     <i class="fas fa-crown text-yellow"></i>
-                    <span>Subscription Management</span>
+                    <span data-i18n="admin.subscriptionManagement">Subscription Management</span>
                 </h2>
                 <button onclick="refreshSubscriptionSettings()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                     <i class="fas fa-sync" id="sub-refresh-icon"></i>
-                    <span>Refresh</span>
+                    <span data-i18n="btn.refresh">Refresh</span>
                 </button>
             </div>
             
@@ -249,12 +249,12 @@
                             <i class="fas fa-toggle-on text-yellow text-xl"></i>
                         </div>
                         <div class="subscription-toggle-meta">
-                            <div class="font-display font-semibold text-bright">Subscription System</div>
-                            <div class="text-xs text-muted">When OFF, all users have FREE access (no payment required)</div>
+                            <div class="font-display font-semibold text-bright" data-i18n="admin.subscriptionSystem">Subscription System</div>
+                            <div class="text-xs text-muted" data-i18n="admin.subscriptionSystemHint">When OFF, all users have FREE access (no payment required)</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-muted" id="sub-toggle-label">OFF</span>
+                        <span class="text-xs text-muted" id="sub-toggle-label" data-i18n="admin.subscriptionOff">OFF</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="subscription-enabled-toggle" class="sr-only peer" onchange="toggleSubscriptionSystem(this)">
                             <div class="w-14 h-8 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-yellow-500 peer-checked:to-orange-500"></div>
@@ -266,19 +266,19 @@
             <!-- Stats Row -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 subscription-stats-grid">
                 <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Total Users</div>
+                    <div class="text-xs text-muted mb-1" data-i18n="admin.totalUsers">Total Users</div>
                     <div class="font-mono text-2xl font-bold text-cyan subscription-stat-value" id="admin-total-users">0</div>
                 </div>
                 <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Active Subscribers</div>
+                    <div class="text-xs text-muted mb-1" data-i18n="admin.activeSubscribers">Active Subscribers</div>
                     <div class="font-mono text-2xl font-bold text-green subscription-stat-value" id="admin-active-subscribers">0</div>
                 </div>
                 <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Expired</div>
+                    <div class="text-xs text-muted mb-1" data-i18n="admin.expiredSubscribers">Expired</div>
                     <div class="font-mono text-2xl font-bold text-yellow subscription-stat-value" id="admin-expired-subscribers">0</div>
                 </div>
                 <div class="p-3 rounded-xl text-center subscription-stat-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
-                    <div class="text-xs text-muted mb-1">Total Revenue</div>
+                    <div class="text-xs text-muted mb-1" data-i18n="admin.totalRevenue">Total Revenue</div>
                     <div class="font-mono text-2xl font-bold text-magenta subscription-stat-value" id="admin-total-revenue">$0</div>
                 </div>
             </div>
@@ -288,15 +288,15 @@
                 <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-tags text-cyan"></i>
-                        <span>Subscription Plans</span>
+                        <span data-i18n="admin.subscriptionPlans">Subscription Plans</span>
                     </h3>
                     <button onclick="savePlanSettings()" class="cyber-btn cyber-btn-gradient-purple cyber-btn-sm">
                         <i class="fas fa-save"></i>
-                        <span>Save Plans</span>
+                        <span data-i18n="admin.savePlans">Save Plans</span>
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 subscription-plan-grid" id="plan-settings-grid"></div>
-                <p class="text-xs text-muted mt-3">These prices are shown to users in their subscription section.</p>
+                <p class="text-xs text-muted mt-3" data-i18n="admin.subscriptionPlansHint">These prices are shown to users in their subscription section.</p>
             </div>
             
             <!-- Payment Methods -->
@@ -304,50 +304,50 @@
                 <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-wallet text-purple"></i>
-                        <span>Payment Methods</span>
+                        <span data-i18n="admin.paymentMethods">Payment Methods</span>
                     </h3>
                     <div class="flex gap-2">
                         <button onclick="addPaymentMethodRow()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                             <i class="fas fa-plus"></i>
-                            <span>Add</span>
+                            <span data-i18n="btn.add">Add</span>
                         </button>
                         <button onclick="savePaymentMethods()" class="cyber-btn cyber-btn-gradient-purple cyber-btn-sm">
                             <i class="fas fa-save"></i>
-                            <span>Save</span>
+                            <span data-i18n="btn.save">Save</span>
                         </button>
                     </div>
                 </div>
                 <div id="payment-methods-list" class="space-y-3 subscription-methods-list"></div>
-                <p class="text-xs text-muted mt-3">Add bank/card details or wallet addresses for user payments.</p>
+                <p class="text-xs text-muted mt-3" data-i18n="admin.paymentMethodsHint">Add bank/card details or wallet addresses for user payments.</p>
             </div>
             
             <!-- Bonus / Manual Extension -->
             <div id="subscription-bonus" class="p-4 rounded-xl mb-4 subscription-card" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2);">
                 <h3 class="font-display font-semibold flex items-center gap-2 mb-4 subscription-section-title">
                     <i class="fas fa-gift text-green"></i>
-                    <span>Bonus & Manual Extension</span>
+                    <span data-i18n="admin.bonusManualExtension">Bonus & Manual Extension</span>
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 subscription-bonus-grid">
                     <div>
-                        <label class="text-xs text-muted mb-1 block">User</label>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.bonusUser">User</label>
                         <select id="bonus-user-select" class="input"></select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Plan</label>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.bonusPlan">Plan</label>
                         <select id="bonus-plan-select" class="input"></select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Days to Add</label>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.bonusDays">Days to Add</label>
                         <input type="number" id="bonus-days-input" class="input" min="1" value="30">
                     </div>
                     <div class="flex items-end">
                         <button onclick="grantSubscription()" class="cyber-btn cyber-btn-success w-full">
                             <i class="fas fa-check"></i>
-                            <span>Apply Bonus</span>
+                            <span data-i18n="admin.applyBonus">Apply Bonus</span>
                         </button>
                     </div>
                 </div>
-                <p class="text-xs text-muted mt-3">Use for free bonus access or manual month extensions.</p>
+                <p class="text-xs text-muted mt-3" data-i18n="admin.bonusHint">Use for free bonus access or manual month extensions.</p>
             </div>
             
             <!-- Subscribers List -->
@@ -355,19 +355,19 @@
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-users text-cyan"></i>
-                        <span>Subscribers</span>
+                        <span data-i18n="admin.subscribers">Subscribers</span>
                     </h3>
                     <div class="flex flex-col sm:flex-row gap-2 subscription-search-row">
-                        <input type="text" id="subscribers-search" class="input" placeholder="Search user..." oninput="loadSubscribers()">
+                        <input type="text" id="subscribers-search" class="input" data-i18n-placeholder="admin.searchUser" placeholder="Search user..." oninput="loadSubscribers()">
                         <select id="subscribers-filter" class="input" onchange="loadSubscribers()">
-                            <option value="all">All</option>
-                            <option value="active">Active</option>
-                            <option value="expired">Expired</option>
-                            <option value="free">Free</option>
+                            <option value="all" data-i18n="admin.filterAll">All</option>
+                            <option value="active" data-i18n="admin.filterActive">Active</option>
+                            <option value="expired" data-i18n="admin.filterExpired">Expired</option>
+                            <option value="free" data-i18n="admin.filterFree">Free</option>
                         </select>
                         <button onclick="loadSubscribers()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                             <i class="fas fa-sync"></i>
-                            <span>Refresh</span>
+                            <span data-i18n="btn.refresh">Refresh</span>
                         </button>
                     </div>
                 </div>
@@ -379,22 +379,22 @@
                 <div class="flex items-center justify-between mb-4 subscription-section-header">
                     <h3 class="font-display font-semibold flex items-center gap-2">
                         <i class="fas fa-hand-holding-usd text-green"></i>
-                        <span>Referral Payouts</span>
+                        <span data-i18n="admin.referralPayouts">Referral Payouts</span>
                     </h3>
-                    <span class="text-xs text-muted">Filter by status</span>
+                    <span class="text-xs text-muted" data-i18n="payouts.filterByStatus">Filter by status</span>
                 </div>
                 
                 <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4 subscription-referral-stats">
                     <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
-                        <div class="text-xs text-muted mb-1">Total Referrals</div>
+                        <div class="text-xs text-muted mb-1" data-i18n="admin.totalReferrals">Total Referrals</div>
                         <div class="font-mono text-lg font-bold text-cyan subscription-stat-value" id="admin-total-referrals">0</div>
                     </div>
                     <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
-                        <div class="text-xs text-muted mb-1">Pending Payouts</div>
+                        <div class="text-xs text-muted mb-1" data-i18n="admin.pendingPayouts">Pending Payouts</div>
                         <div class="font-mono text-lg font-bold text-yellow subscription-stat-value" id="admin-pending-payout-amount">$0.00</div>
                     </div>
                     <div class="p-3 rounded-lg text-center subscription-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
-                        <div class="text-xs text-muted mb-1">Pending Requests</div>
+                        <div class="text-xs text-muted mb-1" data-i18n="admin.pendingRequests">Pending Requests</div>
                         <div class="font-mono text-lg font-bold text-green subscription-stat-value" id="admin-pending-payout-requests">0</div>
                     </div>
                 </div>
@@ -403,35 +403,35 @@
                     <a href="{{ url_for('admin_subscription', payout_status='pending') }}#referral-payouts"
                        class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-yellow-500/10 border-yellow-500/40 text-yellow-300' if payout_status_filter == 'pending' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
-                            <span>Pending</span>
+                            <span data-i18n="payouts.pending">Pending</span>
                             <span class="badge badge-yellow">{{ payout_counts.pending }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='approved') }}#referral-payouts"
                        class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-blue-500/10 border-blue-500/40 text-blue-300' if payout_status_filter == 'approved' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
-                            <span>Approved</span>
+                            <span data-i18n="payouts.approved">Approved</span>
                             <span class="badge badge-blue">{{ payout_counts.approved }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='paid') }}#referral-payouts"
                        class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-green-500/10 border-green-500/40 text-green-300' if payout_status_filter == 'paid' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
-                            <span>Paid</span>
+                            <span data-i18n="payouts.paid">Paid</span>
                             <span class="badge badge-green">{{ payout_counts.paid }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='rejected') }}#referral-payouts"
                        class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-red-500/10 border-red-500/40 text-red-300' if payout_status_filter == 'rejected' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
-                            <span>Rejected</span>
+                            <span data-i18n="payouts.rejected">Rejected</span>
                             <span class="badge badge-red">{{ payout_counts.rejected }}</span>
                         </div>
                     </a>
                     <a href="{{ url_for('admin_subscription', payout_status='all') }}#referral-payouts"
                        class="p-3 rounded-lg border text-xs subscription-filter-card {{ 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' if payout_status_filter == 'all' else 'bg-white/5 border-white/10 text-white/60 hover:border-white/20' }}">
                         <div class="flex items-center justify-between">
-                            <span>All</span>
+                            <span data-i18n="payouts.all">All</span>
                             <span class="badge badge-cyan">{{ payout_counts.pending + payout_counts.approved + payout_counts.paid + payout_counts.rejected }}</span>
                         </div>
                     </a>
@@ -442,13 +442,13 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="text-left text-xs text-white/40 border-b border-white/10">
-                                <th class="pb-2">User</th>
-                                <th class="pb-2">Amount</th>
-                                <th class="pb-2">Method</th>
-                                <th class="pb-2">Address</th>
-                                <th class="pb-2">Status</th>
-                                <th class="pb-2">Date</th>
-                                <th class="pb-2 text-right">Actions</th>
+                                <th class="pb-2" data-i18n="payouts.user">User</th>
+                                <th class="pb-2" data-i18n="payouts.amount">Amount</th>
+                                <th class="pb-2" data-i18n="payouts.method">Method</th>
+                                <th class="pb-2" data-i18n="payouts.address">Address</th>
+                                <th class="pb-2" data-i18n="payouts.status">Status</th>
+                                <th class="pb-2" data-i18n="payouts.date">Date</th>
+                                <th class="pb-2 text-right" data-i18n="payouts.actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/5">
@@ -468,25 +468,25 @@
                                         {{ address[:30] }}{% if address|length > 30 %}...{% endif %}
                                     </div>
                                     <button onclick="copyPayoutAddress('{{ address }}')" class="text-xs text-cyan-400 hover:text-cyan-300">
-                                        <i class="fas fa-copy"></i> Copy
+                                        <i class="fas fa-copy"></i> <span data-i18n="payouts.copy">Copy</span>
                                     </button>
                                 </td>
                                 <td class="py-3">
                                     {% if payout.status == 'paid' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
-                                        <i class="fas fa-check"></i> Paid
+                                        <i class="fas fa-check"></i> <span data-i18n="payouts.paid">Paid</span>
                                     </span>
                                     {% elif payout.status == 'approved' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400">
-                                        <i class="fas fa-thumbs-up"></i> Approved
+                                        <i class="fas fa-thumbs-up"></i> <span data-i18n="payouts.approved">Approved</span>
                                     </span>
                                     {% elif payout.status == 'pending' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400">
-                                        <i class="fas fa-clock"></i> Pending
+                                        <i class="fas fa-clock"></i> <span data-i18n="payouts.pending">Pending</span>
                                     </span>
                                     {% elif payout.status == 'rejected' %}
                                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400">
-                                        <i class="fas fa-times"></i> Rejected
+                                        <i class="fas fa-times"></i> <span data-i18n="payouts.rejected">Rejected</span>
                                     </span>
                                     {% endif %}
                                 </td>
@@ -518,10 +518,10 @@
                         </tbody>
                     </table>
                     {% else %}
-                    <div class="text-center py-6 text-muted">
-                        <i class="fas fa-inbox text-2xl mb-2 opacity-50"></i>
-                        <div>No payout requests</div>
-                    </div>
+                        <div class="text-center py-6 text-muted">
+                            <i class="fas fa-inbox text-2xl mb-2 opacity-50"></i>
+                            <div data-i18n="payouts.noRequests">No payout requests</div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -530,12 +530,12 @@
             <div id="subscription-pending-payments" class="p-4 rounded-xl subscription-card" style="background: var(--color-surface-2); border: 1px solid var(--color-border);">
                 <h3 class="font-display font-semibold flex items-center gap-2 mb-4 subscription-section-title">
                     <i class="fas fa-clock text-yellow"></i>
-                    <span>Pending Payments</span>
+                    <span data-i18n="admin.pendingPayments">Pending Payments</span>
                     <span class="badge badge-yellow ml-2" id="admin-pending-payments">0</span>
                 </h3>
                 <div id="pending-payments-list" class="space-y-3 max-h-64 overflow-y-auto subscription-list">
                     <div class="text-center py-4 text-muted text-sm">
-                        <i class="fas fa-spinner fa-spin"></i> Завантаження...
+                        <i class="fas fa-spinner fa-spin"></i> <span data-i18n="payouts.loading">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -549,7 +549,7 @@
         <div class="modal-header" style="background: var(--color-surface-2);">
             <div class="modal-title">
                 <i class="fas fa-check-circle text-green"></i>
-                <span>Approve Payout</span>
+                <span data-i18n="payouts.approvePayout">Approve Payout</span>
             </div>
             <button onclick="closePayoutModal('payoutApproveModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -557,15 +557,15 @@
         </div>
         <form id="payoutApproveForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
             <div class="modal-body">
-                <p class="text-sm text-muted mb-3">Approve this payout request?</p>
-                <label class="text-xs text-muted mb-2 block">Notes (optional)</label>
-                <textarea name="notes" class="input" rows="2" placeholder="Add notes for reference..."></textarea>
+                <p class="text-sm text-muted mb-3" data-i18n="payouts.approveConfirm">Approve this payout request?</p>
+                <label class="text-xs text-muted mb-2 block" data-i18n="payouts.notes">Notes (optional)</label>
+                <textarea name="notes" class="input" rows="2" data-i18n-placeholder="payouts.notesPlaceholder" placeholder="Add notes for reference..."></textarea>
             </div>
             <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
-                <button type="button" onclick="closePayoutModal('payoutApproveModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="button" onclick="closePayoutModal('payoutApproveModal')" class="cyber-btn cyber-btn-outline" data-i18n="btn.cancel">Cancel</button>
                 <button type="submit" class="cyber-btn cyber-btn-success">
                     <i class="fas fa-check"></i>
-                    <span>Approve</span>
+                    <span data-i18n="payouts.approve">Approve</span>
                 </button>
             </div>
         </form>
@@ -578,7 +578,7 @@
         <div class="modal-header" style="background: var(--color-surface-2);">
             <div class="modal-title">
                 <i class="fas fa-times-circle text-red"></i>
-                <span>Reject Payout</span>
+                <span data-i18n="payouts.rejectPayout">Reject Payout</span>
             </div>
             <button onclick="closePayoutModal('payoutRejectModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -586,15 +586,15 @@
         </div>
         <form id="payoutRejectForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
             <div class="modal-body">
-                <p class="text-sm text-muted mb-3">Please provide a reason for rejection.</p>
-                <label class="text-xs text-muted mb-2 block">Reason</label>
-                <textarea name="reason" class="input" rows="3" placeholder="Reason for rejection..." required></textarea>
+                <p class="text-sm text-muted mb-3" data-i18n="payouts.provideReason">Please provide a reason for rejection.</p>
+                <label class="text-xs text-muted mb-2 block" data-i18n="payouts.reason">Reason</label>
+                <textarea name="reason" class="input" rows="3" data-i18n-placeholder="payouts.reasonPlaceholder" placeholder="Reason for rejection..." required></textarea>
             </div>
             <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
-                <button type="button" onclick="closePayoutModal('payoutRejectModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="button" onclick="closePayoutModal('payoutRejectModal')" class="cyber-btn cyber-btn-outline" data-i18n="btn.cancel">Cancel</button>
                 <button type="submit" class="cyber-btn cyber-btn-danger">
                     <i class="fas fa-times"></i>
-                    <span>Reject</span>
+                    <span data-i18n="payouts.reject">Reject</span>
                 </button>
             </div>
         </form>
@@ -607,7 +607,7 @@
         <div class="modal-header" style="background: var(--color-surface-2);">
             <div class="modal-title">
                 <i class="fas fa-money-bill-wave text-cyan"></i>
-                <span>Mark as Paid</span>
+                <span data-i18n="payouts.markAsPaid">Mark as Paid</span>
             </div>
             <button onclick="closePayoutModal('payoutPayModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -615,17 +615,17 @@
         </div>
         <form id="payoutPayForm" method="POST" action="javascript:void(0)" onsubmit="return validatePayoutForm(this)">
             <div class="modal-body">
-                <p class="text-sm text-muted mb-3">Confirm the payout was sent.</p>
-                <label class="text-xs text-muted mb-2 block">Transaction ID</label>
-                <input type="text" name="txn_id" class="input" placeholder="Transaction reference (optional)">
-                <label class="text-xs text-muted mb-2 block mt-3">Notes (optional)</label>
-                <textarea name="notes" class="input" rows="2" placeholder="Add notes for reference..."></textarea>
+                <p class="text-sm text-muted mb-3" data-i18n="payouts.confirmPayment">Confirm the payout was sent.</p>
+                <label class="text-xs text-muted mb-2 block" data-i18n="payouts.transactionId">Transaction ID</label>
+                <input type="text" name="txn_id" class="input" data-i18n-placeholder="payouts.transactionPlaceholder" placeholder="Transaction reference (optional)">
+                <label class="text-xs text-muted mb-2 block mt-3" data-i18n="payouts.notes">Notes (optional)</label>
+                <textarea name="notes" class="input" rows="2" data-i18n-placeholder="payouts.notesPlaceholder" placeholder="Add notes for reference..."></textarea>
             </div>
             <div class="p-4 border-t border-[var(--color-border)] flex gap-3 justify-end">
-                <button type="button" onclick="closePayoutModal('payoutPayModal')" class="cyber-btn cyber-btn-outline">Cancel</button>
+                <button type="button" onclick="closePayoutModal('payoutPayModal')" class="cyber-btn cyber-btn-outline" data-i18n="btn.cancel">Cancel</button>
                 <button type="submit" class="cyber-btn cyber-btn-success">
                     <i class="fas fa-check"></i>
-                    <span>Confirm Paid</span>
+                    <span data-i18n="payouts.confirmPaid">Confirm Paid</span>
                 </button>
             </div>
         </form>
@@ -638,7 +638,7 @@
         <div class="modal-header" style="background: var(--color-surface-2);">
             <div class="modal-title">
                 <i class="fas fa-info-circle text-purple"></i>
-                <span>Payout Details</span>
+                <span data-i18n="payouts.payoutDetails">Payout Details</span>
             </div>
             <button onclick="closePayoutModal('payoutDetailsModal')" class="modal-close" style="width: 32px; height: 32px; border: none; background: var(--color-surface-2); border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);">
                 <i class="fas fa-times"></i>
@@ -646,7 +646,7 @@
         </div>
         <div class="modal-body" id="payout-details-content">
             <div class="text-center py-6 text-muted">
-                <i class="fas fa-spinner fa-spin"></i> Loading...
+                <i class="fas fa-spinner fa-spin"></i> <span data-i18n="payouts.loading">Loading...</span>
             </div>
         </div>
     </div>
@@ -728,7 +728,11 @@
             const label = document.getElementById('sub-toggle-label');
             if (toggle) {
                 toggle.checked = data.subscription.enabled;
-                if (label) label.textContent = data.subscription.enabled ? 'ON' : 'OFF';
+                if (label) {
+                    const stateKey = data.subscription.enabled ? 'admin.subscriptionOn' : 'admin.subscriptionOff';
+                    label.textContent = t(stateKey);
+                    label.setAttribute('data-i18n', stateKey);
+                }
             }
             renderPlanSettings(data.plans || []);
             renderPaymentMethods(data.payment_methods || []);
@@ -744,7 +748,7 @@
         if (!grid) return;
         
         if (!plans || plans.length === 0) {
-            grid.innerHTML = '<div class="text-center py-4 text-muted">No plans configured</div>';
+            grid.innerHTML = `<div class="text-center py-4 text-muted" data-i18n="admin.noPlansConfigured">${t('admin.noPlansConfigured')}</div>`;
             return;
         }
         
@@ -753,20 +757,20 @@
             html += `
                 <div class="p-3 rounded-lg border subscription-plan-card" data-plan-id="${plan.id}" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
                     <div class="flex items-center justify-between mb-2">
-                        <input type="text" class="input text-sm font-semibold" data-field="name" value="${plan.name || ''}" placeholder="Plan name">
+                        <input type="text" class="input text-sm font-semibold" data-field="name" value="${plan.name || ''}" data-i18n-placeholder="admin.planNamePlaceholder" placeholder="${t('admin.planNamePlaceholder')}">
                         <label class="flex items-center gap-2 text-xs text-muted">
                             <input type="checkbox" data-field="enabled" ${plan.enabled ? 'checked' : ''} class="cyber-checkbox">
-                            <span>Enabled</span>
+                            <span data-i18n="admin.enabled">${t('admin.enabled')}</span>
                         </label>
                     </div>
                     <div class="text-xs text-muted mb-3">${plan.id.toUpperCase()}</div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-xs text-muted mb-1 block">Price ($)</label>
+                            <label class="text-xs text-muted mb-1 block" data-i18n="admin.priceLabel">${t('admin.priceLabel')}</label>
                             <input type="number" step="0.01" min="0" class="input" data-field="price" value="${plan.price}">
                         </div>
                         <div>
-                            <label class="text-xs text-muted mb-1 block">Days</label>
+                            <label class="text-xs text-muted mb-1 block" data-i18n="admin.daysLabel">${t('admin.daysLabel')}</label>
                             <input type="number" step="1" min="1" class="input" data-field="days" value="${plan.days}">
                         </div>
                     </div>
@@ -797,14 +801,14 @@
             });
             const data = await response.json();
             if (data.success) {
-                showToast('Plans updated', 'success');
+                showToast(t('admin.plansUpdated'), 'success');
                 loadSubscriptionSettings();
                 loadSubscriptionStats();
             } else {
-                showToast(data.error || 'Failed to update plans', 'error');
+                showToast(data.error || t('admin.failedToUpdatePlans'), 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -815,7 +819,7 @@
         paymentMethods = methods || [];
         
         if (!methods || methods.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted">No payment methods configured</div>';
+            container.innerHTML = `<div class="text-center py-4 text-muted" data-i18n="admin.noPaymentMethodsConfigured">${t('admin.noPaymentMethodsConfigured')}</div>`;
             return;
         }
         
@@ -837,36 +841,36 @@
             <div class="p-3 rounded-lg border payment-method-row subscription-method-card" style="background: rgba(255,255,255,0.02); border-color: var(--color-border);">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Label</label>
-                        <input type="text" class="input" data-field="label" value="${label}" placeholder="e.g., Bank Transfer">
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.paymentMethodLabel">${t('admin.paymentMethodLabel')}</label>
+                        <input type="text" class="input" data-field="label" value="${label}" data-i18n-placeholder="admin.paymentMethodLabelPlaceholder" placeholder="${t('admin.paymentMethodLabelPlaceholder')}">
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">ID</label>
-                        <input type="text" class="input" data-field="id" value="${id}" placeholder="bank_transfer">
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.paymentMethodId">${t('admin.paymentMethodId')}</label>
+                        <input type="text" class="input" data-field="id" value="${id}" data-i18n-placeholder="admin.paymentMethodIdPlaceholder" placeholder="${t('admin.paymentMethodIdPlaceholder')}">
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Type</label>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.paymentMethodType">${t('admin.paymentMethodType')}</label>
                         <select class="input" data-field="type">
-                            <option value="wallet" ${type === 'wallet' ? 'selected' : ''}>Wallet</option>
-                            <option value="bank" ${type === 'bank' ? 'selected' : ''}>Bank</option>
-                            <option value="card" ${type === 'card' ? 'selected' : ''}>Card</option>
-                            <option value="exchange" ${type === 'exchange' ? 'selected' : ''}>Exchange Wallet</option>
-                            <option value="other" ${type === 'other' ? 'selected' : ''}>Other</option>
+                            <option value="wallet" ${type === 'wallet' ? 'selected' : ''} data-i18n="admin.paymentMethodTypeWallet">${t('admin.paymentMethodTypeWallet')}</option>
+                            <option value="bank" ${type === 'bank' ? 'selected' : ''} data-i18n="admin.paymentMethodTypeBank">${t('admin.paymentMethodTypeBank')}</option>
+                            <option value="card" ${type === 'card' ? 'selected' : ''} data-i18n="admin.paymentMethodTypeCard">${t('admin.paymentMethodTypeCard')}</option>
+                            <option value="exchange" ${type === 'exchange' ? 'selected' : ''} data-i18n="admin.paymentMethodTypeExchange">${t('admin.paymentMethodTypeExchange')}</option>
+                            <option value="other" ${type === 'other' ? 'selected' : ''} data-i18n="admin.paymentMethodTypeOther">${t('admin.paymentMethodTypeOther')}</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs text-muted mb-1 block">Details</label>
-                        <textarea class="input" data-field="details" rows="2" placeholder="Account / Card / Wallet details">${details}</textarea>
+                        <label class="text-xs text-muted mb-1 block" data-i18n="admin.paymentMethodDetails">${t('admin.paymentMethodDetails')}</label>
+                        <textarea class="input" data-field="details" rows="2" data-i18n-placeholder="admin.paymentMethodDetailsPlaceholder" placeholder="${t('admin.paymentMethodDetailsPlaceholder')}">${details}</textarea>
                     </div>
                 </div>
                 <div class="flex items-center justify-between mt-2">
                     <label class="flex items-center gap-2 text-xs text-muted">
                         <input type="checkbox" data-field="enabled" ${enabled ? 'checked' : ''} class="cyber-checkbox">
-                        <span>Enabled</span>
+                        <span data-i18n="admin.enabled">${t('admin.enabled')}</span>
                     </label>
                     <button onclick="removePaymentMethodRow(this)" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                         <i class="fas fa-trash"></i>
-                        <span>Remove</span>
+                        <span data-i18n="btn.remove">${t('btn.remove')}</span>
                     </button>
                 </div>
             </div>
@@ -904,13 +908,13 @@
             });
             const data = await response.json();
             if (data.success) {
-                showToast('Payment methods updated', 'success');
+                showToast(t('admin.paymentMethodsUpdated'), 'success');
                 loadSubscriptionSettings();
             } else {
-                showToast(data.error || 'Failed to update payment methods', 'error');
+                showToast(data.error || t('admin.failedToUpdatePaymentMethods'), 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -918,7 +922,7 @@
         const select = document.getElementById('bonus-plan-select');
         if (!select) return;
         if (!plans || plans.length === 0) {
-            select.innerHTML = '<option value="">No plans</option>';
+            select.innerHTML = `<option value="" data-i18n="admin.noPlans">${t('admin.noPlans')}</option>`;
             return;
         }
         select.innerHTML = plans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
@@ -936,10 +940,10 @@
                 renderSubscribers(data.users || []);
                 populateBonusUsers(data.users || []);
             } else {
-                showToast(data.error || 'Failed to load subscribers', 'error');
+                showToast(data.error || t('admin.failedToLoadSubscribers'), 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
     
@@ -947,7 +951,7 @@
         const select = document.getElementById('bonus-user-select');
         if (!select) return;
         if (!users || users.length === 0) {
-            select.innerHTML = '<option value="">No users</option>';
+            select.innerHTML = `<option value="" data-i18n="admin.noUsers">${t('admin.noUsers')}</option>`;
             return;
         }
         select.innerHTML = users.map(u => `<option value="${u.id}">${u.username} (${u.plan})</option>`).join('');
@@ -958,12 +962,15 @@
         if (!container) return;
         
         if (!users || users.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted">No subscribers found</div>';
+            container.innerHTML = `<div class="text-center py-4 text-muted" data-i18n="admin.noSubscribersFound">${t('admin.noSubscribersFound')}</div>`;
             return;
         }
         
         const rows = users.map(u => {
-            const status = u.has_active_subscription ? 'Active' : (u.plan === 'free' ? 'Free' : 'Expired');
+            const statusKey = u.has_active_subscription
+                ? 'admin.subscriberStatusActive'
+                : (u.plan === 'free' ? 'admin.subscriberStatusFree' : 'admin.subscriberStatusExpired');
+            const statusLabel = t(statusKey);
             const expires = u.expires_at ? new Date(u.expires_at).toLocaleDateString() : '—';
             return `
                 <div class="subscription-row-card flex items-center justify-between gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid var(--color-border);">
@@ -977,14 +984,14 @@
                         </div>
                     </div>
                     <div class="subscription-row-details text-right text-xs text-muted">
-                        <div>${u.plan.toUpperCase()} • ${status}</div>
-                        <div>Expires: ${expires}</div>
-                        <div>Days: ${u.days_remaining}</div>
+                        <div>${u.plan.toUpperCase()} • <span data-i18n="${statusKey}">${statusLabel}</span></div>
+                        <div><span data-i18n="admin.expiresLabel">${t('admin.expiresLabel')}</span>: ${expires}</div>
+                        <div><span data-i18n="admin.daysLabel">${t('admin.daysLabel')}</span>: ${u.days_remaining}</div>
                     </div>
                     <div class="subscription-row-actions flex gap-2 justify-end">
                         <button onclick="setBonusUser(${u.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm subscription-row-action">
                             <i class="fas fa-gift"></i>
-                            <span>Bonus</span>
+                            <span data-i18n="admin.bonusAction">${t('admin.bonusAction')}</span>
                         </button>
                     </div>
                 </div>
@@ -1006,7 +1013,7 @@
         const days = parseInt(document.getElementById('bonus-days-input')?.value || '0');
         
         if (!userId || !plan || !days) {
-            showToast('Please select user, plan and days', 'warning');
+            showToast(t('admin.selectUserPlanDays'), 'warning');
             return;
         }
         
@@ -1018,14 +1025,14 @@
             });
             const data = await response.json();
             if (data.success) {
-                showToast(data.message || 'Subscription updated', 'success');
+                showToast(data.message || t('admin.subscriptionUpdated'), 'success');
                 loadSubscribers();
                 loadSubscriptionStats();
             } else {
-                showToast(data.error || 'Failed to update subscription', 'error');
+                showToast(data.error || t('admin.failedToUpdateSubscription'), 'error');
             }
         } catch (err) {
-            showToast('Network error', 'error');
+            showToast(t('dash.networkError'), 'error');
         }
     }
 
@@ -1033,9 +1040,9 @@
         if (!address) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(address).then(() => {
-                showToast('Address copied', 'success');
+                showToast(t('admin.addressCopied'), 'success');
             }).catch(() => {
-                showToast('Failed to copy', 'error');
+                showToast(t('admin.failedToCopy'), 'error');
             });
         } else {
             const temp = document.createElement('input');
@@ -1044,7 +1051,7 @@
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
-            showToast('Address copied', 'success');
+            showToast(t('admin.addressCopied'), 'success');
         }
     }
     
@@ -1085,7 +1092,7 @@
     function validatePayoutForm(form) {
         const action = form.getAttribute('action');
         if (!action || action === 'javascript:void(0)') {
-            showToast('Action not set', 'error');
+            showToast(t('admin.actionNotSet'), 'error');
             return false;
         }
         return true;
@@ -1094,7 +1101,7 @@
     function viewPayoutDetails(payoutId) {
         const content = document.getElementById('payout-details-content');
         if (content) {
-            content.innerHTML = '<div class="text-center py-6 text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            content.innerHTML = `<div class="text-center py-6 text-muted"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="payouts.loading">${t('payouts.loading')}</span></div>`;
         }
         openPayoutModal('payoutDetailsModal');
         
@@ -1102,7 +1109,7 @@
             .then(res => res.json())
             .then(data => {
                 if (!data.success) {
-                    if (content) content.innerHTML = '<div class="text-center text-red-400">Failed to load details</div>';
+                    if (content) content.innerHTML = `<div class="text-center text-red-400" data-i18n="admin.failedToLoadDetails">${t('admin.failedToLoadDetails')}</div>`;
                     return;
                 }
                 const p = data.payout;
@@ -1115,42 +1122,42 @@
                     content.innerHTML = `
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">User</div>
+                                <div class="text-xs text-muted" data-i18n="payouts.user">${t('payouts.user')}</div>
                                 <div class="font-semibold">${u.username}</div>
                                 <div class="text-xs text-white/40">${u.email || '—'}</div>
                             </div>
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">Amount</div>
+                                <div class="text-xs text-muted" data-i18n="payouts.amount">${t('payouts.amount')}</div>
                                 <div class="font-mono font-semibold text-green-400">$${p.amount.toFixed(2)}</div>
                             </div>
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">Status</div>
+                                <div class="text-xs text-muted" data-i18n="payouts.status">${t('payouts.status')}</div>
                                 <div class="font-semibold">${p.status}</div>
                             </div>
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">Method</div>
+                                <div class="text-xs text-muted" data-i18n="payouts.method">${t('payouts.method')}</div>
                                 <div class="font-semibold">${p.payment_method_label}</div>
                             </div>
                             <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
-                                <div class="text-xs text-muted">Address / Details</div>
+                                <div class="text-xs text-muted" data-i18n="admin.addressDetails">${t('admin.addressDetails')}</div>
                                 <div class="font-mono text-sm break-all">${p.payment_address || '—'}</div>
                             </div>
                             ${p.txn_id ? `
                             <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
-                                <div class="text-xs text-muted">Transaction ID</div>
+                                <div class="text-xs text-muted" data-i18n="payouts.transactionId">${t('payouts.transactionId')}</div>
                                 <div class="font-mono text-sm break-all">${p.txn_id}</div>
                             </div>` : ''}
                             ${p.admin_notes ? `
                             <div class="p-3 rounded-lg border border-white/10 md:col-span-2">
-                                <div class="text-xs text-muted">Admin Notes</div>
+                                <div class="text-xs text-muted" data-i18n="admin.adminNotes">${t('admin.adminNotes')}</div>
                                 <div class="text-sm">${p.admin_notes}</div>
                             </div>` : ''}
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">Created</div>
+                                <div class="text-xs text-muted" data-i18n="admin.createdLabel">${t('admin.createdLabel')}</div>
                                 <div class="text-sm">${created}</div>
                             </div>
                             <div class="p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-muted">Processed</div>
+                                <div class="text-xs text-muted" data-i18n="admin.processedLabel">${t('admin.processedLabel')}</div>
                                 <div class="text-sm">${processedLabel}</div>
                             </div>
                         </div>
@@ -1158,7 +1165,7 @@
                 }
             })
             .catch(() => {
-                if (content) content.innerHTML = '<div class="text-center text-red-400">Failed to load details</div>';
+                if (content) content.innerHTML = `<div class="text-center text-red-400" data-i18n="admin.failedToLoadDetails">${t('admin.failedToLoadDetails')}</div>`;
             });
     }
     
@@ -1188,7 +1195,7 @@
             container.innerHTML = `
                 <div class="text-center py-6 text-muted">
                     <i class="fas fa-check-circle text-2xl mb-2 text-green"></i>
-                    <p data-i18n="admin.noPendingPayments">Очікуючих платежів немає</p>
+                    <p data-i18n="admin.noPendingPayments">${t('admin.noPendingPayments')}</p>
                 </div>
             `;
             return;
@@ -1215,10 +1222,10 @@
                         <div class="text-xs text-muted">${createdAt.toLocaleDateString()}</div>
                     </div>
                     <div class="subscription-row-actions flex gap-2 justify-end">
-                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success subscription-row-action" title="Confirm">
+                        <button onclick="confirmPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-success subscription-row-action" title="${t('payouts.approve')}" data-i18n-title="payouts.approve">
                             <i class="fas fa-check"></i>
                         </button>
-                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger subscription-row-action" title="Reject">
+                        <button onclick="rejectPayment(${p.id})" class="cyber-btn cyber-btn-sm cyber-btn-danger subscription-row-action" title="${t('payouts.reject')}" data-i18n-title="payouts.reject">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -1244,11 +1251,15 @@
             const data = await response.json();
             
             if (data.success) {
-                if (label) label.textContent = enabled ? 'ON' : 'OFF';
+                if (label) {
+                    const stateKey = enabled ? 'admin.subscriptionOn' : 'admin.subscriptionOff';
+                    label.textContent = t(stateKey);
+                    label.setAttribute('data-i18n', stateKey);
+                }
                 showToast(enabled ? t('admin.subscriptionEnabled') : t('admin.freeAccessEnabled'), 'success');
             } else {
                 checkbox.checked = !enabled;
-                showToast(data.error || 'Failed to update', 'error');
+                showToast(data.error || t('admin.failedToUpdate'), 'error');
             }
         } catch (err) {
             checkbox.checked = !enabled;
@@ -1257,7 +1268,7 @@
     }
     
     async function confirmPayment(paymentId) {
-        if (!confirm('Підтвердити цей платіж та активувати підписку користувача?')) return;
+        if (!confirm(t('admin.confirmPaymentPrompt'))) return;
         
         try {
             const response = await fetch(`/api/admin/confirm-payment/${paymentId}`, {
@@ -1272,7 +1283,7 @@
                 loadPendingPayments();
                 loadTotalRevenue();
             } else {
-                showToast(data.error || 'Failed to confirm', 'error');
+                showToast(data.error || t('admin.failedToConfirm'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');
@@ -1280,14 +1291,14 @@
     }
     
     async function rejectPayment(paymentId) {
-        const reason = prompt('Введи причину відхилення (опціонально):');
+        const reason = prompt(t('admin.rejectPaymentPrompt'));
         if (reason === null) return;
         
         try {
             const response = await fetch(`/api/admin/reject-payment/${paymentId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: reason || 'Payment not verified' })
+                body: JSON.stringify({ reason: reason || t('admin.paymentNotVerified') })
             });
             
             const data = await response.json();
@@ -1296,7 +1307,7 @@
                 showToast(t('admin.paymentRejected'), 'info');
                 loadPendingPayments();
             } else {
-                showToast(data.error || 'Failed to reject', 'error');
+                showToast(data.error || t('admin.failedToReject'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');

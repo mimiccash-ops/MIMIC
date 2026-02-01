@@ -307,7 +307,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-display font-semibold flex items-center gap-3">
                     <i class="fas fa-cogs text-cyan"></i>
-                    <span data-i18n="admin.exchangeConfig">Verified Exchanges</span>
+                    <span data-i18n="admin.verifiedExchanges">Verified Exchanges</span>
                     <span id="verified-exchanges-count" class="badge badge-success">-</span>
                 </h2>
                 <button onclick="loadExchangeConfigs()" class="cyber-btn cyber-btn-outline cyber-btn-icon">
@@ -392,7 +392,7 @@
             allExchangeConfigs = configs;
             
             if (select && (!isModalOpen || !selectedValue)) {
-                select.innerHTML = '<option value="">-- Select Exchange --</option>' + configs.map(c => 
+                select.innerHTML = `<option value="" data-i18n="admin.selectExchangePlaceholder">${t('admin.selectExchangePlaceholder')}</option>` + configs.map(c => 
                     `<option value="${c.exchange_name}" data-verified="${c.is_verified}" data-passphrase="${c.requires_passphrase}">${c.display_name} ${c.is_verified ? '✓' : ''}</option>`
                 ).join('');
                 
@@ -405,17 +405,18 @@
             }
             
             if (!configs || configs.length === 0) { 
-                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs">${t('admin.noExchangesConfigured')}</p></div>`; 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><p class="text-xxs" data-i18n="admin.noExchangesConfigured">${t('admin.noExchangesConfigured')}</p></div>`; 
                 return; 
             }
             
             container.innerHTML = configs.map(c => {
                 const statusClass = c.is_verified ? (c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.08)] border-[rgba(0,245,255,0.25)]') : 'bg-[rgba(255,200,0,0.04)] border-[rgba(255,200,0,0.15)]';
                 const iconClass = c.is_verified ? (c.is_enabled ? 'text-green' : 'text-cyan') : 'text-yellow';
-                const statusText = c.is_verified ? (c.is_enabled ? 'Активна' : 'Верифікована') : 'Не підключена';
+                const statusKey = c.is_verified ? (c.is_enabled ? 'admin.exchangeStatusActive' : 'admin.exchangeStatusVerified') : 'admin.exchangeStatusNotConnected';
+                const statusText = t(statusKey);
                 const statusBadge = c.is_verified ? 
                     `<span class="badge badge-success" style="font-size: 0.35rem;">✓</span>` : 
-                    `<button onclick="selectExchangeForConnect('${c.exchange_name}')" class="cyber-btn cyber-btn-xs" style="font-size: 0.35rem; padding: 2px 4px;"><i class="fas fa-plug"></i></button>`;
+                    `<button onclick="selectExchangeForConnect('${c.exchange_name}')" class="cyber-btn cyber-btn-xs" style="font-size: 0.35rem; padding: 2px 4px;" title="${t('admin.connectExchange')}" data-i18n-title="admin.connectExchange"><i class="fas fa-plug"></i></button>`;
                 
                 return `<div class="p-2 rounded-lg border ${statusClass} transition-all hover:scale-[1.02]">
                     <div class="flex items-center gap-2">
@@ -424,14 +425,14 @@
                         </div>
                         <div class="flex-grow min-w-0">
                             <p class="font-bold text-xxs text-bright truncate">${c.display_name}</p>
-                            <p class="text-xxs text-muted">${statusText}</p>
+                            <p class="text-xxs text-muted" data-i18n="${statusKey}">${statusText}</p>
                         </div>
                         ${statusBadge}
                     </div>
                 </div>`;
             }).join('');
         }).catch(() => {
-            container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs">Error loading</p></div>`;
+            container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs" data-i18n="admin.errorLoadingExchanges">${t('admin.errorLoadingExchanges')}</p></div>`;
         }).finally(() => {
             isLoadingExchangeConfigs = false;
         });
@@ -459,30 +460,34 @@
             
             const verifiedConfigs = configs.filter(c => c.is_verified);
             if (verifiedConfigs.length === 0) { 
-                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><i class="fas fa-check-circle text-lg mb-1 opacity-30"></i><p class="text-xxs">${t('admin.noVerifiedExchanges')}</p></div>`; 
+                container.innerHTML = `<div class="text-center py-3 text-muted col-span-full"><i class="fas fa-check-circle text-lg mb-1 opacity-30"></i><p class="text-xxs" data-i18n="admin.noVerifiedExchanges">${t('admin.noVerifiedExchanges')}</p></div>`; 
                     return;
                 }
                 
-            container.innerHTML = verifiedConfigs.map(c => `<div class="p-2 rounded-lg border ${c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.04)] border-[rgba(0,245,255,0.15)]'} transition-all">
+            container.innerHTML = verifiedConfigs.map(c => {
+                const statusKey = c.is_enabled ? 'admin.exchangeEnabledForUsers' : 'admin.exchangeDisabledForUsers';
+                const statusText = t(statusKey);
+                return `<div class="p-2 rounded-lg border ${c.is_enabled ? 'bg-[rgba(0,255,136,0.08)] border-[rgba(0,255,136,0.25)]' : 'bg-[rgba(0,245,255,0.04)] border-[rgba(0,245,255,0.15)]'} transition-all">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 ${c.is_enabled ? 'bg-[rgba(0,255,136,0.15)]' : 'bg-[rgba(0,245,255,0.15)]'} rounded-lg flex items-center justify-center">
                         <i class="fas fa-building ${c.is_enabled ? 'text-green' : 'text-cyan'}" style="font-size: 0.6rem;"></i>
                                     </div>
                                     <div class="flex-grow min-w-0">
                         <p class="font-bold text-xxs text-bright truncate">${c.display_name}</p>
-                        <p class="text-xxs text-muted">${c.is_enabled ? 'Enabled for users' : 'Disabled'}</p>
+                        <p class="text-xxs text-muted" data-i18n="${statusKey}">${statusText}</p>
                                     </div>
                     <div class="flex items-center gap-1">
-                        <label class="cursor-pointer" title="Enable for users">
+                        <label class="cursor-pointer" title="${t('admin.enableForUsers')}" data-i18n-title="admin.enableForUsers">
                             <input type="checkbox" class="cyber-checkbox" ${c.is_enabled ? 'checked' : ''} onchange="toggleExchangeConfig('${c.exchange_name}', this.checked)">
                                     </label>
-                        <button onclick="disconnectExchange('${c.exchange_name}')" class="w-5 h-5 rounded flex items-center justify-center text-red hover:bg-[rgba(255,0,68,0.08)]" title="Disconnect">
+                        <button onclick="disconnectExchange('${c.exchange_name}')" class="w-5 h-5 rounded flex items-center justify-center text-red hover:bg-[rgba(255,0,68,0.08)]" title="${t('admin.disconnect')}" data-i18n-title="admin.disconnect">
                             <i class="fas fa-unlink" style="font-size: 0.5rem;"></i>
                         </button>
                                 </div>
                             </div>
-            </div>`).join('');
-        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs">Error loading</p></div>`);
+            </div>`;
+            }).join('');
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red col-span-full"><p class="text-xxs" data-i18n="admin.errorLoadingExchanges">${t('admin.errorLoadingExchanges')}</p></div>`);
     }
     
     function toggleExchangeConfig(name, isEnabled) { 
@@ -492,22 +497,22 @@
             body: JSON.stringify({ is_enabled: isEnabled })
         }).then(r => r.json()).then(result => { 
             if (result.success) showToast(result.message, 'success'); 
-            else showToast(result.error || 'Error', 'error'); 
+            else showToast(result.error || t('admin.genericError'), 'error'); 
                 loadExchangeConfigs();
             loadAllExchangeConfigs();
         }).catch(() => { showToast(t('dash.networkError'), 'error'); loadExchangeConfigs(); }); 
     }
     
     function disconnectExchange(name) {
-        if (!confirm(`Відключити ${name.toUpperCase()}?\n\nЦе також вимкне її для всіх користувачів.`)) return;
+        if (!confirm(t('admin.disconnectExchangeConfirm').replace('{name}', name.toUpperCase()))) return;
         fetch(`/api/admin/exchange-configs/${name}/disconnect`, { 
             method: 'POST' 
         }).then(r => r.json()).then(result => { 
-            if (result.success) showToast(result.message || 'Disconnected!', 'success'); 
-            else showToast(result.error || 'Error', 'error'); 
+            if (result.success) showToast(result.message || t('admin.exchangeDisconnected'), 'success'); 
+            else showToast(result.error || t('admin.genericError'), 'error'); 
             loadExchangeConfigs();
             loadAllExchangeConfigs();
-        }).catch(() => showToast('Network error', 'error')); 
+        }).catch(() => showToast(t('dash.networkError'), 'error')); 
     }
     
     // Admin Exchange Modal
@@ -521,20 +526,20 @@
                         <div class="modal-header">
                             <div class="modal-title">
                                 <i class="fas fa-plug text-gradient"></i>
-                                <span>Add Exchange</span>
+                                <span data-i18n="admin.addExchange">${t('admin.addExchange')}</span>
                             </div>
                             <button class="modal-close" onclick="closeAdminExchangeModal()">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                         <div class="modal-body">
-                            <p class="text-sm text-muted mb-4">Підключіться з ВАШИМИ адмін API ключами. Після перевірки користувачі зможуть додати свої власні ключі до цієї біржі.</p>
+                            <p class="text-sm text-muted mb-4" data-i18n="admin.addExchangeHint">${t('admin.addExchangeHint')}</p>
                             
                             <form id="admin-exchange-form" onsubmit="submitAdminExchange(event)" class="flex flex-col gap-4">
                                 <div class="flex flex-col gap-2">
-                                    <label class="text-sm text-muted">Exchange</label>
+                                    <label class="text-sm text-muted" data-i18n="admin.exchangeLabel">${t('admin.exchangeLabel')}</label>
                                     <select id="admin-exchange-select" name="exchange_name" class="cyber-select" required onchange="handleAdminExchangeChange(this)">
-                                        <option value="">Завантаження бірж...</option>
+                                        <option value="" data-i18n="admin.loadingExchanges">${t('admin.loadingExchanges')}</option>
                                     </select>
                                 </div>
                                 
@@ -542,21 +547,21 @@
                                 
                                 <div id="admin-exchange-fields" class="flex flex-col gap-4 hidden">
                                     <div class="flex flex-col gap-2">
-                                        <label class="text-sm text-muted">Admin API Key</label>
-                                        <input type="text" id="admin-api-key" name="api_key" class="input font-mono" placeholder="Ваш адмін API ключ" required minlength="10">
+                                        <label class="text-sm text-muted" data-i18n="admin.adminApiKeyLabel">${t('admin.adminApiKeyLabel')}</label>
+                                        <input type="text" id="admin-api-key" name="api_key" class="input font-mono" data-i18n-placeholder="admin.adminApiKeyPlaceholder" placeholder="${t('admin.adminApiKeyPlaceholder')}" required minlength="10">
                                     </div>
                                     <div class="flex flex-col gap-2">
-                                        <label class="text-sm text-muted">Admin API Secret</label>
-                                        <input type="password" id="admin-api-secret" name="api_secret" class="input font-mono" placeholder="Ваш адмін API секрет" required minlength="10">
+                                        <label class="text-sm text-muted" data-i18n="admin.adminApiSecretLabel">${t('admin.adminApiSecretLabel')}</label>
+                                        <input type="password" id="admin-api-secret" name="api_secret" class="input font-mono" data-i18n-placeholder="admin.adminApiSecretPlaceholder" placeholder="${t('admin.adminApiSecretPlaceholder')}" required minlength="10">
                                     </div>
                                     <div id="admin-passphrase-field" class="flex flex-col gap-2 hidden">
-                                        <label class="text-sm text-muted">Passphrase</label>
-                                        <input type="password" id="admin-passphrase" name="passphrase" class="input font-mono" placeholder="Парольна фраза (обов'язкова для цієї біржі)">
+                                        <label class="text-sm text-muted" data-i18n="admin.passphraseLabel">${t('admin.passphraseLabel')}</label>
+                                        <input type="password" id="admin-passphrase" name="passphrase" class="input font-mono" data-i18n-placeholder="admin.passphrasePlaceholder" placeholder="${t('admin.passphrasePlaceholder')}">
                                     </div>
                                     
                                     <button type="submit" class="cyber-btn w-full" id="admin-exchange-submit-btn">
                                         <i class="fas fa-plug"></i>
-                                        <span>Verify & Connect</span>
+                                        <span data-i18n="admin.verifyAndConnect">${t('admin.verifyAndConnect')}</span>
                                     </button>
                                 </div>
                             </form>
@@ -592,15 +597,17 @@
                     if (!configs || configs.length === 0) {
                         const opt = document.createElement('option');
                         opt.value = '';
-                        opt.textContent = 'No exchanges available';
+                        opt.textContent = t('admin.noExchangesAvailable');
+                        opt.setAttribute('data-i18n', 'admin.noExchangesAvailable');
                         select.appendChild(opt);
-                        showToast('No exchanges configured. Please check database.', 'warning');
+                        showToast(t('admin.noExchangesConfigured'), 'warning');
                         return;
                     }
                     
                     const defaultOpt = document.createElement('option');
                     defaultOpt.value = '';
-                    defaultOpt.textContent = '-- Select Exchange --';
+                    defaultOpt.textContent = t('admin.selectExchangePlaceholder');
+                    defaultOpt.setAttribute('data-i18n', 'admin.selectExchangePlaceholder');
                     select.appendChild(defaultOpt);
                     
                     configs.forEach(c => {
@@ -616,9 +623,9 @@
             .catch(err => {
                 console.error('Error loading exchanges:', err);
                 if (select) {
-                    select.innerHTML = '<option value="">Error loading exchanges</option>';
+                    select.innerHTML = `<option value="" data-i18n="admin.errorLoadingExchanges">${t('admin.errorLoadingExchanges')}</option>`;
                 }
-                showToast('Error loading exchanges: ' + err.message, 'error');
+                showToast(`${t('admin.errorLoadingExchanges')}: ${err.message}`, 'error');
             });
         
         document.body.style.overflow = 'hidden';
@@ -650,11 +657,11 @@
         const needsPassphrase = option.dataset.passphrase === 'true';
         
         if (isVerified) {
-            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green"></i><span class="text-green">Already verified!</span></div><p class="text-muted mt-1">You can re-verify with new API keys if needed.</p>`;
+            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-check-circle text-green"></i><span class="text-green" data-i18n="admin.exchangeAlreadyVerified">${t('admin.exchangeAlreadyVerified')}</span></div><p class="text-muted mt-1" data-i18n="admin.exchangeReverifyHint">${t('admin.exchangeReverifyHint')}</p>`;
             statusContainer.className = 'p-2 rounded-lg border border-[rgba(0,255,136,0.25)] bg-[rgba(0,255,136,0.05)] text-xxs';
             statusContainer.classList.remove('hidden');
         } else {
-            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-info-circle text-yellow"></i><span class="text-yellow">${t('admin.notConnectedYet')}</span></div><p class="text-muted mt-1">${t('admin.enterAdminKeys')}</p>`;
+            statusContainer.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-info-circle text-yellow"></i><span class="text-yellow" data-i18n="admin.notConnectedYet">${t('admin.notConnectedYet')}</span></div><p class="text-muted mt-1" data-i18n="admin.enterAdminKeys">${t('admin.enterAdminKeys')}</p>`;
             statusContainer.className = 'p-2 rounded-lg border border-[rgba(255,200,0,0.25)] bg-[rgba(255,200,0,0.05)] text-xxs';
             statusContainer.classList.remove('hidden');
         }
@@ -680,17 +687,17 @@
         const passphraseInput = document.getElementById('admin-passphrase');
         
         if (!exchangeSelect.value) {
-            showToast('Please select exchange', 'error');
+            showToast(t('admin.selectExchangeError'), 'error');
             return;
         }
         
         if (!apiKeyInput.value || !apiSecretInput.value) {
-            showToast('API Key and Secret required', 'error');
+            showToast(t('admin.apiKeySecretRequired'), 'error');
             return;
         }
         
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Connecting...</span>';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="admin.connecting">${t('admin.connecting')}</span>`;
         
         fetch('/api/admin/exchange-configs', {
             method: 'POST',
@@ -712,17 +719,17 @@
                     loadAllExchangeConfigs();
                 }, 500);
             } else {
-                showToast(result.error || 'Verification failed', 'error');
+                showToast(result.error || t('admin.exchangeVerificationFailed'), 'error');
             }
         })
         .catch((error) => {
             console.error('Error submitting exchange:', error);
-            const errorMsg = error.error || error.message || 'Помилка мережі. Спробуй ще раз.';
+            const errorMsg = error.error || error.message || t('admin.networkErrorRetry');
             showToast(errorMsg, 'error');
         })
         .finally(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-plug"></i> <span>Верифікувати та підключити</span>';
+            btn.innerHTML = `<i class="fas fa-plug"></i> <span data-i18n="admin.verifyAndConnect">${t('admin.verifyAndConnect')}</span>`;
         });
     }
     
@@ -736,7 +743,7 @@
             const tradingCount = exchanges.filter(ex => ex.trading_enabled && ex.status === 'APPROVED').length;
             countEl.textContent = tradingCount;
             if (!exchanges || exchanges.length === 0) { 
-                container.innerHTML = `<div class="text-center py-4 text-muted"><p class="text-xxs">${t('admin.noUserExchanges')}</p></div>`; 
+                container.innerHTML = `<div class="text-center py-4 text-muted"><p class="text-xxs" data-i18n="admin.noUserExchanges">${t('admin.noUserExchanges')}</p></div>`; 
                 return; 
             }
             container.innerHTML = exchanges.map(ex => `
@@ -760,7 +767,7 @@
                 </div>
             `).join('');
             loadAllUserBalances();
-        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Error loading</p></div>`);
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs" data-i18n="admin.errorLoadingUserExchanges">${t('admin.errorLoadingUserExchanges')}</p></div>`);
     }
     
     function loadAllUserBalances() {
@@ -793,7 +800,7 @@
             }
         }).catch(err => console.error('Error loading balances:', err));
     }
-    function toggleUserExchangeTrading(id, enabled) { fetch(`/api/admin/exchanges/${id}/trading`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trading_enabled: enabled }) }).then(r => r.json()).then(result => { if (result.success) showToast(result.message, 'success'); else showToast(result.error, 'error'); loadAllUserExchanges(); }).catch(() => { showToast('Error', 'error'); loadAllUserExchanges(); }); }
+    function toggleUserExchangeTrading(id, enabled) { fetch(`/api/admin/exchanges/${id}/trading`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trading_enabled: enabled }) }).then(r => r.json()).then(result => { if (result.success) showToast(result.message, 'success'); else showToast(result.error, 'error'); loadAllUserExchanges(); }).catch(() => { showToast(t('admin.genericError'), 'error'); loadAllUserExchanges(); }); }
 
     // Pending Exchanges
     function loadPendingExchanges() {
@@ -801,12 +808,12 @@
         const countEl = document.getElementById('pending-exchanges-count');
         fetch('/api/admin/exchanges/pending').then(r => r.json()).then(exchanges => {
                 countEl.textContent = exchanges.length;
-            if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs">${t('admin.noPending')}</p></div>`; return; }
-            container.innerHTML = exchanges.map(ex => `<div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[rgba(255,200,0,0.25)]"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class="min-w-0"><p class="font-bold text-xxs text-bright truncate">${ex.username}</p><p class="text-xxs text-muted truncate">${ex.display_name}</p></div></div><div class="flex items-center gap-1"><button onclick="approveExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-success"><i class="fas fa-check"></i></button><button onclick="rejectExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-danger"><i class="fas fa-times"></i></button></div></div></div>`).join('');
-        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs">Помилка</p></div>`);
+            if (!exchanges || exchanges.length === 0) { container.innerHTML = `<div class="text-center py-4 text-muted"><i class="fas fa-check-circle text-lg mb-1 text-green opacity-50"></i><p class="text-xxs" data-i18n="admin.noPending">${t('admin.noPending')}</p></div>`; return; }
+            container.innerHTML = exchanges.map(ex => `<div class="p-2 bg-[var(--bg-element)] rounded-lg border border-[rgba(255,200,0,0.25)]"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class="min-w-0"><p class="font-bold text-xxs text-bright truncate">${ex.username}</p><p class="text-xxs text-muted truncate">${ex.display_name}</p></div></div><div class="flex items-center gap-1"><button onclick="approveExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-success" title="${t('admin.approve')}" data-i18n-title="admin.approve"><i class="fas fa-check"></i></button><button onclick="rejectExchange(${ex.id})" class="cyber-btn cyber-btn-xs cyber-btn-danger" title="${t('admin.reject')}" data-i18n-title="admin.reject"><i class="fas fa-times"></i></button></div></div></div>`).join('');
+        }).catch(() => container.innerHTML = `<div class="text-center py-3 text-red"><p class="text-xxs" data-i18n="admin.genericError">${t('admin.genericError')}</p></div>`);
     }
-    function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.approved'), 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast('Error', 'error')); }
-    function rejectExchange(id) { if (!confirm('Відхилити цю біржу?')) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.rejected'), 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast('Помилка', 'error')); }
+    function approveExchange(id) { fetch(`/api/admin/exchanges/${id}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.exchangeApproved'), 'success'); else showToast(result.error, 'error'); loadPendingExchanges(); loadAllUserExchanges(); }).catch(() => showToast(t('admin.genericError'), 'error')); }
+    function rejectExchange(id) { if (!confirm(t('admin.rejectExchangeConfirm'))) return; fetch(`/api/admin/exchanges/${id}/reject`, { method: 'POST' }).then(r => r.json()).then(result => { if (result.success) showToast(t('admin.exchangeRejected'), 'warning'); else showToast(result.error, 'error'); loadPendingExchanges(); }).catch(() => showToast(t('admin.genericError'), 'error')); }
 
     document.addEventListener('keydown', e => { 
         if (e.key === 'Escape') { 

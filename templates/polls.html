@@ -978,7 +978,7 @@
         </div>
         <div class="eligibility-badge" id="eligibility-badge" style="display: none;">
             <i class="fas fa-star"></i>
-            <span id="eligibility-level">Member</span>
+            <span id="eligibility-level" data-i18n="governance.member">Member</span>
         </div>
     </div>
 </section>
@@ -1013,7 +1013,7 @@
 <section class="proposals-section">
     <div class="proposals-grid" id="proposals-grid">
         <div class="no-proposals loading-shimmer" style="height: 300px; border-radius: 24px;">
-            Loading proposals...
+            <span data-i18n="governance.loadingProposals">Loading proposals...</span>
         </div>
     </div>
 </section>
@@ -1021,7 +1021,7 @@
 <!-- ==================== ADMIN CREATE BUTTON ==================== -->
 {% if current_user.is_authenticated and current_user.role == 'admin' %}
 <div class="admin-actions">
-    <button class="create-proposal-btn" onclick="openCreateModal()" title="Create Proposal">
+    <button class="create-proposal-btn" onclick="openCreateModal()" title="Create Proposal" data-i18n-title="governance.createProposal">
         <i class="fas fa-plus"></i>
     </button>
 </div>
@@ -1030,7 +1030,7 @@
 <div class="modal-overlay" id="create-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2><i class="fas fa-plus-circle"></i> Create Proposal</h2>
+            <h2><i class="fas fa-plus-circle"></i> <span data-i18n="governance.createProposal">Create Proposal</span></h2>
             <button class="modal-close" onclick="closeCreateModal()">
                 <i class="fas fa-times"></i>
             </button>
@@ -1038,44 +1038,44 @@
         <div class="modal-body">
             <form id="create-form">
                 <div class="form-group">
-                    <label>Proposal Title</label>
-                    <input type="text" id="proposal-title" placeholder="e.g., Add SOL/USDT Trading Pair" required>
+                    <label data-i18n="governance.proposalTitle">Proposal Title</label>
+                    <input type="text" id="proposal-title" data-i18n-placeholder="governance.proposalTitlePlaceholder" placeholder="e.g., Add SOL/USDT Trading Pair" required>
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="proposal-description" placeholder="Describe the proposal in detail..." required></textarea>
+                    <label data-i18n="governance.proposalDescription">Description</label>
+                    <textarea id="proposal-description" data-i18n-placeholder="governance.proposalDescriptionPlaceholder" placeholder="Describe the proposal in detail..." required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Category</label>
+                    <label data-i18n="governance.proposalCategory">Category</label>
                     <select id="proposal-category" required>
-                        <option value="trading_pair">New Trading Pair</option>
-                        <option value="risk_management">Risk Management</option>
-                        <option value="exchange">New Exchange</option>
-                        <option value="feature">Feature Request</option>
-                        <option value="other">Other</option>
+                        <option value="trading_pair" data-i18n="governance.categoryTradingPair">New Trading Pair</option>
+                        <option value="risk_management" data-i18n="governance.categoryRiskManagement">Risk Management</option>
+                        <option value="exchange" data-i18n="governance.categoryExchange">New Exchange</option>
+                        <option value="feature" data-i18n="governance.categoryFeature">Feature Request</option>
+                        <option value="other" data-i18n="governance.categoryOther">Other</option>
                     </select>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Voting Duration (Days)</label>
+                        <label data-i18n="governance.votingDurationDays">Voting Duration (Days)</label>
                         <input type="number" id="proposal-days" value="7" min="1" max="30">
                     </div>
                     <div class="form-group">
-                        <label>Min Votes Required</label>
+                        <label data-i18n="governance.minVotesRequired">Min Votes Required</label>
                         <input type="number" id="proposal-min-votes" value="5" min="1" max="100">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Pass Threshold (%)</label>
+                    <label data-i18n="governance.passThreshold">Pass Threshold (%)</label>
                     <input type="number" id="proposal-threshold" value="60" min="50" max="100" step="5">
                 </div>
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-cancel" onclick="closeCreateModal()">Cancel</button>
+            <button class="btn btn-cancel" onclick="closeCreateModal()" data-i18n="btn.cancel">Cancel</button>
             <button class="btn btn-submit" onclick="createProposal()">
                 <i class="fas fa-check"></i>
-                Create Proposal
+                <span data-i18n="governance.createProposal">Create Proposal</span>
             </button>
         </div>
     </div>
@@ -1093,10 +1093,72 @@ let currentFilter = 'active';
 let isLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
 let isAdmin = {{ 'true' if current_user.is_authenticated and current_user.role == 'admin' else 'false' }};
 
+const categoryKeyMap = {
+    trading_pair: 'governance.categoryTradingPair',
+    risk_management: 'governance.categoryRiskManagement',
+    exchange: 'governance.categoryExchange',
+    feature: 'governance.categoryFeature',
+    other: 'governance.categoryOther'
+};
+
+const statusKeyMap = {
+    active: 'governance.active',
+    passed: 'governance.passed',
+    rejected: 'governance.rejected',
+    implemented: 'governance.implemented'
+};
+
+function setI18nText(el, key) {
+    if (!el) return;
+    el.textContent = t(key);
+    el.setAttribute('data-i18n', key);
+}
+
+function setDynamicText(el, text) {
+    if (!el) return;
+    el.textContent = text;
+    el.removeAttribute('data-i18n');
+}
+
+function getStatusLabel(status) {
+    const key = statusKeyMap[status];
+    return key ? t(key) : status;
+}
+
+function getVoteLabelKey(count) {
+    const lang = window.currentLang || localStorage.getItem('lang') || 'en';
+    if (lang === 'ua') {
+        const mod10 = count % 10;
+        const mod100 = count % 100;
+        if (mod10 === 1 && mod100 !== 11) return 'governance.voteSingular';
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'governance.voteFew';
+        return 'governance.voteMany';
+    }
+    return count === 1 ? 'governance.voteSingular' : 'governance.votePlural';
+}
+
+function buildTimeRemainingHtml(timeRemaining) {
+    if (!timeRemaining) return '';
+    if (timeRemaining.expired) {
+        return `<span data-i18n="governance.votingEnded">${t('governance.votingEnded')}</span>`;
+    }
+    const parts = [];
+    if (timeRemaining.days > 0) {
+        parts.push(`<span class="time-part"><span class="num">${timeRemaining.days}</span><span data-i18n="governance.timeUnitDays">${t('governance.timeUnitDays')}</span></span>`);
+    }
+    if (timeRemaining.hours > 0) {
+        parts.push(`<span class="time-part"><span class="num">${timeRemaining.hours}</span><span data-i18n="governance.timeUnitHours">${t('governance.timeUnitHours')}</span></span>`);
+    }
+    if (timeRemaining.minutes > 0) {
+        parts.push(`<span class="time-part"><span class="num">${timeRemaining.minutes}</span><span data-i18n="governance.timeUnitMinutes">${t('governance.timeUnitMinutes')}</span></span>`);
+    }
+    return `${parts.join(' ')} <span data-i18n="governance.timeLeft">${t('governance.timeLeft')}</span>`;
+}
+
 // Load eligibility
 async function loadEligibility() {
     if (!isLoggedIn) {
-        updateEligibilityUI(false, 'Login required to vote', null);
+        updateEligibilityUI(false, null, null);
         return;
     }
     
@@ -1125,21 +1187,29 @@ function updateEligibilityUI(eligible, reason, level) {
     
     if (!isLoggedIn) {
         icon.innerHTML = '<i class="fas fa-user-lock"></i>';
-        title.textContent = 'Login Required';
-        message.textContent = 'Sign in to see your voting eligibility.';
+        setI18nText(title, 'governance.loginRequired');
+        setI18nText(message, 'governance.signInToSeeEligibility');
         badge.style.display = 'none';
     } else if (eligible) {
         card.classList.add('eligible');
         icon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        title.textContent = 'You Can Vote!';
-        message.textContent = 'All active members can vote and shape MIMIC\'s future.';
+        setI18nText(title, 'governance.youCanVote');
+        setI18nText(message, 'governance.allActiveMembers');
         badge.style.display = 'inline-flex';
-        levelSpan.textContent = level?.name || 'Member';
+        if (level?.name) {
+            setDynamicText(levelSpan, level.name);
+        } else {
+            setI18nText(levelSpan, 'governance.member');
+        }
     } else {
         card.classList.add('not-eligible');
         icon.innerHTML = '<i class="fas fa-lock"></i>';
-        title.textContent = 'Voting Unavailable';
-        message.textContent = reason || 'Your account must be active to vote.';
+        setI18nText(title, 'governance.votingUnavailable');
+        if (reason) {
+            setDynamicText(message, reason);
+        } else {
+            setI18nText(message, 'governance.accountMustBeActive');
+        }
         badge.style.display = 'none';
     }
 }
@@ -1162,8 +1232,8 @@ async function loadProposals(status = 'active') {
         document.getElementById('proposals-grid').innerHTML = `
             <div class="no-proposals">
                 <div class="icon-big">⚠️</div>
-                <h2>Failed to Load</h2>
-                <p>Could not load proposals. Please try again later.</p>
+                <h2 data-i18n="governance.failedToLoad">${t('governance.failedToLoad')}</h2>
+                <p data-i18n="governance.couldNotLoadProposals">${t('governance.couldNotLoadProposals')}</p>
             </div>
         `;
     }
@@ -1186,11 +1256,17 @@ function renderProposals() {
     const grid = document.getElementById('proposals-grid');
     
     if (!proposals || proposals.length === 0) {
+        const statusKey = statusKeyMap[currentFilter] || 'governance.active';
+        const statusLabel = t(statusKey);
         grid.innerHTML = `
             <div class="no-proposals">
                 <div class="icon-big">🗳️</div>
-                <h2>No Proposals</h2>
-                <p>There are no ${currentFilter} proposals at this time.</p>
+                <h2 data-i18n="governance.noProposalsTitle">${t('governance.noProposalsTitle')}</h2>
+                <p>
+                    <span data-i18n="governance.noProposalsPrefix">${t('governance.noProposalsPrefix')}</span>
+                    <span class="status-label" data-i18n="${statusKey}">${statusLabel}</span>
+                    <span data-i18n="governance.noProposalsSuffix">${t('governance.noProposalsSuffix')}</span>
+                </p>
             </div>
         `;
         return;
@@ -1204,20 +1280,12 @@ function renderProposalCard(proposal) {
     const hasVoted = !!userVote;
     const isActive = proposal.status === 'active';
     const timeRemaining = proposal.time_remaining;
+    const categoryKey = categoryKeyMap[proposal.category];
+    const statusKey = statusKeyMap[proposal.status];
+    const categoryLabel = categoryKey ? t(categoryKey) : proposal.category_label;
+    const statusLabel = statusKey ? t(statusKey) : proposal.status_label;
     
-    // Time remaining text
-    let timeText = '';
-    if (timeRemaining) {
-        if (timeRemaining.expired) {
-            timeText = 'Voting ended';
-        } else {
-            const parts = [];
-            if (timeRemaining.days > 0) parts.push(`${timeRemaining.days}d`);
-            if (timeRemaining.hours > 0) parts.push(`${timeRemaining.hours}h`);
-            if (timeRemaining.minutes > 0) parts.push(`${timeRemaining.minutes}m`);
-            timeText = parts.join(' ') + ' left';
-        }
-    }
+    const timeHtml = buildTimeRemainingHtml(timeRemaining);
     
     // Voting buttons or status
     let votingHTML = '';
@@ -1226,45 +1294,49 @@ function renderProposalCard(proposal) {
             <div class="voting-actions">
                 <button class="vote-btn yes" onclick="submitVote(${proposal.id}, 'yes')">
                     <i class="fas fa-thumbs-up"></i>
-                    Yes
+                    <span data-i18n="governance.yes">${t('governance.yes')}</span>
                 </button>
                 <button class="vote-btn no" onclick="submitVote(${proposal.id}, 'no')">
                     <i class="fas fa-thumbs-down"></i>
-                    No
+                    <span data-i18n="governance.no">${t('governance.no')}</span>
                 </button>
             </div>
         `;
     } else if (hasVoted) {
+        const voteKey = userVote === 'yes' ? 'governance.yes' : 'governance.no';
         votingHTML = `
             <div class="voting-actions">
                 <div class="user-vote-badge">
                     <i class="fas fa-check-circle"></i>
-                    You voted: <span class="vote-type ${userVote}">${userVote.toUpperCase()}</span>
+                    <span data-i18n="governance.youVoted">${t('governance.youVoted')}</span>
+                    <span class="vote-type ${userVote}" data-i18n="${voteKey}">${t(voteKey)}</span>
                 </div>
             </div>
         `;
     } else if (isActive && !canVote) {
-        const lockLabel = isLoggedIn ? 'Voting Unavailable' : 'Login to Vote';
+        const lockKey = isLoggedIn ? 'governance.votingUnavailable' : 'governance.loginToVote';
         votingHTML = `
             <div class="voting-actions">
                 <button class="vote-btn yes" disabled>
                     <i class="fas fa-lock"></i>
-                    ${lockLabel}
+                    <span data-i18n="${lockKey}">${t(lockKey)}</span>
                 </button>
             </div>
         `;
     }
     
+    const voteLabelKey = getVoteLabelKey(proposal.total_votes);
+    
     return `
         <div class="proposal-card ${hasVoted ? 'voted' : ''}">
             <div class="proposal-header">
-                <span class="proposal-category ${proposal.category}">
+                <span class="proposal-category ${proposal.category}" ${categoryKey ? `data-i18n="${categoryKey}"` : ''}>
                     <i class="fas ${proposal.category_icon}"></i>
-                    ${proposal.category_label}
+                    ${categoryLabel}
                 </span>
-                <span class="proposal-status ${proposal.status}">
+                <span class="proposal-status ${proposal.status}" ${statusKey ? `data-i18n="${statusKey}"` : ''}>
                     ${isActive ? '<span class="dot"></span>' : ''}
-                    ${proposal.status_label}
+                    ${statusLabel}
                 </span>
             </div>
             
@@ -1292,8 +1364,8 @@ function renderProposalCard(proposal) {
                         <div class="vote-threshold" style="left: ${proposal.pass_threshold}%"></div>
                     </div>
                     <div class="vote-stats">
-                        <span><i class="fas fa-users"></i> ${proposal.total_votes} vote${proposal.total_votes !== 1 ? 's' : ''}</span>
-                        <span><i class="fas fa-check"></i> ${proposal.pass_threshold}% to pass</span>
+                        <span><i class="fas fa-users"></i> ${proposal.total_votes} <span data-i18n="${voteLabelKey}">${t(voteLabelKey)}</span></span>
+                        <span><i class="fas fa-check"></i> <span class="threshold-value">${proposal.pass_threshold}%</span> <span data-i18n="governance.toPass">${t('governance.toPass')}</span></span>
                     </div>
                 </div>
             </div>
@@ -1303,12 +1375,12 @@ function renderProposalCard(proposal) {
             <div class="proposal-footer">
                 <span>
                     <i class="fas fa-user"></i>
-                    by ${escapeHtml(proposal.created_by)}
+                    <span data-i18n="governance.by">${t('governance.by')}</span> ${escapeHtml(proposal.created_by)}
                 </span>
                 ${timeRemaining ? `
                     <span class="time-remaining ${timeRemaining.expired ? 'expired' : ''}">
                         <i class="fas fa-clock"></i>
-                        ${timeText}
+                        ${timeHtml}
                     </span>
                 ` : ''}
             </div>
@@ -1325,7 +1397,7 @@ function escapeHtml(text) {
 // Submit vote
 async function submitVote(proposalId, voteType) {
     if (!canVote) {
-        alert('Ти не можеш голосувати. Потрібно активний акаунт і вхід у систему.');
+        alert(t('governance.cannotVoteAlert'));
         return;
     }
     
@@ -1357,14 +1429,15 @@ async function submitVote(proposalId, voteType) {
             
             // Show success toast
             if (typeof showToast === 'function') {
-                showToast(`Vote recorded: ${voteType.toUpperCase()}`, 'success');
+                const voteKey = voteType === 'yes' ? 'governance.yes' : 'governance.no';
+                showToast(t('governance.voteRecorded').replace('{vote}', t(voteKey).toUpperCase()), 'success');
             }
         } else {
-            alert(data.error || 'Не вдалося відправити голос');
+            alert(data.error || t('governance.failedToSubmitVote'));
         }
     } catch (error) {
         console.error('Error submitting vote:', error);
-        alert('Не вдалося відправити голос. Спробуй ще раз.');
+        alert(t('governance.failedToSubmitVoteRetry'));
     }
 }
 
@@ -1397,7 +1470,7 @@ async function createProposal() {
     const passThreshold = parseFloat(document.getElementById('proposal-threshold').value);
     
     if (!title || !description) {
-        alert('Будь ласка, заповни всі обов\'язкові поля');
+        alert(t('governance.fillRequiredFields'));
         return;
     }
     
@@ -1423,14 +1496,14 @@ async function createProposal() {
             closeCreateModal();
             loadProposals('active');
             if (typeof showToast === 'function') {
-                showToast('Proposal created successfully!', 'success');
+                showToast(t('governance.proposalCreated'), 'success');
             }
         } else {
-            alert(data.error || 'Не вдалося створити пропозицію');
+            alert(data.error || t('governance.failedToCreateProposal'));
         }
     } catch (error) {
         console.error('Error creating proposal:', error);
-        alert('Не вдалося створити пропозицію. Спробуй ще раз.');
+        alert(t('governance.failedToCreateProposalRetry'));
     }
 }
 

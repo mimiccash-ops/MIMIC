@@ -327,39 +327,45 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-percentage text-cyan"></i> Risk%
+                        <i class="fas fa-percentage text-cyan"></i>
+                        <span data-i18n="admin.riskLabel">Risk%</span>
                     </label>
                     <input type="number" name="global_risk" value="{{ global_settings.risk_perc }}" step="0.01" class="input" min="0.01" max="100">
                 </div>
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-bolt text-magenta"></i> Lever
+                        <i class="fas fa-bolt text-magenta"></i>
+                        <span data-i18n="admin.leverageLabel">Lever</span>
                     </label>
                     <input type="number" name="global_leverage" value="{{ global_settings.leverage }}" class="input" min="1" max="125">
                 </div>
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-arrow-up text-green"></i> TP%
+                        <i class="fas fa-arrow-up text-green"></i>
+                        <span data-i18n="admin.tpLabel">TP%</span>
                     </label>
                     <input type="number" name="global_tp" value="{{ global_settings.tp_perc }}" step="0.1" min="0.1" max="100" class="input" required>
                 </div>
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-arrow-down text-red"></i> SL%
+                        <i class="fas fa-arrow-down text-red"></i>
+                        <span data-i18n="admin.slLabel">SL%</span>
                     </label>
                     <input type="number" name="global_sl" value="{{ global_settings.sl_perc }}" step="0.1" min="0.1" max="100" class="input" required>
                 </div>
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-layer-group text-yellow"></i> Max
+                        <i class="fas fa-layer-group text-yellow"></i>
+                        <span data-i18n="admin.maxPositionsLabel">Max</span>
                     </label>
                     <input type="number" name="global_max_pos" value="{{ global_settings.max_positions }}" class="input" min="1" max="50">
                 </div>
                 <div class="space-y-1">
                     <label class="text-xxs text-muted flex items-center gap-1">
-                        <i class="fas fa-wallet text-purple"></i> Min$
+                        <i class="fas fa-wallet text-purple"></i>
+                        <span data-i18n="admin.minBalanceLabel">Min$</span>
                     </label>
-                    <input type="number" name="global_min_balance" value="{{ global_settings.min_balance }}" step="0.01" class="input" min="0" max="100000" title="Minimum balance required to trade. Users with less balance cannot trade.">
+                    <input type="number" name="global_min_balance" value="{{ global_settings.min_balance }}" step="0.01" class="input" min="0" max="100000" title="Minimum balance required to trade. Users with less balance cannot trade." data-i18n-title="admin.minBalanceTitle">
                 </div>
                 <div class="flex items-end">
                     <button type="submit" class="cyber-btn w-full">
@@ -428,18 +434,18 @@
                                         {% endif %}
                                     </div>
                                     <div class="flex items-center gap-2 mt-1 justify-end">
-                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','master')">Close</button>
-                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','all')">Close All</button>
+                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','master')"><span data-i18n="admin.close">Close</span></button>
+                                        <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('{{ pos.symbol }}','all')"><span data-i18n="admin.closeAll">Close All</span></button>
                                     </div>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-xxs text-muted mt-2">
-                                <div>Entry <span class="font-mono text-bright">{% if pos.entry_price %}${{ "%.4f"|format(pos.entry_price) }}{% else %}—{% endif %}</span></div>
-                                <div>Mark <span class="font-mono text-bright">{% if pos.mark_price %}${{ "%.4f"|format(pos.mark_price) }}{% else %}—{% endif %}</span></div>
-                                <div>Liq <span class="font-mono text-bright">{% if pos.liquidation_price %}${{ "%.4f"|format(pos.liquidation_price) }}{% else %}—{% endif %}</span></div>
-                                <div>Qty <span class="font-mono text-bright">{% if pos.qty %}{{ "%.6f"|format(pos.qty) }}{% else %}—{% endif %}</span></div>
-                                <div>Notional <span class="font-mono text-bright">{% if pos.notional %}${{ "%.2f"|format(pos.notional) }}{% else %}—{% endif %}</span></div>
-                                <div>Margin <span class="font-mono text-bright">{% if pos.margin %}${{ "%.2f"|format(pos.margin) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.entryLabel">Entry</span> <span class="font-mono text-bright">{% if pos.entry_price %}${{ "%.4f"|format(pos.entry_price) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.markLabel">Mark</span> <span class="font-mono text-bright">{% if pos.mark_price %}${{ "%.4f"|format(pos.mark_price) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.liqLabel">Liq</span> <span class="font-mono text-bright">{% if pos.liquidation_price %}${{ "%.4f"|format(pos.liquidation_price) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.qtyLabel">Qty</span> <span class="font-mono text-bright">{% if pos.qty %}{{ "%.6f"|format(pos.qty) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.notionalLabel">Notional</span> <span class="font-mono text-bright">{% if pos.notional %}${{ "%.2f"|format(pos.notional) }}{% else %}—{% endif %}</span></div>
+                                <div><span data-i18n="admin.marginLabel">Margin</span> <span class="font-mono text-bright">{% if pos.margin %}${{ "%.2f"|format(pos.margin) }}{% else %}—{% endif %}</span></div>
                             </div>
                         </div>
                         {% endfor %}
@@ -452,7 +458,7 @@
                 {% else %}
                     <div class="empty-state" style="padding: 20px;">
                         <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading...</p>
+                        <p data-i18n="common.loading">Loading...</p>
                     </div>
                 {% endif %}
             </div>
@@ -523,6 +529,25 @@
     let socket = null;
     let masterChart = null;
     let currentPeriod = '24h';
+    const riskLevelKeyMap = {
+        low: 'admin.riskLow',
+        medium: 'admin.riskMedium',
+        high: 'admin.riskHigh'
+    };
+    const scopeLabelMap = {
+        all: 'admin.scopeAll',
+        master: 'admin.scopeMaster'
+    };
+
+    function getRiskLabel(level) {
+        const key = riskLevelKeyMap[level];
+        return key ? t(key) : String(level || '').toUpperCase();
+    }
+
+    function getScopeLabel(scope) {
+        const key = scopeLabelMap[scope];
+        return key ? t(key) : scope;
+    }
 
     function initSocket() {
         if (typeof io === 'undefined') {
@@ -620,11 +645,23 @@
                 </td>`;
             tbody.insertBefore(tr, tbody.firstChild);
             if (window.reapplyTranslations) window.reapplyTranslations();
-            if (trade.pnl >= 0) { showToast(`+${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'success'); if (typeof celebrateSuccess === 'function') celebrateSuccess(); }
-            else showToast(`${trade.pnl.toFixed(2)}$ (${trade.symbol})`, 'warning');
+            const pnlText = `${trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}`;
+            const toastText = t('admin.tradePnlToast')
+                .replace('{pnl}', pnlText)
+                .replace('{symbol}', trade.symbol);
+            if (trade.pnl >= 0) { 
+                showToast(toastText, 'success'); 
+                if (typeof celebrateSuccess === 'function') celebrateSuccess(); 
+            } else { 
+                showToast(toastText, 'warning'); 
+            }
         });
         
-        socket.on('new_message', (msg) => { if (!msg.is_from_admin) { showToast(`📩 New message from ${msg.sender_name}`, 'info'); } });
+        socket.on('new_message', (msg) => { 
+            if (!msg.is_from_admin) { 
+                showToast(t('admin.newMessageFromUser').replace('{name}', msg.sender_name), 'info'); 
+            } 
+        });
     }
 
     async function refreshMasterPositions() {
@@ -704,18 +741,18 @@
                         <div class="font-bold text-xs font-mono ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${formatMoney(pos.unrealized_pnl, 2, true)}</div>
                         <div class="text-xxs ${pos.unrealized_pnl >= 0 ? 'text-green' : 'text-red'}">${formatPercent(pos.pnl_pct, 2)}</div>
                         <div class="flex items-center gap-2 mt-1 justify-end">
-                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','master')">Close</button>
-                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','all')">Close All</button>
+                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','master')"><span data-i18n="admin.close">${t('admin.close')}</span></button>
+                            <button class="cyber-btn cyber-btn-sm" onclick="requestClosePosition('${pos.symbol}','all')"><span data-i18n="admin.closeAll">${t('admin.closeAll')}</span></button>
                         </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-1 text-xxs text-muted mt-2">
-                    <div>Entry <span class="font-mono text-bright">${formatPrice(pos.entry_price, 4, true)}</span></div>
-                    <div>Mark <span class="font-mono text-bright">${formatPrice(pos.mark_price, 4, true)}</span></div>
-                    <div>Liq <span class="font-mono text-bright">${formatPrice(pos.liquidation_price, 4, true)}</span></div>
-                    <div>Qty <span class="font-mono text-bright">${formatNumber(pos.qty, 6, true)}</span></div>
-                    <div>Notional <span class="font-mono text-bright">${formatMoney(pos.notional, 2, false, true)}</span></div>
-                    <div>Margin <span class="font-mono text-bright">${formatMoney(pos.margin, 2, false, true)}</span></div>
+                    <div><span data-i18n="admin.entryLabel">${t('admin.entryLabel')}</span> <span class="font-mono text-bright">${formatPrice(pos.entry_price, 4, true)}</span></div>
+                    <div><span data-i18n="admin.markLabel">${t('admin.markLabel')}</span> <span class="font-mono text-bright">${formatPrice(pos.mark_price, 4, true)}</span></div>
+                    <div><span data-i18n="admin.liqLabel">${t('admin.liqLabel')}</span> <span class="font-mono text-bright">${formatPrice(pos.liquidation_price, 4, true)}</span></div>
+                    <div><span data-i18n="admin.qtyLabel">${t('admin.qtyLabel')}</span> <span class="font-mono text-bright">${formatNumber(pos.qty, 6, true)}</span></div>
+                    <div><span data-i18n="admin.notionalLabel">${t('admin.notionalLabel')}</span> <span class="font-mono text-bright">${formatMoney(pos.notional, 2, false, true)}</span></div>
+                    <div><span data-i18n="admin.marginLabel">${t('admin.marginLabel')}</span> <span class="font-mono text-bright">${formatMoney(pos.margin, 2, false, true)}</span></div>
                 </div>
             </div>
         `).join('');
@@ -724,8 +761,8 @@
     async function requestClosePosition(symbol, scope) {
         if (!symbol) return;
         const warn = scope === 'all'
-            ? `⚠️ Close ${symbol} for ALL users and ALL exchanges?`
-            : `Close ${symbol} on MASTER exchanges only?`;
+            ? t('admin.closeAllConfirm').replace('{symbol}', symbol)
+            : t('admin.closeMasterConfirm').replace('{symbol}', symbol);
         if (!confirm(warn)) return;
         try {
             const response = await fetch('/api/admin/positions/close', {
@@ -735,10 +772,11 @@
             });
             const data = await response.json();
             if (data.success) {
-                showToast(`Close queued: ${symbol} (${scope})`, scope === 'all' ? 'error' : 'warning');
+                const scopeLabel = getScopeLabel(scope);
+                showToast(t('admin.closeQueued').replace('{symbol}', symbol).replace('{scope}', scopeLabel), scope === 'all' ? 'error' : 'warning');
                 setTimeout(refreshMasterPositions, 1500);
             } else {
-                showToast(data.error || 'Close failed', 'error');
+                showToast(data.error || t('admin.closeFailed'), 'error');
             }
         } catch (err) {
             showToast(t('dash.networkError'), 'error');
@@ -746,11 +784,20 @@
     }
 
     function confirmPanic() {
-        if (confirm('⚠️ Close ALL positions on ALL accounts?\n\nThis is IRREVERSIBLE!')) {
-            showToast('🚨 Executing panic exit...', 'error');
+        if (confirm(t('admin.panicConfirm'))) {
+            showToast(t('admin.panicExecuting'), 'error');
             fetch('/api/admin/panic', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(r => r.json())
-                .then(data => { if (data.success) { showToast(`Closed: Master=${data.master_closed}, Slaves=${data.slaves_closed}`, 'success'); setTimeout(() => location.reload(), 2000); } else showToast('Error: ' + (data.error || 'Unknown'), 'error'); })
+                .then(data => { 
+                    if (data.success) { 
+                        showToast(t('admin.panicClosed')
+                            .replace('{master}', data.master_closed)
+                            .replace('{slaves}', data.slaves_closed), 'success'); 
+                        setTimeout(() => location.reload(), 2000); 
+                    } else { 
+                        showToast(t('admin.errorWithMessage').replace('{error}', data.error || t('admin.unknownError')), 'error'); 
+                    } 
+                })
                 .catch(() => showToast(t('dash.networkError'), 'error'));
         }
     }
@@ -758,7 +805,7 @@
     function clearLogs() {
         const container = document.getElementById('log-container');
         if (!container) return;
-        container.innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1">Logs cleared</span></div>`;
+        container.innerHTML = `<div class="p-1.5 bg-[var(--bg-element)] rounded log-entry log-info"><span class="text-cyan">[SYSTEM]</span><span class="text-muted ml-1" data-i18n="admin.logsCleared">${t('admin.logsCleared')}</span></div>`;
     }
 
     function setChartPeriod(period) {
@@ -813,7 +860,7 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.success) {
-                    throw new Error(data.error || 'Failed to load strategies');
+                    throw new Error(data.error || t('admin.loadStrategiesFailed'));
                 }
                 
                 adminStrategies = data.strategies;
@@ -860,17 +907,17 @@
                     </div>
                     <div class="strategy-right">
                         <div class="strategy-meta">
-                            <span class="badge badge-${riskColor}">${s.risk_level.toUpperCase()}</span>
+                            <span class="badge badge-${riskColor}" data-i18n="${riskLevelKeyMap[s.risk_level] || ''}">${getRiskLabel(s.risk_level)}</span>
                             <span class="text-xs text-muted">${s.subscriber_count || 0} ${t('admin.users')}</span>
                         </div>
                         <div class="strategy-actions">
-                            <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="Edit">
+                            <button onclick="editStrategy(${s.id})" class="cyber-btn cyber-btn-sm cyber-btn-secondary" title="${t('admin.edit')}" data-i18n-title="admin.edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="toggleStrategy(${s.id}, ${!s.is_active})" class="cyber-btn cyber-btn-sm ${s.is_active ? 'cyber-btn-warning' : 'cyber-btn-gradient-green'}" title="${s.is_active ? 'Deactivate' : 'Activate'}">
+                            <button onclick="toggleStrategy(${s.id}, ${!s.is_active})" class="cyber-btn cyber-btn-sm ${s.is_active ? 'cyber-btn-warning' : 'cyber-btn-gradient-green'}" title="${s.is_active ? t('admin.deactivate') : t('admin.activate')}" data-i18n-title="${s.is_active ? 'admin.deactivate' : 'admin.activate'}">
                                 <i class="fas fa-${s.is_active ? 'pause' : 'play'}"></i>
                             </button>
-                            ${s.name !== 'Main' ? `<button onclick="deleteStrategy(${s.id}, '${s.name}')" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="Delete">
+                            ${s.name !== 'Main' ? `<button onclick="deleteStrategy(${s.id}, '${s.name}')" class="cyber-btn cyber-btn-sm cyber-btn-danger" title="${t('admin.delete')}" data-i18n-title="admin.delete">
                                 <i class="fas fa-trash"></i>
                             </button>` : ''}
                         </div>
@@ -887,7 +934,7 @@
                     <div class="modal-header">
                         <div class="modal-title">
                             <i class="fas fa-chess-knight text-purple"></i>
-                            <span>Create Strategy</span>
+                            <span data-i18n="admin.createStrategy">${t('admin.createStrategy')}</span>
                         </div>
                         <button onclick="closeStrategyModal()" class="modal-close"><i class="fas fa-times"></i></button>
                     </div>
@@ -895,44 +942,44 @@
                         <form id="strategy-form" onsubmit="submitStrategy(event)" class="space-y-4">
                             <input type="hidden" id="strategy-id" value="">
                             <div class="space-y-1">
-                                <label class="text-xs text-muted">Name *</label>
-                                <input type="text" id="strategy-name" class="input" placeholder="e.g., Aggressive BTC" required>
+                                <label class="text-xs text-muted" data-i18n="admin.strategyNameLabel">${t('admin.strategyNameLabel')}</label>
+                                <input type="text" id="strategy-name" class="input" data-i18n-placeholder="admin.strategyNamePlaceholder" placeholder="${t('admin.strategyNamePlaceholder')}" required>
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs text-muted">Description</label>
-                                <textarea id="strategy-description" class="input" rows="2" placeholder="Опис стратегії..."></textarea>
+                                <label class="text-xs text-muted" data-i18n="admin.strategyDescriptionLabel">${t('admin.strategyDescriptionLabel')}</label>
+                                <textarea id="strategy-description" class="input" rows="2" data-i18n-placeholder="admin.strategyDescriptionPlaceholder" placeholder="${t('admin.strategyDescriptionPlaceholder')}"></textarea>
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs text-muted">Risk Level</label>
+                                <label class="text-xs text-muted" data-i18n="admin.strategyRiskLevelLabel">${t('admin.strategyRiskLevelLabel')}</label>
                                 <select id="strategy-risk-level" class="input">
-                                    <option value="low">Low Risk</option>
-                                    <option value="medium" selected>Medium Risk</option>
-                                    <option value="high">High Risk</option>
+                                    <option value="low" data-i18n="admin.riskLow">${t('admin.riskLow')}</option>
+                                    <option value="medium" selected data-i18n="admin.riskMedium">${t('admin.riskMedium')}</option>
+                                    <option value="high" data-i18n="admin.riskHigh">${t('admin.riskHigh')}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Risk % Override</label>
-                                    <input type="number" id="strategy-risk-perc" class="input" placeholder="Глобальний" step="0.1" min="0.1" max="100">
+                                    <label class="text-xxs text-muted" data-i18n="admin.strategyRiskOverrideLabel">${t('admin.strategyRiskOverrideLabel')}</label>
+                                    <input type="number" id="strategy-risk-perc" class="input" data-i18n-placeholder="admin.globalPlaceholder" placeholder="${t('admin.globalPlaceholder')}" step="0.1" min="0.1" max="100">
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Leverage Override</label>
-                                    <input type="number" id="strategy-leverage" class="input" placeholder="Глобальний" min="1" max="125">
+                                    <label class="text-xxs text-muted" data-i18n="admin.strategyLeverageOverrideLabel">${t('admin.strategyLeverageOverrideLabel')}</label>
+                                    <input type="number" id="strategy-leverage" class="input" data-i18n-placeholder="admin.globalPlaceholder" placeholder="${t('admin.globalPlaceholder')}" min="1" max="125">
                                 </div>
                                 <div class="space-y-1">
-                                    <label class="text-xxs text-muted">Max Positions</label>
-                                    <input type="number" id="strategy-max-pos" class="input" placeholder="Глобальний" min="1" max="50">
+                                    <label class="text-xxs text-muted" data-i18n="admin.strategyMaxPositionsLabel">${t('admin.strategyMaxPositionsLabel')}</label>
+                                    <input type="number" id="strategy-max-pos" class="input" data-i18n-placeholder="admin.globalPlaceholder" placeholder="${t('admin.globalPlaceholder')}" min="1" max="50">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="strategy-active" class="cyber-checkbox" checked>
-                                    <span class="text-sm">Active</span>
+                                    <span class="text-sm" data-i18n="admin.statusActive">${t('admin.statusActive')}</span>
                                 </label>
                             </div>
                             <button type="submit" class="cyber-btn w-full" id="strategy-submit-btn">
                                 <i class="fas fa-save"></i>
-                                <span>Create Strategy</span>
+                                <span data-i18n="admin.createStrategy">${t('admin.createStrategy')}</span>
                             </button>
                         </form>
                     </div>
@@ -964,8 +1011,16 @@
             document.getElementById('strategy-max-pos').value = strategy.max_positions || '';
             document.getElementById('strategy-active').checked = strategy.is_active;
             
-            document.querySelector('#strategyModal .modal-title span').textContent = 'Edit Strategy';
-            document.querySelector('#strategy-submit-btn span').textContent = 'Update Strategy';
+            const titleEl = document.querySelector('#strategyModal .modal-title span');
+            const submitEl = document.querySelector('#strategy-submit-btn span');
+            if (titleEl) {
+                titleEl.textContent = t('admin.editStrategy');
+                titleEl.setAttribute('data-i18n', 'admin.editStrategy');
+            }
+            if (submitEl) {
+                submitEl.textContent = t('admin.updateStrategy');
+                submitEl.setAttribute('data-i18n', 'admin.updateStrategy');
+            }
         }, 50);
     }
     
@@ -987,7 +1042,7 @@
         
         const btn = document.getElementById('strategy-submit-btn');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span data-i18n="admin.saving">${t('admin.saving')}</span>`;
         
         try {
             const url = isEdit ? `/api/admin/strategies/${strategyId}` : '/api/admin/strategies';
@@ -1000,18 +1055,19 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast(result.message || `Strategy ${isEdit ? 'updated' : 'created'}!`, 'success');
+                const msgKey = isEdit ? 'admin.strategyUpdated' : 'admin.strategyCreated';
+                showToast(result.message || t(msgKey), 'success');
                 closeStrategyModal();
                 loadAdminStrategies();
             } else {
-                showToast(result.error || 'Failed to save strategy', 'error');
+                showToast(result.error || t('admin.failedToSaveStrategy'), 'error');
             }
         } catch (err) {
             console.error('Error saving strategy:', err);
             showToast(t('dash.networkError'), 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-save"></i> <span>${isEdit ? 'Update' : 'Create'} Strategy</span>`;
+            btn.innerHTML = `<i class="fas fa-save"></i> <span data-i18n="${isEdit ? 'admin.updateStrategy' : 'admin.createStrategy'}">${t(isEdit ? 'admin.updateStrategy' : 'admin.createStrategy')}</span>`;
         }
     }
     
@@ -1026,10 +1082,10 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast(`Strategy ${activate ? 'activated' : 'deactivated'}`, 'success');
+                showToast(t(activate ? 'admin.strategyActivated' : 'admin.strategyDeactivated'), 'success');
                 loadAdminStrategies();
             } else {
-                showToast(result.error || 'Failed to update strategy', 'error');
+                showToast(result.error || t('admin.failedToUpdateStrategy'), 'error');
             }
         } catch (err) {
             console.error('Error toggling strategy:', err);
@@ -1038,7 +1094,7 @@
     }
     
     async function deleteStrategy(strategyId, strategyName) {
-        if (!confirm(`Видалити стратегію "${strategyName}"?\n\nЦе неможливо скасувати.`)) return;
+        if (!confirm(t('admin.confirmDeleteStrategy').replace('{name}', strategyName))) return;
         
         try {
             const response = await fetch(`/api/admin/strategies/${strategyId}`, {
@@ -1048,10 +1104,10 @@
             const result = await response.json();
             
             if (result.success) {
-                showToast(result.message || 'Strategy deleted', 'success');
+                showToast(result.message || t('admin.strategyDeleted'), 'success');
                 loadAdminStrategies();
             } else {
-                showToast(result.error || 'Failed to delete strategy', 'error');
+                showToast(result.error || t('admin.failedToDeleteStrategy'), 'error');
             }
         } catch (err) {
             console.error('Error deleting strategy:', err);
