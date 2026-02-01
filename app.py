@@ -26,7 +26,7 @@ from webauthn.helpers.structs import (
 from webauthn.helpers.base64url_to_bytes import base64url_to_bytes
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 from config import Config, ARQ_REDIS_SETTINGS
-from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent, WebAuthnCredential
+from models import db, User, TradeHistory, BalanceHistory, Message, PasswordResetToken, UserExchange, ExchangeConfig, Payment, Strategy, StrategySubscription, ChatMessage, ChatBan, SystemStats, UserLevel, UserAchievement, ApiKey, UserConsent, WebAuthnCredential, PushSubscription, ReferralCommission, ReferralClick, PayoutRequest, TaskParticipation
 from sqlalchemy import text, inspect
 from trading_engine import TradingEngine
 from telegram_notifier import init_notifier, get_notifier, init_email_sender, get_email_sender
@@ -3947,9 +3947,39 @@ def admin_delete_user(user_id):
 
         # Delete live chat messages to avoid FK null updates
         ChatMessage.query.filter_by(user_id=user_id).delete()
-        
-        # Delete password reset tokens
+
+        # Delete payments and subscriptions
+        Payment.query.filter_by(user_id=user_id).delete()
+        StrategySubscription.query.filter_by(user_id=user_id).delete()
+
+        # Delete user auth/security records
+        ApiKey.query.filter_by(user_id=user_id).delete()
+        WebAuthnCredential.query.filter_by(user_id=user_id).delete()
         PasswordResetToken.query.filter_by(user_id=user_id).delete()
+
+        # Delete chat moderation records
+        ChatBan.query.filter_by(user_id=user_id).delete()
+
+        # Delete user achievements/consents
+        UserAchievement.query.filter_by(user_id=user_id).delete()
+        UserConsent.query.filter_by(user_id=user_id).delete()
+
+        # Delete task participations
+        TaskParticipation.query.filter_by(user_id=user_id).delete()
+
+        # Delete push subscriptions
+        PushSubscription.query.filter_by(user_id=user_id).delete()
+
+        # Delete referral data (as referrer or referred user)
+        ReferralCommission.query.filter(
+            (ReferralCommission.referrer_id == user_id) | (ReferralCommission.referred_user_id == user_id)
+        ).delete()
+        ReferralClick.query.filter(
+            (ReferralClick.referrer_id == user_id) | (ReferralClick.converted_user_id == user_id)
+        ).delete()
+
+        # Delete payout requests
+        PayoutRequest.query.filter_by(user_id=user_id).delete()
         
         # Finally delete the user
         db.session.delete(user)
