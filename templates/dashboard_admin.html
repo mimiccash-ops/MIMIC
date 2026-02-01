@@ -807,6 +807,10 @@
             .replace(/'/g, '&#39;');
     }
 
+    function escapeHtml(value) {
+        return escapeText(value);
+    }
+
     function renderMasterPositions(positions) {
         const container = document.getElementById('master-positions-container');
         const countEl = document.getElementById('master-positions-count');

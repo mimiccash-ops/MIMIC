@@ -556,6 +556,12 @@
         return '$' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text ?? '';
+        return div.innerHTML;
+    }
+
     function updateSafetyPoolDisplay(balanceValue) {
         if (!Number.isFinite(balanceValue)) return;
         const formatted = formatUsd(balanceValue);
