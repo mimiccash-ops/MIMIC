@@ -2583,30 +2583,38 @@
                 
                     // Override toggleLanguage to ensure proper translation and update language button
                     const originalToggleLanguage = window.toggleLanguage;
-                    if (originalToggleLanguage) {
-                        window.toggleLanguage = function() {
-                            // Get current language before toggle
-                            const oldLang = window.currentLang || localStorage.getItem('lang') || 'en';
-                            const newLang = oldLang === 'en' ? 'ua' : 'en';
-                            
-                            // Update language immediately
-                            window.currentLang = newLang;
-                            localStorage.setItem('lang', newLang);
-                            
-                            // Call original function if it exists
-                            if (typeof originalToggleLanguage === 'function') {
-                                try {
-                                    originalToggleLanguage();
-                                } catch(e) {
-                                    console.warn('Error calling original toggleLanguage:', e);
-                                }
+                    window.toggleLanguage = function() {
+                        const storedLang = localStorage.getItem('lang') || window.currentLang || 'en';
+                        const normalized = storedLang === 'uk' ? 'ua' : storedLang;
+                        const newLang = normalized === 'en' ? 'ua' : 'en';
+
+                        localStorage.setItem('lang', newLang);
+
+                        // Sync internal language in main.min.js if possible
+                        if (typeof window.initLanguage === 'function') {
+                            try {
+                                window.initLanguage();
+                            } catch (e) {
+                                console.warn('Error calling initLanguage:', e);
                             }
-                            
-                            // Update language button text immediately
-                            const langCode = newLang === 'ua' ? 'UA' : 'EN';
-                            document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
-                                el.textContent = langCode;
-                            });
+                        } else if (typeof originalToggleLanguage === 'function') {
+                            try {
+                                originalToggleLanguage();
+                            } catch (e) {
+                                console.warn('Error calling original toggleLanguage:', e);
+                            }
+                        }
+
+                        window.currentLang = newLang;
+
+                        // Update language button text immediately
+                        const langCode = newLang === 'ua' ? 'UA' : 'EN';
+                        document.querySelectorAll('.action-btn .lang-code, .lang-code').forEach(function(el) {
+                            el.textContent = langCode;
+                        });
+                        document.querySelectorAll('.lang-flag').forEach(function(el) {
+                            el.textContent = newLang === 'ua' ? '🇺🇦' : '🇺🇸';
+                        });
                             
                             // Force re-apply translations multiple times to ensure all elements are updated
                             function applyTranslationsNow() {
@@ -2718,17 +2726,23 @@
                                 window.playSound('click');
                             }
                         };
-                    }
                     
                     // Initialize language button text and apply translations on page load
                     setTimeout(function() {
-                        const savedLang = localStorage.getItem('lang') || 'en';
+                        const savedLangRaw = localStorage.getItem('lang') || 'en';
+                        const savedLang = savedLangRaw === 'uk' ? 'ua' : savedLangRaw;
+                        if (savedLang !== savedLangRaw) {
+                            localStorage.setItem('lang', savedLang);
+                        }
                         if (window.currentLang !== savedLang) {
                             window.currentLang = savedLang;
                         }
                         const langCode = savedLang === 'ua' ? 'UA' : 'EN';
-                        document.querySelectorAll('.action-btn .lang-code').forEach(function(el) {
+                        document.querySelectorAll('.action-btn .lang-code, .lang-code').forEach(function(el) {
                             el.textContent = langCode;
+                        });
+                        document.querySelectorAll('.lang-flag').forEach(function(el) {
+                            el.textContent = savedLang === 'ua' ? '🇺🇦' : '🇺🇸';
                         });
                         
                         // Apply initial translations

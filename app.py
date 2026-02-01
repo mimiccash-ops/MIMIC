@@ -132,6 +132,81 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Будь ласка, увійдіть для доступу до цієї сторінки.'
 login_manager.login_message_category = 'info'
 
+# ==================== SCHEMA SAFEGUARDS ====================
+_task_schema_checked = False
+_task_schema_lock = threading.Lock()
+
+
+def _ensure_task_participation_schema() -> bool:
+    """Ensure task_participations has newer reward/payout columns."""
+    try:
+        inspector = inspect(db.engine)
+        if 'task_participations' not in inspector.get_table_names():
+            return True
+
+        existing = {col['name'] for col in inspector.get_columns('task_participations')}
+        column_defs = [
+            ('reward_type_given', 'VARCHAR(50)', None),
+            ('reward_description_given', 'VARCHAR(500)', None),
+            ('payout_method', 'VARCHAR(50)', None),
+            ('payout_details', 'TEXT', None),
+            ('payout_contact', 'VARCHAR(200)', None),
+            ('payout_status', 'VARCHAR(20)', "'pending'"),
+            ('payout_reference', 'VARCHAR(200)', None),
+        ]
+
+        changes = False
+        with db.engine.begin() as connection:
+            for name, col_type, default in column_defs:
+                if name in existing:
+                    continue
+                default_clause = f" DEFAULT {default}" if default is not None else ""
+                connection.execute(
+                    text(f"ALTER TABLE task_participations ADD COLUMN {name} {col_type}{default_clause}")
+                )
+                existing.add(name)
+                changes = True
+
+            if 'payout_status' in existing:
+                connection.execute(
+                    text(
+                        """
+                        UPDATE task_participations
+                        SET payout_status = 'paid'
+                        WHERE reward_given = TRUE AND payout_status IS NULL
+                        """
+                    )
+                )
+                connection.execute(
+                    text(
+                        """
+                        UPDATE task_participations
+                        SET payout_status = 'pending'
+                        WHERE payout_status IS NULL
+                        """
+                    )
+                )
+
+        if changes:
+            logger.info("✅ Ensured task_participations reward/payout columns exist")
+        return True
+    except Exception as exc:
+        logger.warning(f"⚠️ Task participation schema check failed: {exc}")
+        return False
+
+
+@app.before_request
+def _ensure_schema_once():
+    """Run lightweight schema checks once per worker process."""
+    global _task_schema_checked
+    if _task_schema_checked:
+        return
+    with _task_schema_lock:
+        if _task_schema_checked:
+            return
+        if _ensure_task_participation_schema():
+            _task_schema_checked = True
+
 # Initialize SocketIO with secure CORS settings
 # SECURITY: Configure your production domain(s) via ALLOWED_ORIGINS environment variable
 # Example: ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
