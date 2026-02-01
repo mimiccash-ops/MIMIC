@@ -347,6 +347,114 @@
         flex: 1;
         justify-content: center;
     }
+
+    @media (max-width: 420px) {
+        .messages-page {
+            padding: 20px 12px;
+        }
+        
+        .messages-header {
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            gap: 10px;
+        }
+        
+        .header-title h1 {
+            font-size: 1.25rem;
+            gap: 8px;
+        }
+        
+        .header-title p {
+            font-size: 0.7rem;
+        }
+        
+        .compose-btn {
+            padding: 10px 16px;
+            font-size: 0.72rem;
+            gap: 8px;
+            border-radius: var(--radius-md);
+        }
+        
+        .messages-card {
+            padding: 16px;
+            border-radius: var(--radius-lg);
+        }
+        
+        .card-header {
+            margin-bottom: 16px;
+        }
+        
+        .card-header h3 {
+            font-size: 0.9rem;
+            gap: 8px;
+        }
+        
+        .messages-list {
+            gap: 10px;
+        }
+        
+        .message-item {
+            padding: 12px;
+        }
+        
+        .message-item:hover {
+            transform: none;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+        }
+        
+        .message-subject {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            gap: 6px;
+        }
+        
+        .message-preview {
+            font-size: 0.78rem;
+            -webkit-line-clamp: 1;
+        }
+        
+        .message-meta {
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            flex-wrap: wrap;
+        }
+        
+        .message-chevron {
+            display: none;
+        }
+        
+        .empty-state {
+            padding: 36px 10px;
+        }
+        
+        .empty-icon {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-icon i {
+            font-size: 1.8rem;
+        }
+        
+        .empty-title {
+            font-size: 1rem;
+        }
+        
+        .empty-desc {
+            font-size: 0.85rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -355,9 +463,6 @@
     <!-- Header -->
     <div class="messages-header animate-fade-in">
         <div class="header-title">
-            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
-                <i class="fas fa-arrow-left"></i>
-            </a>
             <div>
                 <h1>
                     <i class="fas fa-envelope"></i>
@@ -393,9 +498,13 @@
                     </div>
                     <div class="message-content">
                         <div class="message-subject">
-                            <span>{{ msg.subject or 'No subject' }}</span>
+                            {% if msg.subject %}
+                            <span>{{ msg.subject }}</span>
+                            {% else %}
+                            <span data-i18n="messages.noSubject">No subject</span>
+                            {% endif %}
                             {% if not msg.is_read and msg.is_from_admin %}
-                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;">NEW</span>
+                            <span class="badge badge-primary" style="animation: pulse 2s ease infinite;" data-i18n="messages.new">New</span>
                             {% endif %}
                         </div>
                         <p class="message-preview">{{ msg.content[:100] }}{% if msg.content|length > 100 %}...{% endif %}</p>
@@ -504,7 +613,7 @@
 
     socket.on('new_message', (msg) => {
         if (msg.is_from_admin) {
-            showToast('📩 New message from administrator', 'info');
+            showToast(t('messages.newMessageFromAdmin'), 'info');
             if (typeof playSound === 'function') playSound('notification');
             setTimeout(() => location.reload(), 1500);
         }

@@ -444,6 +444,192 @@
         border-color: var(--neon-magenta);
         box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
     }
+
+    @media (max-width: 420px) {
+        .messages-page {
+            padding: 20px 12px;
+        }
+        
+        .messages-header {
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            gap: 10px;
+        }
+        
+        .header-title h1 {
+            font-size: 1.25rem;
+            gap: 8px;
+        }
+        
+        .header-title p {
+            font-size: 0.7rem;
+        }
+        
+        .compose-btn {
+            padding: 10px 16px;
+            font-size: 0.72rem;
+            gap: 8px;
+            border-radius: var(--radius-md);
+        }
+        
+        .stats-grid {
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        
+        .stat-item {
+            padding: 12px 10px;
+        }
+        
+        .stat-item .value {
+            font-size: 1.2rem;
+        }
+        
+        .stat-item .label {
+            font-size: 0.6rem;
+            letter-spacing: 0.08em;
+        }
+        
+        .messages-card {
+            padding: 16px;
+            border-radius: var(--radius-lg);
+        }
+        
+        .card-header {
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .card-header h3 {
+            font-size: 0.9rem;
+            gap: 8px;
+        }
+        
+        .filter-pills {
+            gap: 6px;
+        }
+        
+        .filter-pill {
+            padding: 6px 10px;
+            font-size: 0.65rem;
+        }
+        
+        .messages-list {
+            gap: 10px;
+        }
+        
+        .message-item {
+            padding: 12px;
+        }
+        
+        .message-item:hover {
+            transform: none;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+        }
+        
+        .message-avatar span {
+            font-size: 1.1rem;
+        }
+        
+        .message-sender {
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .message-sender .username {
+            font-size: 0.7rem;
+        }
+        
+        .message-subject {
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        
+        .message-preview {
+            font-size: 0.78rem;
+            -webkit-line-clamp: 1;
+        }
+        
+        .message-meta {
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            flex-wrap: wrap;
+        }
+        
+        .message-chevron {
+            display: none;
+        }
+        
+        .empty-state {
+            padding: 36px 10px;
+        }
+        
+        .empty-icon {
+            width: 56px;
+            height: 56px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-icon i {
+            font-size: 1.8rem;
+        }
+        
+        .empty-title {
+            font-size: 1rem;
+        }
+        
+        .empty-desc {
+            font-size: 0.85rem;
+        }
+        
+        .messages-card .grid.grid-cols-2 {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .messages-card .grid.grid-cols-2 .p-3 {
+            padding: 10px;
+        }
+        
+        .messages-card .grid.grid-cols-2 .text-lg {
+            font-size: 0.95rem;
+        }
+        
+        .messages-card .grid.grid-cols-2 .text-xs {
+            font-size: 0.65rem;
+        }
+        
+        .messages-card .mb-4 {
+            margin-bottom: 12px;
+        }
+        
+        .messages-card .gap-2 {
+            gap: 6px;
+        }
+        
+        .messages-card .text-xs {
+            font-size: 0.7rem;
+        }
+        
+        .messages-card .cyber-btn-sm {
+            padding: 6px 8px;
+            font-size: 0.65rem;
+        }
+        
+        .messages-card select.input {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -452,9 +638,6 @@
     <!-- Header -->
     <div class="messages-header animate-fade-in">
         <div class="header-title">
-            <a href="{{ url_for('dashboard') }}" class="cyber-btn cyber-btn-icon cyber-btn-outline">
-                <i class="fas fa-arrow-left"></i>
-            </a>
             <div>
                 <h1>
                     <i class="fas fa-inbox"></i>
@@ -494,11 +677,11 @@
         <div class="card-header">
             <h3>
                 <i class="fas fa-comments"></i>
-                <span>Live Chat Moderation</span>
+                <span data-i18n="messages.chatModeration">Live Chat Moderation</span>
             </h3>
             <button onclick="refreshChatBans()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                 <i class="fas fa-sync"></i>
-                <span>Refresh</span>
+                <span data-i18n="messages.refresh">Refresh</span>
             </button>
         </div>
         
@@ -507,14 +690,14 @@
             <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
                 <div class="flex items-center gap-2 text-xs text-muted mb-1">
                     <i class="fas fa-users text-cyan"></i>
-                    <span>Chat Room</span>
+                    <span data-i18n="messages.chatRoom">Chat Room</span>
                 </div>
-                <span class="text-lg font-display font-semibold text-bright">General Room</span>
+                <span class="text-lg font-display font-semibold text-bright" data-i18n="messages.generalRoom">General Room</span>
             </div>
             <div class="p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg">
                 <div class="flex items-center gap-2 text-xs text-muted mb-1">
                     <i class="fas fa-ban text-red"></i>
-                    <span>Active Bans</span>
+                    <span data-i18n="messages.activeBans">Active Bans</span>
                 </div>
                 <span class="text-lg font-display font-semibold text-red" id="activeBansCount">0</span>
             </div>
@@ -522,32 +705,33 @@
         
         <!-- Quick Actions -->
         <div class="mb-4">
-            <label class="text-xs text-muted mb-2 block">Quick Actions - Select a user to moderate:</label>
+            <label class="text-xs text-muted mb-2 block" data-i18n="messages.quickActions">Quick Actions - Select a user to moderate:</label>
             <div class="flex gap-2">
                 <select id="chatModerateUser" class="input flex-1">
-                    <option value="">-- Select User --</option>
+                    <option value="" data-i18n="messages.selectUser">Select user...</option>
                 </select>
-                <button onclick="muteSelectedUser(15)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 15 minutes">
+                <button onclick="muteSelectedUser(15)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 15 minutes" data-i18n-title="messages.muteFor15">
                     <i class="fas fa-volume-mute"></i>
                     15m
                 </button>
-                <button onclick="muteSelectedUser(60)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 1 hour">
+                <button onclick="muteSelectedUser(60)" class="cyber-btn cyber-btn-yellow cyber-btn-sm" title="Mute for 1 hour" data-i18n-title="messages.muteFor1h">
                     <i class="fas fa-volume-mute"></i>
                     1h
                 </button>
-                <button onclick="banSelectedUser()" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Permanent Ban">
+                <button onclick="banSelectedUser()" class="cyber-btn cyber-btn-danger cyber-btn-sm" title="Permanent Ban" data-i18n-title="messages.permanentBan">
                     <i class="fas fa-ban"></i>
-                    Ban
+                    <span data-i18n="messages.ban">Ban</span>
                 </button>
             </div>
         </div>
         
         <!-- Active Bans List -->
         <div>
-            <label class="text-xs text-muted mb-2 block">Currently Banned/Muted Users:</label>
+            <label class="text-xs text-muted mb-2 block" data-i18n="messages.bannedMutedUsers">Currently Banned/Muted Users:</label>
             <div id="chatBansList" class="space-y-2 max-h-48 overflow-y-auto">
                 <div class="text-center py-4 text-muted text-sm">
-                    <i class="fas fa-spinner fa-spin"></i> Завантаження...
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span data-i18n="messages.loading">Loading...</span>
                 </div>
             </div>
         </div>
@@ -737,7 +921,12 @@
             const select = document.getElementById('chatModerateUser');
             if (!select) return;
             
-            select.innerHTML = '<option value="">-- Select User --</option>';
+            select.innerHTML = '';
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.setAttribute('data-i18n', 'messages.selectUser');
+            placeholderOption.textContent = t('messages.selectUser');
+            select.appendChild(placeholderOption);
             users.forEach(u => {
                 const opt = document.createElement('option');
                 opt.value = u.id;
@@ -755,7 +944,7 @@
             const data = await response.json();
             
             if (!data.success) {
-                showToast(data.error || 'Failed to load bans', 'error');
+                showToast(data.error || t('messages.failedToLoadBans'), 'error');
                 return;
             }
             
@@ -767,7 +956,8 @@
             if (!data.bans || data.bans.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-4 text-green">
-                        <i class="fas fa-check-circle"></i> No active bans
+                        <i class="fas fa-check-circle"></i>
+                        <span data-i18n="messages.noActiveBans">${t('messages.noActiveBans')}</span>
                     </div>
                 `;
                 return;
@@ -783,8 +973,10 @@
                         ${ban.reason ? `<span class="text-xs text-muted">- ${ban.reason}</span>` : ''}
                     </div>
                     <div class="flex items-center gap-2">
-                        ${ban.expires_at ? `<span class="text-xxs text-muted">Expires: ${new Date(ban.expires_at).toLocaleString()}</span>` : '<span class="text-xxs text-red">Permanent</span>'}
-                        <button onclick="unbanUser(${ban.user_id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="Remove ban">
+                        ${ban.expires_at
+                            ? `<span class="text-xxs text-muted"><span data-i18n="messages.expires">${t('messages.expires')}</span>: ${new Date(ban.expires_at).toLocaleString()}</span>`
+                            : `<span class="text-xxs text-red" data-i18n="messages.permanent">${t('messages.permanent')}</span>`}
+                        <button onclick="unbanUser(${ban.user_id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${t('messages.removeBan')}" data-i18n-title="messages.removeBan">
                             <i class="fas fa-unlock"></i>
                         </button>
                     </div>
@@ -800,11 +992,11 @@
     async function muteSelectedUser(duration) {
         const userId = document.getElementById('chatModerateUser').value;
         if (!userId) {
-            showToast(t('admin.selectUser'), 'warning');
+            showToast(t('messages.selectUser'), 'warning');
             return;
         }
         
-        const reason = prompt(`Причина мюту (опціонально):`);
+        const reason = prompt(t('messages.muteReasonPrompt'));
         
         try {
             const response = await fetch('/api/admin/chat/mute', {
@@ -813,7 +1005,7 @@
                 body: JSON.stringify({
                     user_id: parseInt(userId),
                     duration: duration,
-                    reason: reason || 'Chat rule violation'
+                    reason: reason || t('messages.chatRuleViolation')
                 })
             });
             const data = await response.json();
@@ -822,26 +1014,26 @@
                 showToast(data.message, 'success');
                 refreshChatBans();
             } else {
-                showToast(data.error || 'Failed to mute user', 'error');
+                showToast(data.error || t('messages.failedToMuteUser'), 'error');
             }
         } catch (err) {
             console.error('Mute error:', err);
-            showToast('Failed to mute user', 'error');
+            showToast(t('messages.failedToMuteUser'), 'error');
         }
     }
     
     async function banSelectedUser() {
         const userId = document.getElementById('chatModerateUser').value;
         if (!userId) {
-            showToast(t('admin.selectUser'), 'warning');
+            showToast(t('messages.selectUser'), 'warning');
             return;
         }
         
-        if (!confirm('Ти впевнений, що хочеш НАЗАВЖДИ заблокувати цього користувача в чаті?')) {
+        if (!confirm(t('messages.confirmPermanentBan'))) {
             return;
         }
 
-        const reason = prompt(`Причина бану:`);
+        const reason = prompt(t('messages.banReasonPrompt'));
         
         try {
             const response = await fetch('/api/admin/chat/ban', {
@@ -849,7 +1041,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: parseInt(userId),
-                    reason: reason || 'Chat rule violation'
+                    reason: reason || t('messages.chatRuleViolation')
                 })
             });
             const data = await response.json();
@@ -858,16 +1050,16 @@
                 showToast(data.message, 'success');
                 refreshChatBans();
             } else {
-                showToast(data.error || 'Failed to ban user', 'error');
+                showToast(data.error || t('messages.failedToBanUser'), 'error');
             }
         } catch (err) {
             console.error('Ban error:', err);
-            showToast('Failed to ban user', 'error');
+            showToast(t('messages.failedToBanUser'), 'error');
         }
     }
     
     async function unbanUser(userId) {
-        if (!confirm('Зняти цей бан/мют?')) return;
+        if (!confirm(t('messages.confirmUnban'))) return;
         
         try {
             const response = await fetch('/api/admin/chat/unban', {
@@ -881,11 +1073,11 @@
                 showToast(data.message, 'success');
                 refreshChatBans();
             } else {
-                showToast(data.error || 'Не вдалося розблокувати користувача', 'error');
+                showToast(data.error || t('messages.failedToUnbanUser'), 'error');
             }
         } catch (err) {
             console.error('Unban error:', err);
-            showToast('Не вдалося розблокувати користувача', 'error');
+            showToast(t('messages.failedToUnbanUser'), 'error');
         }
     }
 
