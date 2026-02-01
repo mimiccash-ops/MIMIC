@@ -1386,6 +1386,11 @@
                         'admin.errorFetchingBalances': 'Error fetching balances',
                         'admin.masterExchangesNotConnected': 'Master exchanges not connected',
                         'admin.configureExchanges': 'Configure Master Exchanges',
+                        'admin.insuranceFund': 'Insurance Fund',
+                        'admin.verified': 'Verified',
+                        'admin.safetyPool': 'Safety Pool',
+                        'admin.feesToFund': '5% of fees → fund',
+                        'admin.slippageProtection': 'Slippage protection',
                         'admin.slippageHint': 'Covers slippage in extreme markets',
                         'admin.userStatusActive': 'Active',
                         'admin.userStatusPaused': 'Paused',
@@ -2135,6 +2140,11 @@
                         'admin.errorFetchingBalances': 'Помилка отримання балансів',
                         'admin.masterExchangesNotConnected': 'Майстер-біржі не підключені',
                         'admin.configureExchanges': 'Налаштувати майстер-біржі',
+                        'admin.insuranceFund': 'Страховий фонд',
+                        'admin.verified': 'Верифіковано',
+                        'admin.safetyPool': 'Фонд безпеки',
+                        'admin.feesToFund': '5% комісій → до фонду',
+                        'admin.slippageProtection': 'Захист від прослизання',
                         'admin.slippageHint': 'Покриває прослизання в екстремальних ринках',
                         'admin.userStatusActive': 'Активний',
                         'admin.userStatusPaused': 'На паузі',
@@ -2555,7 +2565,12 @@
                     window.__originalT = window.t;
                 }
                 window.t = function(key) {
-                    const lang = window.currentLang || localStorage.getItem('lang') || 'en';
+                    const storedLang = localStorage.getItem('lang');
+                    const rawLang = storedLang || window.currentLang || 'en';
+                    const lang = rawLang === 'uk' ? 'ua' : rawLang;
+                    if (lang !== rawLang) {
+                        localStorage.setItem('lang', lang);
+                    }
                     const extra = window.__extraTranslations?.[lang]?.[key];
                     if (extra) return extra;
                     const fallback = window.__extraTranslations?.en?.[key];
