@@ -856,6 +856,61 @@
         </div>
     </div>
 
+    <!-- Referral Program -->
+    <div class="section-card mt-8">
+        <div class="section-header">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-gift text-gradient"></i>
+                <span class="font-display font-semibold">Referral Program</span>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
+                5% Commission
+            </span>
+        </div>
+        <div class="section-body">
+            <!-- Stats -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="text-center p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Referrals</div>
+                    <div class="font-mono text-xl font-bold text-cyan-400">{{ referral_stats.referral_count }}</div>
+                </div>
+                <div class="text-center p-4 bg-green-500/5 border border-green-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Earned</div>
+                    <div class="font-mono text-xl font-bold text-green-400">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
+                </div>
+                <div class="text-center p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-lg">
+                    <div class="text-xs text-white/40 mb-1">Pending</div>
+                    <div class="font-mono text-xl font-bold text-yellow-400">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
+                </div>
+            </div>
+            
+            <!-- Referral Link -->
+            <div class="mb-4">
+                <label class="text-xs text-white/40 block mb-2">Your Invite Link</label>
+                <div class="flex gap-2">
+                    <input type="text" value="{{ referral_link }}" id="referral-link-input" class="input-cyber text-sm" readonly>
+                    <button onclick="copyReferralLinkWidget()" class="btn-cyber btn-cyber-sm" id="copy-referral-btn">
+                        <i class="fas fa-copy"></i>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Referral Code -->
+            <div class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs text-white/40 mb-1">Your Code</div>
+                        <div class="font-mono text-xl font-bold text-gradient">{{ referral_code }}</div>
+                    </div>
+                    <div class="text-xs text-white/30 text-right">
+                        Earn 5% on referral profits!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Payout Menu -->
     <div class="inf-section animate-entry" style="animation-delay: 0.28s;">
         <div class="inf-section-header">
@@ -1356,6 +1411,22 @@ function copyLink() {
         btn.classList.remove('copied');
         btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Копіювати</span>';
     }, 2000);
+}
+
+function copyReferralLinkWidget() {
+    const input = document.getElementById('referral-link-input');
+    if (!input) return;
+    navigator.clipboard.writeText(input.value);
+    const btn = document.getElementById('copy-referral-btn');
+    if (btn) {
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        }, 2000);
+    }
+    showToast('Реферальне посилання скопійовано!', 'success');
 }
 
 function copyReferralPanelLink() {

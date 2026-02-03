@@ -976,27 +976,27 @@
         </div>
     </div>
     
-    <!-- Stats Grid -->
+    <!-- Quick Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="stat-card-cyber">
-            <div class="stat-icon cyan"><i class="fas fa-bullseye"></i></div>
-            <div class="stat-label">Target</div>
-            <div class="stat-value">$<span id="target-value">{{ target }}</span></div>
+            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
+            <div class="stat-label" data-i18n="dash.periodPnl">Period P&L</div>
+            <div class="stat-value text-green-400" id="stats-pnl">+$0</div>
         </div>
         <div class="stat-card-cyber">
-            <div class="stat-icon yellow"><i class="fas fa-percentage"></i></div>
-            <div class="stat-label">Risk</div>
-            <div class="stat-value">{% if user_settings.custom_risk > 0 %}{{ user_settings.custom_risk }}%{% else %}AUTO{% endif %}</div>
+            <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
+            <div class="stat-label" data-i18n="dash.trades">Trades</div>
+            <div class="stat-value text-cyan-400" id="stats-trades">0</div>
         </div>
         <div class="stat-card-cyber">
-            <div class="stat-icon red"><i class="fas fa-bolt"></i></div>
-            <div class="stat-label">Leverage</div>
-            <div class="stat-value">{% if user_settings.custom_leverage > 0 %}x{{ user_settings.custom_leverage }}{% else %}AUTO{% endif %}</div>
+            <div class="stat-icon yellow"><i class="fas fa-trophy"></i></div>
+            <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
+            <div class="stat-value text-yellow-400" id="stats-winrate">0%</div>
         </div>
         <div class="stat-card-cyber">
-            <div class="stat-icon green"><i class="fas fa-exchange-alt"></i></div>
-            <div class="stat-label">Total Trades</div>
-            <div class="stat-value">{{ history|length }}</div>
+            <div class="stat-icon red"><i class="fas fa-percent"></i></div>
+            <div class="stat-label" data-i18n="dash.avgRoi">Avg ROI</div>
+            <div class="stat-value" id="stats-avgroi">0%</div>
         </div>
     </div>
     
@@ -1145,30 +1145,6 @@
         <div class="chart-container" id="tv-chart-container"></div>
     </div>
     
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="stat-card-cyber">
-            <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
-            <div class="stat-label" data-i18n="dash.periodPnl">Period P&L</div>
-            <div class="stat-value text-green-400" id="stats-pnl">+$0</div>
-        </div>
-        <div class="stat-card-cyber">
-            <div class="stat-icon cyan"><i class="fas fa-chart-bar"></i></div>
-            <div class="stat-label" data-i18n="dash.trades">Trades</div>
-            <div class="stat-value text-cyan-400" id="stats-trades">0</div>
-        </div>
-        <div class="stat-card-cyber">
-            <div class="stat-icon yellow"><i class="fas fa-trophy"></i></div>
-            <div class="stat-label" data-i18n="dash.winRate">Win Rate</div>
-            <div class="stat-value text-yellow-400" id="stats-winrate">0%</div>
-        </div>
-        <div class="stat-card-cyber">
-            <div class="stat-icon red"><i class="fas fa-percent"></i></div>
-            <div class="stat-label" data-i18n="dash.avgRoi">Avg ROI</div>
-            <div class="stat-value" id="stats-avgroi">0%</div>
-        </div>
-    </div>
-
     <!-- Trade History -->
     <div class="section-card">
         <div class="section-header">
@@ -1957,34 +1933,6 @@
         </div>
     </div>
     
-    <!-- Avatar -->
-    <div class="section-card mb-8">
-        <div class="section-header">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-user-circle text-pink-400"></i>
-                <span class="font-display font-semibold">Avatar</span>
-            </div>
-        </div>
-        <div class="section-body">
-            <div class="flex items-center gap-6">
-                <div class="user-avatar-xl cursor-pointer" onclick="openAvatarModal()">
-                    {% if user_settings.avatar_type == 'image' and user_settings.avatar %}
-                    <img src="{{ url_for('static', filename='avatars/' + user_settings.avatar) }}" alt="Avatar">
-                    {% else %}
-                    <span>{{ user_settings.avatar or '🧑‍💻' }}</span>
-                    {% endif %}
-                </div>
-                <div>
-                    <button onclick="openAvatarModal()" class="btn-cyber btn-cyber-outline btn-cyber-sm mb-2">
-                        <i class="fas fa-camera"></i>
-                        Change
-                    </button>
-                    <p class="text-xs text-white/40">Emoji or custom image</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Email -->
     <div class="section-card mb-8">
         <div class="section-header">
@@ -2010,79 +1958,11 @@
         </div>
     </div>
     
-    <!-- Security Link -->
-    <a href="{{ url_for('change_password') }}" class="section-card flex items-center gap-4 p-5 hover:border-yellow-500/30 transition-all" style="text-decoration: none;">
-        <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 text-lg">
-            <i class="fas fa-key"></i>
-        </div>
-        <div class="flex-1">
-            <div class="font-display font-semibold text-white" data-i18n="auth.changePassword">Change Password</div>
-            <div class="text-sm text-white/40" data-i18n="dash.securitySettings">Security settings</div>
-        </div>
-        <i class="fas fa-chevron-right text-white/30"></i>
-    </a>
-    
-    <!-- Referral Program -->
-    <div class="section-card mt-8">
-        <div class="section-header">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-gift text-gradient"></i>
-                <span class="font-display font-semibold">Referral Program</span>
-            </div>
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
-                5% Commission
-            </span>
-        </div>
-        <div class="section-body">
-            <!-- Stats -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="text-center p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Referrals</div>
-                    <div class="font-mono text-xl font-bold text-cyan-400">{{ referral_stats.referral_count }}</div>
-                </div>
-                <div class="text-center p-4 bg-green-500/5 border border-green-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Earned</div>
-                    <div class="font-mono text-xl font-bold text-green-400">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
-                </div>
-                <div class="text-center p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Pending</div>
-                    <div class="font-mono text-xl font-bold text-yellow-400">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
-                </div>
-            </div>
-            
-            <!-- Referral Link -->
-            <div class="mb-4">
-                <label class="text-xs text-white/40 block mb-2">Your Invite Link</label>
-                <div class="flex gap-2">
-                    <input type="text" value="{{ referral_link }}" id="referral-link-input" class="input-cyber text-sm" readonly>
-                    <button onclick="copyReferralLink()" class="btn-cyber btn-cyber-sm" id="copy-referral-btn">
-                        <i class="fas fa-copy"></i>
-                        Copy
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Referral Code -->
-            <div class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-white/40 mb-1">Your Code</div>
-                        <div class="font-mono text-xl font-bold text-gradient">{{ referral_code }}</div>
-                    </div>
-                    <div class="text-xs text-white/30 text-right">
-                        Earn 5% on referral profits!
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Influencer Dashboard Link -->
-            <div class="mt-4">
-                <a href="/influencer" class="btn-cyber w-full text-center">
-                    <i class="fas fa-rocket mr-2"></i>
-                    Open Influencer Dashboard
-                </a>
-            </div>
-        </div>
+    <div class="mt-8">
+        <a href="/influencer" class="btn-cyber w-full text-center">
+            <i class="fas fa-rocket mr-2"></i>
+            Open Influencer Dashboard
+        </a>
     </div>
 </div>
 
@@ -3871,6 +3751,14 @@
         loadExchanges();
         setupPositionsPolling();
         loadStrategies();
+        if (localStorage.getItem('openAvatarModal') === '1') {
+            localStorage.removeItem('openAvatarModal');
+            setTimeout(() => {
+                if (typeof openAvatarModal === 'function') {
+                    openAvatarModal();
+                }
+            }, 200);
+        }
         loadSafetyPool();
         loadGamification();
         
