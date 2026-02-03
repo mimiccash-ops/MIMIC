@@ -1240,7 +1240,10 @@
                                 <i class="fas fa-external-link-alt text-xs opacity-60"></i>
                             </a>
                             {% else %}
-                            <p class="text-xs text-yellow-400 mt-1"><i class="fas fa-exclamation-triangle"></i> Bot not configured. Contact administrator.</p>
+                            <p class="text-xs text-yellow-400 mt-1">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span data-i18n="dash.telegramBotNotConfigured">Bot not configured. Contact administrator.</span>
+                            </p>
                             {% endif %}
                         </div>
                     </div>
@@ -1297,7 +1300,8 @@
                            class="input-cyber font-mono" 
                            placeholder="123456789"
                            pattern="[0-9\-]+"
-                           title="Chat ID should be numbers only">
+                           title="Chat ID should be numbers only"
+                           data-i18n-title="dash.chatIdTitle">
                     <p class="text-xs text-white/40 mt-1">
                         <i class="fas fa-question-circle"></i>
                         <span data-i18n="dash.chatIdHelp">Example: 123456789 (numbers only)</span>
@@ -1310,7 +1314,7 @@
                     </label>
                     <button type="submit" class="btn-cyber btn-cyber-sm">
                         <i class="fas fa-save"></i>
-                        Save
+                        <span data-i18n="btn.save">Save</span>
                     </button>
                 </div>
             </form>
@@ -2296,14 +2300,18 @@
             .then(r => r.ok ? r.json() : Promise.reject(r))
             .then(exchanges => {
                 if (!exchanges || !Array.isArray(exchanges) || exchanges.length === 0) {
+                    const noExchangesText = translateWithFallback('dash.noExchangesConnected', 'No exchanges connected');
+                    const connectText = translateWithFallback('dash.connectExchange', 'Connect');
                     container.innerHTML = `
                         <div class="empty-positions">
                             <div class="icon"><i class="fas fa-link"></i></div>
-                            <div class="text" data-i18n="dash.noExchangesConnected">Біржі не підключені</div>
+                            <div class="text" data-i18n="dash.noExchangesConnected">${noExchangesText}</div>
                             <button onclick="openAddExchangeModal()" class="btn-cyber btn-cyber-sm mt-4">
-                                <i class="fas fa-plus"></i> Connect
+                                <i class="fas fa-plus"></i>
+                                <span data-i18n="dash.connectExchange">${connectText}</span>
                             </button>
                         </div>`;
+                    if (window.reapplyTranslations) window.reapplyTranslations();
                     return;
                 }
                 renderExchanges(exchanges);
@@ -2311,40 +2319,57 @@
             })
             .catch(err => {
                 console.error('Error loading exchanges:', err);
+                const loadErrorText = translateWithFallback('dash.exchangesLoadError', 'Error loading exchanges');
+                const retryText = translateWithFallback('btn.retry', 'Retry');
                 container.innerHTML = `
                     <div class="empty-positions">
                         <div class="icon"><i class="fas fa-exclamation-triangle text-red-400"></i></div>
-                        <div class="text text-red-400">Помилка завантаження бірж</div>
+                        <div class="text text-red-400" data-i18n="dash.exchangesLoadError">${loadErrorText}</div>
                         <button onclick="loadExchanges()" class="btn-cyber btn-cyber-sm mt-4">
-                            <i class="fas fa-sync"></i> Retry
+                            <i class="fas fa-sync"></i>
+                            <span data-i18n="btn.retry">${retryText}</span>
                         </button>
                     </div>`;
+                if (window.reapplyTranslations) window.reapplyTranslations();
             });
     }
 
     function renderExchanges(exchanges) {
         const container = document.getElementById('exchanges-container');
-        container.innerHTML = exchanges.map(ex => `
-            <div class="exchange-card-cyber mb-3" id="exchange-card-${ex.id}">
-                <div class="exchange-logo"><i class="fas fa-building"></i></div>
-                <div class="flex-1 min-w-0">
-                    <div class="font-display font-semibold text-white">${ex.label || ex.display_name || (ex.exchange_name ? ex.exchange_name.toUpperCase() : 'Unknown')}</div>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-xs text-white/40">${ex.display_name || ex.exchange_name.toUpperCase()}</span>
-                        <span id="balance-${ex.id}" class="font-mono text-sm ${ex.balance !== null && ex.balance !== undefined ? (ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40') : 'text-white/40'}">
-                            ${ex.balance !== null && ex.balance !== undefined ? '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '...'}
-                        </span>
+        const unknownText = translateWithFallback('common.unknown', 'Unknown');
+        container.innerHTML = exchanges.map(ex => {
+            const displayName = ex.display_name || (ex.exchange_name ? ex.exchange_name.toUpperCase() : unknownText);
+            const label = ex.label || displayName;
+            const balanceValue = ex.balance !== null && ex.balance !== undefined
+                ? '$' + ex.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : '...';
+            const balanceClass = ex.balance !== null && ex.balance !== undefined
+                ? (ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40')
+                : 'text-white/40';
+
+            return `
+                <div class="exchange-card-cyber mb-3" id="exchange-card-${ex.id}">
+                    <div class="exchange-logo"><i class="fas fa-building"></i></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-display font-semibold text-white">${label}</div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-white/40">${displayName}</span>
+                            <span id="balance-${ex.id}" class="font-mono text-sm ${balanceClass}">
+                                ${balanceValue}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${getStatusBadge(ex.status, ex.trading_enabled, ex.is_active)}
+                        ${ex.status === 'APPROVED' && ex.trading_enabled ? `<input type="checkbox" ${ex.is_active ? 'checked' : ''} onchange="toggleExchange(${ex.id}, this.checked)" class="w-5 h-5 accent-green-400 cursor-pointer">` : ''}
+                        <button onclick="deleteExchange(${ex.id})" class="modal-close" style="width: 32px; height: 32px;">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    ${getStatusBadge(ex.status, ex.trading_enabled, ex.is_active)}
-                    ${ex.status === 'APPROVED' && ex.trading_enabled ? `<input type="checkbox" ${ex.is_active ? 'checked' : ''} onchange="toggleExchange(${ex.id}, this.checked)" class="w-5 h-5 accent-green-400 cursor-pointer">` : ''}
-                    <button onclick="deleteExchange(${ex.id})" class="modal-close" style="width: 32px; height: 32px;">
-                        <i class="fas fa-trash text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+        if (window.reapplyTranslations) window.reapplyTranslations();
     }
 
     function loadExchangeBalances() {
@@ -2373,19 +2398,24 @@
 
     function getStatusBadge(status, tradingEnabled, isActive) {
         if (status === 'PENDING') {
-            return `<span class="status-pill pending"><i class="fas fa-clock text-xs"></i> ${translateWithFallback('status.pending', 'Pending')}</span>`;
+            const label = translateWithFallback('status.pending', 'Pending');
+            return `<span class="status-pill pending"><i class="fas fa-clock text-xs"></i> <span data-i18n="status.pending">${label}</span></span>`;
         }
         if (status === 'APPROVED') {
             if (tradingEnabled && isActive) {
-                return `<span class="status-pill trading"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> ${translateWithFallback('status.trading', 'Trading')}</span>`;
+                const label = translateWithFallback('status.trading', 'Trading');
+                return `<span class="status-pill trading"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> <span data-i18n="status.trading">${label}</span></span>`;
             }
             if (tradingEnabled) {
-                return `<span class="status-pill approved"><i class="fas fa-pause text-xs"></i> ${translateWithFallback('status.ready', 'Ready')}</span>`;
+                const label = translateWithFallback('status.ready', 'Ready');
+                return `<span class="status-pill approved"><i class="fas fa-pause text-xs"></i> <span data-i18n="status.ready">${label}</span></span>`;
             }
-            return `<span class="status-pill pending"><i class="fas fa-hourglass-half text-xs"></i> ${translateWithFallback('status.awaiting', 'Awaiting')}</span>`;
+            const label = translateWithFallback('status.awaiting', 'Awaiting');
+            return `<span class="status-pill pending"><i class="fas fa-hourglass-half text-xs"></i> <span data-i18n="status.awaiting">${label}</span></span>`;
         }
         if (status === 'REJECTED') {
-            return `<span class="status-pill" style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid rgba(255, 0, 85, 0.3);"><i class="fas fa-times text-xs"></i> ${translateWithFallback('status.rejected', 'Rejected')}</span>`;
+            const label = translateWithFallback('status.rejected', 'Rejected');
+            return `<span class="status-pill" style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid rgba(255, 0, 85, 0.3);"><i class="fas fa-times text-xs"></i> <span data-i18n="status.rejected">${label}</span></span>`;
         }
         return `<span class="status-pill">${status}</span>`;
     }
@@ -2420,12 +2450,12 @@
                         select.appendChild(opt);
                     });
                 } else {
-                    select.innerHTML = '<option value="">Біржі не налаштовані</option>';
+                    select.innerHTML = `<option value="">${translateWithFallback('dash.exchangesNotConfigured', 'No exchanges configured')}</option>`;
                 }
             })
             .catch(err => {
                 console.error('Error loading supported exchanges:', err);
-                select.innerHTML = '<option value="">Помилка завантаження</option>';
+                select.innerHTML = `<option value="">${translateWithFallback('dash.exchangesLoadFailed', 'Failed to load')}</option>`;
             });
     }
 
@@ -3484,6 +3514,11 @@
         }, template);
     }
 
+    function translateAchievementField(type, field, fallback) {
+        if (!type || !field) return fallback;
+        return translateWithFallback(`dash.achievement.${type}.${field}`, fallback);
+    }
+
     function translateLevelName(levelName) {
         const key = levelNameKeyMap[levelName];
         return key ? translateWithFallback(key, levelName) : levelName;
@@ -3642,14 +3677,16 @@
                         'legendary': 'box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);'
                     }[badge.rarity] || '';
                     const rarityLabel = translateRarityLabel(badge.rarity);
+                    const badgeName = translateAchievementField(badge.achievement_type, 'name', badge.name);
+                    const badgeDescription = translateAchievementField(badge.achievement_type, 'description', badge.description);
                     
                     return `
                         <div class="badge-item inline-flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-transform hover:scale-105"
                              style="background: ${badge.color}20; border: 1px solid ${badge.color}40; ${rarityGlow}"
-                             title="${badge.description}\n\n${rarityLabelText}: ${rarityLabel}"
+                             title="${badgeDescription}\n\n${rarityLabelText}: ${rarityLabel}"
                              onclick="showBadgeDetails('${badge.achievement_type}')">
                             <i class="fas ${badge.icon}" style="color: ${badge.color};"></i>
-                            <span class="text-xs font-medium" style="color: ${badge.color};">${badge.name}</span>
+                            <span class="text-xs font-medium" style="color: ${badge.color};">${badgeName}</span>
                         </div>
                     `;
                 }).join('');
@@ -3682,6 +3719,9 @@
             } else {
                 updateSubscriptionUI();
             }
+            if (document.getElementById('achievements-modal')) {
+                showAllAchievements();
+            }
             return result;
         };
         window.__gamificationLangHooked = true;
@@ -3703,10 +3743,12 @@
         const rarityLabel = rarity?.label || translateRarityLabel(badge.rarity);
         const rarityText = translateWithFallback('dash.rarityLabel', 'Rarity');
         const unlockedText = translateWithFallback('dash.unlockedLabel', 'Unlocked');
+        const badgeName = translateAchievementField(badge.achievement_type, 'name', badge.name);
+        const badgeDescription = translateAchievementField(badge.achievement_type, 'description', badge.description);
         
         // Show a simple alert or toast - could be enhanced with a modal
         const unlockedDate = new Date(badge.unlocked_at).toLocaleDateString();
-        alert(`🏆 ${badge.name}\n\n${badge.description}\n\n${rarityText}: ${rarityLabel}\n${unlockedText}: ${unlockedDate}`);
+        alert(`🏆 ${badgeName}\n\n${badgeDescription}\n\n${rarityText}: ${rarityLabel}\n${unlockedText}: ${unlockedDate}`);
     }
     
     function showAllAchievements() {
@@ -3742,6 +3784,8 @@
                 // Build achievement card
                 const buildCard = (achievement, isUnlocked) => {
                     const rarity = getRarityStyles(achievement.rarity, isUnlocked);
+                    const achievementName = translateAchievementField(achievement.type, 'name', achievement.name);
+                    const achievementDescription = translateAchievementField(achievement.type, 'description', achievement.description);
                     const opacity = isUnlocked ? '1' : '0.5';
                     const grayscale = isUnlocked ? '' : 'filter: grayscale(60%);';
                     const statusIcon = isUnlocked 
@@ -3759,10 +3803,10 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-semibold text-white text-sm">${achievement.name}</span>
+                                    <span class="font-semibold text-white text-sm">${achievementName}</span>
                                     <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background: ${rarity.color}20; color: ${rarity.color}; border: 1px solid ${rarity.color}40;">${rarity.label}</span>
                                 </div>
-                                <div class="text-xs text-white/60 leading-relaxed">${achievement.description}</div>
+                                <div class="text-xs text-white/60 leading-relaxed">${achievementDescription}</div>
                             </div>
                             ${statusIcon}
                         </div>
