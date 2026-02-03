@@ -256,6 +256,43 @@
         padding: 24px;
     }
 
+    /* Inputs */
+    .input-cyber {
+        width: 100%;
+        padding: 12px 14px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: var(--radius-lg);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    
+    .input-cyber:focus {
+        outline: none;
+        border-color: rgba(0, 240, 255, 0.5);
+        box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.12);
+    }
+    
+    .input-cyber::placeholder {
+        color: rgba(255, 255, 255, 0.35);
+    }
+    
+    select.input-cyber {
+        background-color: rgba(0, 0, 0, 0.45);
+    }
+    
+    select.input-cyber option {
+        background: #0b0b12;
+        color: #fff;
+    }
+    
+    .inf-section-header .input-cyber {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
     /* Marketing Assets */
     .asset-grid {
         display: grid;
@@ -439,14 +476,13 @@
         background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(0, 240, 255, 0.05));
         border: 1px solid rgba(34, 197, 94, 0.25);
         border-radius: var(--radius-xl);
-        padding: 24px;
-        margin-bottom: 24px;
-        text-align: center;
+        padding: 20px;
+        text-align: left;
     }
     
     .payout-balance-value {
         font-family: var(--font-mono);
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 800;
         color: #22c55e;
         text-shadow: 0 0 30px rgba(34, 197, 94, 0.4);
@@ -561,6 +597,10 @@
     .chart-container {
         height: 320px;
         position: relative;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
     }
     
     /* Copy Button Animation */
@@ -778,48 +818,68 @@
                 </a>
             </div>
             <div class="inf-section-body">
-                <!-- Balance -->
-                <div class="payout-balance">
-                    <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Доступний баланс</div>
-                    <div class="payout-balance-value">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
-                    <div class="text-xs text-white/40 mt-2">Мінімальна виплата: $50.00</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                    <!-- Balance -->
+                    <div class="payout-balance">
+                        <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Доступно до виплати</div>
+                        <div class="payout-balance-value">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
+                        <div class="text-xs text-white/40 mt-2">Мінімальна виплата: $50.00</div>
+                    </div>
+
+                    <!-- Request Status -->
+                    <div class="p-4 rounded-xl border border-white/10 bg-black/30">
+                        <div class="text-xs text-white/40 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-cyan-400"></i>
+                            Статус заявки
+                        </div>
+                        {% if pending_payout %}
+                        <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує підтвердження</span>
+                        <div class="mt-3 text-sm text-white/70">
+                            Сума: <span class="font-mono text-yellow-300">${{ "%.2f"|format(pending_payout.amount) }}</span>
+                        </div>
+                        <div class="text-xs text-white/40 mt-1">Надіслано: {{ pending_payout.created_at.strftime('%d %b %Y') }}</div>
+                        {% else %}
+                        <span class="status-badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15);">
+                            <i class="fas fa-check"></i> Немає активних заявок
+                        </span>
+                        <div class="mt-3 text-sm text-white/60">Запит доступний, якщо баланс >= $50</div>
+                        {% endif %}
+                    </div>
                 </div>
                 
                 {% if pending_payout %}
-                <!-- Pending Notice -->
-                <div class="p-4 rounded-xl" style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25);">
-                    <div class="flex items-center gap-2 text-yellow-400 font-semibold mb-2">
-                        <i class="fas fa-clock"></i>
-                        <span>Очікуючий запит</span>
-                    </div>
-                    <div class="text-sm text-white/60">
-                        Запит на <strong class="text-yellow-400">${{ "%.2f"|format(pending_payout.amount) }}</strong>
-                        <br><span class="text-xs">Надіслано: {{ pending_payout.created_at.strftime('%d %b %Y') }}</span>
+                <div class="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/10">
+                    <div class="flex items-center gap-2 text-yellow-300 text-sm">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Новий запит можна створити після завершення поточного.</span>
                     </div>
                 </div>
                 {% else %}
                 <!-- Payout Form -->
                 <form id="payout-form" onsubmit="submitPayoutRequest(event)" class="space-y-4">
-                    <div>
-                        <label class="text-xs text-white/40 block mb-2">Сума (USD)</label>
-                        <input type="number" name="amount" id="payout-amount" class="input-cyber w-full" 
-                               placeholder="Введіть суму" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
-                    </div>
-                    <div>
-                        <label class="text-xs text-white/40 block mb-2">Метод оплати</label>
-                        <select name="payment_method" id="payout-method" class="input-cyber w-full" required>
-                            <option value="">Виберіть метод...</option>
-                            <option value="usdt_trc20">USDT (TRC20)</option>
-                            <option value="usdt_erc20">USDT (ERC20)</option>
-                            <option value="usdt_bep20">USDT (BEP20)</option>
-                            <option value="btc">Bitcoin</option>
-                            <option value="bank_transfer">Банківський переказ</option>
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-white/40 block mb-2">Сума (USD)</label>
+                            <input type="number" name="amount" id="payout-amount" class="input-cyber w-full" 
+                                   placeholder="Введіть суму" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
+                        </div>
+                        <div>
+                            <label class="text-xs text-white/40 block mb-2">Метод оплати</label>
+                            <select name="payment_method" id="payout-method" class="input-cyber w-full" required>
+                                <option value="">Виберіть метод...</option>
+                                <option value="usdt_trc20">USDT (TRC20)</option>
+                                <option value="usdt_erc20">USDT (ERC20)</option>
+                                <option value="usdt_bep20">USDT (BEP20)</option>
+                                <option value="btc">Bitcoin</option>
+                                <option value="bank_transfer">Банківський переказ</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="text-xs text-white/40 block mb-2">Гаманець / Банківські дані</label>
                         <input type="text" name="payment_address" id="payout-address" class="input-cyber w-full" 
                                placeholder="Введіть адресу гаманця або банківські дані" required>
+                        <p class="text-xs text-white/40 mt-2">Переконайтеся, що адреса підтримує обраний метод.</p>
                     </div>
                     <button type="submit" class="btn-cyber w-full" id="payout-submit-btn"
                             {% if referral_stats.pending_commission < 50 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
@@ -894,65 +954,6 @@
                     <p class="text-sm">Ваші виплати з'являться тут</p>
                 </div>
                 {% endif %}
-        </div>
-    </div>
-
-    <!-- Marketing Assets -->
-    <div class="inf-section mb-8 animate-entry" style="animation-delay: 0.45s;">
-        <div class="inf-section-header">
-            <div class="inf-section-title">
-                <i style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(236, 72, 153, 0.2)); color: #fb923c;">
-                    <i class="fas fa-palette"></i>
-                </i>
-                <span>Маркетингові матеріали</span>
-            </div>
-            <span class="text-xs text-white/40">Завантажуйте банери з вашим реферальним кодом</span>
-        </div>
-        <div class="inf-section-body">
-            <div class="asset-grid">
-                {% for type, config in banner_types.items() %}
-                <div class="asset-card">
-                    <div class="asset-preview banner-preview-{{ loop.index % 3 + 1 }}">
-                        <div class="banner-mock-grid"></div>
-                        <div class="banner-mock-glow" style="background: {% if loop.index % 3 == 0 %}#22c55e{% elif loop.index % 3 == 1 %}#00f0ff{% else %}#8b5cf6{% endif %}; top: 20%; left: 60%;"></div>
-                        <div class="banner-mock-glow" style="background: {% if loop.index % 3 == 0 %}#00f0ff{% elif loop.index % 3 == 1 %}#8b5cf6{% else %}#fb923c{% endif %}; bottom: 20%; right: 60%;"></div>
-                        <div class="asset-preview-inner">
-                            <div class="banner-mock">
-                                <svg class="banner-mock-logo" viewBox="0 0 40 40" fill="none">
-                                    <path d="M8 8L18 20L8 32V8Z" fill="url(#assetGrad1)"/>
-                                    <path d="M32 8L22 20L32 32V8Z" fill="url(#assetGrad1)"/>
-                                    <rect x="18" y="16" width="4" height="8" rx="1" fill="url(#assetGrad2)"/>
-                                    <defs>
-                                        <linearGradient id="assetGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#00f0ff"/>
-                                            <stop offset="100%" style="stop-color:#8b5cf6"/>
-                                        </linearGradient>
-                                        <linearGradient id="assetGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#ff2d92"/>
-                                            <stop offset="100%" style="stop-color:#ff00ff"/>
-                                        </linearGradient>
-                                    </defs>
-                                </svg>
-                                <div class="banner-mock-text">MIMIC</div>
-                                <div class="banner-mock-code">{{ referral_code }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="asset-info">
-                        <div class="asset-name">{{ type|replace('_', ' ')|title }} Banner</div>
-                        <div class="asset-size">{{ config.size }} • {{ config.description }}</div>
-                        <div class="asset-actions">
-                            <button onclick="previewBanner('{{ type }}')" class="asset-btn asset-btn-preview">
-                                <i class="fas fa-eye"></i> Перегляд
-                            </button>
-                            <a href="{{ url_for('get_banner', banner_type=type) }}" download="mimic-{{ type }}.png" class="asset-btn asset-btn-download">
-                                <i class="fas fa-download"></i> Завантажити
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
         </div>
     </div>
 
@@ -1038,30 +1039,6 @@
         </div>
     </div>
 
-</div>
-
-<!-- Banner Preview Modal -->
-<div id="bannerPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);" onclick="if(event.target===this)closeBannerPreview()">
-    <div class="max-w-4xl w-full rounded-2xl overflow-hidden" style="background: linear-gradient(135deg, rgba(15, 15, 24, 0.98), rgba(10, 10, 18, 0.98)); border: 1px solid rgba(0, 240, 255, 0.2);">
-        <div class="flex items-center justify-between p-5" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-image text-cyan-400"></i>
-                <span class="font-semibold text-white">Перегляд банера</span>
-            </div>
-            <button onclick="closeBannerPreview()" class="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:bg-white/10" style="border: 1px solid rgba(255,255,255,0.1);">
-                <i class="fas fa-times text-white/60"></i>
-            </button>
-        </div>
-        <div class="p-6 text-center">
-            <img id="banner-preview-img" src="" alt="Banner Preview" class="max-w-full h-auto mx-auto rounded-lg" style="border: 1px solid rgba(255,255,255,0.1);">
-            <div class="mt-6">
-                <a id="banner-download-link" href="" download="" class="btn-cyber inline-flex" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1)); border-color: rgba(34, 197, 94, 0.4); color: #22c55e;">
-                    <i class="fas fa-download"></i>
-                    <span>Завантажити банер</span>
-                </a>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1226,35 +1203,9 @@ function submitPayoutRequest(event) {
     });
 }
 
-// ==================== BANNER PREVIEW ====================
-function previewBanner(type) {
-    const modal = document.getElementById('bannerPreviewModal');
-    const img = document.getElementById('banner-preview-img');
-    const downloadLink = document.getElementById('banner-download-link');
-    
-    const url = `{{ url_for('get_banner', banner_type='PLACEHOLDER') }}`.replace('PLACEHOLDER', type);
-    img.src = url;
-    downloadLink.href = url;
-    downloadLink.download = `mimic-${type}.png`;
-    
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeBannerPreview() {
-    const modal = document.getElementById('bannerPreviewModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-}
-
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', function() {
     loadEarningsChart();
-    
-    // Close modal on Escape
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeBannerPreview();
-    });
 });
 </script>
 {% endblock %}
