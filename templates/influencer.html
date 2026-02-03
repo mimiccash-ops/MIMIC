@@ -644,15 +644,15 @@
             <div>
                 <div class="hero-badge">
                     <i class="fas fa-crown"></i>
-                    <span>Партнерська програма</span>
+                    <span data-i18n="influencer.badge">Партнерська програма</span>
                 </div>
-                <h1 class="hero-title">Панель партнера</h1>
-                <p class="hero-subtitle">Відстежуйте результати рефералів, заробіток та розвивайте свою мережу</p>
+                <h1 class="hero-title" data-i18n="influencer.title">Панель партнера</h1>
+                <p class="hero-subtitle" data-i18n="influencer.subtitle">Відстежуйте результати рефералів, заробіток та розвивайте свою мережу</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ url_for('dashboard') }}" class="btn-cyber">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Назад до панелі</span>
+                    <span data-i18n="influencer.backToDashboard">Назад до панелі</span>
                 </a>
             </div>
         </div>
@@ -667,11 +667,12 @@
             <!-- Code -->
             <div>
                 <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
-                    <i class="fas fa-qrcode mr-2"></i>Ваш реферальний код
+                    <i class="fas fa-qrcode mr-2"></i>
+                    <span data-i18n="influencer.referralCodeLabel">Ваш реферальний код</span>
                 </label>
                 <div class="flex items-center gap-4">
                     <div class="referral-code-display">{{ referral_code }}</div>
-                    <button onclick="copyCode()" class="btn-cyber copy-btn" id="copy-code-btn" title="Копіювати код">
+                    <button onclick="copyCode()" class="btn-cyber copy-btn" id="copy-code-btn" title="Копіювати код" data-i18n-title="influencer.copyCodeTitle">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -680,13 +681,14 @@
             <!-- Link -->
             <div>
                 <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
-                    <i class="fas fa-link mr-2"></i>Ваше посилання для запрошення
+                    <i class="fas fa-link mr-2"></i>
+                    <span data-i18n="influencer.referralLinkLabel">Ваше посилання для запрошення</span>
                 </label>
                 <div class="flex gap-3">
                     <input type="text" value="{{ referral_link }}" id="referral-link" class="referral-link-input flex-1" readonly>
                     <button onclick="copyLink()" class="btn-cyber copy-btn" id="copy-link-btn">
                         <i class="fas fa-copy mr-2"></i>
-                        <span>Копіювати</span>
+                        <span data-i18n="influencer.copy">Копіювати</span>
                     </button>
                 </div>
             </div>
@@ -695,9 +697,10 @@
         <!-- Share Buttons -->
         <div class="mt-6 pt-6 border-t border-white/10">
             <label class="text-xs text-white/40 uppercase tracking-wider block mb-2">
-                <i class="fas fa-share-alt mr-2"></i>Швидке поширення
+                <i class="fas fa-share-alt mr-2"></i>
+                <span data-i18n="influencer.quickShare">Швидке поширення</span>
             </label>
-            <p class="text-xs text-white/50 mb-3">Комісія 5% з прибутку рефералів</p>
+            <p class="text-xs text-white/50 mb-3" data-i18n="influencer.shareCommissionNote">Комісія 5% з прибутку рефералів</p>
             <div class="flex flex-wrap gap-3">
                 <a href="https://t.me/share/url?url={{ referral_link }}&text=Join%20MIMIC%20Copy%20Trading!" 
                    target="_blank" rel="noopener noreferrer"
@@ -729,10 +732,13 @@
                 <i class="fas fa-mouse-pointer"></i>
             </div>
             <div class="stat-value-cyber" style="color: #3b82f6;">{{ click_stats.total_clicks }}</div>
-            <div class="stat-label-cyber">Всього кліків</div>
+            <div class="stat-label-cyber" data-i18n="influencer.totalClicks">Всього кліків</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-users text-blue-400"></i>
-                <span>{{ click_stats.unique_visitors }} унікальних відвідувачів</span>
+                <span>
+                    <span>{{ click_stats.unique_visitors }}</span>
+                    <span data-i18n="influencer.uniqueVisitors">унікальних відвідувачів</span>
+                </span>
             </div>
         </div>
         
@@ -742,10 +748,13 @@
                 <i class="fas fa-user-plus"></i>
             </div>
             <div class="stat-value-cyber" style="color: #8b5cf6;">{{ referral_stats.referral_count }}</div>
-            <div class="stat-label-cyber">Реєстрацій</div>
+            <div class="stat-label-cyber" data-i18n="influencer.registrations">Реєстрацій</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-chart-line text-purple-400"></i>
-                <span>{{ click_stats.click_to_registration_rate }}% конверсія</span>
+                <span>
+                    <span>{{ click_stats.click_to_registration_rate }}%</span>
+                    <span data-i18n="influencer.conversion">конверсія</span>
+                </span>
             </div>
         </div>
         
@@ -755,10 +764,13 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div class="stat-value-cyber" style="color: #f59e0b;">{{ click_stats.deposits }}</div>
-            <div class="stat-label-cyber">Активних депозитів</div>
+            <div class="stat-label-cyber" data-i18n="influencer.activeDeposits">Активних депозитів</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-coins text-yellow-400"></i>
-                <span>${{ "%.2f"|format(click_stats.total_deposit_amount) }} всього</span>
+                <span>
+                    <span>${{ "%.2f"|format(click_stats.total_deposit_amount) }}</span>
+                    <span data-i18n="influencer.total">всього</span>
+                </span>
             </div>
         </div>
         
@@ -768,10 +780,13 @@
                 <i class="fas fa-dollar-sign"></i>
             </div>
             <div class="stat-value-cyber" style="color: #22c55e;">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
-            <div class="stat-label-cyber">Всього зароблено</div>
+            <div class="stat-label-cyber" data-i18n="influencer.totalEarned">Всього зароблено</div>
             <div class="stat-sub-cyber">
                 <i class="fas fa-clock text-green-400"></i>
-                <span>${{ "%.2f"|format(referral_stats.pending_commission) }} очікує</span>
+                <span>
+                    <span>${{ "%.2f"|format(referral_stats.pending_commission) }}</span>
+                    <span data-i18n="influencer.pending">очікує</span>
+                </span>
             </div>
         </div>
     </div>
@@ -785,19 +800,20 @@
                     <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
                         <i class="fas fa-chart-area"></i>
                     </i>
-                    <span>Заробіток за час</span>
+                    <span data-i18n="influencer.earningsOverTime">Заробіток за час</span>
                 </div>
                 <select id="chart-period" class="input-cyber text-sm" style="width: auto;" onchange="loadEarningsChart()">
-                    <option value="7">Останні 7 днів</option>
-                    <option value="30" selected>Останні 30 днів</option>
-                    <option value="90">Останні 90 днів</option>
-                    <option value="365">Останній рік</option>
+                    <option value="7" data-i18n="influencer.last7Days">Останні 7 днів</option>
+                    <option value="30" selected data-i18n="influencer.last30Days">Останні 30 днів</option>
+                    <option value="90" data-i18n="influencer.last90Days">Останні 90 днів</option>
+                    <option value="365" data-i18n="influencer.lastYear">Останній рік</option>
                 </select>
             </div>
             <div class="inf-section-body">
                 <div class="chart-container" id="earnings-chart">
                     <div class="flex items-center justify-center h-full text-white/40">
-                        <i class="fas fa-spinner fa-spin mr-2"></i> Завантаження графіка...
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        <span data-i18n="influencer.loadingChart">Завантаження графіка...</span>
                     </div>
                 </div>
             </div>
@@ -810,39 +826,47 @@
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 240, 255, 0.2)); color: #22c55e;">
                         <i class="fas fa-money-bill-wave"></i>
                     </i>
-                    <span>Запросити виплату</span>
+                    <span data-i18n="influencer.requestPayout">Запросити виплату</span>
                 </div>
                 <a href="#payout-history-section" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-history"></i>
-                    <span>Історія виплат</span>
+                    <span data-i18n="influencer.payoutHistory">Історія виплат</span>
                 </a>
             </div>
             <div class="inf-section-body">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                     <!-- Balance -->
                     <div class="payout-balance">
-                        <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Доступно до виплати</div>
+                        <div class="text-xs text-white/40 uppercase tracking-wider mb-2" data-i18n="influencer.availableForPayout">Доступно до виплати</div>
                         <div class="payout-balance-value">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
-                        <div class="text-xs text-white/40 mt-2">Мінімальна виплата: $50.00</div>
+                        <div class="text-xs text-white/40 mt-2" data-i18n="influencer.minimumPayout">Мінімальна виплата: $50.00</div>
                     </div>
 
                     <!-- Request Status -->
                     <div class="p-4 rounded-xl border border-white/10 bg-black/30">
                         <div class="text-xs text-white/40 uppercase tracking-wider mb-2 flex items-center gap-2">
                             <i class="fas fa-info-circle text-cyan-400"></i>
-                            Статус заявки
+                            <span data-i18n="influencer.requestStatus">Статус заявки</span>
                         </div>
                         {% if pending_payout %}
-                        <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує підтвердження</span>
+                        <span class="status-badge status-pending">
+                            <i class="fas fa-clock"></i>
+                            <span data-i18n="influencer.awaitingConfirmation">Очікує підтвердження</span>
+                        </span>
                         <div class="mt-3 text-sm text-white/70">
-                            Сума: <span class="font-mono text-yellow-300">${{ "%.2f"|format(pending_payout.amount) }}</span>
+                            <span data-i18n="influencer.amountLabel">Сума:</span>
+                            <span class="font-mono text-yellow-300">${{ "%.2f"|format(pending_payout.amount) }}</span>
                         </div>
-                        <div class="text-xs text-white/40 mt-1">Надіслано: {{ pending_payout.created_at.strftime('%d %b %Y') }}</div>
+                        <div class="text-xs text-white/40 mt-1">
+                            <span data-i18n="influencer.sentLabel">Надіслано:</span>
+                            {{ pending_payout.created_at.strftime('%d %b %Y') }}
+                        </div>
                         {% else %}
                         <span class="status-badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15);">
-                            <i class="fas fa-check"></i> Немає активних заявок
+                            <i class="fas fa-check"></i>
+                            <span data-i18n="influencer.noActiveRequests">Немає активних заявок</span>
                         </span>
-                        <div class="mt-3 text-sm text-white/60">Запит доступний, якщо баланс >= $50</div>
+                        <div class="mt-3 text-sm text-white/60" data-i18n="influencer.requestAvailableIfBalance">Запит доступний, якщо баланс &gt;= $50</div>
                         {% endif %}
                     </div>
                 </div>
@@ -851,7 +875,7 @@
                 <div class="p-4 rounded-xl border border-yellow-500/25 bg-yellow-500/10">
                     <div class="flex items-center gap-2 text-yellow-300 text-sm">
                         <i class="fas fa-info-circle"></i>
-                        <span>Новий запит можна створити після завершення поточного.</span>
+                        <span data-i18n="influencer.newRequestAfterComplete">Новий запит можна створити після завершення поточного.</span>
                     </div>
                 </div>
                 {% else %}
@@ -859,35 +883,35 @@
                 <form id="payout-form" onsubmit="submitPayoutRequest(event)" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="text-xs text-white/40 block mb-2">Сума (USD)</label>
+                            <label class="text-xs text-white/40 block mb-2" data-i18n="influencer.amountUsdLabel">Сума (USD)</label>
                             <input type="number" name="amount" id="payout-amount" class="input-cyber w-full" 
-                                   placeholder="Введіть суму" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
+                                   placeholder="Введіть суму" data-i18n-placeholder="influencer.amountPlaceholder" min="50" max="{{ referral_stats.pending_commission }}" step="0.01" required>
                         </div>
                         <div>
-                            <label class="text-xs text-white/40 block mb-2">Метод оплати</label>
+                            <label class="text-xs text-white/40 block mb-2" data-i18n="influencer.paymentMethodLabel">Метод оплати</label>
                             <select name="payment_method" id="payout-method" class="input-cyber w-full" required>
-                                <option value="">Виберіть метод...</option>
+                                <option value="" data-i18n="influencer.selectMethod">Виберіть метод...</option>
                                 <option value="usdt_trc20">USDT (TRC20)</option>
                                 <option value="usdt_erc20">USDT (ERC20)</option>
                                 <option value="usdt_bep20">USDT (BEP20)</option>
                                 <option value="btc">Bitcoin</option>
-                                <option value="bank_transfer">Банківський переказ</option>
+                                <option value="bank_transfer" data-i18n="influencer.paymentMethodBank">Банківський переказ</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-white/40 block mb-2">Гаманець / Банківські дані</label>
+                        <label class="text-xs text-white/40 block mb-2" data-i18n="influencer.walletOrBankLabel">Гаманець / Банківські дані</label>
                         <input type="text" name="payment_address" id="payout-address" class="input-cyber w-full" 
-                               placeholder="Введіть адресу гаманця або банківські дані" required>
-                        <p class="text-xs text-white/40 mt-2">Переконайтеся, що адреса підтримує обраний метод.</p>
+                               placeholder="Введіть адресу гаманця або банківські дані" data-i18n-placeholder="influencer.walletOrBankPlaceholder" required>
+                        <p class="text-xs text-white/40 mt-2" data-i18n="influencer.addressHint">Переконайтеся, що адреса підтримує обраний метод.</p>
                     </div>
                     <button type="submit" class="btn-cyber w-full" id="payout-submit-btn"
                             {% if referral_stats.pending_commission < 50 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
                         <i class="fas fa-paper-plane"></i>
-                        <span>Запросити виплату</span>
+                        <span data-i18n="influencer.requestPayout">Запросити виплату</span>
                     </button>
                     {% if referral_stats.pending_commission < 50 %}
-                    <p class="text-xs text-red-400 text-center">Мінімум $50 для виплати</p>
+                    <p class="text-xs text-red-400 text-center" data-i18n="influencer.minimumForPayout">Мінімум $50 для виплати</p>
                     {% endif %}
                 </form>
                 {% endif %}
@@ -902,11 +926,11 @@
                 <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
                     <i class="fas fa-history"></i>
                 </i>
-                    <span>Історія виплат</span>
+                    <span data-i18n="influencer.payoutHistory">Історія виплат</span>
                 </div>
                 <a href="#payout-request-section" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-money-bill-wave"></i>
-                    <span>Запросити виплату</span>
+                    <span data-i18n="influencer.requestPayout">Запросити виплату</span>
                 </a>
             </div>
             <div class="inf-section-body">
@@ -915,11 +939,11 @@
                     <table class="inf-table">
                         <thead>
                             <tr>
-                                <th>Дата</th>
-                                <th>Сума</th>
-                                <th>Метод</th>
-                                <th>Статус</th>
-                                <th>ID транзакції</th>
+                                <th data-i18n="influencer.tableDate">Дата</th>
+                                <th data-i18n="influencer.tableAmount">Сума</th>
+                                <th data-i18n="influencer.tableMethod">Метод</th>
+                                <th data-i18n="influencer.tableStatus">Статус</th>
+                                <th data-i18n="influencer.tableTransactionId">ID транзакції</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -930,13 +954,25 @@
                                 <td class="text-white/60">{{ payout.payment_method_label }}</td>
                                 <td>
                                     {% if payout.status == 'paid' %}
-                                    <span class="status-badge status-paid"><i class="fas fa-check"></i> Виплачено</span>
+                                    <span class="status-badge status-paid">
+                                        <i class="fas fa-check"></i>
+                                        <span data-i18n="influencer.statusPaid">Виплачено</span>
+                                    </span>
                                     {% elif payout.status == 'approved' %}
-                                    <span class="status-badge status-approved"><i class="fas fa-thumbs-up"></i> Схвалено</span>
+                                    <span class="status-badge status-approved">
+                                        <i class="fas fa-thumbs-up"></i>
+                                        <span data-i18n="influencer.statusApproved">Схвалено</span>
+                                    </span>
                                     {% elif payout.status == 'pending' %}
-                                    <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує</span>
+                                    <span class="status-badge status-pending">
+                                        <i class="fas fa-clock"></i>
+                                        <span data-i18n="influencer.statusPending">Очікує</span>
+                                    </span>
                                     {% elif payout.status == 'rejected' %}
-                                    <span class="status-badge status-rejected"><i class="fas fa-times"></i> Відхилено</span>
+                                    <span class="status-badge status-rejected">
+                                        <i class="fas fa-times"></i>
+                                        <span data-i18n="influencer.statusRejected">Відхилено</span>
+                                    </span>
                                     {% endif %}
                                 </td>
                                 <td class="font-mono text-sm text-white/40">
@@ -950,8 +986,8 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-receipt"></i>
-                    <p class="font-semibold mb-1">Історії виплат немає</p>
-                    <p class="text-sm">Ваші виплати з'являться тут</p>
+                    <p class="font-semibold mb-1" data-i18n="influencer.noPayoutHistory">Історії виплат немає</p>
+                    <p class="text-sm" data-i18n="influencer.payoutHistoryHint">Ваші виплати з'являться тут</p>
                 </div>
                 {% endif %}
         </div>
@@ -966,9 +1002,12 @@
                     <i style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)); color: #8b5cf6;">
                         <i class="fas fa-users"></i>
                     </i>
-                    <span>Останні реферали</span>
+                    <span data-i18n="influencer.recentReferrals">Останні реферали</span>
                 </div>
-                <span class="status-badge status-approved">{{ referral_stats.referral_count }} всього</span>
+                <span class="status-badge status-approved">
+                    <span>{{ referral_stats.referral_count }}</span>
+                    <span data-i18n="influencer.total">всього</span>
+                </span>
             </div>
             <div class="inf-section-body" style="max-height: 400px; overflow-y: auto;">
                 {% if referrals %}
@@ -980,15 +1019,22 @@
                             </div>
                             <div>
                                 <div class="font-semibold text-white">{{ ref.username }}</div>
-                                <div class="text-xs text-white/40">Приєднався {{ ref.joined }}</div>
+                                <div class="text-xs text-white/40">
+                                    <span data-i18n="influencer.joinedLabel">Приєднався</span>
+                                    {{ ref.joined }}
+                                </div>
                             </div>
                         </div>
                         <div>
                             {% if ref.is_active %}
-                            <span class="status-badge status-paid"><i class="fas fa-circle text-[6px]"></i> Активний</span>
+                            <span class="status-badge status-paid">
+                                <i class="fas fa-circle text-[6px]"></i>
+                                <span data-i18n="influencer.active">Активний</span>
+                            </span>
                             {% else %}
                             <span class="status-badge" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1);">
-                                <i class="fas fa-circle text-[6px]"></i> Неактивний
+                                <i class="fas fa-circle text-[6px]"></i>
+                                <span data-i18n="influencer.inactive">Неактивний</span>
                             </span>
                             {% endif %}
                         </div>
@@ -997,8 +1043,8 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-user-friends"></i>
-                    <p class="font-semibold mb-1">Рефералів ще немає</p>
-                    <p class="text-sm">Поділіться посиланням, щоб почати заробляти!</p>
+                    <p class="font-semibold mb-1" data-i18n="influencer.noReferrals">Рефералів ще немає</p>
+                    <p class="text-sm" data-i18n="influencer.shareToEarn">Поділіться посиланням, щоб почати заробляти!</p>
                 </div>
                 {% endif %}
             </div>
@@ -1011,7 +1057,7 @@
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(251, 191, 36, 0.2)); color: #22c55e;">
                         <i class="fas fa-coins"></i>
                     </i>
-                    <span>Останні комісії</span>
+                    <span data-i18n="influencer.recentCommissions">Останні комісії</span>
                 </div>
             </div>
             <div class="inf-section-body" style="max-height: 400px; overflow-y: auto;">
@@ -1031,8 +1077,8 @@
                 {% else %}
                 <div class="empty-state">
                     <i class="fas fa-coins"></i>
-                    <p class="font-semibold mb-1">Комісій ще немає</p>
-                    <p class="text-sm">Ви заробите, коли ваші реферали отримають прибуток!</p>
+                    <p class="font-semibold mb-1" data-i18n="influencer.noCommissions">Комісій ще немає</p>
+                    <p class="text-sm" data-i18n="influencer.commissionsHint">Ви заробите, коли ваші реферали отримають прибуток!</p>
                 </div>
                 {% endif %}
             </div>
@@ -1045,6 +1091,16 @@
 <script>
 // ==================== CHART ====================
 let earningsChart = null;
+
+function tr(key, fallback) {
+    if (typeof window.t === 'function') {
+        const value = window.t(key);
+        if (value && value !== key) {
+            return value;
+        }
+    }
+    return fallback;
+}
 
 function loadEarningsChart() {
     const days = document.getElementById('chart-period').value;
@@ -1066,7 +1122,7 @@ function loadEarningsChart() {
                 data: {
                     labels: data.labels,
                     datasets: [{
-                        label: 'Daily Commission',
+                        label: tr('influencer.chartDailyCommission', 'Daily Commission'),
                         data: data.daily_commission,
                         borderColor: '#00f0ff',
                         backgroundColor: 'rgba(0, 240, 255, 0.1)',
@@ -1078,7 +1134,7 @@ function loadEarningsChart() {
                         pointRadius: 4,
                         pointHoverRadius: 6,
                     }, {
-                        label: 'Cumulative',
+                        label: tr('influencer.chartCumulative', 'Cumulative'),
                         data: data.cumulative,
                         borderColor: '#22c55e',
                         backgroundColor: 'transparent',
@@ -1131,8 +1187,9 @@ function loadEarningsChart() {
         })
         .catch(err => {
             console.error('Chart error:', err);
+            const errorText = tr('influencer.chartLoadFailed', 'Failed to load chart');
             document.getElementById('earnings-chart').innerHTML = 
-                '<div class="flex items-center justify-center h-full text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Failed to load chart</div>';
+                `<div class="flex items-center justify-center h-full text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> ${errorText}</div>`;
         });
 }
 
@@ -1142,7 +1199,7 @@ function copyCode() {
     const btn = document.getElementById('copy-code-btn');
     btn.classList.add('copied');
     btn.innerHTML = '<i class="fas fa-check"></i>';
-    showToast('Реферальний код скопійовано!', 'success');
+    showToast(tr('influencer.copyCodeSuccess', 'Referral code copied!'), 'success');
     setTimeout(() => {
         btn.classList.remove('copied');
         btn.innerHTML = '<i class="fas fa-copy"></i>';
@@ -1154,11 +1211,11 @@ function copyLink() {
     navigator.clipboard.writeText(input.value);
     const btn = document.getElementById('copy-link-btn');
     btn.classList.add('copied');
-    btn.innerHTML = '<i class="fas fa-check mr-2"></i><span>Скопійовано!</span>';
-    showToast('Реферальне посилання скопійовано!', 'success');
+    btn.innerHTML = `<i class="fas fa-check mr-2"></i><span data-i18n="influencer.copied">${tr('influencer.copied', 'Copied!')}</span>`;
+    showToast(tr('influencer.copyLinkSuccess', 'Referral link copied!'), 'success');
     setTimeout(() => {
         btn.classList.remove('copied');
-        btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Копіювати</span>';
+        btn.innerHTML = `<i class="fas fa-copy mr-2"></i><span data-i18n="influencer.copy">${tr('influencer.copy', 'Copy')}</span>`;
     }, 2000);
 }
 
@@ -1171,7 +1228,7 @@ function submitPayoutRequest(event) {
     const originalBtnText = submitBtn.innerHTML;
     
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Обробка...</span>';
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span data-i18n="influencer.processing">${tr('influencer.processing', 'Processing...')}</span>`;
     
     const formData = new FormData(form);
     
@@ -1187,17 +1244,19 @@ function submitPayoutRequest(event) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showToast('Запит на виплату успішно надіслано!', 'success');
+            showToast(tr('influencer.payoutRequestSent', 'Payout request submitted successfully!'), 'success');
             setTimeout(() => window.location.reload(), 1500);
         } else {
-            showToast('Помилка: ' + (data.error || 'Не вдалося надіслати запит на виплату'), 'error');
+            const errorPrefix = tr('common.error', 'Error');
+            const fallbackError = tr('influencer.payoutRequestFailed', 'Failed to submit payout request');
+            showToast(`${errorPrefix}: ${data.error || fallbackError}`, 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalBtnText;
         }
     })
     .catch(err => {
         console.error('Payout error:', err);
-        showToast('Помилка мережі. Спробуйте ще раз.', 'error');
+        showToast(tr('influencer.networkError', 'Network error. Please try again.'), 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
     });
