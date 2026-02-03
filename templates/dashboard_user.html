@@ -969,7 +969,7 @@
             </div>
             
             <!-- Panic Button -->
-            <a href="{{ url_for('user_panic') }}" onclick="return confirm('⚠️ АВАРІЯ: Закрити всі позиції негайно?')" class="panic-button flex-shrink-0">
+            <a href="{{ url_for('user_panic') }}" onclick="return confirm(window.t ? window.t('dash.confirmEmergencyExit') : '⚠️ EMERGENCY: Close all positions now?')" class="panic-button flex-shrink-0">
                 <i class="fas fa-power-off"></i>
                 <span data-i18n="dash.emergencyExit">EXIT ALL</span>
             </a>
@@ -1013,7 +1013,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Trader Level</span>
+                        <span class="text-xs text-white/50 uppercase tracking-wider" data-i18n="dash.traderLevel">Trader Level</span>
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
                               id="level-badge"
                               style="background: rgba(147, 51, 234, 0.1); color: #9333ea; border: 1px solid rgba(147, 51, 234, 0.3);">
@@ -1022,7 +1022,7 @@
                     </div>
                     <div class="flex items-center gap-3 mt-2">
                         <div class="font-display text-lg font-bold text-white">
-                            <span id="user-xp">0</span> <span class="text-sm text-white/50">XP</span>
+                            <span id="user-xp">0</span> <span class="text-sm text-white/50" data-i18n="dash.xpLabel">XP</span>
                         </div>
                         <div class="text-xs text-white/40" id="xp-to-next">--</div>
                     </div>
@@ -1049,7 +1049,7 @@
                      style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
                     <i class="fas fa-tag text-green-400"></i>
                     <div>
-                        <div class="text-xs text-green-300 font-medium">Commission Discount</div>
+                        <div class="text-xs text-green-300 font-medium" data-i18n="dash.commissionDiscount">Commission Discount</div>
                         <div class="text-lg text-green-400 font-bold" id="discount-percent">0%</div>
                     </div>
                 </div>
@@ -1061,19 +1061,19 @@
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-trophy text-yellow-400"></i>
-                    <span class="text-sm text-white/70 font-medium">Achievements</span>
+                    <span class="text-sm text-white/70 font-medium" data-i18n="dash.achievements">Achievements</span>
                     <span class="text-xs text-white/40" id="badge-count">(0 unlocked)</span>
                 </div>
                 <button onclick="showAllAchievements()" 
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 group"
                         style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(147, 51, 234, 0.4); color: #c084fc;">
                     <i class="fas fa-medal group-hover:scale-110 transition-transform"></i>
-                    <span>All</span>
+                    <span data-i18n="dash.achievementsAll">All</span>
                     <i class="fas fa-chevron-right text-xs opacity-60 group-hover:translate-x-1 transition-transform"></i>
                 </button>
             </div>
             <div id="badges-container" class="flex flex-wrap gap-2">
-                <div class="text-xs text-white/30 italic">Complete trades to unlock achievements!</div>
+                <div class="text-xs text-white/30 italic" data-i18n="dash.achievementsEmpty">Complete trades to unlock achievements!</div>
             </div>
         </div>
     </div>
@@ -1089,8 +1089,8 @@
                     <i class="fas fa-vote-yea text-xl" style="color: #a855f7;"></i>
                 </div>
                 <div class="flex-1">
-                    <div class="text-sm font-semibold text-white">Polls</div>
-                    <div class="text-xs text-white/50">Vote on proposals & changes</div>
+                    <div class="text-sm font-semibold text-white" data-i18n="dash.pollsTitle">Polls</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.pollsSubtitle">Vote on proposals & changes</div>
                 </div>
                 <i class="fas fa-chevron-right text-white/30"></i>
             </div>
@@ -1111,7 +1111,7 @@
             </div>
             <div class="live-badge">
                 <span class="pulse-dot"></span>
-                <span>LIVE</span>
+                <span data-i18n="dash.live">LIVE</span>
             </div>
         </div>
         
@@ -1152,7 +1152,10 @@
                 <i class="fas fa-history text-pink-400"></i>
                 <span class="font-display font-semibold" data-i18n="dash.tradeHistory">Trade History</span>
             </div>
-            <span class="text-xs text-white/40">{{ history|length }} trades</span>
+            <span class="text-xs text-white/40">
+                <span id="trade-count">{{ history|length }}</span>
+                <span data-i18n="dash.trades">trades</span>
+            </span>
         </div>
         <div class="section-body max-h-96 overflow-y-auto" id="history-container">
             {% for trade in history %}
@@ -1188,7 +1191,7 @@
             </div>
             <button onclick="openAddExchangeModal()" class="btn-cyber btn-cyber-sm">
                 <i class="fas fa-plus"></i>
-                <span>Add</span>
+                <span data-i18n="btn.add">Add</span>
             </button>
         </div>
         <div class="section-body" id="exchanges-container">
@@ -1207,7 +1210,11 @@
                 <span class="font-display font-semibold" data-i18n="dash.telegramNotifications">Telegram</span>
             </div>
             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold {{ 'bg-green-500/10 text-green-400' if user_settings.telegram_enabled else 'bg-yellow-500/10 text-yellow-400' }}">
-                {% if user_settings.telegram_enabled %}✓ ON{% else %}○ OFF{% endif %}
+                {% if user_settings.telegram_enabled %}
+                ✓ <span data-i18n="status.on">ON</span>
+                {% else %}
+                ○ <span data-i18n="status.off">OFF</span>
+                {% endif %}
             </span>
         </div>
         <div class="section-body">
@@ -1333,7 +1340,7 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-crown text-yellow-400"></i>
-                <span class="font-display font-semibold">My Subscription</span>
+                <span class="font-display font-semibold" data-i18n="dash.mySubscription">My Subscription</span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" id="sub-status-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
@@ -1342,11 +1349,11 @@
                 </span>
                 <button id="subscription-cta" type="button" onclick="showUpgradeModal()" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-rocket"></i>
-                    <span id="subscription-cta-text">Upgrade Plan</span>
+                    <span id="subscription-cta-text" data-i18n="dash.upgradePlan">Upgrade Plan</span>
                 </button>
                 <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" class="btn-cyber btn-cyber-outline btn-cyber-sm">
                     <i class="fas fa-history"></i>
-                    <span>Payment History</span>
+                    <span data-i18n="dash.paymentHistory">Payment History</span>
                 </button>
             </div>
         </div>
@@ -1356,8 +1363,8 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-clock text-yellow-400 text-xl"></i>
                     <div class="flex-1">
-                        <div class="font-semibold text-yellow-400">Payment Pending Confirmation</div>
-                        <div class="text-sm text-white/60" id="pending-payment-details">Your payment is being verified by admin.</div>
+                        <div class="font-semibold text-yellow-400" data-i18n="dash.paymentPendingTitle">Payment Pending Confirmation</div>
+                        <div class="text-sm text-white/60" id="pending-payment-details" data-i18n="dash.paymentPendingDesc">Your payment is being verified by admin.</div>
                     </div>
                 </div>
             </div>
@@ -1367,8 +1374,8 @@
                 <div class="flex items-center gap-3">
                     <i class="fas fa-gift text-green-400 text-2xl"></i>
                     <div>
-                        <div class="font-display font-bold text-green-400">Free Access Mode</div>
-                        <div class="text-sm text-white/60">Paid subscriptions are currently disabled. Enjoy free access to all features!</div>
+                        <div class="font-display font-bold text-green-400" data-i18n="dash.freeAccessTitle">Free Access Mode</div>
+                        <div class="text-sm text-white/60" data-i18n="dash.freeAccessDesc">Paid subscriptions are currently disabled. Enjoy free access to all features!</div>
                     </div>
                 </div>
             </div>
@@ -1378,7 +1385,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <!-- Current Plan -->
                     <div class="p-5 rounded-xl border transition-all" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1)); border-color: rgba(59, 130, 246, 0.2);">
-                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Current Plan</div>
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider" data-i18n="dash.currentPlanLabel">Current Plan</div>
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3);">
                                 <i class="fas fa-crown text-xl text-blue-400"></i>
@@ -1392,14 +1399,14 @@
                     
                     <!-- Expiration -->
                     <div class="p-5 rounded-xl border" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
-                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Expires</div>
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider" data-i18n="dash.expiresLabel">Expires</div>
                         <div class="font-mono text-2xl font-bold" id="sub-expires-at" style="color: var(--neon-cyan);">Never</div>
                         <div class="text-xs text-white/40 mt-1" id="sub-days-remaining">-</div>
                     </div>
                     
                     <!-- Trading Status -->
                     <div class="p-5 rounded-xl border" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
-                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider">Trading Status</div>
+                        <div class="text-xs text-white/50 mb-2 uppercase tracking-wider" data-i18n="dash.tradingStatusLabel">Trading Status</div>
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full animate-pulse" id="sub-trading-dot" style="background: var(--neon-green);"></span>
                             <span class="font-display font-bold text-xl" id="sub-trading-status" style="color: var(--neon-green);">ENABLED</span>
@@ -1410,21 +1417,21 @@
             </div>
 
             <div>
-                <div class="text-xs text-white/50 uppercase tracking-wider mb-2">Included Features</div>
+                <div class="text-xs text-white/50 uppercase tracking-wider mb-2" data-i18n="dash.includedFeaturesLabel">Included Features</div>
                 <div class="flex flex-wrap gap-2">
                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
                           style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
-                        <i class="fas fa-check"></i> Copy Trading
+                        <i class="fas fa-check"></i> <span data-i18n="dash.featureCopyTrading">Copy Trading</span>
                     </span>
                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
                           id="feature-api"
                           style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                        <i class="fas fa-lock"></i> API Access
+                        <i class="fas fa-lock"></i> <span data-i18n="dash.featureApiAccess">API Access</span>
                     </span>
                     <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
                           id="feature-chat"
                           style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                        <i class="fas fa-lock"></i> Live Chat
+                        <i class="fas fa-lock"></i> <span data-i18n="dash.featureLiveChat">Live Chat</span>
                     </span>
                 </div>
             </div>
@@ -1436,7 +1443,7 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-rocket text-purple-400"></i>
-                <span class="font-display font-semibold">Upgrade Plan</span>
+                <span class="font-display font-semibold" data-i18n="dash.upgradePlan">Upgrade Plan</span>
             </div>
         </div>
         <div class="section-body">
@@ -1453,28 +1460,28 @@
                 <div class="p-6 rounded-xl border mb-4" style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2);">
                     <h4 class="font-display font-semibold text-lg mb-4 flex items-center gap-2">
                         <i class="fas fa-wallet text-purple-400"></i>
-                        <span>Complete Payment</span>
+                        <span data-i18n="dash.completePayment">Complete Payment</span>
                     </h4>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label class="block text-xs text-white/50 mb-2">Selected Plan</label>
+                            <label class="block text-xs text-white/50 mb-2" data-i18n="dash.selectedPlan">Selected Plan</label>
                             <div class="p-3 rounded-lg bg-black/30 border border-white/10">
                                 <span id="selected-plan-name" class="font-semibold text-white">-</span>
                                 <span id="selected-plan-price" class="ml-2 text-purple-400">$0</span>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs text-white/50 mb-2">Payment Method</label>
+                            <label class="block text-xs text-white/50 mb-2" data-i18n="dash.paymentMethod">Payment Method</label>
                             <select id="payment-network" class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none">
-                                <option value="">Завантаження мереж...</option>
+                                <option value="" data-i18n="dash.loadingNetworks">Loading networks...</option>
                             </select>
                         </div>
                     </div>
                     
                     <!-- Wallet Address Display -->
                     <div id="wallet-display" class="hidden mb-4">
-                        <label class="block text-xs text-white/50 mb-2">Payment Details</label>
+                        <label class="block text-xs text-white/50 mb-2" data-i18n="dash.paymentDetails">Payment Details</label>
                         <div class="p-4 rounded-lg bg-black/50 border border-purple-500/30">
                             <div class="flex items-center justify-between">
                                 <code class="text-sm text-purple-300 break-all" id="payment-wallet-address">-</code>
@@ -1487,7 +1494,9 @@
                             <div class="flex items-start gap-2">
                                 <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
                                 <div class="text-xs text-yellow-200/80" id="payment-help-text">
-                                    <strong>Important:</strong> Follow the payment instructions and send exactly <span id="payment-amount-display" class="font-mono text-yellow-400">$0.00</span>.
+                                    <strong data-i18n="dash.importantLabel">Important:</strong>
+                                    <span data-i18n="dash.paymentImportantPrefix">Follow the payment instructions and send exactly</span>
+                                    <span id="payment-amount-display" class="font-mono text-yellow-400">$0.00</span>.
                                 </div>
                             </div>
                         </div>
@@ -1495,8 +1504,9 @@
                     
                     <!-- TX Hash Input -->
                     <div id="tx-hash-section" class="hidden mb-4">
-                        <label class="block text-xs text-white/50 mb-2">Payment Reference (Optional)</label>
-                        <input type="text" id="tx-hash-input" placeholder="Введіть референс/примітку для швидшої перевірки" 
+                        <label class="block text-xs text-white/50 mb-2" data-i18n="dash.paymentReferenceLabel">Payment Reference (Optional)</label>
+                        <input type="text" id="tx-hash-input" placeholder="Enter reference/note for faster verification"
+                               data-i18n-placeholder="dash.paymentReferencePlaceholder"
                                class="w-full p-3 rounded-lg bg-black/30 border border-white/10 text-white focus:border-purple-500 focus:outline-none font-mono text-sm">
                     </div>
                     
@@ -1505,17 +1515,17 @@
                                 class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                                 style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white;">
                             <i class="fas fa-qrcode"></i>
-                            <span>Get Payment Address</span>
+                            <span data-i18n="dash.getPaymentAddress">Get Payment Address</span>
                         </button>
                         <button id="btn-mark-paid" onclick="markAsPaid()" 
                                 class="hidden flex-1 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
                                 style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
                             <i class="fas fa-check-circle"></i>
-                            <span>I've Sent Payment</span>
+                            <span data-i18n="dash.paymentSent">I've Sent Payment</span>
                         </button>
                         <button onclick="cancelPayment()" 
                                 class="py-3 px-6 rounded-xl font-semibold transition-all border border-white/20 text-white/60 hover:text-white hover:border-white/40">
-                            Cancel
+                            <span data-i18n="btn.cancel">Cancel</span>
                         </button>
                     </div>
                 </div>
@@ -1528,7 +1538,7 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-history text-cyan-400"></i>
-                <span class="font-display font-semibold">Payment History</span>
+                <span class="font-display font-semibold" data-i18n="dash.paymentHistory">Payment History</span>
             </div>
         </div>
         <div class="section-body">
@@ -1551,12 +1561,12 @@
                 <i class="fas fa-trophy"></i>
                 <span data-i18n="user.tasksAndChallenges">Tasks & Challenges</span>
             </h1>
-            <p class="text-white/50 text-sm mt-1">Complete tasks to earn rewards!</p>
+            <p class="text-white/50 text-sm mt-1" data-i18n="dash.tasksIntro">Complete tasks to earn rewards!</p>
         </div>
         <div class="flex items-center gap-3">
             <button onclick="refreshUserTasks()" class="cyber-btn cyber-btn-outline cyber-btn-sm">
                 <i class="fas fa-sync-alt" id="user-tasks-refresh-icon"></i>
-                <span>Refresh</span>
+                <span data-i18n="btn.refresh">Refresh</span>
             </button>
         </div>
     </div>
@@ -1569,7 +1579,7 @@
                     <i class="fas fa-tasks text-cyan-400"></i>
                 </div>
                 <div>
-                    <div class="text-xs text-white/50">Available Tasks</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksAvailable">Available Tasks</div>
                     <div class="font-mono font-bold text-lg text-cyan-400" id="user-available-tasks">0</div>
                 </div>
             </div>
@@ -1580,7 +1590,7 @@
                     <i class="fas fa-hourglass-half text-yellow-400"></i>
                 </div>
                 <div>
-                    <div class="text-xs text-white/50">In Progress</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksInProgress">In Progress</div>
                     <div class="font-mono font-bold text-lg text-yellow-400" id="user-in-progress-tasks">0</div>
                 </div>
             </div>
@@ -1591,7 +1601,7 @@
                     <i class="fas fa-check-circle text-green-400"></i>
                 </div>
                 <div>
-                    <div class="text-xs text-white/50">Completed</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksCompleted">Completed</div>
                     <div class="font-mono font-bold text-lg text-green-400" id="user-completed-tasks">0</div>
                 </div>
             </div>
@@ -1602,7 +1612,7 @@
                     <i class="fas fa-gift text-pink-400"></i>
                 </div>
                 <div>
-                    <div class="text-xs text-white/50">Total Rewards</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksTotalRewards">Total Rewards</div>
                     <div class="font-mono font-bold text-lg text-pink-400" id="user-total-rewards">$0</div>
                 </div>
             </div>
@@ -1614,7 +1624,7 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-clock text-yellow-400"></i>
-                <span class="font-display font-semibold">My Active Tasks</span>
+                <span class="font-display font-semibold" data-i18n="dash.myActiveTasks">My Active Tasks</span>
                 <span class="badge bg-yellow-500/20 text-yellow-400" id="active-tasks-badge">0</span>
             </div>
         </div>
@@ -1630,16 +1640,16 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-list text-cyan-400"></i>
-                <span class="font-display font-semibold">Available Tasks</span>
+                <span class="font-display font-semibold" data-i18n="dash.availableTasksTitle">Available Tasks</span>
             </div>
             <div class="flex items-center gap-2">
                 <select id="user-task-type-filter" class="input text-sm" style="width: auto; padding: 6px 12px;" onchange="loadUserTasks()">
-                    <option value="">All Types</option>
-                    <option value="social">Social Media</option>
-                    <option value="trading">Trading</option>
-                    <option value="referral">Referral</option>
-                    <option value="community">Community</option>
-                    <option value="custom">Special</option>
+                    <option value="" data-i18n="dash.taskTypeAll">All Types</option>
+                    <option value="social" data-i18n="dash.taskTypeSocial">Social Media</option>
+                    <option value="trading" data-i18n="dash.taskTypeTrading">Trading</option>
+                    <option value="referral" data-i18n="dash.taskTypeReferral">Referral</option>
+                    <option value="community" data-i18n="dash.taskTypeCommunity">Community</option>
+                    <option value="custom" data-i18n="dash.taskTypeSpecial">Special</option>
                 </select>
             </div>
         </div>
@@ -1658,7 +1668,7 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-history text-green-400"></i>
-                <span class="font-display font-semibold">Completed Tasks</span>
+                <span class="font-display font-semibold" data-i18n="dash.completedTasksTitle">Completed Tasks</span>
             </div>
         </div>
         <div class="section-body">
@@ -1677,7 +1687,7 @@
         <div class="modal-header" style="border-bottom: 1px solid rgba(0, 255, 136, 0.1);">
             <div class="modal-title">
                 <i class="fas fa-trophy" id="task-modal-icon" style="color: var(--neon-green);"></i>
-                <span id="task-details-title">Task Details</span>
+                <span id="task-details-title" data-i18n="dash.taskDetailsTitle">Task Details</span>
             </div>
             <button onclick="closeTaskDetailsModal()" style="width: 32px; height: 32px; border: none; background: rgba(255,255,255,0.05); border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.5);">
                 <i class="fas fa-times"></i>
@@ -1693,44 +1703,44 @@
             <!-- Submission Form (shown when in progress) -->
             <div id="task-submission-form" style="display: none;">
                 <div class="mb-4">
-                    <label class="text-xs text-white/50 mb-1 block">Proof / Notes (optional)</label>
-                    <textarea id="task-submission-text" class="input" rows="3" placeholder="Додайте примітки або підтвердження виконання"></textarea>
+                    <label class="text-xs text-white/50 mb-1 block" data-i18n="dash.taskProofNotes">Proof / Notes (optional)</label>
+                    <textarea id="task-submission-text" class="input" rows="3" placeholder="Add notes or proof of completion" data-i18n-placeholder="dash.taskProofNotesPlaceholder"></textarea>
                 </div>
                 <div class="mb-4">
-                    <label class="text-xs text-white/50 mb-1 block">Proof URL (optional)</label>
+                    <label class="text-xs text-white/50 mb-1 block" data-i18n="dash.taskProofUrl">Proof URL (optional)</label>
                     <input type="url" id="task-submission-url" class="input" placeholder="https://...">
                 </div>
                 <div id="task-payout-section">
                     <div class="mb-4">
-                        <label class="text-xs text-white/50 mb-1 block">Reward Method (optional)</label>
+                        <label class="text-xs text-white/50 mb-1 block" data-i18n="dash.taskRewardMethod">Reward Method (optional)</label>
                         <select id="task-payout-method" class="input">
-                            <option value="">Select method</option>
+                            <option value="" data-i18n="dash.taskRewardSelectMethod">Select method</option>
                             <option value="usdt_trc20">USDT (TRC20)</option>
                             <option value="usdt_erc20">USDT (ERC20)</option>
-                            <option value="bank">Bank Transfer</option>
-                            <option value="card">Card</option>
-                            <option value="gift">Gift</option>
-                            <option value="other">Other</option>
+                            <option value="bank" data-i18n="dash.taskRewardBank">Bank Transfer</option>
+                            <option value="card" data-i18n="dash.taskRewardCard">Card</option>
+                            <option value="gift" data-i18n="dash.taskRewardGift">Gift</option>
+                            <option value="other" data-i18n="dash.taskRewardOther">Other</option>
                         </select>
                     </div>
                     <div class="mb-4">
-                        <label class="text-xs text-white/50 mb-1 block">Reward Details (wallet / IBAN / address)</label>
-                        <textarea id="task-payout-details" class="input" rows="2" placeholder="Наприклад: USDT TRC20 адреса або банківські реквізити"></textarea>
+                        <label class="text-xs text-white/50 mb-1 block" data-i18n="dash.taskRewardDetails">Reward Details (wallet / IBAN / address)</label>
+                        <textarea id="task-payout-details" class="input" rows="2" placeholder="Example: USDT TRC20 address or bank details" data-i18n-placeholder="dash.taskRewardDetailsPlaceholder"></textarea>
                     </div>
                     <div class="mb-4">
-                        <label class="text-xs text-white/50 mb-1 block">Contact (optional)</label>
-                        <input type="text" id="task-payout-contact" class="input" placeholder="Telegram / Email / Phone">
+                        <label class="text-xs text-white/50 mb-1 block" data-i18n="dash.taskContactOptional">Contact (optional)</label>
+                        <input type="text" id="task-payout-contact" class="input" placeholder="Telegram / Email / Phone" data-i18n-placeholder="dash.taskContactPlaceholder">
                     </div>
                 </div>
             </div>
             
             <div class="flex gap-3 pt-4 border-t" style="border-color: rgba(255,255,255,0.1);">
                 <button onclick="closeTaskDetailsModal()" class="cyber-btn cyber-btn-outline flex-1">
-                    Close
+                    <span data-i18n="btn.close">Close</span>
                 </button>
                 <button onclick="handleTaskAction()" class="cyber-btn cyber-btn-success flex-1" id="task-action-btn" style="display: none;">
                     <i class="fas fa-play"></i>
-                    <span>Join Task</span>
+                    <span data-i18n="dash.taskJoin">Join Task</span>
                 </button>
             </div>
         </div>
@@ -1744,36 +1754,36 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-sliders text-pink-400"></i>
-                <span class="font-display font-semibold">Trading Config</span>
+                <span class="font-display font-semibold" data-i18n="dash.tradingConfig">Trading Config</span>
             </div>
             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400">
-                <i class="fas fa-lock text-xs"></i> Admin Set
+                <i class="fas fa-lock text-xs"></i> <span data-i18n="dash.adminSet">Admin Set</span>
             </span>
         </div>
         <div class="section-body">
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Risk %</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.riskPercent">Risk %</div>
                     <div class="font-mono text-xl font-bold text-cyan-400">{{ global_settings.risk_perc }}%</div>
                 </div>
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Leverage</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.leverageLabel">Leverage</div>
                     <div class="font-mono text-xl font-bold text-pink-400">x{{ global_settings.leverage }}</div>
                 </div>
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Max Positions</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.maxPositionsLabel">Max Positions</div>
                     <div class="font-mono text-xl font-bold text-yellow-400">{{ global_settings.max_positions }}</div>
                 </div>
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Take Profit</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.takeProfit">Take Profit</div>
                     <div class="font-mono text-xl font-bold text-green-400">{{ global_settings.tp_perc }}%</div>
                 </div>
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Stop Loss</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.stopLoss">Stop Loss</div>
                     <div class="font-mono text-xl font-bold text-red-400">{{ global_settings.sl_perc }}%</div>
                 </div>
                 <div class="p-4 bg-black/30 border border-white/5 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Min Balance</div>
+                    <div class="text-xs text-white/40 mb-1" data-i18n="dash.minBalanceLabel">Min Balance</div>
                     <div class="font-mono text-xl font-bold text-white">${{ global_settings.min_balance }}</div>
                 </div>
             </div>
@@ -1785,14 +1795,15 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-chess-knight text-purple-400"></i>
-                <span class="font-display font-semibold">Trading Strategies</span>
+                <span class="font-display font-semibold" data-i18n="dash.tradingStrategiesLabel">Trading Strategies</span>
             </div>
             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold" id="allocation-badge">
-                <span id="total-allocation">0</span>% allocated
+                <span id="total-allocation">0</span><span class="ml-1">%</span>
+                <span data-i18n="dash.allocatedLabel">allocated</span>
             </span>
         </div>
         <div class="section-body">
-            <p class="text-sm text-white/50 mb-4">Subscribe to trading strategies. Your total allocation must equal 100%.</p>
+            <p class="text-sm text-white/50 mb-4" data-i18n="dash.tradingStrategiesHint">Subscribe to trading strategies. Your total allocation must equal 100%.</p>
             
             <!-- Strategy Cards Container -->
             <div id="strategies-container" class="space-y-3">
@@ -1805,7 +1816,7 @@
             <div id="allocation-warning" class="hidden mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                 <div class="flex items-center gap-2 text-yellow-400 text-sm">
                     <i class="fas fa-exclamation-triangle"></i>
-                    <span id="allocation-warning-text">Total allocation must equal 100%</span>
+                    <span id="allocation-warning-text" data-i18n="dash.allocationWarning">Total allocation must equal 100%</span>
                 </div>
             </div>
         </div>
@@ -1816,16 +1827,16 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-bullseye text-cyan-400"></i>
-                <span class="font-display font-semibold">Target Goal</span>
+                <span class="font-display font-semibold" data-i18n="dash.targetGoal">Target Goal</span>
             </div>
         </div>
         <div class="section-body">
             <form method="POST" action="{{ url_for('update_target') }}" class="flex gap-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="number" name="target_amount" value="{{ target }}" class="input-cyber flex-1" placeholder="Цільова сума" step="100" min="100">
+                <input type="number" name="target_amount" value="{{ target }}" class="input-cyber flex-1" placeholder="Target amount" data-i18n-placeholder="dash.targetAmount" step="100" min="100">
                 <button type="submit" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-save"></i>
-                    Set
+                    <span data-i18n="dash.set">Set</span>
                 </button>
             </form>
         </div>
@@ -1836,21 +1847,21 @@
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-envelope text-purple-400"></i>
-                <span class="font-display font-semibold">Email</span>
+                <span class="font-display font-semibold" data-i18n="dash.email">Email</span>
             </div>
             {% if user_settings.email %}
-            <span class="text-xs text-green-400">✓ Set</span>
+            <span class="text-xs text-green-400">✓ <span data-i18n="dash.set">Set</span></span>
             {% else %}
-            <span class="text-xs text-yellow-400">Not set</span>
+            <span class="text-xs text-yellow-400" data-i18n="dash.notSet">Not set</span>
             {% endif %}
         </div>
         <div class="section-body">
             <form method="POST" action="{{ url_for('update_email') }}" class="flex gap-3">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="email" name="email" value="{{ user_settings.email or '' }}" class="input-cyber flex-1" placeholder="your@email.com">
+                <input type="email" name="email" value="{{ user_settings.email or '' }}" class="input-cyber flex-1" placeholder="your@email.com" data-i18n-placeholder="dash.emailPlaceholder">
                 <button type="submit" class="btn-cyber btn-cyber-sm">
                     <i class="fas fa-save"></i>
-                    Save
+                    <span data-i18n="btn.save">Save</span>
                 </button>
             </form>
         </div>
@@ -1866,7 +1877,7 @@
         <div class="modal-head">
             <div class="modal-title">
                 <i class="fas fa-link"></i>
-                Add Exchange
+                <span data-i18n="dash.addExchange">Add Exchange</span>
             </div>
             <button onclick="closeAddExchangeModal()" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -1875,17 +1886,17 @@
         <div class="modal-body">
             <form id="add-exchange-form" onsubmit="submitAddExchange(event)" class="space-y-4">
                 <select id="exchange-select" name="exchange_name" class="input-cyber" required>
-                    <option value="">Завантаження...</option>
+                    <option value="" data-i18n="dash.loadingExchanges">Loading exchanges...</option>
                 </select>
-                <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Назва (необов'язково)">
-                <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Ключ" required>
-                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Секрет" required autocomplete="off">
+                <input type="text" id="exchange-label" name="label" class="input-cyber" placeholder="Account Label (optional)" data-i18n-placeholder="dash.accountLabel">
+                <input type="text" id="exchange-api-key" name="api_key" class="input-cyber" placeholder="API Key" data-i18n-placeholder="dash.apiKey" required>
+                <input type="password" id="exchange-api-secret" name="api_secret" class="input-cyber" placeholder="API Secret" data-i18n-placeholder="dash.apiSecret" required autocomplete="off">
                 <div id="passphrase-field" class="hidden">
-                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Парольна фраза" autocomplete="off">
+                    <input type="password" id="exchange-passphrase" name="passphrase" class="input-cyber" placeholder="Passphrase" data-i18n-placeholder="dash.passphrase" autocomplete="off">
                 </div>
                 <button type="submit" class="btn-cyber w-full" id="submit-exchange-btn">
                     <i class="fas fa-paper-plane"></i>
-                    Submit Request
+                    <span data-i18n="dash.submitRequest">Submit Request</span>
                 </button>
             </form>
         </div>
@@ -1898,7 +1909,7 @@
         <div class="modal-head">
             <div class="modal-title">
                 <i class="fas fa-user-circle"></i>
-                Change Avatar
+                <span data-i18n="dash.changeAvatar">Change Avatar</span>
             </div>
             <button onclick="closeAvatarModal()" class="modal-close">
                 <i class="fas fa-times"></i>
@@ -1907,7 +1918,7 @@
         <div class="modal-body">
             <form id="avatar-form" action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Choose Emoji</label>
+                    <label class="text-xs text-white/40 block mb-2" data-i18n="dash.chooseEmoji">Choose Emoji</label>
                     <div id="user-emoji-grid" class="grid grid-cols-5 gap-2">
                         {% for emoji in ['🧑‍💻', '🤖', '👽', '🥷', '🦸', '🧙', '👑', '🚀', '🔥', '💎', '🦁', '🐯', '🦊', '🐺', '🦄', '🐉', '🎭', '🔮', '💰', '🏆'] %}
                         <button type="button" onclick="selectUserEmoji('{{ emoji }}')" class="p-3 bg-black/30 border border-white/10 rounded-lg text-2xl hover:border-green-500/50 transition-all {{ 'border-green-500/50 bg-green-500/10' if user_settings.avatar == emoji else '' }}" data-emoji="{{ emoji }}">
@@ -1920,14 +1931,14 @@
                 </div>
                 
                 <div class="mb-4">
-                    <label class="text-xs text-white/40 block mb-2">Or Upload Image</label>
+                    <label class="text-xs text-white/40 block mb-2" data-i18n="dash.orUploadImage">Or Upload Image</label>
                     <input type="file" name="avatar_file" accept="image/png,image/jpeg,image/gif,image/webp" class="input-cyber" onchange="setUserAvatarType('image')">
-                    <p class="text-xs text-white/30 mt-1">Max 2MB. PNG, JPG, GIF, WEBP</p>
+                    <p class="text-xs text-white/30 mt-1" data-i18n="dash.avatarUploadHint">Max 2MB. PNG, JPG, GIF, WEBP</p>
                 </div>
                 
                 <button type="submit" class="btn-cyber w-full">
                     <i class="fas fa-save"></i>
-                    Save Avatar
+                    <span data-i18n="dash.saveAvatar">Save Avatar</span>
                 </button>
             </form>
         </div>
@@ -2351,7 +2362,7 @@
                                 balanceEl.className = `font-mono text-sm ${ex.balance > 0 ? 'text-green-400 font-bold' : 'text-white/40'}`;
                                 balanceEl.textContent = '$' + ex.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
                             } else if (ex.error) {
-                                balanceEl.innerHTML = `<span class="text-red-400 text-xs">⚠️ Помилка</span>`;
+                                balanceEl.innerHTML = `<span class="text-red-400 text-xs">⚠️ ${translateWithFallback('dash.error', 'Error')}</span>`;
                             }
                         }
                     });
@@ -2361,13 +2372,21 @@
     }
 
     function getStatusBadge(status, tradingEnabled, isActive) {
-        if (status === 'PENDING') return `<span class="status-pill pending"><i class="fas fa-clock text-xs"></i> Pending</span>`;
-        if (status === 'APPROVED') {
-            if (tradingEnabled && isActive) return `<span class="status-pill trading"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Trading</span>`;
-            if (tradingEnabled) return `<span class="status-pill approved"><i class="fas fa-pause text-xs"></i> Ready</span>`;
-            return `<span class="status-pill pending"><i class="fas fa-hourglass-half text-xs"></i> Awaiting</span>`;
+        if (status === 'PENDING') {
+            return `<span class="status-pill pending"><i class="fas fa-clock text-xs"></i> ${translateWithFallback('status.pending', 'Pending')}</span>`;
         }
-        if (status === 'REJECTED') return `<span class="status-pill" style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid rgba(255, 0, 85, 0.3);"><i class="fas fa-times text-xs"></i> Rejected</span>`;
+        if (status === 'APPROVED') {
+            if (tradingEnabled && isActive) {
+                return `<span class="status-pill trading"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> ${translateWithFallback('status.trading', 'Trading')}</span>`;
+            }
+            if (tradingEnabled) {
+                return `<span class="status-pill approved"><i class="fas fa-pause text-xs"></i> ${translateWithFallback('status.ready', 'Ready')}</span>`;
+            }
+            return `<span class="status-pill pending"><i class="fas fa-hourglass-half text-xs"></i> ${translateWithFallback('status.awaiting', 'Awaiting')}</span>`;
+        }
+        if (status === 'REJECTED') {
+            return `<span class="status-pill" style="background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid rgba(255, 0, 85, 0.3);"><i class="fas fa-times text-xs"></i> ${translateWithFallback('status.rejected', 'Rejected')}</span>`;
+        }
         return `<span class="status-pill">${status}</span>`;
     }
 
@@ -2375,13 +2394,13 @@
         const select = document.getElementById('exchange-select');
         if (!select) return;
 
-        select.innerHTML = '<option value="">Завантаження...</option>';
+        select.innerHTML = `<option value="">${translateWithFallback('dash.loadingExchanges', 'Loading exchanges...')}</option>`;
 
         fetch('/api/exchanges/available')
             .then(r => r.ok ? r.json() : Promise.reject(r))
             .then(exchanges => {
                 supportedExchanges = exchanges;
-                select.innerHTML = '<option value="">-- Select Exchange --</option>';
+                select.innerHTML = `<option value="">${translateWithFallback('dash.selectExchange', 'Select Exchange...')}</option>`;
                 
                 const availableExchanges = exchanges.filter(ex => ex.is_enabled && ex.is_verified);
                 if (availableExchanges.length > 0) {
@@ -2446,7 +2465,7 @@
 
         const btn = document.getElementById('submit-exchange-btn');
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${translateWithFallback('dash.verifying', 'Verifying...')}`;
 
         const requestData = {
             exchange_name: form.exchange_name.value.trim(),
@@ -2480,7 +2499,7 @@
         })
         .finally(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+            btn.innerHTML = `<i class="fas fa-paper-plane"></i> ${translateWithFallback('dash.submitRequest', 'Submit Request')}`;
         });
     }
 
@@ -2499,7 +2518,7 @@
     }
 
     function deleteExchange(id) {
-        if (!confirm('Видалити це підключення біржі?')) return;
+        if (!confirm(translateWithFallback('dash.confirmDeleteExchange', 'Delete this exchange connection?'))) return;
         fetch(`/api/exchanges/${id}`, { method: 'DELETE' })
             .then(r => r.json())
             .then(result => {
@@ -2641,12 +2660,12 @@
         
         // Plan info
         const planNames = {
-            'free': 'Free',
-            'basic': 'Basic',
-            'pro': 'Pro',
-            'enterprise': 'Enterprise',
-            'basic_annual': 'Basic Annual',
-            'pro_annual': 'Pro Annual'
+            'free': translateWithFallback('dash.plan.free', 'Free'),
+            'basic': translateWithFallback('dash.plan.basic', 'Basic'),
+            'pro': translateWithFallback('dash.plan.pro', 'Pro'),
+            'enterprise': translateWithFallback('dash.plan.enterprise', 'Enterprise'),
+            'basic_annual': translateWithFallback('dash.plan.basicAnnual', 'Basic Annual'),
+            'pro_annual': translateWithFallback('dash.plan.proAnnual', 'Pro Annual')
         };
         
         const planId = data.plan || 'free';
@@ -2665,18 +2684,23 @@
             upgradeSection.classList.add('hidden');
             if (cta) cta.classList.add('hidden');
             
-            setStatusBadge('rgba(16, 185, 129, 0.1)', '#10b981', 'rgba(16, 185, 129, 0.3)', 'FREE ACCESS');
-            if (planEl) planEl.textContent = 'Free Access';
-            if (descEl) descEl.textContent = 'All features unlocked';
+            setStatusBadge(
+                'rgba(16, 185, 129, 0.1)',
+                '#10b981',
+                'rgba(16, 185, 129, 0.3)',
+                translateWithFallback('dash.statusFreeAccess', 'FREE ACCESS')
+            );
+            if (planEl) planEl.textContent = translateWithFallback('dash.freeAccessPlan', 'Free Access');
+            if (descEl) descEl.textContent = translateWithFallback('dash.allFeaturesUnlocked', 'All features unlocked');
             
             expiresEl.style.color = 'var(--neon-cyan)';
-            expiresEl.textContent = 'N/A';
+            expiresEl.textContent = translateWithFallback('common.notAvailable', 'N/A');
             daysEl.textContent = '';
             
             tradingDot.style.background = 'var(--neon-green)';
-            tradingStatus.textContent = 'ENABLED';
+            tradingStatus.textContent = translateWithFallback('dash.tradingEnabledLabel', 'ENABLED');
             tradingStatus.style.color = 'var(--neon-green)';
-            tradingNote.textContent = 'Full access - Subscriptions disabled';
+            tradingNote.textContent = translateWithFallback('dash.tradingNoteSubscriptionsOff', 'Full access - Subscriptions disabled');
             
             updateSubscriptionUI(planId, false);
             return;
@@ -2688,44 +2712,65 @@
         
         if (ctaText) {
             if (isFreePlan) {
-                ctaText.textContent = 'Upgrade Plan';
+                ctaText.textContent = translateWithFallback('dash.upgradePlan', 'Upgrade Plan');
             } else if (data.is_active) {
-                ctaText.textContent = 'Manage Plan';
+                ctaText.textContent = translateWithFallback('dash.managePlan', 'Manage Plan');
             } else {
-                ctaText.textContent = 'Renew Plan';
+                ctaText.textContent = translateWithFallback('dash.renewPlan', 'Renew Plan');
             }
         }
         
-        planEl.textContent = planNames[planId] || planId || 'Free';
+        planEl.textContent = planNames[planId] || planId || translateWithFallback('dash.plan.free', 'Free');
         if (descEl) {
             if (isFreePlan) {
-                descEl.textContent = 'Free plan';
+                descEl.textContent = translateWithFallback('dash.planFreeDesc', 'Free plan');
             } else if (data.is_active) {
-                descEl.textContent = 'Active subscription';
+                descEl.textContent = translateWithFallback('dash.planActiveDesc', 'Active subscription');
             } else {
-                descEl.textContent = 'Expired subscription';
+                descEl.textContent = translateWithFallback('dash.planExpiredDesc', 'Expired subscription');
             }
         }
         
         // Status badge
         if (isFreePlan) {
-            setStatusBadge('rgba(59, 130, 246, 0.1)', '#3b82f6', 'rgba(59, 130, 246, 0.3)', 'FREE PLAN');
+            setStatusBadge(
+                'rgba(59, 130, 246, 0.1)',
+                '#3b82f6',
+                'rgba(59, 130, 246, 0.3)',
+                translateWithFallback('dash.statusFreePlan', 'FREE PLAN')
+            );
         } else if (data.is_active) {
-            setStatusBadge('rgba(16, 185, 129, 0.1)', '#10b981', 'rgba(16, 185, 129, 0.3)', 'ACTIVE');
+            setStatusBadge(
+                'rgba(16, 185, 129, 0.1)',
+                '#10b981',
+                'rgba(16, 185, 129, 0.3)',
+                translateWithFallback('dash.statusActive', 'ACTIVE')
+            );
         } else {
-            setStatusBadge('rgba(239, 68, 68, 0.1)', '#ef4444', 'rgba(239, 68, 68, 0.3)', 'EXPIRED');
+            setStatusBadge(
+                'rgba(239, 68, 68, 0.1)',
+                '#ef4444',
+                'rgba(239, 68, 68, 0.3)',
+                translateWithFallback('dash.statusExpired', 'EXPIRED')
+            );
         }
         
         // Expiration
         expiresEl.style.color = 'var(--neon-cyan)';
         if (data.expires_at) {
             const expires = new Date(data.expires_at);
-            expiresEl.textContent = expires.toLocaleDateString('en-US', { 
+            const currentLang = localStorage.getItem('lang') || window.currentLang || 'en';
+            const locale = currentLang === 'ua' ? 'uk-UA' : 'en-US';
+            expiresEl.textContent = expires.toLocaleDateString(locale, { 
                 day: 'numeric', 
                 month: 'short', 
                 year: 'numeric' 
             });
-            daysEl.textContent = `${data.days_remaining} days remaining`;
+            daysEl.textContent = translateTemplate(
+                'dash.daysRemaining',
+                { count: data.days_remaining },
+                `${data.days_remaining} days remaining`
+            );
             
             if (data.days_remaining <= 7) {
                 expiresEl.style.color = 'var(--neon-red)';
@@ -2733,21 +2778,23 @@
                 expiresEl.style.color = 'var(--neon-yellow)';
             }
         } else {
-            expiresEl.textContent = isFreePlan ? 'N/A' : 'Never';
+            expiresEl.textContent = isFreePlan
+                ? translateWithFallback('common.notAvailable', 'N/A')
+                : translateWithFallback('dash.neverLabel', 'Never');
             daysEl.textContent = '';
         }
         
         // Trading status
         if (data.can_trade) {
             tradingDot.style.background = 'var(--neon-green)';
-            tradingStatus.textContent = 'ENABLED';
+            tradingStatus.textContent = translateWithFallback('dash.tradingEnabledLabel', 'ENABLED');
             tradingStatus.style.color = 'var(--neon-green)';
-            tradingNote.textContent = 'Full access to copy trading';
+            tradingNote.textContent = translateWithFallback('dash.tradingNoteFullAccess', 'Full access to copy trading');
         } else {
             tradingDot.style.background = 'var(--neon-red)';
-            tradingStatus.textContent = 'DISABLED';
+            tradingStatus.textContent = translateWithFallback('dash.tradingDisabledLabel', 'DISABLED');
             tradingStatus.style.color = 'var(--neon-red)';
-            tradingNote.textContent = 'Upgrade to enable trading';
+            tradingNote.textContent = translateWithFallback('dash.tradingNoteUpgrade', 'Upgrade to enable trading');
         }
         
         // Update feature badges
@@ -2762,7 +2809,20 @@
             alert.classList.remove('hidden');
             const p = pendingPayments[0];
             const methodLabel = getPaymentMethodLabel(p.currency);
-            details.textContent = `${p.plan.toUpperCase()} plan - $${p.amount_usd.toFixed(2)} (${methodLabel}) - ${p.status === 'awaiting_confirmation' ? 'Awaiting admin confirmation' : 'Waiting for payment'}`;
+            const planLabel = translateWithFallback(`dash.plan.${p.plan}`, p.plan);
+            const statusLabel = p.status === 'awaiting_confirmation'
+                ? translateWithFallback('dash.awaitingAdminConfirmation', 'Awaiting admin confirmation')
+                : translateWithFallback('dash.waitingForPayment', 'Waiting for payment');
+            details.textContent = translateTemplate(
+                'dash.pendingPaymentDetails',
+                {
+                    plan: planLabel.toUpperCase(),
+                    amount: `$${p.amount_usd.toFixed(2)}`,
+                    method: methodLabel,
+                    status: statusLabel
+                },
+                `${planLabel.toUpperCase()} plan - $${p.amount_usd.toFixed(2)} (${methodLabel}) - ${statusLabel}`
+            );
         } else {
             alert.classList.add('hidden');
         }
@@ -2784,6 +2844,12 @@
         let html = '<div class="space-y-3">';
         history.forEach(p => {
             const date = new Date(p.completed_at);
+            const planLabel = translateWithFallback(`dash.plan.${p.plan}`, p.plan);
+            const planDaysLabel = translateTemplate(
+                'dash.planDays',
+                { plan: planLabel.toUpperCase(), days: p.days },
+                `${planLabel.toUpperCase()} - ${p.days} days`
+            );
             html += `
                 <div class="flex items-center justify-between p-4 rounded-xl bg-black/30 border border-white/5">
                     <div class="flex items-center gap-3">
@@ -2791,7 +2857,7 @@
                             <i class="fas fa-check-circle text-green-400"></i>
                         </div>
                         <div>
-                            <div class="font-semibold text-white">${p.plan.toUpperCase()} - ${p.days} days</div>
+                            <div class="font-semibold text-white">${planDaysLabel}</div>
                             <div class="text-xs text-white/50">${date.toLocaleDateString()}</div>
                         </div>
                     </div>
@@ -2852,17 +2918,24 @@
                 'enterprise': { bg: 'rgba(236, 72, 153, 0.1)', border: 'rgba(236, 72, 153, 0.3)', accent: '#ec4899' }
             };
             const c = colors[plan.id] || colors.basic;
+            const planDisplayName = translateWithFallback(`dash.plan.${plan.id}`, plan.name || plan.id);
+            const daysLabel = translateTemplate(
+                'dash.daysLabel',
+                { count: plan.days },
+                `${plan.days} days`
+            );
+            const popularLabel = translateWithFallback('dash.popular', 'POPULAR');
             
             html += `
                 <div class="relative p-5 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] ${selectedPlan?.id === plan.id ? 'ring-2 ring-purple-500' : ''}"
                      style="background: ${c.bg}; border-color: ${c.border};"
-                     onclick="selectPlan('${plan.id}', '${plan.name}', ${plan.price}, ${plan.days})">
-                    ${isPopular ? '<span class="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">POPULAR</span>' : ''}
+                     onclick="selectPlan('${plan.id}', '${planDisplayName}', ${plan.price}, ${plan.days})">
+                    ${isPopular ? `<span class="absolute -top-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">${popularLabel}</span>` : ''}
                     <div class="text-center">
                         <div class="text-sm text-white/50 mb-1">${plan.id.toUpperCase()}</div>
                         <div class="text-3xl font-bold mb-1" style="color: ${c.accent};">$${plan.price}</div>
-                        <div class="text-xs text-white/40 mb-4">${plan.days} days</div>
-                        <div class="text-sm font-semibold text-white">${plan.name}</div>
+                        <div class="text-xs text-white/40 mb-4">${daysLabel}</div>
+                        <div class="text-sm font-semibold text-white">${planDisplayName}</div>
                     </div>
                 </div>
             `;
@@ -2889,7 +2962,7 @@
             return;
         }
         
-        let html = '<option value="">Select payment method...</option>';
+        let html = `<option value="">${translateWithFallback('dash.selectPaymentMethod', 'Select payment method...')}</option>`;
         networks.forEach(n => {
             const label = n.label || n.name || n.id;
             html += `<option value="${n.id}">${label}</option>`;
@@ -2903,6 +2976,25 @@
         return method ? method.label : methodId;
     }
     
+    function buildPaymentHelpText(amountText, variant) {
+        const importantLabel = translateWithFallback('dash.importantLabel', 'Important:');
+        const keyByVariant = {
+            wallet: 'dash.paymentWalletHint',
+            manual: 'dash.paymentManualHint',
+            default: 'dash.paymentImportantText'
+        };
+        const fallbackByVariant = {
+            wallet: 'Send exactly {amount} to this address.',
+            manual: 'Use the details above and send exactly {amount}.',
+            default: 'Follow the payment instructions and send exactly {amount}.'
+        };
+        const key = keyByVariant[variant] || keyByVariant.default;
+        const fallback = fallbackByVariant[variant] || fallbackByVariant.default;
+        const amountMarkup = `<span id="payment-amount-display" class="font-mono text-yellow-400">${amountText}</span>`;
+        const message = translateTemplate(key, { amount: amountMarkup }, fallback);
+        return `<strong>${importantLabel}</strong> ${message}`;
+    }
+
     function createPayment() {
         if (!selectedPlan) {
             showToast(t('dash.selectPlanFirst'), 'warning');
@@ -2918,7 +3010,7 @@
         const btn = document.getElementById('btn-create-payment');
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${translateWithFallback('dash.creatingPayment', 'Creating...')}`;
         
         fetch('/api/subscription/create-payment', {
             method: 'POST',
@@ -2942,16 +3034,15 @@
             document.getElementById('tx-hash-section').classList.remove('hidden');
             const paymentDetails = data.payment.payment_details || data.payment.wallet_address || '-';
             document.getElementById('payment-wallet-address').textContent = paymentDetails;
-            document.getElementById('payment-amount-display').textContent = `$${data.payment.amount_usd.toFixed(2)}`;
+            const amountText = `$${data.payment.amount_usd.toFixed(2)}`;
             
             const helpText = document.getElementById('payment-help-text');
             if (helpText) {
-                if (data.payment.payment_method_type === 'wallet') {
-                    helpText.innerHTML = `<strong>Important:</strong> Send exactly <span class="font-mono text-yellow-400">$${data.payment.amount_usd.toFixed(2)}</span> to this address.`;
-                } else {
-                    helpText.innerHTML = `<strong>Important:</strong> Use the details above and send exactly <span class="font-mono text-yellow-400">$${data.payment.amount_usd.toFixed(2)}</span>.`;
-                }
+                const variant = data.payment.payment_method_type === 'wallet' ? 'wallet' : 'manual';
+                helpText.innerHTML = buildPaymentHelpText(amountText, variant);
             }
+            const amountEl = document.getElementById('payment-amount-display');
+            if (amountEl) amountEl.textContent = amountText;
             
             // Toggle buttons
             btn.classList.add('hidden');
@@ -2979,7 +3070,7 @@
         const btn = document.getElementById('btn-mark-paid');
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${translateWithFallback('dash.processingPayment', 'Processing...')}`;
         
         fetch(`/api/subscription/mark-paid/${currentPaymentId}`, {
             method: 'POST',
@@ -3022,7 +3113,7 @@
         document.getElementById('tx-hash-input').value = '';
         const helpText = document.getElementById('payment-help-text');
         if (helpText) {
-            helpText.innerHTML = '<strong>Important:</strong> Follow the payment instructions and send exactly <span class="font-mono text-yellow-400">$0.00</span>.';
+            helpText.innerHTML = buildPaymentHelpText('$0.00', 'default');
         }
         const detailsEl = document.getElementById('payment-wallet-address');
         if (detailsEl) detailsEl.textContent = '-';
@@ -3061,8 +3152,16 @@
             }
         };
         
-        setFeatureState(featureApi, 'API Access', hasPremiumAccess);
-        setFeatureState(featureChat, 'Live Chat', hasPremiumAccess);
+        setFeatureState(
+            featureApi,
+            translateWithFallback('dash.featureApiAccess', 'API Access'),
+            hasPremiumAccess
+        );
+        setFeatureState(
+            featureChat,
+            translateWithFallback('dash.featureLiveChat', 'Live Chat'),
+            hasPremiumAccess
+        );
     }
     
     // Initialize subscription when section is shown
@@ -3350,6 +3449,55 @@
 
     // ==================== GAMIFICATION ====================
     let gamificationData = null;
+    const levelNameKeyMap = {
+        Novice: 'dash.level.novice',
+        Amateur: 'dash.level.amateur',
+        Pro: 'dash.level.pro',
+        Expert: 'dash.level.expert',
+        Elite: 'dash.level.elite'
+    };
+    const rarityKeyMap = {
+        common: 'dash.rarity.common',
+        rare: 'dash.rarity.rare',
+        epic: 'dash.rarity.epic',
+        legendary: 'dash.rarity.legendary'
+    };
+
+    function translateWithFallback(key, fallback) {
+        if (typeof window.t === 'function') {
+            const value = window.t(key);
+            if (value && value !== key) {
+                return value;
+            }
+        }
+        return fallback;
+    }
+
+    function translateTemplate(key, params, fallback) {
+        const template = translateWithFallback(key, fallback);
+        if (!template || typeof template !== 'string') {
+            return template;
+        }
+        return Object.keys(params || {}).reduce((text, paramKey) => {
+            const value = params[paramKey];
+            return text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), value);
+        }, template);
+    }
+
+    function translateLevelName(levelName) {
+        const key = levelNameKeyMap[levelName];
+        return key ? translateWithFallback(key, levelName) : levelName;
+    }
+
+    function translateRarityLabel(rarity) {
+        if (!rarity) return rarity;
+        const key = rarityKeyMap[String(rarity).toLowerCase()];
+        if (key) {
+            return translateWithFallback(key, rarity);
+        }
+        const rarityText = String(rarity);
+        return rarityText.charAt(0).toUpperCase() + rarityText.slice(1);
+    }
     
     function loadGamification() {
         fetch('/api/gamification/status')
@@ -3371,6 +3519,11 @@
         const levelName = document.getElementById('level-name');
         
         const levelColor = data.level_color || '#888888';
+        const fallbackNextLevelName = translateWithFallback('dash.nextLevelName', 'next level');
+        const resolvedLevelName = translateLevelName(data.level_name || 'Novice');
+        const resolvedNextLevelName = data.next_level_name
+            ? translateLevelName(data.next_level_name)
+            : fallbackNextLevelName;
         
         if (levelIcon) {
             levelIcon.className = `fas ${data.level_icon || 'fa-seedling'} text-2xl`;
@@ -3386,7 +3539,7 @@
             levelBadge.style.borderColor = `${levelColor}50`;
         }
         if (levelName) {
-            levelName.textContent = data.level_name || 'Novice';
+            levelName.textContent = resolvedLevelName;
         }
         
         // Update XP display
@@ -3397,9 +3550,14 @@
         }
         if (xpToNext) {
             if (data.is_max_level) {
-                xpToNext.textContent = '🎉 MAX LEVEL!';
+                xpToNext.textContent = translateWithFallback('dash.maxLevel', '🎉 MAX LEVEL!');
             } else {
-                xpToNext.textContent = `${data.xp_to_next.toLocaleString()} XP to ${data.next_level_name || 'next level'}`;
+                const xpValue = (data.xp_to_next || 0).toLocaleString();
+                xpToNext.textContent = translateTemplate(
+                    'dash.xpToNext',
+                    { xp: xpValue, level: resolvedNextLevelName },
+                    `${xpValue} XP to ${resolvedNextLevelName}`
+                );
             }
         }
         
@@ -3409,17 +3567,30 @@
         const xpProgressBar = document.getElementById('xp-progress-bar');
         const progressText = document.getElementById('progress-text');
         
-        if (currentLevelLabel) currentLevelLabel.textContent = data.level_name || 'Novice';
-        if (nextLevelLabel) nextLevelLabel.textContent = data.next_level_name || (data.is_max_level ? '👑 MAX' : 'Next');
+        if (currentLevelLabel) currentLevelLabel.textContent = resolvedLevelName;
+        if (nextLevelLabel) {
+            if (data.is_max_level) {
+                nextLevelLabel.textContent = translateWithFallback('dash.maxLevelShort', '👑 MAX');
+            } else if (data.next_level_name) {
+                nextLevelLabel.textContent = resolvedNextLevelName;
+            } else {
+                nextLevelLabel.textContent = translateWithFallback('dash.nextLevelShort', 'Next');
+            }
+        }
         if (xpProgressBar) {
             xpProgressBar.style.width = `${data.progress || 0}%`;
             xpProgressBar.style.background = `linear-gradient(90deg, ${levelColor} 0%, ${levelColor}99 100%)`;
         }
         if (progressText) {
             if (data.is_max_level) {
-                progressText.textContent = '✨ Maximum level achieved!';
+                progressText.textContent = translateWithFallback('dash.maxLevelAchieved', '✨ Maximum level achieved!');
             } else {
-                progressText.textContent = `${data.progress || 0}% to next level`;
+                const progressValue = data.progress || 0;
+                progressText.textContent = translateTemplate(
+                    'dash.progressToNext',
+                    { percent: progressValue },
+                    `${progressValue}% to next level`
+                );
             }
         }
         
@@ -3444,13 +3615,23 @@
         const badgeCount = document.getElementById('badge-count');
         
         if (badgeCount) {
-            badgeCount.textContent = `(${data.total_badges || 0} unlocked)`;
+            const badgeTotal = data.total_badges || 0;
+            badgeCount.textContent = translateTemplate(
+                'dash.badgesUnlocked',
+                { count: badgeTotal },
+                `(${badgeTotal} unlocked)`
+            );
         }
         
         if (badgesContainer && data.badges) {
+            const emptyBadgesText = translateWithFallback(
+                'dash.achievementsEmpty',
+                'Complete trades to unlock achievements!'
+            );
+            const rarityLabelText = translateWithFallback('dash.rarityLabel', 'Rarity');
             if (data.badges.length === 0) {
                 badgesContainer.innerHTML = `
-                    <div class="text-xs text-white/30 italic">Complete trades to unlock achievements!</div>
+                    <div class="text-xs text-white/30 italic">${emptyBadgesText}</div>
                 `;
             } else {
                 badgesContainer.innerHTML = data.badges.slice(0, 6).map(badge => {
@@ -3460,11 +3641,12 @@
                         'epic': 'box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);',
                         'legendary': 'box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);'
                     }[badge.rarity] || '';
+                    const rarityLabel = translateRarityLabel(badge.rarity);
                     
                     return `
                         <div class="badge-item inline-flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-transform hover:scale-105"
                              style="background: ${badge.color}20; border: 1px solid ${badge.color}40; ${rarityGlow}"
-                             title="${badge.description}\n\nRarity: ${badge.rarity.charAt(0).toUpperCase() + badge.rarity.slice(1)}"
+                             title="${badge.description}\n\n${rarityLabelText}: ${rarityLabel}"
                              onclick="showBadgeDetails('${badge.achievement_type}')">
                             <i class="fas ${badge.icon}" style="color: ${badge.color};"></i>
                             <span class="text-xs font-medium" style="color: ${badge.color};">${badge.name}</span>
@@ -3474,14 +3656,35 @@
                 
                 // Add "more" indicator if there are more badges
                 if (data.badges.length > 6) {
+                    const moreCount = data.badges.length - 6;
+                    const moreText = translateTemplate('dash.badgesMore', { count: moreCount }, `+${moreCount} more`);
                     badgesContainer.innerHTML += `
                         <button onclick="showAllAchievements()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs text-white/50 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                            +${data.badges.length - 6} more
+                            ${moreText}
                         </button>
                     `;
                 }
             }
         }
+    }
+
+    function hookGamificationLanguageToggle() {
+        if (window.__gamificationLangHooked) return;
+        if (typeof window.toggleLanguage !== 'function') return;
+        const originalToggleLanguage = window.toggleLanguage;
+        window.toggleLanguage = function() {
+            const result = originalToggleLanguage.apply(this, arguments);
+            if (gamificationData) {
+                updateGamificationUI(gamificationData);
+            }
+            if (subscriptionData) {
+                updateSubscriptionDisplay(subscriptionData);
+            } else {
+                updateSubscriptionUI();
+            }
+            return result;
+        };
+        window.__gamificationLangHooked = true;
     }
     
     function showBadgeDetails(achievementType) {
@@ -3491,16 +3694,19 @@
         if (!badge) return;
         
         const rarityColors = {
-            'common': { bg: '#888', label: 'Common' },
-            'rare': { bg: '#2196F3', label: 'Rare' },
-            'epic': { bg: '#9C27B0', label: 'Epic' },
-            'legendary': { bg: '#FFD700', label: 'Legendary' }
+            'common': { bg: '#888', label: translateRarityLabel('common') },
+            'rare': { bg: '#2196F3', label: translateRarityLabel('rare') },
+            'epic': { bg: '#9C27B0', label: translateRarityLabel('epic') },
+            'legendary': { bg: '#FFD700', label: translateRarityLabel('legendary') }
         };
         const rarity = rarityColors[badge.rarity] || rarityColors.common;
+        const rarityLabel = rarity?.label || translateRarityLabel(badge.rarity);
+        const rarityText = translateWithFallback('dash.rarityLabel', 'Rarity');
+        const unlockedText = translateWithFallback('dash.unlockedLabel', 'Unlocked');
         
         // Show a simple alert or toast - could be enhanced with a modal
         const unlockedDate = new Date(badge.unlocked_at).toLocaleDateString();
-        alert(`🏆 ${badge.name}\n\n${badge.description}\n\nRarity: ${rarity.label}\nUnlocked: ${unlockedDate}`);
+        alert(`🏆 ${badge.name}\n\n${badge.description}\n\n${rarityText}: ${rarityLabel}\n${unlockedText}: ${unlockedDate}`);
     }
     
     function showAllAchievements() {
@@ -3512,14 +3718,23 @@
                 // Separate unlocked and locked achievements
                 const unlockedAchievements = data.all_achievements.filter(a => a.unlocked);
                 const lockedAchievements = data.all_achievements.filter(a => !a.unlocked);
+                const unlockedLabelText = translateWithFallback('dash.unlockedLabel', 'Unlocked');
+                const lockedLabelText = translateWithFallback('dash.lockedLabel', 'Locked');
+                const unlockedTitleText = translateWithFallback('dash.achievementsUnlockedTitle', 'Unlocked Achievements');
+                const availableTitleText = translateWithFallback('dash.achievementsAvailableTitle', 'Available to Unlock');
+                const overallProgressText = translateWithFallback('dash.overallProgress', 'Overall Progress');
+                const moreHintText = translateWithFallback(
+                    'dash.achievementsMoreHint',
+                    'Complete trades to unlock more achievements!'
+                );
                 
                 // Rarity styles
                 const getRarityStyles = (rarity, isUnlocked) => {
                     const styles = {
-                        'common': { border: 'rgba(156, 163, 175, 0.4)', glow: 'rgba(156, 163, 175, 0.2)', label: 'Common', color: '#9ca3af' },
-                        'rare': { border: 'rgba(59, 130, 246, 0.5)', glow: 'rgba(59, 130, 246, 0.3)', label: 'Rare', color: '#3b82f6' },
-                        'epic': { border: 'rgba(147, 51, 234, 0.5)', glow: 'rgba(147, 51, 234, 0.3)', label: 'Epic', color: '#9333ea' },
-                        'legendary': { border: 'rgba(251, 191, 36, 0.5)', glow: 'rgba(251, 191, 36, 0.3)', label: 'Legendary', color: '#fbbf24' }
+                        'common': { border: 'rgba(156, 163, 175, 0.4)', glow: 'rgba(156, 163, 175, 0.2)', label: translateRarityLabel('common'), color: '#9ca3af' },
+                        'rare': { border: 'rgba(59, 130, 246, 0.5)', glow: 'rgba(59, 130, 246, 0.3)', label: translateRarityLabel('rare'), color: '#3b82f6' },
+                        'epic': { border: 'rgba(147, 51, 234, 0.5)', glow: 'rgba(147, 51, 234, 0.3)', label: translateRarityLabel('epic'), color: '#9333ea' },
+                        'legendary': { border: 'rgba(251, 191, 36, 0.5)', glow: 'rgba(251, 191, 36, 0.3)', label: translateRarityLabel('legendary'), color: '#fbbf24' }
                     };
                     return styles[rarity] || styles['common'];
                 };
@@ -3530,8 +3745,8 @@
                     const opacity = isUnlocked ? '1' : '0.5';
                     const grayscale = isUnlocked ? '' : 'filter: grayscale(60%);';
                     const statusIcon = isUnlocked 
-                        ? `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;"><i class="fas fa-check"></i> Unlocked</div>`
-                        : `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs" style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.4);"><i class="fas fa-lock"></i> Locked</div>`;
+                        ? `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;"><i class="fas fa-check"></i> ${unlockedLabelText}</div>`
+                        : `<div class="flex items-center gap-1 px-2 py-1 rounded-full text-xs" style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.4);"><i class="fas fa-lock"></i> ${lockedLabelText}</div>`;
                     const glowEffect = isUnlocked ? `box-shadow: 0 0 20px ${rarity.glow};` : '';
                     
                     return `
@@ -3563,7 +3778,7 @@
                         <div class="mb-6">
                             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
                                 <i class="fas fa-trophy text-yellow-400"></i>
-                                <span class="text-sm font-semibold text-white">Unlocked Achievements</span>
+                                <span class="text-sm font-semibold text-white">${unlockedTitleText}</span>
                                 <span class="px-2 py-0.5 rounded-full text-xs font-bold" style="background: rgba(34, 197, 94, 0.2); color: #22c55e;">${unlockedAchievements.length}</span>
                             </div>
                             <div class="grid grid-cols-1 gap-3">
@@ -3579,7 +3794,7 @@
                         <div>
                             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
                                 <i class="fas fa-lock text-white/40"></i>
-                                <span class="text-sm font-semibold text-white/70">Available to Unlock</span>
+                                <span class="text-sm font-semibold text-white/70">${availableTitleText}</span>
                                 <span class="px-2 py-0.5 rounded-full text-xs" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5);">${lockedAchievements.length}</span>
                             </div>
                             <div class="grid grid-cols-1 gap-3">
@@ -3594,13 +3809,13 @@
                 content += `
                     <div class="mt-6 pt-4 border-t border-white/10">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-white/60">Overall Progress</span>
+                            <span class="text-sm text-white/60">${overallProgressText}</span>
                             <span class="text-sm font-bold" style="color: #c084fc;">${data.total_unlocked} / ${data.total_available}</span>
                         </div>
                         <div class="h-3 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.1);">
                             <div class="h-full rounded-full transition-all duration-500" style="width: ${progressPercent}%; background: linear-gradient(90deg, #9333ea, #c084fc, #fbbf24);"></div>
                         </div>
-                        <div class="text-center mt-2 text-xs text-white/40">Complete trades to unlock more achievements!</div>
+                        <div class="text-center mt-2 text-xs text-white/40">${moreHintText}</div>
                     </div>
                 `;
                 
@@ -3615,6 +3830,17 @@
         if (existingModal) existingModal.remove();
         
         const progressPercent = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+        const allAchievementsTitle = translateWithFallback('dash.achievementsAllTitle', 'All Achievements');
+        const percentCompleteText = translateTemplate(
+            'dash.percentComplete',
+            { percent: progressPercent },
+            `${progressPercent}% Complete`
+        );
+        const unlockedOfTotalText = translateTemplate(
+            'dash.unlockedOfTotal',
+            { unlocked, total },
+            `${unlocked} of ${total} unlocked`
+        );
         
         const modal = document.createElement('div');
         modal.id = 'achievements-modal';
@@ -3630,11 +3856,11 @@
                             <i class="fas fa-trophy text-xl text-yellow-400"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-bold text-white">All Achievements</h3>
+                            <h3 class="text-lg font-bold text-white">${allAchievementsTitle}</h3>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-sm text-white/60">${progressPercent}% Complete</span>
+                                <span class="text-sm text-white/60">${percentCompleteText}</span>
                                 <span class="text-white/30">•</span>
-                                <span class="text-sm font-semibold" style="color: #c084fc;">${unlocked} of ${total} unlocked</span>
+                                <span class="text-sm font-semibold" style="color: #c084fc;">${unlockedOfTotalText}</span>
                             </div>
                         </div>
                     </div>
@@ -3696,6 +3922,7 @@
         }
         loadSafetyPool();
         loadGamification();
+        hookGamificationLanguageToggle();
         
         // Refresh Safety Pool every 5 minutes
         if (window.createVisibilityInterval) {
