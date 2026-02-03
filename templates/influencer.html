@@ -735,6 +735,72 @@
         </div>
     </div>
 
+    <!-- Referral Program Panel -->
+    <div id="referral-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(251, 146, 60, 0.2);">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <!-- Referral Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
+                     style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3);">
+                    <i class="fas fa-user-plus text-2xl" style="color: #fb923c;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Referral Program</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              style="background: rgba(251, 146, 60, 0.1); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);">
+                            <i class="fas fa-gift text-xs"></i>
+                            <span>Earn 5%</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="font-display text-lg font-bold text-white">
+                            <span id="referral-count">{{ referral_stats.referral_count }}</span> <span class="text-sm text-white/50">Referrals</span>
+                        </div>
+                        <div class="text-white/40">|</div>
+                        <div class="font-display text-lg font-bold" style="color: #22c55e;">
+                            $<span id="referral-earned">{{ "%.2f"|format(referral_stats.total_commission) }}</span> <span class="text-sm text-white/50">Earned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Referral Link -->
+            <div class="flex-1 max-w-lg">
+                <label class="text-xs text-white/50 mb-1 block">Your Referral Link</label>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 px-3 py-2 rounded-lg text-sm font-mono truncate"
+                         style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">
+                        <span id="referral-link-panel">{{ referral_link }}</span>
+                    </div>
+                    <button onclick="copyReferralPanelLink()" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                            id="copy-referral-panel-btn"
+                            style="background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);"
+                            onmouseover="this.style.background='rgba(251, 146, 60, 0.3)'"
+                            onmouseout="this.style.background='rgba(251, 146, 60, 0.2)'">
+                        <i class="fas fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+                <div class="text-xs text-white/40 mt-1">
+                    Share this link and earn 5% commission from your referrals' trading profits!
+                </div>
+            </div>
+            
+            <!-- Pending Payout -->
+            <div class="text-center lg:text-right">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
+                     style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fas fa-wallet text-green-400"></i>
+                    <div>
+                        <div class="text-xs text-green-300 font-medium">Pending Payout</div>
+                        <div class="text-lg text-green-400 font-bold">$<span id="referral-pending">{{ "%.2f"|format(referral_stats.pending_commission) }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Grid -->
     <div class="stats-grid">
         <!-- Clicks -->
@@ -1290,6 +1356,25 @@ function copyLink() {
         btn.classList.remove('copied');
         btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Копіювати</span>';
     }, 2000);
+}
+
+function copyReferralPanelLink() {
+    navigator.clipboard.writeText('{{ referral_link }}');
+    const btn = document.getElementById('copy-referral-panel-btn');
+    if (btn) {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-1"></i> Скопійовано';
+        btn.style.background = 'rgba(34, 197, 94, 0.2)';
+        btn.style.color = '#22c55e';
+        btn.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+        setTimeout(() => {
+            btn.innerHTML = original;
+            btn.style.background = 'rgba(251, 146, 60, 0.2)';
+            btn.style.color = '#fb923c';
+            btn.style.borderColor = 'rgba(251, 146, 60, 0.3)';
+        }, 2000);
+    }
+    showToast('Реферальне посилання скопійовано!', 'success');
 }
 
 // ==================== PAYOUT REQUEST ====================

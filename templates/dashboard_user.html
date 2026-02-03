@@ -1000,51 +1000,6 @@
         </div>
     </div>
     
-    <!-- Safety Pool / Insurance Fund Badge -->
-    <div id="safety-pool-badge" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
-         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(57, 255, 20, 0.2);">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                     style="background: rgba(57, 255, 20, 0.1); border: 1px solid rgba(57, 255, 20, 0.3);">
-                    <i class="fas fa-shield-alt text-xl" style="color: #39ff14;"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Insurance Fund</span>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                              style="background: rgba(57, 255, 20, 0.1); color: #39ff14; border: 1px solid rgba(57, 255, 20, 0.3);">
-                            <i class="fas fa-check-circle text-xs"></i>
-                            <span>Verified</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-4 mt-2">
-                        <div class="font-display text-2xl font-bold" id="dashboard-safety-pool" style="color: #39ff14;">$10,000.00</div>
-                        <div class="text-xs text-white/40">Safety Pool</div>
-                    </div>
-                </div>
-            </div>
-            <div class="text-right hidden md:block">
-                <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-help" 
-                     style="background: rgba(57, 255, 20, 0.05); border: 1px solid rgba(57, 255, 20, 0.1);"
-                     title="This fund is used to cover slippage losses in extreme market conditions">
-                    <i class="fas fa-info-circle text-green-400 text-sm"></i>
-                    <div class="text-xs text-white/50">
-                        <span>5% of platform fees</span><br>
-                        <span>go to this Safety Pool</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Mobile tooltip -->
-        <div class="mt-3 pt-3 border-t border-white/5 md:hidden">
-            <div class="flex items-start gap-2 text-xs text-white/40">
-                <i class="fas fa-info-circle text-green-400 mt-0.5"></i>
-                <span>This fund is used to cover slippage losses in extreme market conditions. 5% of platform fees go to this Safety Pool.</span>
-            </div>
-        </div>
-    </div>
-    
     <!-- Gamification: Level & Badges -->
     <div id="gamification-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
          style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(147, 51, 234, 0.2);">
@@ -1123,145 +1078,6 @@
         </div>
     </div>
 
-    <!-- Referral Program Panel -->
-    <div id="referral-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
-         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(251, 146, 60, 0.2);">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <!-- Referral Info -->
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
-                     style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3);">
-                    <i class="fas fa-user-plus text-2xl" style="color: #fb923c;"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Referral Program</span>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                              style="background: rgba(251, 146, 60, 0.1); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);">
-                            <i class="fas fa-gift text-xs"></i>
-                            <span>Earn 5%</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-3 mt-2">
-                        <div class="font-display text-lg font-bold text-white">
-                            <span id="referral-count">{{ referral_stats.referral_count }}</span> <span class="text-sm text-white/50">Referrals</span>
-                        </div>
-                        <div class="text-white/40">|</div>
-                        <div class="font-display text-lg font-bold" style="color: #22c55e;">
-                            $<span id="referral-earned">{{ "%.2f"|format(referral_stats.total_commission) }}</span> <span class="text-sm text-white/50">Earned</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Referral Link -->
-            <div class="flex-1 max-w-lg">
-                <label class="text-xs text-white/50 mb-1 block">Your Referral Link</label>
-                <div class="flex items-center gap-2">
-                    <div class="flex-1 px-3 py-2 rounded-lg text-sm font-mono truncate"
-                         style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">
-                        <span id="referral-link">{{ referral_link }}</span>
-                    </div>
-                    <button onclick="copyReferralLink()" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                            style="background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);"
-                            onmouseover="this.style.background='rgba(251, 146, 60, 0.3)'"
-                            onmouseout="this.style.background='rgba(251, 146, 60, 0.2)'">
-                        <i class="fas fa-copy mr-1"></i> Copy
-                    </button>
-                </div>
-                <div class="text-xs text-white/40 mt-1">
-                    Share this link and earn 5% commission from your referrals' trading profits!
-                </div>
-            </div>
-            
-            <!-- Pending Payout -->
-            <div class="text-center lg:text-right">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
-                     style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
-                    <i class="fas fa-wallet text-green-400"></i>
-                    <div>
-                        <div class="text-xs text-green-300 font-medium">Pending Payout</div>
-                        <div class="text-lg text-green-400 font-bold">$<span id="referral-pending">{{ "%.2f"|format(referral_stats.pending_commission) }}</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Subscription Status Panel -->
-    <div id="subscription-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
-         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(59, 130, 246, 0.2);">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <!-- Subscription Info -->
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
-                     id="subscription-icon"
-                     style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <i class="fas fa-crown text-2xl" style="color: #3b82f6;"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Subscription</span>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                              id="subscription-badge"
-                              style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
-                            <span id="subscription-plan">{{ user_settings.subscription_plan|default('Free')|capitalize }}</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-3 mt-2">
-                        {% if user_settings.subscription_expires_at %}
-                        <div class="text-sm text-white/70">
-                            <i class="fas fa-calendar-alt mr-1"></i>
-                            Expires: <span id="subscription-expires">{{ user_settings.subscription_expires_at.strftime('%d %b %Y') }}</span>
-                        </div>
-                        {% else %}
-                        <div class="text-sm text-white/50">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Upgrade to unlock premium features
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Features -->
-            <div class="flex flex-wrap gap-2">
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
-                    <i class="fas fa-check"></i> Copy Trading
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      id="feature-api"
-                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                    <i class="fas fa-lock"></i> API Access
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      id="feature-chat"
-                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                    <i class="fas fa-lock"></i> Live Chat
-                </span>
-            </div>
-            
-            <!-- Upgrade Button -->
-            <div>
-                {% if user_settings.subscription_plan == 'free' or not user_settings.subscription_plan %}
-                <button onclick="showUpgradeModal()" class="px-6 py-2 rounded-lg text-sm font-semibold transition-all"
-                        style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 30px rgba(59, 130, 246, 0.3)'"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <i class="fas fa-rocket mr-1"></i> Upgrade
-                </button>
-                {% else %}
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
-                     style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
-                    <i class="fas fa-star text-purple-400"></i>
-                    <span class="text-sm text-purple-400 font-semibold">Premium Active</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
     <!-- Quick Links: Polls -->
     <div class="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
         <!-- Polls Card -->
@@ -1281,66 +1097,12 @@
         </a>
     </div>
 
-    <!-- Payment Management Menu -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="font-display font-semibold flex items-center gap-2">
-                <i class="fas fa-credit-card text-purple-400"></i>
-                <span>Payment Management</span>
-            </h2>
-            <span class="text-xs text-white/40">Subscription & billing</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button type="button" onclick="openSectionAndScroll('subscription', 'subscription-status-card')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08)); border-color: rgba(59, 130, 246, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <i class="fas fa-crown text-xl" style="color: #60a5fa;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Subscription</div>
-                        <div class="text-xs text-white/50">Status & access</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-            <button type="button" onclick="openSectionAndScroll('subscription', 'upgrade-section')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.08)); border-color: rgba(139, 92, 246, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
-                        <i class="fas fa-wallet text-xl" style="color: #a78bfa;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Make a Payment</div>
-                        <div class="text-xs text-white/50">Upgrade your plan</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-            <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(14, 165, 233, 0.08)); border-color: rgba(34, 211, 238, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.3);">
-                        <i class="fas fa-history text-xl" style="color: #22d3ee;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Payment History</div>
-                        <div class="text-xs text-white/50">Track your payments</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-        </div>
-    </div>
+</div>
 
+<!-- ==================== TRADING/ANALYTICS SECTION ==================== -->
+<div class="section-content" data-section="trading" id="trading">
     <!-- Open Positions Panel with HTMX polling -->
-    <div class="positions-panel">
+    <div class="positions-panel mb-8">
         <div class="panel-header">
             <div class="panel-title">
                 <i class="fas fa-layer-group text-green-400"></i>
@@ -1365,10 +1127,7 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- ==================== TRADING/ANALYTICS SECTION ==================== -->
-<div class="section-content" data-section="trading" id="trading">
     <!-- TradingView Chart -->
     <div class="chart-terminal mb-8">
         <div class="chart-header">
@@ -1594,6 +1353,138 @@
 
 <!-- ==================== SUBSCRIPTION SECTION ==================== -->
 <div class="section-content" data-section="subscription" id="subscription">
+    <!-- Subscription Status Panel -->
+    <div id="subscription-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
+         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(59, 130, 246, 0.2);">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <!-- Subscription Info -->
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
+                     id="subscription-icon"
+                     style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i class="fas fa-crown text-2xl" style="color: #3b82f6;"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-white/50 uppercase tracking-wider">Subscription</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                              id="subscription-badge"
+                              style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
+                            <span id="subscription-plan">{{ user_settings.subscription_plan|default('Free')|capitalize }}</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-2">
+                        {% if user_settings.subscription_expires_at %}
+                        <div class="text-sm text-white/70">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Expires: <span id="subscription-expires">{{ user_settings.subscription_expires_at.strftime('%d %b %Y') }}</span>
+                        </div>
+                        {% else %}
+                        <div class="text-sm text-white/50">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Upgrade to unlock premium features
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="flex flex-wrap gap-2">
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                    <i class="fas fa-check"></i> Copy Trading
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      id="feature-api"
+                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-lock"></i> API Access
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                      id="feature-chat"
+                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                    <i class="fas fa-lock"></i> Live Chat
+                </span>
+            </div>
+            
+            <!-- Upgrade Button -->
+            <div>
+                {% if user_settings.subscription_plan == 'free' or not user_settings.subscription_plan %}
+                <button onclick="showUpgradeModal()" class="px-6 py-2 rounded-lg text-sm font-semibold transition-all"
+                        style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 30px rgba(59, 130, 246, 0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <i class="fas fa-rocket mr-1"></i> Upgrade
+                </button>
+                {% else %}
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
+                     style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <i class="fas fa-star text-purple-400"></i>
+                    <span class="text-sm text-purple-400 font-semibold">Premium Active</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Management Menu -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold flex items-center gap-2">
+                <i class="fas fa-credit-card text-purple-400"></i>
+                <span>Payment Management</span>
+            </h2>
+            <span class="text-xs text-white/40">Subscription & billing</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button type="button" onclick="openSectionAndScroll('subscription', 'subscription-status-card')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08)); border-color: rgba(59, 130, 246, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <i class="fas fa-crown text-xl" style="color: #60a5fa;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Subscription</div>
+                        <div class="text-xs text-white/50">Status & access</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+            <button type="button" onclick="openSectionAndScroll('subscription', 'upgrade-section')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.08)); border-color: rgba(139, 92, 246, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <i class="fas fa-wallet text-xl" style="color: #a78bfa;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Make a Payment</div>
+                        <div class="text-xs text-white/50">Upgrade your plan</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+            <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" 
+                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
+                    style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(14, 165, 233, 0.08)); border-color: rgba(34, 211, 238, 0.2);">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
+                         style="background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.3);">
+                        <i class="fas fa-history text-xl" style="color: #22d3ee;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-white">Payment History</div>
+                        <div class="text-xs text-white/50">Track your payments</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/30"></i>
+                </div>
+            </button>
+        </div>
+    </div>
+
     <div class="section-card mb-8">
         <div class="section-header">
             <div class="flex items-center gap-3">
