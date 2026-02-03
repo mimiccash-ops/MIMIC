@@ -4,25 +4,21 @@
 {% block mobile_sections %}
 <div class="mobile-divider"></div>
 <div class="mobile-nav-label" data-i18n="section.dashboard">Dashboard Sections</div>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+<a href="{{ url_for('dashboard') }}#overview" class="mobile-nav-item mobile-section-link" data-section="overview" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('overview'); }">
     <i class="fas fa-tachometer-alt"></i>
     <span data-i18n="section.overview">Overview</span>
 </a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-    <i class="fas fa-chart-line"></i>
-    <span data-i18n="section.trading">Trading</span>
+<a href="{{ url_for('dashboard') }}#trading" class="mobile-nav-item mobile-section-link" data-section="trading" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('trading'); }">
+    <i class="fas fa-layer-group"></i>
+    <span data-i18n="section.tradingHub">Trading / Exchange / Settings</span>
 </a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="exchange" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('exchange'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-    <i class="fas fa-plug"></i>
-    <span data-i18n="section.exchange">Exchange</span>
-</a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
+<a href="{{ url_for('dashboard') }}#tasks" class="mobile-nav-item mobile-section-link" data-section="tasks" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('tasks'); }">
     <i class="fas fa-tasks"></i>
     <span data-i18n="section.tasks">Tasks</span>
 </a>
-<a href="{{ url_for('dashboard') }}" class="mobile-nav-item mobile-section-link" data-section="settings" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('settings'); } else { window.location.href='{{ url_for('dashboard') }}'; } return false;">
-    <i class="fas fa-cog"></i>
-    <span data-i18n="section.settings">Settings</span>
+<a href="{{ url_for('dashboard') }}#subscription" class="mobile-nav-item mobile-section-link" data-section="subscription" onclick="closeMobileMenu(); if(typeof showSection === 'function') { showSection('subscription'); }">
+    <i class="fas fa-crown"></i>
+    <span data-i18n="nav.subscription">Subscription</span>
 </a>
 {% endblock %}
 
@@ -907,7 +903,7 @@
 <div class="terminal-grid"></div>
 
 <!-- ==================== OVERVIEW SECTION ==================== -->
-<div class="section-content active" data-section="overview">
+<div class="section-content active" data-section="overview" id="overview">
     <!-- Hero Terminal Card -->
     <div class="hero-terminal mb-8">
         <div class="cyber-orb"></div>
@@ -1372,7 +1368,7 @@
 </div>
 
 <!-- ==================== TRADING/ANALYTICS SECTION ==================== -->
-<div class="section-content" data-section="trading">
+<div class="section-content" data-section="trading" id="trading">
     <!-- TradingView Chart -->
     <div class="chart-terminal mb-8">
         <div class="chart-header">
@@ -1448,7 +1444,7 @@
 </div>
 
 <!-- ==================== EXCHANGE/CONNECTIONS SECTION ==================== -->
-<div class="section-content" data-section="exchange">
+<div class="section-content" data-section="trading" id="exchange">
     <div class="section-card mb-8">
         <div class="section-header">
             <div class="flex items-center gap-3">
@@ -1597,7 +1593,7 @@
 </div>
 
 <!-- ==================== SUBSCRIPTION SECTION ==================== -->
-<div class="section-content" data-section="subscription">
+<div class="section-content" data-section="subscription" id="subscription">
     <div class="section-card mb-8">
         <div class="section-header">
             <div class="flex items-center gap-3">
@@ -1782,7 +1778,7 @@
 </div>
 
 <!-- ==================== TASKS/CHALLENGES SECTION ==================== -->
-<div class="section-content" data-section="tasks">
+<div class="section-content" data-section="tasks" id="tasks">
     <!-- Tasks Header -->
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
@@ -1977,7 +1973,7 @@
 </div>
 
 <!-- ==================== SETTINGS/CONFIG SECTION ==================== -->
-<div class="section-content" data-section="settings">
+<div class="section-content" data-section="trading" id="settings">
     <!-- Trading Parameters (Read-only) -->
     <div class="section-card mb-8">
         <div class="section-header">
@@ -4405,21 +4401,27 @@
     };
     
     // Handle URL hash for direct navigation to sections
-    if (window.location.hash) {
+    const dashboardSections = ['overview', 'trading', 'tasks', 'subscription'];
+    const tradingAnchors = new Set(['exchange', 'settings']);
+    function applySectionFromHash() {
         const hash = window.location.hash.substring(1); // Remove #
-        if (hash === 'subscription' && typeof window.showSection === 'function') {
-            setTimeout(() => {
-                window.showSection('subscription');
-            }, 300);
+        if (!hash || typeof window.showSection !== 'function') {
+            return;
         }
+        if (tradingAnchors.has(hash)) {
+            openSectionAndScroll('trading', hash);
+            return;
+        }
+        if (dashboardSections.includes(hash)) {
+            window.showSection(hash);
+        }
+    }
+
+    if (window.location.hash) {
+        setTimeout(applySectionFromHash, 300);
     }
     
     // Listen for hash changes
-    window.addEventListener('hashchange', function() {
-        const hash = window.location.hash.substring(1);
-        if (hash === 'subscription' && typeof window.showSection === 'function') {
-            window.showSection('subscription');
-        }
-    });
+    window.addEventListener('hashchange', applySectionFromHash);
 </script>
 {% endblock %}
