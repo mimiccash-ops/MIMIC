@@ -256,61 +256,6 @@
         padding: 24px;
     }
 
-    /* Payout Menu */
-    .payout-menu-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-    }
-    
-    @media (max-width: 1024px) {
-        .payout-menu-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    
-    @media (max-width: 640px) {
-        .payout-menu-grid { grid-template-columns: 1fr; }
-    }
-    
-    .payout-menu-card {
-        position: relative;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: var(--radius-xl);
-        padding: 18px;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .payout-menu-card:hover {
-        border-color: rgba(0, 240, 255, 0.3);
-        transform: translateY(-3px);
-        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3), 0 0 24px rgba(0, 240, 255, 0.1);
-    }
-    
-    .payout-menu-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: var(--radius-lg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.1rem;
-    }
-    
-    .payout-menu-badge {
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-    }
-    
     /* Marketing Assets */
     .asset-grid {
         display: grid;
@@ -709,9 +654,10 @@
         
         <!-- Share Buttons -->
         <div class="mt-6 pt-6 border-t border-white/10">
-            <label class="text-xs text-white/40 uppercase tracking-wider block mb-3">
+            <label class="text-xs text-white/40 uppercase tracking-wider block mb-2">
                 <i class="fas fa-share-alt mr-2"></i>Швидке поширення
             </label>
+            <p class="text-xs text-white/50 mb-3">Комісія 5% з прибутку рефералів</p>
             <div class="flex flex-wrap gap-3">
                 <a href="https://t.me/share/url?url={{ referral_link }}&text=Join%20MIMIC%20Copy%20Trading!" 
                    target="_blank" rel="noopener noreferrer"
@@ -731,72 +677,6 @@
                    style="background: rgba(37, 211, 102, 0.15); border: 1px solid rgba(37, 211, 102, 0.3); color: #25d366;">
                     <i class="fab fa-whatsapp"></i> WhatsApp
                 </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Referral Program Panel -->
-    <div id="referral-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
-         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(251, 146, 60, 0.2);">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <!-- Referral Info -->
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
-                     style="background: rgba(251, 146, 60, 0.1); border: 1px solid rgba(251, 146, 60, 0.3);">
-                    <i class="fas fa-user-plus text-2xl" style="color: #fb923c;"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Referral Program</span>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                              style="background: rgba(251, 146, 60, 0.1); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);">
-                            <i class="fas fa-gift text-xs"></i>
-                            <span>Earn 5%</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-3 mt-2">
-                        <div class="font-display text-lg font-bold text-white">
-                            <span id="referral-count">{{ referral_stats.referral_count }}</span> <span class="text-sm text-white/50">Referrals</span>
-                        </div>
-                        <div class="text-white/40">|</div>
-                        <div class="font-display text-lg font-bold" style="color: #22c55e;">
-                            $<span id="referral-earned">{{ "%.2f"|format(referral_stats.total_commission) }}</span> <span class="text-sm text-white/50">Earned</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Referral Link -->
-            <div class="flex-1 max-w-lg">
-                <label class="text-xs text-white/50 mb-1 block">Your Referral Link</label>
-                <div class="flex items-center gap-2">
-                    <div class="flex-1 px-3 py-2 rounded-lg text-sm font-mono truncate"
-                         style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fb923c;">
-                        <span id="referral-link-panel">{{ referral_link }}</span>
-                    </div>
-                    <button onclick="copyReferralPanelLink()" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                            id="copy-referral-panel-btn"
-                            style="background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);"
-                            onmouseover="this.style.background='rgba(251, 146, 60, 0.3)'"
-                            onmouseout="this.style.background='rgba(251, 146, 60, 0.2)'">
-                        <i class="fas fa-copy mr-1"></i> Copy
-                    </button>
-                </div>
-                <div class="text-xs text-white/40 mt-1">
-                    Share this link and earn 5% commission from your referrals' trading profits!
-                </div>
-            </div>
-            
-            <!-- Pending Payout -->
-            <div class="text-center lg:text-right">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
-                     style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
-                    <i class="fas fa-wallet text-green-400"></i>
-                    <div>
-                        <div class="text-xs text-green-300 font-medium">Pending Payout</div>
-                        <div class="text-lg text-green-400 font-bold">$<span id="referral-pending">{{ "%.2f"|format(referral_stats.pending_commission) }}</span></div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -856,122 +736,6 @@
         </div>
     </div>
 
-    <!-- Referral Program -->
-    <div class="section-card mt-8">
-        <div class="section-header">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-gift text-gradient"></i>
-                <span class="font-display font-semibold">Referral Program</span>
-            </div>
-            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400">
-                5% Commission
-            </span>
-        </div>
-        <div class="section-body">
-            <!-- Stats -->
-            <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="text-center p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Referrals</div>
-                    <div class="font-mono text-xl font-bold text-cyan-400">{{ referral_stats.referral_count }}</div>
-                </div>
-                <div class="text-center p-4 bg-green-500/5 border border-green-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Earned</div>
-                    <div class="font-mono text-xl font-bold text-green-400">${{ "%.2f"|format(referral_stats.total_commission) }}</div>
-                </div>
-                <div class="text-center p-4 bg-yellow-500/5 border border-yellow-500/10 rounded-lg">
-                    <div class="text-xs text-white/40 mb-1">Pending</div>
-                    <div class="font-mono text-xl font-bold text-yellow-400">${{ "%.2f"|format(referral_stats.pending_commission) }}</div>
-                </div>
-            </div>
-            
-            <!-- Referral Link -->
-            <div class="mb-4">
-                <label class="text-xs text-white/40 block mb-2">Your Invite Link</label>
-                <div class="flex gap-2">
-                    <input type="text" value="{{ referral_link }}" id="referral-link-input" class="input-cyber text-sm" readonly>
-                    <button onclick="copyReferralLinkWidget()" class="btn-cyber btn-cyber-sm" id="copy-referral-btn">
-                        <i class="fas fa-copy"></i>
-                        Copy
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Referral Code -->
-            <div class="p-4 bg-purple-500/5 border border-purple-500/20 rounded-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-white/40 mb-1">Your Code</div>
-                        <div class="font-mono text-xl font-bold text-gradient">{{ referral_code }}</div>
-                    </div>
-                    <div class="text-xs text-white/30 text-right">
-                        Earn 5% on referral profits!
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payout Menu -->
-    <div class="inf-section animate-entry" style="animation-delay: 0.28s;">
-        <div class="inf-section-header">
-            <div class="inf-section-title">
-                <i style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(0, 240, 255, 0.2)); color: #8b5cf6;">
-                    <i class="fas fa-credit-card"></i>
-                </i>
-                <span>Меню виплат</span>
-            </div>
-            <span class="text-xs text-white/40">Швидкий доступ до виплат</span>
-        </div>
-        <div class="inf-section-body">
-            <div class="payout-menu-grid">
-                <a href="#payout-request-section" class="payout-menu-card">
-                    <div class="flex items-center gap-4">
-                        <div class="payout-menu-icon" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e;">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-white">Запит на виплату</div>
-                            <div class="text-xs text-white/50">Вивести комісію</div>
-                        </div>
-                    </div>
-                    <span class="payout-menu-badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Запросити</span>
-                </a>
-                <a href="#payout-history-section" class="payout-menu-card">
-                    <div class="flex items-center gap-4">
-                        <div class="payout-menu-icon" style="background: rgba(0, 240, 255, 0.15); border: 1px solid rgba(0, 240, 255, 0.3); color: #00f0ff;">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-white">Історія виплат</div>
-                            <div class="text-xs text-white/50">Статуси та суми</div>
-                        </div>
-                    </div>
-                    <span class="payout-menu-badge" style="background: rgba(0, 240, 255, 0.15); color: #00f0ff;">Переглянути</span>
-                </a>
-                <a href="#payout-request-section" class="payout-menu-card">
-                    <div class="flex items-center gap-4">
-                        <div class="payout-menu-icon" style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); color: #fbbf24;">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-white">Статус запиту</div>
-                            <div class="text-xs text-white/50">
-                                {% if pending_payout %}
-                                Очікує підтвердження
-                                {% else %}
-                                Немає активних запитів
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <span class="payout-menu-badge" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
-                        {% if pending_payout %}Очікує{% else %}Готово{% endif %}
-                    </span>
-                </a>
-            </div>
-        </div>
-    </div>
-
     <!-- Chart & Payout Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Earnings Chart -->
@@ -1008,6 +772,10 @@
                     </i>
                     <span>Запросити виплату</span>
                 </div>
+                <a href="#payout-history-section" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-history"></i>
+                    <span>Історія виплат</span>
+                </a>
             </div>
             <div class="inf-section-body">
                 <!-- Balance -->
@@ -1067,8 +835,70 @@
         </div>
     </div>
 
+    <!-- Payout History -->
+    <div class="inf-section animate-entry" style="animation-delay: 0.4s;" id="payout-history-section">
+        <div class="inf-section-header">
+            <div class="inf-section-title">
+                <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
+                    <i class="fas fa-history"></i>
+                </i>
+                    <span>Історія виплат</span>
+                </div>
+                <a href="#payout-request-section" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Запросити виплату</span>
+                </a>
+            </div>
+            <div class="inf-section-body">
+                {% if payout_history %}
+                <div class="overflow-x-auto">
+                    <table class="inf-table">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Сума</th>
+                                <th>Метод</th>
+                                <th>Статус</th>
+                                <th>ID транзакції</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payout in payout_history %}
+                            <tr>
+                                <td class="text-white/70">{{ payout.created_at[:10] }}</td>
+                                <td class="font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
+                                <td class="text-white/60">{{ payout.payment_method_label }}</td>
+                                <td>
+                                    {% if payout.status == 'paid' %}
+                                    <span class="status-badge status-paid"><i class="fas fa-check"></i> Виплачено</span>
+                                    {% elif payout.status == 'approved' %}
+                                    <span class="status-badge status-approved"><i class="fas fa-thumbs-up"></i> Схвалено</span>
+                                    {% elif payout.status == 'pending' %}
+                                    <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує</span>
+                                    {% elif payout.status == 'rejected' %}
+                                    <span class="status-badge status-rejected"><i class="fas fa-times"></i> Відхилено</span>
+                                    {% endif %}
+                                </td>
+                                <td class="font-mono text-sm text-white/40">
+                                    {{ payout.txn_id[:20] + '...' if payout.txn_id and payout.txn_id|length > 20 else (payout.txn_id or '-') }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <p class="font-semibold mb-1">Історії виплат немає</p>
+                    <p class="text-sm">Ваші виплати з'являться тут</p>
+                </div>
+                {% endif %}
+        </div>
+    </div>
+
     <!-- Marketing Assets -->
-    <div class="inf-section mb-8 animate-entry" style="animation-delay: 0.4s;">
+    <div class="inf-section mb-8 animate-entry" style="animation-delay: 0.45s;">
         <div class="inf-section-header">
             <div class="inf-section-title">
                 <i style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(236, 72, 153, 0.2)); color: #fb923c;">
@@ -1129,7 +959,7 @@
     <!-- Referrals & Commissions -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <!-- Recent Referrals -->
-        <div class="inf-section animate-entry" style="animation-delay: 0.45s;">
+        <div class="inf-section animate-entry" style="animation-delay: 0.5s;">
             <div class="inf-section-header">
                 <div class="inf-section-title">
                     <i style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2)); color: #8b5cf6;">
@@ -1174,7 +1004,7 @@
         </div>
         
         <!-- Recent Commissions -->
-        <div class="inf-section animate-entry" style="animation-delay: 0.5s;">
+        <div class="inf-section animate-entry" style="animation-delay: 0.55s;">
             <div class="inf-section-header">
                 <div class="inf-section-title">
                     <i style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(251, 191, 36, 0.2)); color: #22c55e;">
@@ -1205,64 +1035,6 @@
                 </div>
                 {% endif %}
             </div>
-        </div>
-    </div>
-
-    <!-- Payout History -->
-    <div class="inf-section animate-entry" style="animation-delay: 0.55s;" id="payout-history-section">
-        <div class="inf-section-header">
-            <div class="inf-section-title">
-                <i style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(139, 92, 246, 0.2)); color: #00f0ff;">
-                    <i class="fas fa-history"></i>
-                </i>
-                    <span>Історія виплат</span>
-                </div>
-            </div>
-            <div class="inf-section-body">
-                {% if payout_history %}
-                <div class="overflow-x-auto">
-                    <table class="inf-table">
-                        <thead>
-                            <tr>
-                                <th>Дата</th>
-                                <th>Сума</th>
-                                <th>Метод</th>
-                                <th>Статус</th>
-                                <th>ID транзакції</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for payout in payout_history %}
-                            <tr>
-                                <td class="text-white/70">{{ payout.created_at[:10] }}</td>
-                                <td class="font-mono font-bold text-green-400">${{ "%.2f"|format(payout.amount) }}</td>
-                                <td class="text-white/60">{{ payout.payment_method_label }}</td>
-                                <td>
-                                    {% if payout.status == 'paid' %}
-                                    <span class="status-badge status-paid"><i class="fas fa-check"></i> Виплачено</span>
-                                    {% elif payout.status == 'approved' %}
-                                    <span class="status-badge status-approved"><i class="fas fa-thumbs-up"></i> Схвалено</span>
-                                    {% elif payout.status == 'pending' %}
-                                    <span class="status-badge status-pending"><i class="fas fa-clock"></i> Очікує</span>
-                                    {% elif payout.status == 'rejected' %}
-                                    <span class="status-badge status-rejected"><i class="fas fa-times"></i> Відхилено</span>
-                                    {% endif %}
-                                </td>
-                                <td class="font-mono text-sm text-white/40">
-                                    {{ payout.txn_id[:20] + '...' if payout.txn_id and payout.txn_id|length > 20 else (payout.txn_id or '-') }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-receipt"></i>
-                    <p class="font-semibold mb-1">Історії виплат немає</p>
-                    <p class="text-sm">Ваші виплати з'являться тут</p>
-                </div>
-                {% endif %}
         </div>
     </div>
 
@@ -1411,41 +1183,6 @@ function copyLink() {
         btn.classList.remove('copied');
         btn.innerHTML = '<i class="fas fa-copy mr-2"></i><span>Копіювати</span>';
     }, 2000);
-}
-
-function copyReferralLinkWidget() {
-    const input = document.getElementById('referral-link-input');
-    if (!input) return;
-    navigator.clipboard.writeText(input.value);
-    const btn = document.getElementById('copy-referral-btn');
-    if (btn) {
-        btn.classList.add('copied');
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-        setTimeout(() => {
-            btn.classList.remove('copied');
-            btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-        }, 2000);
-    }
-    showToast('Реферальне посилання скопійовано!', 'success');
-}
-
-function copyReferralPanelLink() {
-    navigator.clipboard.writeText('{{ referral_link }}');
-    const btn = document.getElementById('copy-referral-panel-btn');
-    if (btn) {
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check mr-1"></i> Скопійовано';
-        btn.style.background = 'rgba(34, 197, 94, 0.2)';
-        btn.style.color = '#22c55e';
-        btn.style.borderColor = 'rgba(34, 197, 94, 0.3)';
-        setTimeout(() => {
-            btn.innerHTML = original;
-            btn.style.background = 'rgba(251, 146, 60, 0.2)';
-            btn.style.color = '#fb923c';
-            btn.style.borderColor = 'rgba(251, 146, 60, 0.3)';
-        }, 2000);
-    }
-    showToast('Реферальне посилання скопійовано!', 'success');
 }
 
 // ==================== PAYOUT REQUEST ====================
