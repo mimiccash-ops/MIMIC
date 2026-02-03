@@ -1329,150 +1329,50 @@
 
 <!-- ==================== SUBSCRIPTION SECTION ==================== -->
 <div class="section-content" data-section="subscription" id="subscription">
-    <!-- Subscription Status Panel -->
-    <div id="subscription-panel" class="mb-8 p-4 rounded-xl border transition-all duration-300" 
-         style="background: linear-gradient(135deg, rgba(18, 18, 26, 0.9), rgba(12, 12, 18, 0.95)); border-color: rgba(59, 130, 246, 0.2);">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <!-- Subscription Info -->
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center" 
-                     id="subscription-icon"
-                     style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <i class="fas fa-crown text-2xl" style="color: #3b82f6;"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-white/50 uppercase tracking-wider">Subscription</span>
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                              id="subscription-badge"
-                              style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
-                            <span id="subscription-plan">{{ user_settings.subscription_plan|default('Free')|capitalize }}</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-3 mt-2">
-                        {% if user_settings.subscription_expires_at %}
-                        <div class="text-sm text-white/70">
-                            <i class="fas fa-calendar-alt mr-1"></i>
-                            Expires: <span id="subscription-expires">{{ user_settings.subscription_expires_at.strftime('%d %b %Y') }}</span>
-                        </div>
-                        {% else %}
-                        <div class="text-sm text-white/50">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Upgrade to unlock premium features
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Features -->
-            <div class="flex flex-wrap gap-2">
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
-                    <i class="fas fa-check"></i> Copy Trading
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      id="feature-api"
-                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                    <i class="fas fa-lock"></i> API Access
-                </span>
-                <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
-                      id="feature-chat"
-                      style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
-                    <i class="fas fa-lock"></i> Live Chat
-                </span>
-            </div>
-            
-            <!-- Upgrade Button -->
-            <div>
-                {% if user_settings.subscription_plan == 'free' or not user_settings.subscription_plan %}
-                <button onclick="showUpgradeModal()" class="px-6 py-2 rounded-lg text-sm font-semibold transition-all"
-                        style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white;"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 30px rgba(59, 130, 246, 0.3)'"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                    <i class="fas fa-rocket mr-1"></i> Upgrade
-                </button>
-                {% else %}
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl" 
-                     style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
-                    <i class="fas fa-star text-purple-400"></i>
-                    <span class="text-sm text-purple-400 font-semibold">Premium Active</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Management Menu -->
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="font-display font-semibold flex items-center gap-2">
-                <i class="fas fa-credit-card text-purple-400"></i>
-                <span>Payment Management</span>
-            </h2>
-            <span class="text-xs text-white/40">Subscription & billing</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button type="button" onclick="openSectionAndScroll('subscription', 'subscription-status-card')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08)); border-color: rgba(59, 130, 246, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);">
-                        <i class="fas fa-crown text-xl" style="color: #60a5fa;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Subscription</div>
-                        <div class="text-xs text-white/50">Status & access</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-            <button type="button" onclick="openSectionAndScroll('subscription', 'upgrade-section')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.08)); border-color: rgba(139, 92, 246, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);">
-                        <i class="fas fa-wallet text-xl" style="color: #a78bfa;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Make a Payment</div>
-                        <div class="text-xs text-white/50">Upgrade your plan</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-            <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" 
-                    class="block p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] text-left"
-                    style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(14, 165, 233, 0.08)); border-color: rgba(34, 211, 238, 0.2);">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" 
-                         style="background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.3);">
-                        <i class="fas fa-history text-xl" style="color: #22d3ee;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-white">Payment History</div>
-                        <div class="text-xs text-white/50">Track your payments</div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/30"></i>
-                </div>
-            </button>
-        </div>
-    </div>
-
     <div class="section-card mb-8">
         <div class="section-header">
             <div class="flex items-center gap-3">
                 <i class="fas fa-crown text-yellow-400"></i>
                 <span class="font-display font-semibold">My Subscription</span>
             </div>
-            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" id="sub-status-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
-                <i class="fas fa-circle text-xs"></i>
-                <span id="sub-status-text" data-i18n="dash.loadingData">Завантаження...</span>
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" id="sub-status-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                    <i class="fas fa-circle text-xs"></i>
+                    <span id="sub-status-text" data-i18n="dash.loadingData">Завантаження...</span>
+                </span>
+                <button id="subscription-cta" type="button" onclick="showUpgradeModal()" class="btn-cyber btn-cyber-sm">
+                    <i class="fas fa-rocket"></i>
+                    <span id="subscription-cta-text">Upgrade Plan</span>
+                </button>
+                <button type="button" onclick="openSectionAndScroll('subscription', 'payment-history-section')" class="btn-cyber btn-cyber-outline btn-cyber-sm">
+                    <i class="fas fa-history"></i>
+                    <span>Payment History</span>
+                </button>
+            </div>
         </div>
         <div class="section-body">
+            <!-- Pending Payments Alert -->
+            <div id="pending-payments-alert" class="hidden mb-6 p-4 rounded-xl border" style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.3);">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-clock text-yellow-400 text-xl"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold text-yellow-400">Payment Pending Confirmation</div>
+                        <div class="text-sm text-white/60" id="pending-payment-details">Your payment is being verified by admin.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Free Mode Banner (shown when subscriptions disabled) -->
+            <div id="free-mode-banner" class="hidden mb-6 p-4 rounded-xl border" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 240, 255, 0.1)); border-color: rgba(0, 255, 136, 0.3);">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-gift text-green-400 text-2xl"></i>
+                    <div>
+                        <div class="font-display font-bold text-green-400">Free Access Mode</div>
+                        <div class="text-sm text-white/60">Paid subscriptions are currently disabled. Enjoy free access to all features!</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Subscription Status Card -->
             <div id="subscription-status-card" class="mb-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1508,26 +1408,24 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Pending Payments Alert -->
-            <div id="pending-payments-alert" class="hidden mb-6 p-4 rounded-xl border" style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.3);">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-clock text-yellow-400 text-xl"></i>
-                    <div class="flex-1">
-                        <div class="font-semibold text-yellow-400">Payment Pending Confirmation</div>
-                        <div class="text-sm text-white/60" id="pending-payment-details">Your payment is being verified by admin.</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Free Mode Banner (shown when subscriptions disabled) -->
-            <div id="free-mode-banner" class="hidden mb-6 p-4 rounded-xl border" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 240, 255, 0.1)); border-color: rgba(0, 255, 136, 0.3);">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-gift text-green-400 text-2xl"></i>
-                    <div>
-                        <div class="font-display font-bold text-green-400">Free Access Mode</div>
-                        <div class="text-sm text-white/60">Paid subscriptions are currently disabled. Enjoy free access to all features!</div>
-                    </div>
+
+            <div>
+                <div class="text-xs text-white/50 uppercase tracking-wider mb-2">Included Features</div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                          style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+                        <i class="fas fa-check"></i> Copy Trading
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                          id="feature-api"
+                          style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                        <i class="fas fa-lock"></i> API Access
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs"
+                          id="feature-chat"
+                          style="background: rgba(255, 255, 255, 0.05); color: rgba(255,255,255,0.3);">
+                        <i class="fas fa-lock"></i> Live Chat
+                    </span>
                 </div>
             </div>
         </div>
@@ -1958,12 +1856,6 @@
         </div>
     </div>
     
-    <div class="mt-8">
-        <a href="/influencer" class="btn-cyber w-full text-center">
-            <i class="fas fa-rocket mr-2"></i>
-            Open Influencer Dashboard
-        </a>
-    </div>
 </div>
 
 <!-- ==================== MODALS ==================== -->
@@ -2744,23 +2636,8 @@
         const tradingNote = document.getElementById('sub-trading-note');
         const freeBanner = document.getElementById('free-mode-banner');
         const upgradeSection = document.getElementById('upgrade-section');
-        
-        // Check if subscriptions are disabled (free mode)
-        if (!data.subscription_enabled) {
-            freeBanner.classList.remove('hidden');
-            upgradeSection.classList.add('hidden');
-            statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
-            statusBadge.style.color = '#10b981';
-            statusText.textContent = 'FREE ACCESS';
-            tradingDot.style.background = 'var(--neon-green)';
-            tradingStatus.textContent = 'ENABLED';
-            tradingStatus.style.color = 'var(--neon-green)';
-            tradingNote.textContent = 'Full access - Subscriptions disabled';
-            return;
-        }
-        
-        freeBanner.classList.add('hidden');
-        upgradeSection.classList.remove('hidden');
+        const cta = document.getElementById('subscription-cta');
+        const ctaText = document.getElementById('subscription-cta-text');
         
         // Plan info
         const planNames = {
@@ -2772,22 +2649,75 @@
             'pro_annual': 'Pro Annual'
         };
         
-        planEl.textContent = planNames[data.plan] || data.plan || 'Free';
+        const planId = data.plan || 'free';
+        const isFreePlan = planId === 'free';
+        
+        const setStatusBadge = (bg, color, border, text) => {
+            statusBadge.style.background = bg;
+            statusBadge.style.color = color;
+            statusBadge.style.borderColor = border;
+            statusText.textContent = text;
+        };
+        
+        // Check if subscriptions are disabled (free mode)
+        if (!data.subscription_enabled) {
+            freeBanner.classList.remove('hidden');
+            upgradeSection.classList.add('hidden');
+            if (cta) cta.classList.add('hidden');
+            
+            setStatusBadge('rgba(16, 185, 129, 0.1)', '#10b981', 'rgba(16, 185, 129, 0.3)', 'FREE ACCESS');
+            if (planEl) planEl.textContent = 'Free Access';
+            if (descEl) descEl.textContent = 'All features unlocked';
+            
+            expiresEl.style.color = 'var(--neon-cyan)';
+            expiresEl.textContent = 'N/A';
+            daysEl.textContent = '';
+            
+            tradingDot.style.background = 'var(--neon-green)';
+            tradingStatus.textContent = 'ENABLED';
+            tradingStatus.style.color = 'var(--neon-green)';
+            tradingNote.textContent = 'Full access - Subscriptions disabled';
+            
+            updateSubscriptionUI(planId, false);
+            return;
+        }
+        
+        freeBanner.classList.add('hidden');
+        upgradeSection.classList.remove('hidden');
+        if (cta) cta.classList.remove('hidden');
+        
+        if (ctaText) {
+            if (isFreePlan) {
+                ctaText.textContent = 'Upgrade Plan';
+            } else if (data.is_active) {
+                ctaText.textContent = 'Manage Plan';
+            } else {
+                ctaText.textContent = 'Renew Plan';
+            }
+        }
+        
+        planEl.textContent = planNames[planId] || planId || 'Free';
+        if (descEl) {
+            if (isFreePlan) {
+                descEl.textContent = 'Free plan';
+            } else if (data.is_active) {
+                descEl.textContent = 'Active subscription';
+            } else {
+                descEl.textContent = 'Expired subscription';
+            }
+        }
         
         // Status badge
-        if (data.is_active) {
-            statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
-            statusBadge.style.color = '#10b981';
-            statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-            statusText.textContent = 'ACTIVE';
+        if (isFreePlan) {
+            setStatusBadge('rgba(59, 130, 246, 0.1)', '#3b82f6', 'rgba(59, 130, 246, 0.3)', 'FREE PLAN');
+        } else if (data.is_active) {
+            setStatusBadge('rgba(16, 185, 129, 0.1)', '#10b981', 'rgba(16, 185, 129, 0.3)', 'ACTIVE');
         } else {
-            statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
-            statusBadge.style.color = '#ef4444';
-            statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-            statusText.textContent = 'EXPIRED';
+            setStatusBadge('rgba(239, 68, 68, 0.1)', '#ef4444', 'rgba(239, 68, 68, 0.3)', 'EXPIRED');
         }
         
         // Expiration
+        expiresEl.style.color = 'var(--neon-cyan)';
         if (data.expires_at) {
             const expires = new Date(data.expires_at);
             expiresEl.textContent = expires.toLocaleDateString('en-US', { 
@@ -2803,7 +2733,7 @@
                 expiresEl.style.color = 'var(--neon-yellow)';
             }
         } else {
-            expiresEl.textContent = data.plan === 'free' ? 'N/A' : 'Never';
+            expiresEl.textContent = isFreePlan ? 'N/A' : 'Never';
             daysEl.textContent = '';
         }
         
@@ -2821,7 +2751,7 @@
         }
         
         // Update feature badges
-        updateSubscriptionUI();
+        updateSubscriptionUI(planId, data.subscription_enabled);
     }
     
     function showPendingPayments(pendingPayments) {
@@ -3111,23 +3041,28 @@
     }
     
     // Update subscription UI based on plan
-    function updateSubscriptionUI() {
-        const plan = '{{ user_settings.subscription_plan|default("free") }}';
+    function updateSubscriptionUI(planOverride, subscriptionEnabledOverride) {
+        const plan = planOverride || '{{ user_settings.subscription_plan|default("free") }}';
+        const subscriptionEnabled = typeof subscriptionEnabledOverride === 'boolean' ? subscriptionEnabledOverride : true;
+        const hasPremiumAccess = !subscriptionEnabled || plan !== 'free';
         const featureApi = document.getElementById('feature-api');
         const featureChat = document.getElementById('feature-chat');
         
-        if (plan !== 'free') {
-            if (featureApi) {
-                featureApi.style.background = 'rgba(34, 197, 94, 0.1)';
-                featureApi.style.color = '#22c55e';
-                featureApi.innerHTML = '<i class="fas fa-check"></i> API Access';
+        const setFeatureState = (el, label, enabled) => {
+            if (!el) return;
+            if (enabled) {
+                el.style.background = 'rgba(34, 197, 94, 0.1)';
+                el.style.color = '#22c55e';
+                el.innerHTML = `<i class="fas fa-check"></i> ${label}`;
+            } else {
+                el.style.background = 'rgba(255, 255, 255, 0.05)';
+                el.style.color = 'rgba(255,255,255,0.3)';
+                el.innerHTML = `<i class="fas fa-lock"></i> ${label}`;
             }
-            if (featureChat) {
-                featureChat.style.background = 'rgba(34, 197, 94, 0.1)';
-                featureChat.style.color = '#22c55e';
-                featureChat.innerHTML = '<i class="fas fa-check"></i> Live Chat';
-            }
-        }
+        };
+        
+        setFeatureState(featureApi, 'API Access', hasPremiumAccess);
+        setFeatureState(featureChat, 'Live Chat', hasPremiumAccess);
     }
     
     // Initialize subscription when section is shown
