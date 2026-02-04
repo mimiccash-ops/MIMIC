@@ -502,7 +502,7 @@ class EmailSender:
     
     def send_password_reset_code(self, to_email: str, code: str, username: str) -> bool:
         """Надіслати код відновлення паролю на Email"""
-        subject = "🔐 Brain Capital - Відновлення паролю"
+        subject = "🔐 MIMIC - Відновлення паролю"
         
         html_content = f"""
 <!DOCTYPE html>
@@ -589,7 +589,7 @@ class EmailSender:
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">🧠 BRAIN CAPITAL</div>
+            <div class="logo">🧠 MIMIC</div>
             <div class="title">Відновлення паролю</div>
             <div class="subtitle">для акаунту {username}</div>
         </div>
@@ -609,7 +609,7 @@ class EmailSender:
         </div>
         
         <div class="footer">
-            © {datetime.now().year} Brain Capital. Всі права захищено.
+            © {datetime.now().year} MIMIC. Всі права захищено.
         </div>
     </div>
 </body>
@@ -617,7 +617,7 @@ class EmailSender:
 """
         
         text_content = f"""
-BRAIN CAPITAL - Відновлення паролю
+MIMIC - Відновлення паролю
 
 Ви запросили відновлення паролю для акаунту {username}.
 
@@ -627,7 +627,7 @@ BRAIN CAPITAL - Відновлення паролю
 
 Якщо ви не запитували відновлення паролю, проігноруйте цей лист.
 
-© {datetime.now().year} Brain Capital
+© {datetime.now().year} MIMIC
 """
         
         return self.send_email(to_email, subject, html_content, text_content)

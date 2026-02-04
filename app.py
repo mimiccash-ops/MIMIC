@@ -7076,7 +7076,7 @@ def reset_password_verify():
         
         # Сповіщаємо користувача
         if user.telegram_chat_id and user.telegram_enabled and telegram:
-            telegram.send(f"🔒 Ваш пароль Brain Capital було успішно змінено.", chat_id=user.telegram_chat_id)
+            telegram.send(f"🔒 Ваш пароль MIMIC було успішно змінено.", chat_id=user.telegram_chat_id)
         
         flash('Пароль успішно змінено! Увійдіть з новим паролем.', 'success')
         return redirect(url_for('login'))
