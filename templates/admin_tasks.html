@@ -845,6 +845,20 @@
                 'completed': 'text-purple'
             };
             
+            const canPause = task.status === 'active';
+            const canActivate = task.status === 'paused' || task.status === 'draft';
+            const pauseTitle = t('admin.pause');
+            const activateTitle = t('admin.activate');
+            const statusToggleButton = canPause
+                ? `<button onclick="updateTaskStatus(${task.id}, 'paused')" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${pauseTitle}" data-i18n-title="admin.pause">
+                        <i class="fas fa-pause"></i>
+                   </button>`
+                : (canActivate
+                    ? `<button onclick="updateTaskStatus(${task.id}, 'active')" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${activateTitle}" data-i18n-title="admin.activate">
+                            <i class="fas fa-play"></i>
+                       </button>`
+                    : '');
+
             html += `
                 <div class="task-card" style="border: 1px solid ${task.is_featured ? 'rgba(234, 179, 8, 0.3)' : 'var(--color-border)'};">
                     <div class="task-card-main">
@@ -866,6 +880,7 @@
                         </div>
                     </div>
                     <div class="task-card-actions">
+                        ${statusToggleButton}
                         <button onclick="viewTaskParticipations(${task.id})" class="cyber-btn cyber-btn-outline cyber-btn-sm" title="${t('admin.viewParticipations')}" data-i18n-title="admin.viewParticipations">
                             <i class="fas fa-users"></i>
                         </button>
@@ -881,6 +896,31 @@
         });
         
         container.innerHTML = html;
+    }
+
+    async function updateTaskStatus(taskId, nextStatus) {
+        const task = adminTasks.find(t => t.id === taskId);
+        if (!task) return;
+        const confirmKey = nextStatus === 'paused' ? 'admin.confirmPauseTask' : 'admin.confirmActivateTask';
+        const confirmText = (t(confirmKey) || '').replace('{title}', task.title);
+        if (confirmText && !confirm(confirmText)) return;
+
+        try {
+            const response = await fetch(`/api/admin/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: nextStatus })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast(t('admin.taskStatusUpdated'), 'success');
+                loadAdminTasks();
+            } else {
+                showToast(data.error || t('admin.failedToUpdateTaskStatus'), 'error');
+            }
+        } catch (err) {
+            showToast(t('dash.networkError'), 'error');
+        }
     }
     
     function renderPendingReviews() {
