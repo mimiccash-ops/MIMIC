@@ -3167,7 +3167,13 @@ class Task(db.Model):
         if user.current_level_id:
             from models import UserLevel
             level = UserLevel.query.get(user.current_level_id)
-            if level and level.level_number < self.min_user_level:
+            if level:
+                level_number = getattr(level, "level_number", None)
+                if level_number is None:
+                    level_number = getattr(level, "order_rank", 0)
+                if level_number < self.min_user_level:
+                    return False, f"Requires level {self.min_user_level} or higher"
+            elif self.min_user_level > 0:
                 return False, f"Requires level {self.min_user_level} or higher"
         elif self.min_user_level > 0:
             return False, f"Requires level {self.min_user_level} or higher"

@@ -1877,6 +1877,13 @@ class TradingEngine:
         msg = str(err).lower()
         return "10002" in msg and ("timestamp" in msg or "recv_window" in msg or "recv window" in msg)
 
+    @staticmethod
+    def _is_bybit_rate_limit_error(exchange_name: str, err: Exception) -> bool:
+        if (exchange_name or "").lower() != "bybit":
+            return False
+        msg = str(err).lower()
+        return "10006" in msg or "too many visits" in msg or "rate limit" in msg
+
     async def _ensure_ccxt_time_sync(self, exchange, exchange_name: str, force: bool = False):
         """Sync time difference for exchanges that require tight timestamps (Bybit)."""
         if not exchange or (exchange_name or "").lower() != "bybit":
@@ -1895,6 +1902,11 @@ class TradingEngine:
         """Fetch positions with retry for timestamp drift or closed event loops."""
         if not exchange:
             return []
+        if (exchange_name or "").lower() == "bybit":
+            now = time.time()
+            cooldown_until = getattr(exchange, "_rate_limit_until", 0)
+            if cooldown_until and now < cooldown_until:
+                return []
         await self._ensure_ccxt_time_sync(exchange, exchange_name)
 
         async def _call():
@@ -1905,6 +1917,15 @@ class TradingEngine:
         try:
             return await _call()
         except Exception as e:
+            if self._is_bybit_rate_limit_error(exchange_name, e):
+                now = time.time()
+                cooldown_seconds = 30
+                exchange._rate_limit_until = now + cooldown_seconds
+                last_log = getattr(exchange, "_rate_limit_log_at", 0)
+                if now - last_log > cooldown_seconds:
+                    exchange._rate_limit_log_at = now
+                    logger.warning(f"{exchange_name} rate limit hit. Cooling down for {cooldown_seconds}s.")
+                return []
             if self._is_bybit_timestamp_error(exchange_name, e):
                 await self._ensure_ccxt_time_sync(exchange, exchange_name, force=True)
                 return await _call()
