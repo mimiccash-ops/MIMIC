@@ -1525,6 +1525,370 @@ class UserAchievement(db.Model):
             'color': '#FFD700',
             'rarity': 'epic'
         },
+        'trades_1': {
+            'name': 'First Trade',
+            'description': 'Completed your first trade.',
+            'icon': 'fa-flag-checkered',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'trades_5': {
+            'name': 'Warm-Up',
+            'description': 'Completed 5 trades.',
+            'icon': 'fa-fire',
+            'color': '#f97316',
+            'rarity': 'common'
+        },
+        'trades_10': {
+            'name': 'Double Digits',
+            'description': 'Completed 10 trades.',
+            'icon': 'fa-list-ol',
+            'color': '#0ea5e9',
+            'rarity': 'common'
+        },
+        'trades_25': {
+            'name': 'Active Trader',
+            'description': 'Completed 25 trades.',
+            'icon': 'fa-chart-line',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'trades_50': {
+            'name': 'Half Century',
+            'description': 'Completed 50 trades.',
+            'icon': 'fa-bolt',
+            'color': '#f59e0b',
+            'rarity': 'rare'
+        },
+        'trades_100': {
+            'name': 'Century Club',
+            'description': 'Completed 100 trades.',
+            'icon': 'fa-medal',
+            'color': '#facc15',
+            'rarity': 'epic'
+        },
+        'trades_250': {
+            'name': 'Quarter Thousand',
+            'description': 'Completed 250 trades.',
+            'icon': 'fa-trophy',
+            'color': '#a855f7',
+            'rarity': 'epic'
+        },
+        'trades_500': {
+            'name': 'Market Machine',
+            'description': 'Completed 500 trades.',
+            'icon': 'fa-robot',
+            'color': '#6366f1',
+            'rarity': 'legendary'
+        },
+        'trades_1000': {
+            'name': 'Trading Legend',
+            'description': 'Completed 1,000 trades.',
+            'icon': 'fa-crown',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'wins_5': {
+            'name': 'Positive Start',
+            'description': 'Achieved 5 profitable trades.',
+            'icon': 'fa-coins',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'wins_10': {
+            'name': 'Profit Collector',
+            'description': 'Achieved 10 profitable trades.',
+            'icon': 'fa-dollar-sign',
+            'color': '#10b981',
+            'rarity': 'common'
+        },
+        'wins_25': {
+            'name': 'Profit Hunter',
+            'description': 'Achieved 25 profitable trades.',
+            'icon': 'fa-chart-line',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'wins_50': {
+            'name': 'Profit Streaker',
+            'description': 'Achieved 50 profitable trades.',
+            'icon': 'fa-star',
+            'color': '#f59e0b',
+            'rarity': 'rare'
+        },
+        'wins_100': {
+            'name': 'Profit Master',
+            'description': 'Achieved 100 profitable trades.',
+            'icon': 'fa-medal',
+            'color': '#facc15',
+            'rarity': 'epic'
+        },
+        'wins_250': {
+            'name': 'Profit Titan',
+            'description': 'Achieved 250 profitable trades.',
+            'icon': 'fa-trophy',
+            'color': '#a855f7',
+            'rarity': 'legendary'
+        },
+        'winrate_60': {
+            'name': 'Consistency I',
+            'description': '60%+ win rate over 20+ trades.',
+            'icon': 'fa-bullseye',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'winrate_70': {
+            'name': 'Consistency II',
+            'description': '70%+ win rate over 50+ trades.',
+            'icon': 'fa-crosshairs',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'winrate_80': {
+            'name': 'Sharpshooter',
+            'description': '80%+ win rate over 100+ trades.',
+            'icon': 'fa-crosshairs',
+            'color': '#f59e0b',
+            'rarity': 'epic'
+        },
+        'winrate_90': {
+            'name': 'Precision Master',
+            'description': '90%+ win rate over 200+ trades.',
+            'icon': 'fa-bullseye',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'volume_1k': {
+            'name': 'Volume Starter',
+            'description': 'Reached $1,000 lifetime volume.',
+            'icon': 'fa-chart-area',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'volume_10k': {
+            'name': 'Volume Builder',
+            'description': 'Reached $10,000 lifetime volume.',
+            'icon': 'fa-layer-group',
+            'color': '#0ea5e9',
+            'rarity': 'common'
+        },
+        'volume_50k': {
+            'name': 'Volume Surge',
+            'description': 'Reached $50,000 lifetime volume.',
+            'icon': 'fa-chart-bar',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'volume_250k': {
+            'name': 'Deep Liquidity',
+            'description': 'Reached $250,000 lifetime volume.',
+            'icon': 'fa-database',
+            'color': '#a855f7',
+            'rarity': 'epic'
+        },
+        'volume_500k': {
+            'name': 'Heavy Flow',
+            'description': 'Reached $500,000 lifetime volume.',
+            'icon': 'fa-tachometer-alt',
+            'color': '#f59e0b',
+            'rarity': 'epic'
+        },
+        'volume_1m': {
+            'name': 'Million Flow',
+            'description': 'Reached $1,000,000 lifetime volume.',
+            'icon': 'fa-gem',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'volume_5m': {
+            'name': 'Five Million Club',
+            'description': 'Reached $5,000,000 lifetime volume.',
+            'icon': 'fa-crown',
+            'color': '#f97316',
+            'rarity': 'legendary'
+        },
+        'streak_3': {
+            'name': 'Hot Hand',
+            'description': '3 consecutive profitable trades.',
+            'icon': 'fa-fire',
+            'color': '#f97316',
+            'rarity': 'common'
+        },
+        'streak_10': {
+            'name': 'Unstoppable',
+            'description': '10 consecutive profitable trades.',
+            'icon': 'fa-bolt',
+            'color': '#fbbf24',
+            'rarity': 'epic'
+        },
+        'mega_winner': {
+            'name': 'Mega Winner',
+            'description': 'Single trade profit over $5,000.',
+            'icon': 'fa-gem',
+            'color': '#a855f7',
+            'rarity': 'epic'
+        },
+        'titan_winner': {
+            'name': 'Titan Winner',
+            'description': 'Single trade profit over $10,000.',
+            'icon': 'fa-crown',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'days_1': {
+            'name': 'Day One',
+            'description': 'Active for 1 day.',
+            'icon': 'fa-calendar-day',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'days_7': {
+            'name': 'One Week',
+            'description': 'Active for 7 days.',
+            'icon': 'fa-calendar-week',
+            'color': '#0ea5e9',
+            'rarity': 'common'
+        },
+        'days_30': {
+            'name': 'One Month',
+            'description': 'Active for 30 days.',
+            'icon': 'fa-calendar-alt',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'days_90': {
+            'name': 'Quarter Year',
+            'description': 'Active for 90 days.',
+            'icon': 'fa-calendar',
+            'color': '#a855f7',
+            'rarity': 'rare'
+        },
+        'days_180': {
+            'name': 'Half Year',
+            'description': 'Active for 180 days.',
+            'icon': 'fa-hourglass-half',
+            'color': '#f59e0b',
+            'rarity': 'epic'
+        },
+        'days_365': {
+            'name': 'One Year',
+            'description': 'Active for 365 days.',
+            'icon': 'fa-hourglass-end',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'referrals_1': {
+            'name': 'First Referral',
+            'description': 'Invited 1 user.',
+            'icon': 'fa-user-plus',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'referrals_3': {
+            'name': 'Connector',
+            'description': 'Invited 3 users.',
+            'icon': 'fa-users',
+            'color': '#0ea5e9',
+            'rarity': 'common'
+        },
+        'referrals_5': {
+            'name': 'Networker',
+            'description': 'Invited 5 users.',
+            'icon': 'fa-share-alt',
+            'color': '#38bdf8',
+            'rarity': 'rare'
+        },
+        'referrals_10': {
+            'name': 'Influencer',
+            'description': 'Invited 10 users.',
+            'icon': 'fa-bullhorn',
+            'color': '#f59e0b',
+            'rarity': 'rare'
+        },
+        'referrals_25': {
+            'name': 'Community Builder',
+            'description': 'Invited 25 users.',
+            'icon': 'fa-network-wired',
+            'color': '#a855f7',
+            'rarity': 'epic'
+        },
+        'referrals_50': {
+            'name': 'Growth Engine',
+            'description': 'Invited 50 users.',
+            'icon': 'fa-rocket',
+            'color': '#fbbf24',
+            'rarity': 'legendary'
+        },
+        'exchanges_1': {
+            'name': 'Connected',
+            'description': 'Connected your first exchange.',
+            'icon': 'fa-plug',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'exchanges_2': {
+            'name': 'Multi-Exchange',
+            'description': 'Connected 2 exchanges.',
+            'icon': 'fa-sitemap',
+            'color': '#0ea5e9',
+            'rarity': 'rare'
+        },
+        'exchanges_3': {
+            'name': 'Exchange Master',
+            'description': 'Connected 3 exchanges.',
+            'icon': 'fa-project-diagram',
+            'color': '#a855f7',
+            'rarity': 'epic'
+        },
+        'sub_basic': {
+            'name': 'Member',
+            'description': 'Activated a Basic plan.',
+            'icon': 'fa-ticket-alt',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'sub_pro': {
+            'name': 'Pro Member',
+            'description': 'Activated a Pro plan.',
+            'icon': 'fa-star',
+            'color': '#f59e0b',
+            'rarity': 'rare'
+        },
+        'sub_elite': {
+            'name': 'Elite Member',
+            'description': 'Activated an Enterprise plan.',
+            'icon': 'fa-crown',
+            'color': '#fbbf24',
+            'rarity': 'epic'
+        },
+        'telegram_linked': {
+            'name': 'Telegram Connected',
+            'description': 'Enabled Telegram notifications.',
+            'icon': 'fa-telegram-plane',
+            'color': '#0ea5e9',
+            'rarity': 'common'
+        },
+        'push_enabled': {
+            'name': 'Push Ready',
+            'description': 'Enabled push notifications.',
+            'icon': 'fa-bell',
+            'color': '#38bdf8',
+            'rarity': 'common'
+        },
+        'strategy_1': {
+            'name': 'Copy Trader',
+            'description': 'Subscribed to your first strategy.',
+            'icon': 'fa-clone',
+            'color': '#22c55e',
+            'rarity': 'common'
+        },
+        'strategy_3': {
+            'name': 'Portfolio Builder',
+            'description': 'Subscribed to 3 strategies.',
+            'icon': 'fa-layer-group',
+            'color': '#a855f7',
+            'rarity': 'rare'
+        },
     }
     
     @classmethod
@@ -1604,16 +1968,80 @@ class UserAchievement(db.Model):
             TradeHistory.user_id == user_id
         ).scalar()
         total_volume = float(total_volume_result or 0) * 100  # Scale up as proxy for volume
+
+        win_rate = (profitable_trades / total_trades) if total_trades > 0 else 0
+
+        max_profit_result = db.session.query(func.max(TradeHistory.pnl)).filter(
+            TradeHistory.user_id == user_id
+        ).scalar()
+        max_profit = float(max_profit_result or 0)
+        if trade_data and trade_data.get('pnl') is not None:
+            try:
+                max_profit = max(max_profit, float(trade_data.get('pnl')))
+            except (TypeError, ValueError):
+                pass
+
+        # Calculate days active
+        if user.created_at:
+            now = datetime.now(timezone.utc)
+            created = user.created_at
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            days_active = max(1, (now - created).days)
+        else:
+            days_active = 0
+
+        referral_count = user.referrals.count()
+        exchange_count = UserExchange.query.filter_by(user_id=user_id, is_active=True).count()
+        strategy_count = StrategySubscription.query.filter_by(user_id=user_id, is_active=True).count()
+        push_count = PushSubscription.query.filter_by(user_id=user_id, is_active=True).count()
         
         # First Blood: First profitable trade
         if profitable_trades >= 1:
             achievement = cls.unlock_achievement(user_id, 'first_blood')
             if achievement:
                 unlocked.append(achievement)
+
+        trade_milestones = [
+            ('trades_1', 1),
+            ('trades_5', 5),
+            ('trades_10', 10),
+            ('trades_25', 25),
+            ('trades_50', 50),
+            ('trades_100', 100),
+            ('trades_250', 250),
+            ('trades_500', 500),
+            ('trades_1000', 1000),
+        ]
+        for achievement_type, threshold in trade_milestones:
+            if total_trades >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
+
+        win_milestones = [
+            ('wins_5', 5),
+            ('wins_10', 10),
+            ('wins_25', 25),
+            ('wins_50', 50),
+            ('wins_100', 100),
+            ('wins_250', 250),
+        ]
+        for achievement_type, threshold in win_milestones:
+            if profitable_trades >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
         
         # Diamond Hands: Never closed in the red (requires at least 10 trades)
         if total_trades >= 10 and losing_trades == 0:
             achievement = cls.unlock_achievement(user_id, 'diamond_hands')
+            if achievement:
+                unlocked.append(achievement)
+
+        # Risk Manager: Keep losses under control (proxy for stop-loss usage)
+        if total_trades >= 10 and win_rate >= 0.6:
+            achievement = cls.unlock_achievement(user_id, 'risk_manager')
             if achievement:
                 unlocked.append(achievement)
         
@@ -1622,19 +2050,85 @@ class UserAchievement(db.Model):
             achievement = cls.unlock_achievement(user_id, 'whale')
             if achievement:
                 unlocked.append(achievement)
+
+        volume_milestones = [
+            ('volume_1k', 1000),
+            ('volume_10k', 10000),
+            ('volume_50k', 50000),
+            ('volume_250k', 250000),
+            ('volume_500k', 500000),
+            ('volume_1m', 1000000),
+            ('volume_5m', 5000000),
+        ]
+        for achievement_type, threshold in volume_milestones:
+            if total_volume >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
         
         # Win Streak: 5+ consecutive profitable trades
         recent_trades = TradeHistory.query.filter_by(user_id=user_id).order_by(
             TradeHistory.close_time.desc()
         ).limit(5).all()
+        recent_trades_long = TradeHistory.query.filter_by(user_id=user_id).order_by(
+            TradeHistory.close_time.desc()
+        ).limit(10).all()
+        consecutive_wins = 0
+        for t in recent_trades_long:
+            if t.pnl > 0:
+                consecutive_wins += 1
+            else:
+                break
+
+        if consecutive_wins >= 3:
+            achievement = cls.unlock_achievement(user_id, 'streak_3')
+            if achievement:
+                unlocked.append(achievement)
+
         if len(recent_trades) >= 5 and all(t.pnl > 0 for t in recent_trades):
             achievement = cls.unlock_achievement(user_id, 'win_streak')
             if achievement:
                 unlocked.append(achievement)
+
+        if consecutive_wins >= 10:
+            achievement = cls.unlock_achievement(user_id, 'streak_10')
+            if achievement:
+                unlocked.append(achievement)
         
         # Big Winner: Single trade profit > $1000
-        if trade_data and trade_data.get('pnl', 0) >= 1000:
+        if max_profit >= 1000:
             achievement = cls.unlock_achievement(user_id, 'big_winner')
+            if achievement:
+                unlocked.append(achievement)
+
+        if max_profit >= 5000:
+            achievement = cls.unlock_achievement(user_id, 'mega_winner')
+            if achievement:
+                unlocked.append(achievement)
+
+        if max_profit >= 10000:
+            achievement = cls.unlock_achievement(user_id, 'titan_winner')
+            if achievement:
+                unlocked.append(achievement)
+
+        # Win rate achievements
+        if total_trades >= 20 and win_rate >= 0.6:
+            achievement = cls.unlock_achievement(user_id, 'winrate_60')
+            if achievement:
+                unlocked.append(achievement)
+
+        if total_trades >= 50 and win_rate >= 0.7:
+            achievement = cls.unlock_achievement(user_id, 'winrate_70')
+            if achievement:
+                unlocked.append(achievement)
+
+        if total_trades >= 100 and win_rate >= 0.8:
+            achievement = cls.unlock_achievement(user_id, 'winrate_80')
+            if achievement:
+                unlocked.append(achievement)
+
+        if total_trades >= 200 and win_rate >= 0.9:
+            achievement = cls.unlock_achievement(user_id, 'winrate_90')
             if achievement:
                 unlocked.append(achievement)
         
@@ -1654,6 +2148,111 @@ class UserAchievement(db.Model):
                 achievement = cls.unlock_achievement(user_id, 'early_adopter')
                 if achievement:
                     unlocked.append(achievement)
+
+        # Days active milestones
+        day_milestones = [
+            ('days_1', 1),
+            ('days_7', 7),
+            ('days_30', 30),
+            ('days_90', 90),
+            ('days_180', 180),
+            ('days_365', 365),
+        ]
+        for achievement_type, threshold in day_milestones:
+            if days_active >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
+
+        # Referral milestones
+        referral_milestones = [
+            ('referrals_1', 1),
+            ('referrals_3', 3),
+            ('referrals_5', 5),
+            ('referrals_10', 10),
+            ('referrals_25', 25),
+            ('referrals_50', 50),
+        ]
+        for achievement_type, threshold in referral_milestones:
+            if referral_count >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
+
+        # Exchange milestones
+        exchange_milestones = [
+            ('exchanges_1', 1),
+            ('exchanges_2', 2),
+            ('exchanges_3', 3),
+        ]
+        for achievement_type, threshold in exchange_milestones:
+            if exchange_count >= threshold:
+                achievement = cls.unlock_achievement(user_id, achievement_type)
+                if achievement:
+                    unlocked.append(achievement)
+
+        # Strategy subscriptions
+        if strategy_count >= 1:
+            achievement = cls.unlock_achievement(user_id, 'strategy_1')
+            if achievement:
+                unlocked.append(achievement)
+
+        if strategy_count >= 3:
+            achievement = cls.unlock_achievement(user_id, 'strategy_3')
+            if achievement:
+                unlocked.append(achievement)
+
+        # Notifications setup
+        if user.telegram_enabled and user.telegram_chat_id:
+            achievement = cls.unlock_achievement(user_id, 'telegram_linked')
+            if achievement:
+                unlocked.append(achievement)
+
+        if push_count > 0:
+            achievement = cls.unlock_achievement(user_id, 'push_enabled')
+            if achievement:
+                unlocked.append(achievement)
+
+        # Subscription achievements
+        if user.has_active_subscription():
+            plan = (user.subscription_plan or '').lower()
+            if plan in ['basic', 'pro', 'enterprise']:
+                achievement = cls.unlock_achievement(user_id, 'sub_basic')
+                if achievement:
+                    unlocked.append(achievement)
+            if plan in ['pro', 'enterprise']:
+                achievement = cls.unlock_achievement(user_id, 'sub_pro')
+                if achievement:
+                    unlocked.append(achievement)
+            if plan == 'enterprise':
+                achievement = cls.unlock_achievement(user_id, 'sub_elite')
+                if achievement:
+                    unlocked.append(achievement)
+
+        # Night Owl: 10+ trades between midnight and 5 AM
+        night_trades = 0
+        try:
+            dialect = db.session.bind.dialect.name if db.session.bind else ''
+            if dialect == 'sqlite':
+                hour_expr = func.strftime('%H', TradeHistory.close_time)
+                night_trades = TradeHistory.query.filter(
+                    TradeHistory.user_id == user_id,
+                    hour_expr.in_(['00', '01', '02', '03', '04'])
+                ).count()
+            else:
+                hour_expr = func.extract('hour', TradeHistory.close_time)
+                night_trades = TradeHistory.query.filter(
+                    TradeHistory.user_id == user_id,
+                    hour_expr >= 0,
+                    hour_expr < 5
+                ).count()
+        except Exception:
+            night_trades = 0
+
+        if night_trades >= 10:
+            achievement = cls.unlock_achievement(user_id, 'night_owl')
+            if achievement:
+                unlocked.append(achievement)
         
         return unlocked
 
