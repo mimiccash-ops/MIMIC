@@ -4009,7 +4009,7 @@
             const data = await response.json();
             
             if (data.success) {
-                userTasks = data.tasks;
+                userTasks = (data.tasks || []).filter(task => task.status === 'active');
                 userTaskTypes = data.task_types || {};
                 userRewardTypes = data.reward_types || {};
                 renderAvailableTasks();
@@ -4052,7 +4052,7 @@
         const container = document.getElementById('available-tasks-list');
         
         // Filter out tasks that user is already participating in
-        const availableTasks = userTasks.filter(t => !t.user_participation || t.user_participation.status === 'rejected');
+        const availableTasks = userTasks.filter(t => t.status === 'active' && (!t.user_participation || t.user_participation.status === 'rejected'));
         
         if (availableTasks.length === 0) {
             container.innerHTML = `
@@ -4368,6 +4368,25 @@
             if (icon) icon.classList.remove('fa-spin');
         });
     }
+
+    function isTasksSectionActive() {
+        const section = document.querySelector('.section-content[data-section="tasks"]');
+        return section && section.classList.contains('active');
+    }
+
+    function scheduleTaskAutoRefresh() {
+        const intervalMs = 120000;
+        const refreshIfVisible = () => {
+            if (isTasksSectionActive()) {
+                refreshUserTasks();
+            }
+        };
+        if (window.createVisibilityInterval) {
+            window.createVisibilityInterval(refreshIfVisible, intervalMs, { immediate: false });
+        } else {
+            setInterval(refreshIfVisible, intervalMs);
+        }
+    }
     
     // Override showSection to load tasks and subscription when switching
     const originalUserShowSection = window.showSection;
@@ -4408,5 +4427,9 @@
     
     // Listen for hash changes
     window.addEventListener('hashchange', applySectionFromHash);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        scheduleTaskAutoRefresh();
+    });
 </script>
 {% endblock %}
