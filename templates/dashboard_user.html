@@ -1576,7 +1576,7 @@
     </div>
 
     <!-- User Task Stats -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         <div class="p-4 bg-black/30 border border-cyan-500/20 rounded-xl">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/20">
@@ -1610,14 +1610,49 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="p-4 bg-black/30 border border-emerald-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/20">
+                    <i class="fas fa-dollar-sign text-emerald-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksRewardsMoney">Cash Rewards</div>
+                    <div class="font-mono font-bold text-lg text-emerald-400" id="user-rewards-money">$0.00</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-black/30 border border-yellow-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-500/20">
+                    <i class="fas fa-bolt text-yellow-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksRewardsXp">XP Rewards</div>
+                    <div class="font-mono font-bold text-lg text-yellow-400" id="user-rewards-xp">0 XP</div>
+                </div>
+            </div>
+        </div>
         <div class="p-4 bg-black/30 border border-pink-500/20 rounded-xl">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-pink-500/20">
                     <i class="fas fa-gift text-pink-400"></i>
                 </div>
                 <div>
-                    <div class="text-xs text-white/50" data-i18n="dash.tasksTotalRewards">Total Rewards</div>
-                    <div class="font-mono font-bold text-lg text-pink-400" id="user-total-rewards">$0</div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksRewardsPrizes">Prizes</div>
+                    <div class="font-mono font-bold text-lg text-pink-400" id="user-rewards-goods">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-black/30 border border-purple-500/20 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20">
+                    <i class="fas fa-crown text-purple-400"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-white/50" data-i18n="dash.tasksRewardsSubscription">Subscription Days</div>
+                    <div class="font-mono font-bold text-lg text-purple-400" id="user-rewards-subscription">0</div>
                 </div>
             </div>
         </div>
@@ -2523,6 +2558,26 @@
         .then(result => {
             if (result.success) {
                 showToast(result.message || t('dash.requestSent'), 'success');
+                if (Array.isArray(result.auto_completed_tasks)) {
+                    result.auto_completed_tasks.forEach(task => {
+                        if (task?.title) {
+                            showToast(`✅ ${task.title}`, 'success');
+                        }
+                    });
+                }
+                if (Array.isArray(result.new_achievements)) {
+                    result.new_achievements.forEach(achievement => {
+                        if (achievement?.name) {
+                            showToast(`🏆 ${achievement.name}`, 'success');
+                        }
+                    });
+                }
+                if ((result.auto_completed_tasks?.length || result.new_achievements?.length) && typeof refreshUserTasks === 'function') {
+                    refreshUserTasks();
+                }
+                if ((result.auto_completed_tasks?.length || result.new_achievements?.length) && typeof loadGamification === 'function') {
+                    loadGamification();
+                }
                 closeAddExchangeModal();
                 loadExchanges();
             } else {
@@ -3407,6 +3462,26 @@
 
                 if (result.success) {
                     showToast(`Subscribed to strategy`, 'success');
+                    if (Array.isArray(result.auto_completed_tasks)) {
+                        result.auto_completed_tasks.forEach(task => {
+                            if (task?.title) {
+                                showToast(`✅ ${task.title}`, 'success');
+                            }
+                        });
+                    }
+                    if (Array.isArray(result.new_achievements)) {
+                        result.new_achievements.forEach(achievement => {
+                            if (achievement?.name) {
+                                showToast(`🏆 ${achievement.name}`, 'success');
+                            }
+                        });
+                    }
+                    if ((result.auto_completed_tasks?.length || result.new_achievements?.length) && typeof refreshUserTasks === 'function') {
+                        refreshUserTasks();
+                    }
+                    if ((result.auto_completed_tasks?.length || result.new_achievements?.length) && typeof loadGamification === 'function') {
+                        loadGamification();
+                    }
                     loadStrategies(); // Reload to get updated data
                 } else {
                     checkbox.checked = false;
@@ -3547,6 +3622,13 @@
                 
                 gamificationData = data;
                 updateGamificationUI(data);
+                if (Array.isArray(data.new_achievements)) {
+                    data.new_achievements.forEach(achievement => {
+                        if (achievement?.name && typeof showToast === 'function') {
+                            showToast(`🏆 ${achievement.name}`, 'success');
+                        }
+                    });
+                }
             })
             .catch(err => console.log('Gamification fetch error:', err));
     }
@@ -4031,26 +4113,89 @@
             const data = await response.json();
             
             if (data.success) {
-                myParticipations = data.participations;
+                myParticipations = data.participations || [];
                 renderMyParticipations();
                 updateUserTaskStats();
+                handleTaskAutoProgress(data);
             }
         } catch (err) {
             console.error('Error loading participations:', err);
         }
     }
     
+    function formatRewardNumber(value, decimals = 0) {
+        const numeric = Number(value);
+        if (Number.isNaN(numeric)) {
+            return '0';
+        }
+        return numeric.toLocaleString(undefined, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+
+    function formatRewardCurrency(value) {
+        return '$' + formatRewardNumber(value, 2);
+    }
+
     function updateUserTaskStats() {
         const availableCount = userTasks.filter(t => t.can_participate).length;
         const inProgressCount = myParticipations.filter(p => ['pending', 'in_progress', 'submitted'].includes(p.status)).length;
         const completedCount = myParticipations.filter(p => p.status === 'completed').length;
-        const totalRewards = myParticipations.filter(p => p.reward_given).reduce((sum, p) => sum + (p.reward_amount || 0), 0);
+        const rewardTotals = {
+            money: 0,
+            xp: 0,
+            goods: 0,
+            subscription: 0
+        };
+        
+        myParticipations.filter(p => p.reward_given).forEach(p => {
+            const task = p.task || {};
+            const rewardType = (p.reward_type_given || task.reward_type || 'money').toLowerCase();
+            const amount = parseFloat(p.reward_amount || 0) || 0;
+            if (rewardTotals[rewardType] !== undefined) {
+                rewardTotals[rewardType] += amount;
+            }
+        });
         
         document.getElementById('user-available-tasks').textContent = availableCount;
         document.getElementById('user-in-progress-tasks').textContent = inProgressCount;
         document.getElementById('user-completed-tasks').textContent = completedCount;
-        document.getElementById('user-total-rewards').textContent = '$' + totalRewards.toFixed(2);
+        
+        const moneyEl = document.getElementById('user-rewards-money');
+        const xpEl = document.getElementById('user-rewards-xp');
+        const goodsEl = document.getElementById('user-rewards-goods');
+        const subscriptionEl = document.getElementById('user-rewards-subscription');
+        if (moneyEl) moneyEl.textContent = formatRewardCurrency(rewardTotals.money);
+        if (xpEl) xpEl.textContent = `${formatRewardNumber(rewardTotals.xp, 0)} XP`;
+        if (goodsEl) goodsEl.textContent = formatRewardNumber(rewardTotals.goods, 0);
+        if (subscriptionEl) subscriptionEl.textContent = formatRewardNumber(rewardTotals.subscription, 0);
         document.getElementById('active-tasks-badge').textContent = inProgressCount;
+    }
+
+    function handleTaskAutoProgress(result) {
+        if (!result) return;
+        const completedTasks = Array.isArray(result.auto_completed_tasks) ? result.auto_completed_tasks : [];
+        const newAchievements = Array.isArray(result.new_achievements) ? result.new_achievements : [];
+
+        completedTasks.forEach(task => {
+            if (task?.title && typeof showToast === 'function') {
+                showToast(`✅ ${task.title}`, 'success');
+            }
+        });
+
+        newAchievements.forEach(achievement => {
+            if (achievement?.name && typeof showToast === 'function') {
+                showToast(`🏆 ${achievement.name}`, 'success');
+            }
+        });
+
+        if (completedTasks.length && typeof loadUserTasks === 'function') {
+            loadUserTasks();
+        }
+        if ((completedTasks.length || newAchievements.length) && typeof loadGamification === 'function') {
+            loadGamification();
+        }
     }
     
     function renderAvailableTasks() {
@@ -4178,6 +4323,14 @@
             completedParticipations.slice(0, 10).forEach(p => {
                 const task = p.task || {};
                 const completedAt = new Date(p.completed_at);
+                const rewardType = (p.reward_type_given || task.reward_type || 'money').toLowerCase();
+                const rewardInfo = userRewardTypes[rewardType] || { name: rewardType, icon: 'fa-gift', color: '#888' };
+                const rewardAmount = parseFloat(p.reward_amount || 0) || 0;
+                const rewardDisplay = rewardType === 'money'
+                    ? `+$${formatRewardNumber(rewardAmount, 2)}`
+                    : rewardType === 'xp'
+                        ? `+${formatRewardNumber(rewardAmount, 0)} XP`
+                        : `+${formatRewardNumber(rewardAmount, 0)}`;
                 
                 html += `
                     <div class="flex items-center justify-between p-3 rounded-lg" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2);">
@@ -4192,9 +4345,9 @@
                         </div>
                         <div class="text-right">
                             <div class="font-mono font-bold text-green-400">
-                                ${task.reward_type === 'money' ? '+$' + p.reward_amount : '+' + p.reward_amount}
+                                ${rewardDisplay}
                             </div>
-                            <div class="text-xs text-white/40">${task.reward_type || 'reward'}</div>
+                            <div class="text-xs text-white/40">${rewardInfo.name || rewardType}</div>
                         </div>
                     </div>
                 `;

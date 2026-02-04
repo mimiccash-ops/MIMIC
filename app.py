@@ -1754,6 +1754,209 @@ def get_leaderboard_stats():
 
 # ==================== TASK/CHALLENGE SYSTEM ====================
 
+AUTO_TASK_RULES = [
+    {
+        'key': 'email_connected',
+        'titles': [
+            'Додайте email для відновлення',
+            'Add recovery email',
+            'Add recovery e-mail'
+        ],
+        'condition': lambda ctx: ctx.get('has_email', False)
+    },
+    {
+        'key': 'telegram_connected',
+        'titles': [
+            'Увімкніть Telegram-сповіщення',
+            'Enable Telegram notifications'
+        ],
+        'condition': lambda ctx: ctx.get('telegram_enabled', False)
+    },
+    {
+        'key': 'push_enabled',
+        'titles': [
+            'Увімкніть push-сповіщення в браузері',
+            'Enable push notifications'
+        ],
+        'condition': lambda ctx: ctx.get('push_enabled', False)
+    },
+    {
+        'key': 'exchange_connected',
+        'titles': [
+            'Підключіть біржу через API',
+            'Connect an exchange via API',
+            'Connect exchange via API'
+        ],
+        'condition': lambda ctx: ctx.get('exchange_count', 0) >= 1
+    },
+    {
+        'key': 'exchange_connected_2',
+        'titles': [
+            'Підключіть другу біржу',
+            'Connect a second exchange'
+        ],
+        'condition': lambda ctx: ctx.get('exchange_count', 0) >= 2
+    },
+]
+
+AUTO_TASK_RULES_BY_KEY = {rule['key']: rule for rule in AUTO_TASK_RULES}
+AUTO_TASK_TRIGGER_KEYS = set(AUTO_TASK_RULES_BY_KEY.keys())
+AUTO_APPROVE_TASK_SUBMISSIONS = True
+
+
+def _build_auto_task_context(user):
+    from models import UserExchange, PushSubscription, StrategySubscription
+
+    exchange_count = UserExchange.query.filter(
+        UserExchange.user_id == user.id,
+        UserExchange.status.in_(['APPROVED', 'PENDING'])
+    ).count()
+    push_count = PushSubscription.query.filter_by(user_id=user.id, is_active=True).count()
+    strategy_count = StrategySubscription.query.filter_by(user_id=user.id, is_active=True).count()
+    has_subscription = user.has_active_subscription() if user else False
+    plan = (user.subscription_plan or '').lower() if user else ''
+
+    return {
+        'has_email': bool(getattr(user, 'email', None)),
+        'telegram_enabled': bool(getattr(user, 'telegram_enabled', False) and getattr(user, 'telegram_chat_id', None)),
+        'push_enabled': push_count > 0,
+        'exchange_count': exchange_count,
+        'strategy_count': strategy_count,
+        'has_subscription': has_subscription,
+        'subscription_plan': plan
+    }
+
+
+def _match_auto_task_rule(task, triggers):
+    if not task or not triggers:
+        return None
+    if task.verification_url and isinstance(task.verification_url, str) and task.verification_url.startswith('auto:'):
+        trigger_key = task.verification_url.split(':', 1)[1].strip()
+        if trigger_key in triggers:
+            return AUTO_TASK_RULES_BY_KEY.get(trigger_key)
+    for trigger_key in triggers:
+        rule = AUTO_TASK_RULES_BY_KEY.get(trigger_key)
+        if rule and task.title in rule['titles']:
+            return rule
+    return None
+
+
+def _auto_complete_tasks_for_user(user, triggers, context=None):
+    if not user or not triggers:
+        return []
+    from models import Task, TaskParticipation, User
+
+    context = context or _build_auto_task_context(user)
+
+    titles = set()
+    tags = set()
+    for trigger_key in triggers:
+        rule = AUTO_TASK_RULES_BY_KEY.get(trigger_key)
+        if not rule:
+            continue
+        if rule['condition'](context):
+            titles.update(rule['titles'])
+            tags.add(f"auto:{trigger_key}")
+
+    if not titles and not tags:
+        return []
+
+    filters = []
+    if titles:
+        filters.append(Task.title.in_(list(titles)))
+    if tags:
+        filters.append(Task.verification_url.in_(list(tags)))
+    if not filters:
+        return []
+
+    tasks = Task.query.filter(Task.status == 'active').filter(db.or_(*filters)).all()
+    if not tasks:
+        return []
+
+    admin_user = User.query.filter_by(role='admin').first()
+    completed = []
+
+    for task in tasks:
+        rule = _match_auto_task_rule(task, triggers)
+        if not rule or not rule['condition'](context):
+            continue
+
+        participation = TaskParticipation.query.filter_by(
+            task_id=task.id,
+            user_id=user.id
+        ).order_by(TaskParticipation.joined_at.desc()).first()
+
+        if participation and participation.status == 'completed':
+            continue
+
+        if not participation:
+            if not task.is_available():
+                continue
+            can_participate, _ = task.can_user_participate(user)
+            if not can_participate:
+                continue
+            participation = TaskParticipation(
+                task_id=task.id,
+                user_id=user.id,
+                status='in_progress'
+            )
+            db.session.add(participation)
+            task.total_participants += 1
+
+        participation.approve(admin_user, notes='Auto-verified')
+        completed.append(task)
+
+    return completed
+
+
+def _summarize_auto_items(items, attr, prefix, limit=3):
+    if not items:
+        return None
+    names = [getattr(item, attr, None) for item in items]
+    names = [n for n in names if n]
+    if not names:
+        return None
+    if len(names) > limit:
+        return f"{prefix}: {', '.join(names[:limit])} +{len(names) - limit}"
+    return f"{prefix}: {', '.join(names)}"
+
+
+def _auto_update_user_progress(user, triggers):
+    completed_tasks = []
+    new_achievements = []
+
+    try:
+        completed_tasks = _auto_complete_tasks_for_user(user, triggers)
+    except Exception as e:
+        logger.warning(f"Auto task completion failed for user {getattr(user, 'id', 'unknown')}: {e}")
+
+    try:
+        new_achievements = UserAchievement.check_and_unlock(user.id)
+    except Exception as e:
+        logger.warning(f"Achievement auto-check failed for user {getattr(user, 'id', 'unknown')}: {e}")
+
+    return completed_tasks, new_achievements
+
+
+def _serialize_auto_results(completed_tasks, new_achievements):
+    return {
+        'auto_completed_tasks': [
+            {
+                'id': task.id,
+                'title': task.title
+            }
+            for task in (completed_tasks or [])
+        ],
+        'new_achievements': [
+            {
+                'type': achievement.achievement_type,
+                'name': achievement.name,
+                'rarity': achievement.rarity
+            }
+            for achievement in (new_achievements or [])
+        ]
+    }
+
 @app.route('/api/tasks')
 def get_tasks():
     """
@@ -1806,7 +2009,7 @@ def get_tasks():
 def get_task(task_id):
     """Get a specific task by ID"""
     try:
-        from models import Task, TaskParticipation
+        from models import Task, TaskParticipation, User
         
         task = Task.query.get(task_id)
         if not task:
@@ -1915,12 +2118,21 @@ def submit_task(task_id):
             payout_details=payout_details,
             payout_contact=payout_contact
         )
+
+        auto_approved = False
+        if AUTO_APPROVE_TASK_SUBMISSIONS or task.auto_verify or not task.requires_approval:
+            admin_user = User.query.filter_by(role='admin').first()
+            participation.approve(admin_user, notes='Auto-approved')
+            auto_approved = True
         
         logger.info(f"User {current_user.username} submitted task: {task.title}")
         
+        message = 'Task completed automatically!' if auto_approved else (
+            'Task submitted for review!' if task.requires_approval else 'Task completed!'
+        )
         return jsonify({
             'success': True,
-            'message': 'Task submitted for review!' if task.requires_approval else 'Task completed!',
+            'message': message,
             'participation': participation.to_dict()
         })
         
@@ -1937,15 +2149,21 @@ def get_my_task_participations():
     try:
         from models import TaskParticipation
         
+        completed_tasks = []
+        if AUTO_TASK_TRIGGER_KEYS:
+            completed_tasks = _auto_complete_tasks_for_user(current_user, AUTO_TASK_TRIGGER_KEYS)
+        
         status = request.args.get('status')
         participations = TaskParticipation.get_user_participations(
             current_user.id, 
             status=status
         )
         
+        auto_results = _serialize_auto_results(completed_tasks, [])
         return jsonify({
             'success': True,
-            'participations': [p.to_dict() for p in participations]
+            'participations': [p.to_dict() for p in participations],
+            **auto_results
         })
         
     except Exception as e:
@@ -3600,6 +3818,14 @@ def update_telegram():
             current_user.telegram_enabled = True
             db.session.commit()
             flash('✅ Telegram успішно підключено! Перевірте повідомлення від бота.', 'success')
+            
+            completed_tasks, new_achievements = _auto_update_user_progress(current_user, {'telegram_connected'})
+            task_msg = _summarize_auto_items(completed_tasks, 'title', '✅ Завдання виконано')
+            achievement_msg = _summarize_auto_items(new_achievements, 'name', '🏆 Досягнення розблоковано')
+            if task_msg:
+                flash(task_msg, 'success')
+            if achievement_msg:
+                flash(achievement_msg, 'success')
         elif chat_id and not enabled:
             # Just save chat_id but disable notifications
             current_user.telegram_chat_id = chat_id
@@ -3644,6 +3870,15 @@ def update_email():
             flash('Email видалено', 'info')
         
         db.session.commit()
+        
+        triggers = {'email_connected'} if current_user.email else set()
+        completed_tasks, new_achievements = _auto_update_user_progress(current_user, triggers)
+        task_msg = _summarize_auto_items(completed_tasks, 'title', '✅ Завдання виконано')
+        achievement_msg = _summarize_auto_items(new_achievements, 'name', '🏆 Досягнення розблоковано')
+        if task_msg:
+            flash(task_msg, 'success')
+        if achievement_msg:
+            flash(achievement_msg, 'success')
     except Exception as e:
         flash(f'Помилка: {e}', 'error')
     return redirect(url_for('dashboard'))
@@ -4907,12 +5142,19 @@ def get_gamification_status():
         # Ensure levels exist
         UserLevel.initialize_default_levels()
         
+        from models import UserAchievement
+        
+        # Auto-unlock any pending achievements
+        new_achievements = UserAchievement.check_and_unlock(current_user.id)
+        
         # Get gamification summary for current user
         summary = current_user.get_gamification_summary()
+        auto_results = _serialize_auto_results([], new_achievements)
         
         return jsonify({
             'success': True,
-            **summary
+            **summary,
+            **auto_results
         })
     except Exception as e:
         logger.error(f"Error getting gamification status: {e}")
@@ -5651,6 +5893,7 @@ def admin_confirm_payment(payment_id):
         user.extend_subscription(days=payment.days, plan=payment.plan)
         
         db.session.commit()
+        _auto_update_user_progress(user, set())
         
         logger.info(f"Admin {current_user.username} confirmed payment {payment_id} for user {user.username}")
         
@@ -5763,6 +6006,7 @@ def admin_activate_subscription(user_id):
         )
         db.session.add(payment)
         db.session.commit()
+        _auto_update_user_progress(user, set())
         
         logger.info(f"Admin {current_user.username} manually activated {days} days of {plan} subscription for user {user.username}")
         
@@ -7991,6 +8235,12 @@ def add_user_exchange():
         
         logger.info(f"✅ User {current_user.id} added exchange {exchange_name} (ID: {user_exchange.id}) - Keys validated!")
         
+        completed_tasks, new_achievements = _auto_update_user_progress(
+            current_user,
+            {'exchange_connected', 'exchange_connected_2'}
+        )
+        auto_results = _serialize_auto_results(completed_tasks, new_achievements)
+        
         # Notify admin
         if telegram:
             user_name = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip() or current_user.username
@@ -8007,7 +8257,8 @@ def add_user_exchange():
                 'exchange_name': user_exchange.exchange_name,
                 'label': user_exchange.label,
                 'status': user_exchange.status
-            }
+            },
+            **auto_results
         })
         
     except Exception as e:
@@ -8857,11 +9108,15 @@ def create_subscription():
         )
         db.session.add(subscription)
         db.session.commit()
-        
+
+        completed_tasks, new_achievements = _auto_update_user_progress(current_user, set())
+        auto_results = _serialize_auto_results(completed_tasks, new_achievements)
+
         return jsonify({
             'success': True,
             'message': f'Subscribed to {strategy.name} with {allocation_percent}% allocation',
-            'subscription': subscription.to_dict()
+            'subscription': subscription.to_dict(),
+            **auto_results
         })
         
     except Exception as e:
@@ -9604,10 +9859,13 @@ def push_subscribe():
         db.session.commit()
         
         logger.info(f"📱 Push subscription saved for user {current_user.id}")
-        
+        completed_tasks, new_achievements = _auto_update_user_progress(current_user, {'push_enabled'})
+        auto_results = _serialize_auto_results(completed_tasks, new_achievements)
+
         return jsonify({
             'success': True,
-            'message': 'Subscription saved'
+            'message': 'Subscription saved',
+            **auto_results
         })
         
     except Exception as e:

@@ -4004,10 +4004,10 @@ class TaskParticipation(db.Model):
             self.payout_status = 'pending'
         db.session.commit()
     
-    def approve(self, admin_user, notes=None, reward_type=None, reward_amount=None, reward_description=None, payout_status=None, payout_reference=None):
+    def approve(self, admin_user=None, notes=None, reward_type=None, reward_amount=None, reward_description=None, payout_status=None, payout_reference=None):
         """Approve the submission and give rewards"""
         self.status = 'completed'
-        self.reviewed_by_id = admin_user.id
+        self.reviewed_by_id = admin_user.id if admin_user else None
         self.reviewed_at = datetime.now(timezone.utc)
         self.review_notes = notes
         self.completed_at = datetime.now(timezone.utc)

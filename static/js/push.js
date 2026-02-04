@@ -254,6 +254,7 @@ const PushManager = {
             
             const data = await response.json();
             console.log('[Push] Subscription saved to server:', data);
+            this.handleAutoProgress(data);
             return true;
         } catch (error) {
             console.error('[Push] Save subscription failed:', error);
@@ -282,6 +283,31 @@ const PushManager = {
         } catch (error) {
             console.error('[Push] Remove subscription failed:', error);
             throw error;
+        }
+    },
+
+    handleAutoProgress(data) {
+        if (!data) return;
+        const completedTasks = Array.isArray(data.auto_completed_tasks) ? data.auto_completed_tasks : [];
+        const newAchievements = Array.isArray(data.new_achievements) ? data.new_achievements : [];
+
+        completedTasks.forEach(task => {
+            if (task?.title && typeof showToast === 'function') {
+                showToast(`✅ ${task.title}`, 'success');
+            }
+        });
+
+        newAchievements.forEach(achievement => {
+            if (achievement?.name && typeof showToast === 'function') {
+                showToast(`🏆 ${achievement.name}`, 'success');
+            }
+        });
+
+        if ((completedTasks.length || newAchievements.length) && typeof window.refreshUserTasks === 'function') {
+            window.refreshUserTasks();
+        }
+        if ((completedTasks.length || newAchievements.length) && typeof window.loadGamification === 'function') {
+            window.loadGamification();
         }
     },
     
