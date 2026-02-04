@@ -2193,10 +2193,14 @@
     }
 
     function updateBalance(newBalance) {
+        if (!Number.isFinite(newBalance)) return;
         const balanceEl = document.getElementById('balance-value');
-        const oldBalance = parseFloat(balanceEl.textContent.replace(/[$,]/g, '')) || 0;
+        if (!balanceEl) return;
+        const parsedOld = parseFloat(balanceEl.textContent.replace(/[$,]/g, ''));
+        const oldBalance = Number.isFinite(parsedOld) ? parsedOld : 0;
+        const shouldUpdate = !Number.isFinite(parsedOld) || Math.abs(oldBalance - newBalance) > 0.01;
 
-        if (Math.abs(oldBalance - newBalance) > 0.01) {
+        if (shouldUpdate) {
             animateValue(balanceEl, oldBalance, newBalance, 800);
             updateProfitDisplay(newBalance);
             updateProgressRing(newBalance);
@@ -2377,8 +2381,9 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success && data.exchanges) {
-                    if (data.total_balance > 0) {
-                        updateBalance(data.total_balance);
+                    const totalBalance = parseFloat(data.total_balance);
+                    if (Number.isFinite(totalBalance)) {
+                        updateBalance(totalBalance);
                     }
                     data.exchanges.forEach(ex => {
                         const balanceEl = document.getElementById(`balance-${ex.id}`);

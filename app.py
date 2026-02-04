@@ -822,10 +822,13 @@ def _fetch_user_exchange_balances(user_id: int) -> dict:
                                     val = balance[coin].get('total') or balance[coin].get('free', 0)
                                 else:
                                     val = balance[coin]
-                                if val and float(val) > 0:
-                                    exchange_info['balance'] = float(val)
-                                    result['total'] += float(val)
-                                    break
+                                try:
+                                    val_num = float(val)
+                                except (TypeError, ValueError):
+                                    continue
+                                exchange_info['balance'] = val_num
+                                result['total'] += val_num
+                                break
                 else:
                     exchange_info['error'] = f"Exchange {ccxt_class} not supported"
                     
@@ -3459,7 +3462,7 @@ def dashboard():
         return redirect(url_for('admin_overview'))
     else:
         # User dashboard
-        u_bal = "Syncing..."
+        u_bal = None
         slave = next((s for s in engine.slave_clients if s['id'] == current_user.id), None)
         
         if slave:
@@ -3467,10 +3470,24 @@ def dashboard():
                 balances = slave['client'].futures_account_balance()
                 for b in balances:
                     if b['asset'] == 'USDT':
-                        u_bal = f"{float(b['balance']):,.2f}"
+                        u_bal = float(b['balance'])
                         break
             except Exception:
-                u_bal = "Помилка"
+                u_bal = None
+
+        if u_bal is None:
+            try:
+                balance_data = get_user_exchange_balances(
+                    current_user.id,
+                    allow_stale=True,
+                    allow_sync_fetch=False
+                )
+                total_balance = balance_data.get('total', 0.0)
+                u_bal = float(total_balance or 0.0)
+            except Exception:
+                u_bal = 0.0
+        
+        u_bal = f"{u_bal:,.2f}"
         
         user_history = TradeHistory.query.filter_by(user_id=current_user.id)\
             .order_by(TradeHistory.close_time.desc()).limit(50).all()
