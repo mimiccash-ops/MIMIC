@@ -1129,16 +1129,25 @@ def _socket_is_connected(sid: str, namespace: str = "/") -> bool:
 @socketio.on('connect')
 def handle_connect(auth=None):
     try:
-        if not _socket_is_connected(request.sid):
+        namespace = request.namespace or '/'
+        if not _socket_is_connected(request.sid, namespace):
             logger.debug("Connect handler called for stale socket session")
             return
         if current_user.is_authenticated:
             room = f"user_{current_user.id}"
-            join_room(room)
+            try:
+                join_room(room, namespace=namespace)
+            except ValueError:
+                logger.debug("Client disconnected before joining room")
+                return
             logger.info(f"🔌 Client connected: {current_user.username}")
             
             if current_user.role == 'admin':
-                join_room("admin_room")
+                try:
+                    join_room("admin_room", namespace=namespace)
+                except ValueError:
+                    logger.debug("Admin client disconnected before joining admin room")
+                    return
                 if engine.master_client:
                     engine.push_update('master', engine.master_client, is_master=True)
                 for slave in engine.slave_clients:
@@ -1149,7 +1158,7 @@ def handle_connect(auth=None):
                     engine.push_update(slave['id'], slave['client'])
                 else:
                     try:
-                        socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room)
+                        socketio.emit('update_data', {'balance': "0.00", 'positions': []}, room=room, namespace=namespace)
                     except (RemoteDisconnected, ConnectionAbortedError, ConnectionResetError, 
                             urllib3.exceptions.ProtocolError):
                         # Client disconnected - expected behavior, silently ignore
